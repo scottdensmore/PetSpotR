@@ -1,9 +1,11 @@
 using Dapr.Client;
 
-namespace PetSpotR.Models 
+namespace PetSpotR.Data
 {
     public class PetModel
     {
+        private readonly DaprClient _daprClient;
+
         public string Name { get; set; }
         public string Type { get; set; }
         public string Breed { get; set; }
@@ -13,9 +15,11 @@ namespace PetSpotR.Models
         public List<string> Images { get; set; }
 
 
-        // Constructor
-        public PetModel()
+        // Constructor for DI
+        public PetModel(DaprClient daprClient)
         {
+            _daprClient = daprClient;
+
             Name = "";
             Type = "";
             Breed = "";
@@ -25,10 +29,10 @@ namespace PetSpotR.Models
             Images = new();
         }
 
-        public async Task SavePetStateAsync(DaprClient daprClient, string storeName)
+        public async Task SavePetStateAsync(string storeName)
         {
             try {
-                await daprClient.SaveStateAsync(
+                await _daprClient.SaveStateAsync(
                     storeName: storeName,
                     key: ID,
                     value: this
@@ -40,10 +44,10 @@ namespace PetSpotR.Models
             return;
         }
 
-        public async Task PublishLostPetAsync(DaprClient daprClient, string pubsubName)
+        public async Task PublishLostPetAsync(string pubsubName)
         {
             try {
-                await daprClient.PublishEventAsync(
+                await _daprClient.PublishEventAsync(
                     pubsubName: pubsubName,
                     topicName: "lostPet",
                     data: new Dictionary<string, string>

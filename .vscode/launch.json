@@ -5,7 +5,7 @@
             "name": "frontend with Dapr",
             "type": "coreclr",
             "request": "launch",
-            "program": "${workspaceFolder}/src/frontend/PetSpotR/bin/Debug/net7.0/PetSpotR.dll",
+            "program": "${workspaceFolder}/src/frontend/PetSpotR/bin/Debug/net9.0/PetSpotR.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src/frontend/PetSpotR",
             "stopAtEntry": false,

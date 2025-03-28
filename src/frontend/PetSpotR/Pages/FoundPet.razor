@@ -3,10 +3,12 @@
 @using Microsoft.AspNetCore.Hosting
 @using Microsoft.Extensions.Logging
 @using Dapr.Client
-@using PetSpotR.Models
+@using PetSpotR.Data
 @inject ILogger<FoundPet> Logger
 @inject IWebHostEnvironment Environment
 @inject NavigationManager NavigationManager
+@inject Dapr.Client.DaprClient DaprClient
+@inject PetModel petModel
 
 <EditForm Model="@petModel" OnSubmit="@HandleSubmit" >
     <div class="form-container">
@@ -53,15 +55,12 @@
     private int maxAllowedFiles = 1;
     private bool isLoading;
 
-    private PetModel petModel = new();
-
-    private async void HandleSubmit()
+    private async Task HandleSubmit()
     {
         var uploadedFiles = new List<string>();
         Logger.LogInformation("Form submitted");
 
         // Process the form
-        var daprClient = new DaprClientBuilder().Build();
 
         foreach (var image in loadedImages)
         {
@@ -75,7 +74,7 @@
             try
             {
                 Logger.LogInformation("Uploading file: {Filename}", image.Name);
-                await daprClient.InvokeBindingAsync(
+                await DaprClient.InvokeBindingAsync(
                     bindingName: "images",
                     operation: "create",
                     data: ms.ToArray(),
@@ -93,7 +92,7 @@
 
             try {
                 // Logger.LogInformation("Publishing event");
-                await daprClient.PublishEventAsync(
+                await DaprClient.PublishEventAsync(
                     pubsubName: "pubsub",
                     topicName: "foundPet",
                     data: new Dictionary<string, string>
