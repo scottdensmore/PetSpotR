@@ -1,8 +1,8 @@
 @description('Azure region to deploy resources into. Defaults to location of target resource group')
 param location string = resourceGroup().location
 
-@description('Name of the Storage Account. Defaults to a unique hashed string prefized with "petspotr-"')
-param accountName string = 'petspotr${uniqueString(resourceGroup().id)}'
+@description('Name of the Storage Account. Uses a deterministic name based on the resource group name.')
+param accountName string = 'petspotrst${toLower(replace(resourceGroup().name, '-', ''))}'
 
 @description('Name of the blob container. Defaults to "images".')
 
