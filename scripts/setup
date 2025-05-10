@@ -4,6 +4,9 @@ set -e
 
 dapr init
 
+python -m venv .venv
+source .venv/bin/activate
+
 # Install python dependencies
 pip install -r ./src/backend/requirements.txt
 

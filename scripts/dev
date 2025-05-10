@@ -2,6 +2,10 @@
 
 set -e
 
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+fi
+
 lsof -ti :5114,5000 | xargs kill || true
 
 dotnet watch --project "$(dirname "$0")/../src/frontend/PetSpotR/PetSpotR.csproj" run &
