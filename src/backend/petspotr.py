@@ -25,17 +25,10 @@ score_threshold = 0.7
 credential = DefaultAzureCredential()
 workspace_ml_client = None
 
-'''
-------------------------------------------------------------------------------------------------------------------------
-NOTE: The following code is commented out due to features not yet publicly available in the Azure ML SDK for Python.
-Stay tuned for updates as Azure ML and Hugging Face features become more widely available
-------------------------------------------------------------------------------------------------------------------------
-'''
-
 email_body = """
 <img src="petspotr.io/static/logo.png" />
 """
-'''
+
 try:
     workspace_ml_client = MLClient.from_config(credential)
     subscription_id = workspace_ml_client.subscription_id
@@ -74,7 +67,6 @@ def create_pipeline(training_mltable_path, validation_mltable_path, pipeline_com
         valid_mltable_path=Input(type=AssetTypes.MLTABLE, path=validation_mltable_path),
         **pipeline_component_args,
     )
-'''
 
 class pet:
     def __init__(self, ID, Name, Type, Breed, Images, State, OwnerEmail):
@@ -88,16 +80,17 @@ class pet:
 
     def train_model(self):
         print('Training model')
-        '''
-        Temporarily commented out due to features not yet publicly available in the Azure ML SDK for Python.
-
+        
         # Process images
         index = 0
         train_validation_ratio = 5
         validation_items = []
         train_items = []
         contents = []
-        images = self.Images.split(',')
+        
+        # Handle both string and list inputs for Images
+        images = self.Images.split(',') if isinstance(self.Images, str) else self.Images
+        
         for image in images:
             url = f'https://{storage_account}.blob.core.windows.net/images/{image}'
             json_line = {
@@ -112,7 +105,7 @@ class pet:
                 train_items.append(json.dumps(json_line))
             index += 1
 
-            contents.append = (
+            contents.append(
                 "paths:\n"
                 "  - url: ./{0}\n"
                 "transformations:\n"
@@ -163,7 +156,7 @@ class pet:
             "resume_from_checkpoint": "false",
             "save_as_mlflow_model": "false",
         }
-        pipeline_object = create_pipeline(train_items, validation_items)
+        pipeline_object = create_pipeline(train_items, validation_items, pipeline_component_args)
         pipeline_object.display_name = (
             pipeline_component_args["model_name"] + "_pipeline_component_run_" + "multiclass"
         )
@@ -173,34 +166,51 @@ class pet:
             pipeline_object, experiment_name=experiment_name
         )
         print(f"Pipeline created. URL: {pipeline_run.studio_url}")
-        '''
+        
         return
 
-    def predict_image(self):
+    def predict_image(self, image):
         print('Predicting image')
-        '''
-        Temporarily commented out due to features not yet publicly available in the Azure ML SDK for Python. For now this function returns True to simulate a successful prediction.
+        
         # Load image
         image_path = f'https://{storage_account}.blob.core.windows.net/images/{image}'
-        imageData = Image(url=image_path)
-
+        
+        # Prepare payload for prediction
         payload = {
-            "imageData": imageData,
+            "image_url": image_path,
             "breed": self.Breed
         }
 
-        # Predict image
-        result = requests.post(
-            url=f'https://{workspace_name}.{region}.inference.ml.azure.com/score',
-            data=json.dumps(payload)
-        )
+        # Get endpoint URL from environment or use default
+        endpoint_url = os.environ.get('ENDPOINT_URL', f'https://{workspace_name}.{region}.inference.ml.azure.com/score')
+        
+        # Get authentication token
+        credential = DefaultAzureCredential()
+        token = credential.get_token("https://ml.azure.com/.default").token
 
-        if result.data['score'] >= score_threshold:
-            return True
-        else:
+        # Make prediction request
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json'
+        }
+        
+        try:
+            response = requests.post(
+                url=endpoint_url,
+                headers=headers,
+                json=payload
+            )
+            response.raise_for_status()  # Raise exception for bad status codes
+            
+            result = response.json()
+            score = result.get('score', 0)
+            
+            print(f"Prediction score: {score}")
+            return score >= score_threshold
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Error making prediction request: {e}")
             return False
-        '''
-        return True
 
     def alert_owner(self, dapr_client: DaprClient):
         # Send email to owner
