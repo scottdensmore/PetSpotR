@@ -99,6 +99,71 @@ Platform (GCP)**, and **Ollama with Gemma 2 models**.
   **Phase 5.2:** Implement GitHub Actions Workflow for Go CI/CD & GCP Cloud Run
   Deployment
 
+### Phase 6: Modern UI & Web Frontend (Product Milestone 6)
+
+*(See complete product design specs in [`docs/ROADMAP.md`](./ROADMAP.md))*
+
+- [ ] **[#50](https://github.com/scottdensmore/PetSpotR/issues/50)**
+  **Phase 6.1:** Implement modern web design system and responsive layout shell
+- [ ] **[#51](https://github.com/scottdensmore/PetSpotR/issues/51)**
+  **Phase 6.2:** Implement interactive lost pet report wizard with image upload &
+  live AI preview
+- [ ] **[#52](https://github.com/scottdensmore/PetSpotR/issues/52)**
+  **Phase 6.3:** Implement found pet reporting interface with AI attribute
+  auto-extraction
+- [ ] **[#53](https://github.com/scottdensmore/PetSpotR/issues/53)**
+  **Phase 6.4:** Implement pet match comparison dashboard with visual
+  side-by-side scoring breakdown
+- [ ] **[#54](https://github.com/scottdensmore/PetSpotR/issues/54)**
+  **Phase 6.5:** Implement pet reunion & resolution workflow modal with owner
+  contact system
+- [ ] **[#55](https://github.com/scottdensmore/PetSpotR/issues/55)**
+  **Phase 6.6:** Implement interactive lost & found pet directory with geospatial
+  radius filter
+
+### Phase 7: Comprehensive Playwright E2E User Journeys (Product Milestone 7)
+
+- [ ] **[#56](https://github.com/scottdensmore/PetSpotR/issues/56)**
+  **Phase 7.1:** Implement Playwright user journey for lost pet reporting and
+  photo upload
+- [ ] **[#57](https://github.com/scottdensmore/PetSpotR/issues/57)**
+  **Phase 7.2:** Implement Playwright user journey for found pet reporting and AI
+  matching cascade
+- [ ] **[#58](https://github.com/scottdensmore/PetSpotR/issues/58)**
+  **Phase 7.3:** Implement Playwright user journey for match notification alert
+  and email verification
+- [ ] **[#59](https://github.com/scottdensmore/PetSpotR/issues/59)**
+  **Phase 7.4:** Implement Playwright user journey for match confirmation and
+  reunion resolution
+- [ ] **[#60](https://github.com/scottdensmore/PetSpotR/issues/60)**
+  **Phase 7.5:** Implement Playwright user journey for search, geospatial radius
+  filtering, and pagination
+
+### Phase 8: Backend Services & API Production Features (Product Milestone 8)
+
+- [ ] **[#61](https://github.com/scottdensmore/PetSpotR/issues/61)**
+  **Phase 8.1:** Integrate geospatial location indexing and distance-weighted
+  matching
+- [ ] **[#62](https://github.com/scottdensmore/PetSpotR/issues/62)**
+  **Phase 8.2:** Implement GCS signed URL direct upload pipeline for pet images
+- [ ] **[#63](https://github.com/scottdensmore/PetSpotR/issues/63)**
+  **Phase 8.3:** Add authentication, user account sessions, and listing
+  management endpoints
+- [ ] **[#64](https://github.com/scottdensmore/PetSpotR/issues/64)**
+  **Phase 8.4:** Implement OpenTelemetry tracing, structured logging, and
+  health/readiness probes
+- [ ] **[#65](https://github.com/scottdensmore/PetSpotR/issues/65)**
+  **Phase 8.5:** Implement multi-channel notification engine (Email, SMS, Web Push)
+
+### Phase 9: Infrastructure & CI/CD Productization (Product Milestone 9)
+
+- [ ] **[#66](https://github.com/scottdensmore/PetSpotR/issues/66)**
+  **Phase 9.1:** Update OpenTofu configuration for Go Web frontend Cloud Run
+  deployment
+- [ ] **[#67](https://github.com/scottdensmore/PetSpotR/issues/67)**
+  **Phase 9.2:** Expand GitHub Actions workflow to run Playwright UI E2E suite
+  against local stack
+
 ---
 
 ## ⚡ Execution Guidelines for Coding Agents
