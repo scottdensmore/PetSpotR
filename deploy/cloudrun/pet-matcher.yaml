@@ -1,0 +1,18 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: pet-matcher
+  labels:
+    cloud.googleapis.com/location: us-central1
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/cpu-throttling: "false"
+    spec:
+      containers:
+        - image: gcr.io/petspotr/pet-matcher:latest
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 2Gi
