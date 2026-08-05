@@ -44,8 +44,11 @@ jobs:
           node-version: 20
 
       - name: Install & Run Markdown Linter
+        # Pinned, not floating: an unpinned linter turns an unrelated upstream
+        # release into a surprise red build. Keep in sync with CLAUDE.md.
         run: |
-          npx --yes markdownlint-cli "Agents.md" "docs/**/*.md"
+          npx --yes markdownlint-cli@0.49.1 --config .markdownlint.json \
+            "AGENTS.md" "CLAUDE.md" "README.md" "docs/**/*.md"
 
   go-checks:
     name: Go Build & Unit Tests
@@ -70,8 +73,44 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Go Vet & Test
+      - name: Go Vet
         if: steps.check_go.outputs.has_go == 'true'
+        run: go vet ./...
+
+      - name: Go Test (race + coverage)
+        if: steps.check_go.outputs.has_go == 'true'
+        run: go test -race -cover ./...
+
+      - name: Lint
+        if: steps.check_go.outputs.has_go == 'true'
+        uses: golangci/golangci-lint-action@v9
+        with:
+          # Pinned, not "latest": .golangci.yml uses the v2 schema, which
+          # golangci-lint v1 cannot parse. Keep this in sync with the version
+          # the verifier runs locally.
+          version: v2.12.2
+
+  infra-checks:
+    name: OpenTofu Format & Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v2
+        with:
+          # Pinned so `tofu fmt` rules cannot shift under us on an upstream
+          # release. Keep in sync with CLAUDE.md.
+          tofu_version: 1.12.5
+
+      - name: Format Check
+        working-directory: infra/opentofu
+        run: tofu fmt -check -recursive
+
+      - name: Validate
+        working-directory: infra/opentofu
         run: |
-          go vet ./...
-          go test -v ./...
+          tofu init -backend=false
+          tofu validate

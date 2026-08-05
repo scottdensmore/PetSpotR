@@ -20,8 +20,8 @@ resource "google_cloud_run_v2_service" "foundpet_service" {
   }
 }
 
-variable "region"         { type = string }
-variable "lostpet_image"  { type = string }
+variable "region" { type = string }
+variable "lostpet_image" { type = string }
 variable "foundpet_image" { type = string }
 
 output "lostpet_url" {

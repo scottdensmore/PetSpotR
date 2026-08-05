@@ -1,3 +1,41 @@
-__pycache__
-PetSpotR.generated.sln
+# Go
+*.exe
+*.test
+*.out
+coverage.out
+/bin/
+
+# Secrets & credentials — never commit
+*.env
+.env.*
+!.env.example
+*-service-account*.json
+*credentials*.json
+gha-creds-*.json
+
+# OpenTofu / Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# Node / Playwright
+node_modules/
+tests/playwright/playwright-report/
+tests/playwright/test-results/
+tests/playwright/blob-report/
+playwright/.cache/
+
+# Local runtime
 petimages
+
+# Agent tooling scratch state (.claude/, .codex/, .cursor/ are committed config)
+.entire/
+
+# Editor & OS
+.DS_Store
+*.swp
+.idea/

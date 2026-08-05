@@ -156,7 +156,7 @@ func (c *Client) doRequest(ctx context.Context, path string, reqBody interface{}
 	if err != nil {
 		return fmt.Errorf("ollama: request failed: %w", err)
 	}
-	defer httpResp.Body.Close()
+	defer func() { _ = httpResp.Body.Close() }()
 
 	if httpResp.StatusCode < 200 || httpResp.StatusCode >= 300 {
 		bodyBytes, _ := io.ReadAll(httpResp.Body)
