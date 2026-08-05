@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01KZ9HFZK3A6ZQ210E9SQQ23K4",
+  "strategy": "manual-commit",
+  "branch": "chore/agent-workflow-hardening",
+  "checkpoints_count": 2,
+  "files_touched": [
+    ".github/workflows/ci.yml",
+    ".gitignore",
+    ".golangci.yml",
+    ".markdownlint.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 98,
+    "cache_creation_tokens": 72134,
+    "cache_read_tokens": 3576658,
+    "output_tokens": 42468,
+    "api_call_count": 53
+  }
+}
