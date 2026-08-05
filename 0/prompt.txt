@@ -1,0 +1,17 @@
+lets just push and open the pr
+
+---
+
+Ok is everything ready to merge?
+
+---
+
+yep sqaush-merge and delete
+
+---
+
+Lets scrutinze the workflow once more and make sure it makes sense.
+
+---
+
+Yes fix these

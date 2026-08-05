@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01KZ9THGECZWFW6R3JB5CW4M2W",
+  "strategy": "manual-commit",
+  "branch": "chore/pin-go-toolchain-and-harden-ci",
+  "checkpoints_count": 6,
+  "files_touched": [
+    ".github/workflows/ci.yml",
+    "AGENTS.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 45,
+    "cache_creation_tokens": 48121,
+    "cache_read_tokens": 1294218,
+    "output_tokens": 14875,
+    "api_call_count": 24
+  }
+}
