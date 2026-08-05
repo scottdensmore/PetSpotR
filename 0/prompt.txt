@@ -1,0 +1,30 @@
+<task-notification>
+<task-id>bck3p5tgx</task-id>
+<summary>Monitor event: "CI results on PR #44 after version pinning"</summary>
+<event>OpenTofu Format &amp; Validate: pass
+Static Analysis &amp; Markdown Linting: pass
+Validate PR Title: pass</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bck3p5tgx</task-id>
+<summary>Monitor event: "CI results on PR #44 after version pinning"</summary>
+<event>Go Build &amp; Unit Tests: pass
+ALL CHECKS COMPLETE</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bck3p5tgx</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/tmp/claude-1000/-home-scottdensmore-Developer-scottdensmore-petspotr/7be28aa9-7e92-4ba1-8e1a-b9a0574b54d0/tasks/bck3p5tgx.output</output-file>
+<status>completed</status>
+<summary>Monitor "CI results on PR #44 after version pinning" stream ended</summary>
+</task-notification>
+
+---
+
+ok so lets sqaush merge. We should only be adding things to Agents.md and keep the link in Claude.md. Since all other agents use Agents.md
