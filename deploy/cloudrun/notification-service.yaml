@@ -1,0 +1,18 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: notification-service
+  labels:
+    cloud.googleapis.com/location: us-central1
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/cpu-throttling: "false"
+    spec:
+      containers:
+        - image: gcr.io/petspotr/notification-service:latest
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 512Mi

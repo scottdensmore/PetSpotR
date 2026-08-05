@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: petspotr-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  lostpet-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: lostpet-service
+    container_name: petspotr-lostpet-service
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+
+  foundpet-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: foundpet-service
+    container_name: petspotr-foundpet-service
+    ports:
+      - "8081:8081"
+    environment:
+      - PORT=8081
+
+  pet-matcher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: pet-matcher
+    container_name: petspotr-pet-matcher
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      - ollama
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: notification-service
+    container_name: petspotr-notification-service
+
+volumes:
+  ollama_data:

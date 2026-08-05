@@ -1,0 +1,17 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: foundpet-service
+  labels:
+    cloud.googleapis.com/location: us-central1
+spec:
+  template:
+    spec:
+      containers:
+        - image: gcr.io/petspotr/foundpet-service:latest
+          ports:
+            - containerPort: 8081
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 512Mi
