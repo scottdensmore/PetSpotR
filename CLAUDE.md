@@ -47,10 +47,11 @@ parse it. CI pins `v2.12.2`; match it locally:
 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run
 ```
 
-Markdown lint (matches CI):
+Markdown lint. CI pins `0.49.1`; match it locally:
 
 ```bash
-npx --yes markdownlint-cli "Agents.md" "docs/**/*.md"
+npx --yes markdownlint-cli@0.49.1 --config .markdownlint.json \
+  "AGENTS.md" "CLAUDE.md" "README.md" "docs/**/*.md"
 ```
 
 Full local stack — required before running `e2e/` or Playwright:
@@ -66,24 +67,51 @@ Playwright journeys (against a running stack):
 cd tests/playwright && npm install && npx playwright test
 ```
 
-Infrastructure checks:
+Infrastructure checks. CI pins OpenTofu `1.12.5`; `tofu fmt` output can differ
+between versions, so match it locally:
 
 ```bash
-cd infra/opentofu && tofu fmt -check -recursive && tofu validate
+cd infra/opentofu
+tofu fmt -check -recursive
+tofu init -backend=false && tofu validate
 ```
 
 ## CI
 
-`.github/workflows/ci.yml` runs three jobs on pull requests:
+`.github/workflows/ci.yml` runs four jobs on pull requests. All four are
+intended to be required status checks on `main` — see
+[Branch protection](#branch-protection) for whether that is in force.
 
 - `pr-title` — validates the **PR title** as a Conventional Commit. Because
   short-lived branches are squash-merged, the PR title becomes the commit
   subject on `main`.
-- `static-checks` — markdownlint over `AGENTS.md` and `docs/**/*.md`. This path
-  is hardcoded; renaming `AGENTS.md` requires updating the workflow in the same
-  commit.
-- `go-checks` — `go vet ./...` and `go test -v ./...`.
+- `static-checks` — markdownlint. The file list is hardcoded in the workflow;
+  renaming or adding a top-level doc requires updating it in the same commit.
+- `go-checks` — `go vet ./...`, `go test -race -cover ./...`, `golangci-lint`.
+- `infra-checks` — `tofu fmt -check -recursive` and `tofu validate`.
 
-CI does **not** currently run `-race`, coverage, `golangci-lint`, the Playwright
-suite, or OpenTofu validation. Run those locally; a green CI is weaker than the
-verification `AGENTS.md` asks for.
+**Every tool version in CI is pinned.** Reproduce a CI failure by running the
+pinned version, not `@latest` — a floating linter produced a green local run and
+a red CI once already.
+
+| Tool | Pinned version |
+| --- | --- |
+| golangci-lint | `v2.12.2` (v2 config schema; v1 cannot parse `.golangci.yml`) |
+| markdownlint-cli | `0.49.1` |
+| OpenTofu | `1.12.5` |
+| Go | `1.22` |
+
+CI still does **not** run the Playwright suite or `e2e/`: both need the full
+stack plus `ollama pull gemma2:2b`. Those remain verifier-owned local steps, so
+a green CI is still narrower than the verification `AGENTS.md` asks for.
+
+## Branch protection
+
+`main` has **no ruleset yet**, so `AGENTS.md` step 11 ("never bypass a failing
+or pending required check") is currently honor-system: nothing stops a direct
+push or a merge over red checks. Until a ruleset exists, treat step 11 as a
+rule you enforce yourself.
+
+To put it in force, run the `gh api ... rulesets` command recorded in the
+project notes. It requires the four check contexts above to match the job
+`name:` values in `ci.yml` exactly — if a job is renamed, update both.
