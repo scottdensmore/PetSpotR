@@ -21,7 +21,7 @@ Platform (GCP)**, and **Ollama with Gemma 2 models**.
    Compose, Dapr, local Ollama) and in the cloud (GCP Cloud Run, managed GCP
    services).
 5. **Agentic Workflow Adherence**: Strict compliance with
-   [`Agents.md`](../Agents.md) (TDD, thin vertical slices, `ui-review`,
+   [`AGENTS.md`](../AGENTS.md) (TDD, thin vertical slices, `ui-review`,
    `verifier`, and `code-review` subagents before commits).
 
 ---
@@ -104,7 +104,7 @@ Platform (GCP)**, and **Ollama with Gemma 2 models**.
 ## ⚡ Execution Guidelines for Coding Agents
 
 When taking on any of the issues above, agents MUST follow the 11-step workflow
-defined in [`Agents.md`](../Agents.md):
+defined in [`AGENTS.md`](../AGENTS.md):
 
 1. **Inspect before changing anything.**
 2. **Create a branch first.** (e.g., `feat/issue-2-go-domain-models`)
