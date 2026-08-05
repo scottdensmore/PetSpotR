@@ -1,0 +1,9 @@
+Take a look at the workflow in Agents.md. Scrutinize it and suggest any improvements. Also link that file to a Claude.md file
+
+---
+
+well we need a UI so don't drop the ui-reviewer and apply your recomendations
+
+---
+
+yes lets commit and open the PR

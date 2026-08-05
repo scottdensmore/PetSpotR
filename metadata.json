@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01KZ9HFHH7TQGE75NDKWNQFF6A",
+  "strategy": "manual-commit",
+  "branch": "chore/agent-workflow-hardening",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "infra/opentofu/modules/cloudrun/main.tf",
+    "infra/opentofu/modules/storage/main.tf",
+    "pkg/domain/events_test.go",
+    "pkg/ollama/client.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 96,
+    "cache_creation_tokens": 71652,
+    "cache_read_tokens": 3480318,
+    "output_tokens": 41959,
+    "api_call_count": 52
+  }
+}
