@@ -1,8 +1,30 @@
 # Agent Workflow Guidelines
 
 This document defines the standard workflow required for all AI coding agents
-working on this codebase. It is the single source of truth; `CLAUDE.md` points
-here and adds only repo-specific commands and layout.
+working on this codebase, and it is the single source of truth for that
+workflow. Every agent reads this file. Tool-specific entrypoints such as
+`CLAUDE.md` only point here — never add rules, commands, or project facts to
+them, because agents that read a different entrypoint will not see them. Add it
+here instead.
+
+## The project
+
+Event-driven Go microservices for reporting and matching lost pets, running on
+GCP (Cloud Run, Pub/Sub, Firestore, GCS) and locally via `docker-compose` plus
+Ollama `gemma2:2b`.
+
+There is **no frontend**. All four services expose JSON HTTP endpoints or run as
+Pub/Sub workers. The Playwright suite exercises HTTP APIs, not a browser UI.
+
+| Path | Contents |
+| --- | --- |
+| `cmd/` | Service entrypoints: `lostpet-service`, `foundpet-service`, `pet-matcher`, `notification-service` |
+| `pkg/` | Shared packages: `domain`, `store`, `pubsub`, `blob`, `ollama`, `scoring` |
+| `e2e/` | Go end-to-end event-cascade tests (needs the stack running) |
+| `tests/playwright/` | API journey tests (needs the stack running) |
+| `infra/opentofu/` | GCP infrastructure modules |
+| `deploy/cloudrun/` | Cloud Run manifests |
+| `docs/` | `DEVELOPMENT.md`, `MIGRATION_PLAN.md` |
 
 ## Ground rules
 
@@ -147,17 +169,83 @@ real UI lands, add browser-driven specs and reassign them accordingly.
 
 ## Verification scope
 
-The `verifier` owns these commands. CI runs a subset; see `CLAUDE.md` for the
-current split and for how to bring up the local stack.
+The `verifier` owns these commands.
 
-- `go vet ./...` and `go test -race -cover ./...` — always.
-- `golangci-lint run` — always, when installed.
-- markdownlint over `AGENTS.md`, `CLAUDE.md`, and `docs/**/*.md` — when
-  Markdown changes.
-- `tofu fmt -check -recursive` and `tofu validate` — when `infra/` changes.
-- `go test ./e2e/...` and the Playwright suite — when service behavior or
-  contracts change, and a local stack is running. If no stack is available, the
-  verifier must say so rather than silently skipping.
+**Every tool version is pinned to match CI.** Reproduce a CI failure with the
+pinned version, never `@latest` — a floating linter once produced a green local
+run and a red CI on the same commit. If you change a version here, change it in
+`.github/workflows/ci.yml` in the same commit.
+
+Static checks and unit tests — always:
+
+```bash
+go vet ./...
+go test -race -cover ./...
+```
+
+Go lint — always. `.golangci.yml` uses the **v2** config schema, which a v1
+binary cannot parse:
+
+```bash
+go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run
+```
+
+Markdown lint — when Markdown changes:
+
+```bash
+npx --yes markdownlint-cli@0.49.1 --config .markdownlint.json \
+  "AGENTS.md" "CLAUDE.md" "README.md" "docs/**/*.md"
+```
+
+Infrastructure — when `infra/` changes. `tofu fmt` output can differ between
+versions, so use OpenTofu `1.12.5`:
+
+```bash
+cd infra/opentofu
+tofu fmt -check -recursive
+tofu init -backend=false && tofu validate
+```
+
+Journey coverage — when service behavior or contracts change. Both need the
+full stack; if none is running, the verifier must report `NOT RUN` with the
+reason rather than silently skipping:
+
+```bash
+ollama pull gemma2:2b
+docker-compose up --build
+
+go test ./e2e/...
+cd tests/playwright && npm install && npx playwright test
+```
+
+## CI
+
+`.github/workflows/ci.yml` runs four jobs on pull requests, all four required
+before merge:
+
+- `pr-title` — validates the **PR title** as a Conventional Commit. Because
+  short-lived branches are squash-merged, the PR title becomes the commit
+  subject on `main`.
+- `static-checks` — markdownlint. The file list is hardcoded in the workflow;
+  renaming or adding a top-level doc requires updating it in the same commit.
+- `go-checks` — `go vet`, `go test -race -cover`, `golangci-lint`.
+- `infra-checks` — `tofu fmt -check -recursive` and `tofu validate`.
+
+CI does **not** run the Playwright suite or `e2e/`: both need the full stack
+plus an `ollama pull`. Those stay verifier-owned local steps, so a green CI is
+narrower than the verification this document asks for. Do not treat CI alone as
+having satisfied step 7.
+
+## Branch protection
+
+`main` is protected by an active ruleset: pull request required, squash-only
+merges, no deletion, no force-push, and all four checks green before merge.
+There are no bypass actors — it applies to repository owners too, which is what
+makes step 11 enforceable rather than aspirational.
+
+The required check contexts must match the job `name:` values in `ci.yml`
+exactly. Renaming a job without updating the ruleset leaves a required check
+that can never report, which blocks every pull request.
 
 ## Registered subagents
 
