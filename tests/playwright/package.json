@@ -1,0 +1,14 @@
+{
+  "name": "petspotr-playwright-tests",
+  "version": "1.0.0",
+  "description": "Playwright automated user journey test suite for PetSpotR microservices",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "typescript": "^5.0.0"
+  }
+}
