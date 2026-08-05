@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/scoring"
 )
 
 //go:embed static/* templates/*
@@ -39,7 +40,10 @@ func (s *Server) routes() {
 	// Page & Health routes
 	s.mux.HandleFunc("/", s.handleIndex)
 	s.mux.HandleFunc("/report-lost", s.handleReportLost)
+	s.mux.HandleFunc("/report-found", s.handleReportFound)
 	s.mux.HandleFunc("/api/v1/lost-pets", s.handleApiLostPets)
+	s.mux.HandleFunc("/api/v1/found-pets/extract-features", s.handleApiExtractFeatures)
+	s.mux.HandleFunc("/api/v1/found-pets", s.handleApiFoundPets)
 	s.mux.HandleFunc("/healthz", s.handleHealthz)
 }
 
@@ -64,6 +68,18 @@ func (s *Server) handleReportLost(w http.ResponseWriter, r *http.Request) {
 	content, err := embeddedFiles.ReadFile("templates/report-lost.html")
 	if err != nil {
 		http.Error(w, "Failed to load report-lost template", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(content)
+}
+
+func (s *Server) handleReportFound(w http.ResponseWriter, r *http.Request) {
+	content, err := embeddedFiles.ReadFile("templates/report-found.html")
+	if err != nil {
+		http.Error(w, "Failed to load report-found template", http.StatusInternalServerError)
 		return
 	}
 
@@ -110,6 +126,85 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		ReporterEmail: req.ReporterEmail,
 		ReportedAt:    time.Now().UTC(),
 		Location:      req.Location,
+	}
+
+	if err := evt.Validate(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"status": "success",
+		"petId":  evt.PetID,
+	})
+}
+
+type FeatureExtractRequest struct {
+	ImageURL string `json:"imageUrl"`
+}
+
+func (s *Server) handleApiExtractFeatures(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req FeatureExtractRequest
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	// Simulate/Run Gemma 4 Vision AI feature extraction
+	mockGemmaJSON := `{"breed":"Golden Retriever","primaryColor":"Golden","secondaryColor":"Cream","distinctiveMarkings":["White chest patch"]}`
+	traits, _ := scoring.ParseGemmaResponse(mockGemmaJSON)
+
+	resp := map[string]any{
+		"species":             "Dog",
+		"breed":               traits.Breed,
+		"primaryColor":        traits.PrimaryColor,
+		"secondaryColor":      traits.SecondaryColor,
+		"distinctiveMarkings": traits.DistinctiveMarkings,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
+type FoundPetFormRequest struct {
+	ImageURL      string `json:"imageUrl"`
+	Location      string `json:"location"`
+	FinderEmail   string `json:"finderEmail"`
+	Species       string `json:"species"`
+	Breed         string `json:"breed"`
+	PrimaryColor  string `json:"primaryColor"`
+	CustodyStatus string `json:"custodyStatus"`
+}
+
+func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req FoundPetFormRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(req.ImageURL) == "" || strings.TrimSpace(req.Location) == "" {
+		http.Error(w, "imageUrl and location are required", http.StatusBadRequest)
+		return
+	}
+
+	petID := fmt.Sprintf("found-%d", time.Now().UnixNano())
+
+	evt := domain.FoundPetEvent{
+		PetID:    petID,
+		ImageURL: req.ImageURL,
+		FoundAt:  time.Now().UTC(),
+		Location: req.Location,
 	}
 
 	if err := evt.Validate(); err != nil {

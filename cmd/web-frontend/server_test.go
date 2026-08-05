@@ -107,4 +107,68 @@ func TestNewServer_Routes(t *testing.T) {
 			t.Errorf("expected status 400 Bad Request, got %d", rec.Code)
 		}
 	})
+
+	t.Run("GET /report-found returns 200 OK with report found page", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/report-found", nil)
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200 OK, got %d", rec.Code)
+		}
+
+		body := rec.Body.String()
+		if !strings.Contains(body, "found-report") {
+			t.Error("expected body to contain found-report container")
+		}
+		if !strings.Contains(body, "Report Found Pet") {
+			t.Error("expected body to contain Report Found Pet heading")
+		}
+	})
+
+	t.Run("POST /api/v1/found-pets/extract-features returns 200 OK with AI traits", func(t *testing.T) {
+		payload := `{"imageUrl":"https://storage.petspotr.io/found-sample.jpg"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets/extract-features", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200 OK, got %d", rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), "species") || !strings.Contains(rec.Body.String(), "primaryColor") {
+			t.Errorf("expected AI traits in response, got %s", rec.Body.String())
+		}
+	})
+
+	t.Run("POST /api/v1/found-pets with valid payload returns 201 Created", func(t *testing.T) {
+		payload := `{"imageUrl":"https://storage.petspotr.io/found-1.jpg","location":"Capitol Hill, Seattle, WA"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusCreated {
+			t.Errorf("expected status 201 Created, got %d (body: %s)", rec.Code, rec.Body.String())
+		}
+		if !strings.Contains(rec.Body.String(), "success") {
+			t.Errorf("expected success response, got %s", rec.Body.String())
+		}
+	})
+
+	t.Run("POST /api/v1/found-pets with invalid payload returns 400 Bad Request", func(t *testing.T) {
+		payload := `{"imageUrl":"","location":""}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected status 400 Bad Request, got %d", rec.Code)
+		}
+	})
 }
