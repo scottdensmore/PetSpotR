@@ -158,7 +158,7 @@ Not every gate applies to every change. Record the reason when one does not.
 
 | Gate | Applies when | Status in this repo |
 | --- | --- | --- |
-| `ui-review` | The change affects rendered UI — templates, static assets, styling, or a client app | **Dormant.** No frontend exists yet. Activate in the same pull request that introduces the first rendered surface. |
+| `ui-review` | The change affects rendered UI — templates, static assets, styling, or a client app | **Live.** Active for `cmd/web-frontend` templates and CSS. |
 | `verifier` | Always | Live |
 | `code-review` | Always | Live |
 
