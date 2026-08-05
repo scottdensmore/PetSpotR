@@ -10,10 +10,10 @@ import (
 func TestLostPetEvent_Validation(t *testing.T) {
 	t.Run("valid lost pet event", func(t *testing.T) {
 		evt := domain.LostPetEvent{
-			PetID:          "pet-123",
+			PetID:         "pet-123",
 			ReporterEmail: "owner@example.com",
-			ReportedAt:     time.Now(),
-			Location:       "Seattle, WA",
+			ReportedAt:    time.Now(),
+			Location:      "Seattle, WA",
 		}
 
 		if err := evt.Validate(); err != nil {
@@ -100,7 +100,7 @@ func TestEvents_JSONSerialization(t *testing.T) {
 		evt := domain.LostPetEvent{
 			PetID:         "pet-123",
 			ReporterEmail: "owner@example.com",
-			Location:       "Seattle, WA",
+			Location:      "Seattle, WA",
 		}
 		data, err := evt.ToJSON()
 		if err != nil {
