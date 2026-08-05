@@ -176,6 +176,16 @@ pinned version, never `@latest` — a floating linter once produced a green loca
 run and a red CI on the same commit. If you change a version here, change it in
 `.github/workflows/ci.yml` in the same commit.
 
+Go toolchain — `1.26.5`, matching `actions/setup-go` in CI. The Go version is
+pinned for the same reason the linters are: `go vet`'s analyzer set and stdlib
+behavior shift between releases, so a newer local toolchain can pass checks that
+CI rejects. `go.mod` declares `go 1.22` as the **language** version, which is a
+separate thing and does not pin the toolchain. Check yours before verifying:
+
+```bash
+go version   # must report go1.26.5
+```
+
 Static checks and unit tests — always:
 
 ```bash
@@ -242,6 +252,13 @@ having satisfied step 7.
 merges, no deletion, no force-push, and all four checks green before merge.
 There are no bypass actors — it applies to repository owners too, which is what
 makes step 11 enforceable rather than aspirational.
+
+Required status checks are **strict**: a branch must also be up to date with
+`main` before it can merge. If GitHub reports `BLOCKED` while every check is
+green, the branch is behind — update it from `main`, let CI rerun, and confirm
+a clean state again. Merging `main` in changes the reviewed state, so step 10's
+rerun rule applies: a conflict resolution needs a fresh `code-review`, while a
+clean fast-forward update does not.
 
 The required check contexts must match the job `name:` values in `ci.yml`
 exactly. Renaming a job without updating the ruleset leaves a required check

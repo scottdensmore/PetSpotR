@@ -45,7 +45,7 @@ jobs:
 
       - name: Install & Run Markdown Linter
         # Pinned, not floating: an unpinned linter turns an unrelated upstream
-        # release into a surprise red build. Keep in sync with CLAUDE.md.
+        # release into a surprise red build. Keep in sync with AGENTS.md.
         run: |
           npx --yes markdownlint-cli@0.49.1 --config .markdownlint.json \
             "AGENTS.md" "CLAUDE.md" "README.md" "docs/**/*.md"
@@ -58,36 +58,29 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Check for Go module
-        id: check_go
-        run: |
-          if [ -f "go.mod" ]; then
-            echo "has_go=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_go=false" >> "$GITHUB_OUTPUT"
-          fi
-
+      # No `if: hashFiles('go.mod')` guard here. This job is a required check,
+      # and a guarded job reports success while running nothing — so losing or
+      # renaming go.mod would silently retire vet, test, and lint instead of
+      # failing loudly. If the module layout changes, this job should break.
       - name: Setup Go
-        if: steps.check_go.outputs.has_go == 'true'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          # Exact patch pin, not '1.26': go vet's analyzer set and stdlib
+          # behavior shift between releases, so a floating toolchain can turn a
+          # green local verifier run red here. Keep in sync with AGENTS.md.
+          go-version: '1.26.5'
 
       - name: Go Vet
-        if: steps.check_go.outputs.has_go == 'true'
         run: go vet ./...
 
       - name: Go Test (race + coverage)
-        if: steps.check_go.outputs.has_go == 'true'
         run: go test -race -cover ./...
 
       - name: Lint
-        if: steps.check_go.outputs.has_go == 'true'
         uses: golangci/golangci-lint-action@v9
         with:
           # Pinned, not "latest": .golangci.yml uses the v2 schema, which
-          # golangci-lint v1 cannot parse. Keep this in sync with the version
-          # the verifier runs locally.
+          # golangci-lint v1 cannot parse. Keep in sync with AGENTS.md.
           version: v2.12.2
 
   infra-checks:
@@ -102,7 +95,7 @@ jobs:
         uses: opentofu/setup-opentofu@v2
         with:
           # Pinned so `tofu fmt` rules cannot shift under us on an upstream
-          # release. Keep in sync with CLAUDE.md.
+          # release. Keep in sync with AGENTS.md.
           tofu_version: 1.12.5
 
       - name: Format Check
