@@ -57,23 +57,34 @@ Platform (GCP)**, and **Ollama with Gemma 2 models**.
 - [ ] **[#4](https://github.com/scottdensmore/PetSpotR/issues/4)**
   **Phase 2.1:** Implement Go Ollama API client module supporting Gemma 2
   models
-- [ ] **[#5](https://github.com/scottdensmore/PetSpotR/issues/5)**
-  **Phase 2.2:** Implement Pet Feature Extraction and Image Scoring Service
-  using Gemma 2 & Ollama
+- [ ] **[#15](https://github.com/scottdensmore/PetSpotR/issues/15)**
+  **Phase 2.2a:** Gemma 2 prompt engineering & structured JSON response parser
+- [ ] **[#16](https://github.com/scottdensmore/PetSpotR/issues/16)**
+  **Phase 2.2b:** Pet similarity scoring engine with feature comparison &
+  threshold evaluation
 - [ ] **[#6](https://github.com/scottdensmore/PetSpotR/issues/6)**
   **Phase 2.3:** Implement Pet Match Notification & Alert Engine in Go
 
 ### Phase 3: Go Backend & Web Frontend (Milestone 3)
 
-- [ ] **[#7](https://github.com/scottdensmore/PetSpotR/issues/7)**
-  **Phase 3.1:** Implement Go Backend API Service replacing Python Flask
-- [ ] **[#8](https://github.com/scottdensmore/PetSpotR/issues/8)**
-  **Phase 3.2:** Convert Blazor Web App to Go Web Service & Modern UI
+- [ ] **[#17](https://github.com/scottdensmore/PetSpotR/issues/17)**
+  **Phase 3.1a:** Go HTTP server bootstrap & /lostPet event handler
+- [ ] **[#18](https://github.com/scottdensmore/PetSpotR/issues/18)**
+  **Phase 3.1b:** /foundPet event handler with scoring integration & CloudEvent
+  response
+- [ ] **[#19](https://github.com/scottdensmore/PetSpotR/issues/19)**
+  **Phase 3.2a:** Go Web Server skeleton & responsive base layout
+- [ ] **[#20](https://github.com/scottdensmore/PetSpotR/issues/20)**
+  **Phase 3.2b:** Lost Pet Report submission form page with image upload & preview
+- [ ] **[#21](https://github.com/scottdensmore/PetSpotR/issues/21)**
+  **Phase 3.2c:** Found Pet Search & Match results view with filter controls
 
 ### Phase 4: GCP Infrastructure & Local Dev Setup (Milestone 4)
 
-- [ ] **[#9](https://github.com/scottdensmore/PetSpotR/issues/9)**
-  **Phase 4.1:** Create GCP Terraform/OpenTofu Infrastructure Manifests
+- [ ] **[#22](https://github.com/scottdensmore/PetSpotR/issues/22)**
+  **Phase 4.1a:** Terraform modules for GCP Storage (GCS) & Cloud Pub/Sub
+- [ ] **[#23](https://github.com/scottdensmore/PetSpotR/issues/23)**
+  **Phase 4.1b:** Terraform modules for GCP Cloud Run & Cloud Firestore
 - [ ] **[#10](https://github.com/scottdensmore/PetSpotR/issues/10)**
   **Phase 4.2:** Configure Dapr GCP Component Definitions for Cloud Deployment
 - [ ] **[#11](https://github.com/scottdensmore/PetSpotR/issues/11)**
