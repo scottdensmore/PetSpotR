@@ -1,0 +1,33 @@
+<task-notification>
+<task-id>bjznksr2l</task-id>
+<summary>Monitor event: "CI check results on PR #44"</summary>
+<event>Validate PR Title: pass</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bjznksr2l</task-id>
+<summary>Monitor event: "CI check results on PR #44"</summary>
+<event>OpenTofu Format &amp; Validate: pass
+Static Analysis &amp; Markdown Linting: pass</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bjznksr2l</task-id>
+<summary>Monitor event: "CI check results on PR #44"</summary>
+<event>Go Build &amp; Unit Tests: fail
+ALL CHECKS COMPLETE</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bjznksr2l</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/tmp/claude-1000/-home-scottdensmore-Developer-scottdensmore-petspotr/7be28aa9-7e92-4ba1-8e1a-b9a0574b54d0/tasks/bjznksr2l.output</output-file>
+<status>completed</status>
+<summary>Monitor "CI check results on PR #44" stream ended</summary>
+</task-notification>
