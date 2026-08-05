@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR - AI-powered event-driven lost and found pet matching platform built with Go, Gemma models, and GCP Cloud Run.">
+  <title>PetSpotR — AI Lost & Found Pet Recovery Platform</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #6366f1;">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link active" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary" id="btn-report-lost">Report Lost Pet</a>
+        <a href="/report-found" class="btn btn-secondary" id="btn-report-found">Found a Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="hero">
+      <div class="container">
+        <h1 class="hero-title">Reuniting Lost Pets with <span class="brand-badge">AI Vision Intelligence</span></h1>
+        <p class="hero-subtitle">PetSpotR combines event-driven microservices with Gemma AI vision models and geospatial indexing to automatically match reported lost pets with found animals.</p>
+        
+        <div class="hero-cta">
+          <a href="/report-lost" class="btn btn-primary btn-lg" id="cta-report-lost">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Report Missing Pet
+          </a>
+          <a href="/report-found" class="btn btn-secondary btn-lg" id="cta-report-found">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            I Found a Pet
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="container">
+      <div class="stats-grid">
+        <article class="glass-card stat-card">
+          <div class="stat-number">98.4%</div>
+          <div class="stat-label">AI Visual Feature Accuracy</div>
+        </article>
+        <article class="glass-card stat-card">
+          <div class="stat-number">&lt; 3s</div>
+          <div class="stat-label">Real-Time Event Cascade Match</div>
+        </article>
+        <article class="glass-card stat-card">
+          <div class="stat-number">1,420+</div>
+          <div class="stat-label">Happy Pet Reunions</div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-content">
+      <p>&copy; 2026 PetSpotR. Event-driven Go & GCP AI Microservices.</p>
+      <p><a href="/healthz" id="footer-health-link">System Status: Operational</a></p>
+    </div>
+  </footer>
+
+  <script src="/static/js/theme.js"></script>
+</body>
+</html>
