@@ -1,10 +1,10 @@
 # PetSpotR
 
-## 🚀 Go, Google Cloud Platform & Ollama Gemma 2
+## 🚀 Go, Google Cloud Platform & Ollama Gemma 4
 
 PetSpotR is an event-driven AI application for reporting and matching lost pets.
 It runs natively on **Google Cloud Platform (GCP)** and **Locally** using
-**Go 1.22+**, **Ollama**, and **Gemma 2** vision models!
+**Go 1.22+**, **Ollama**, and **Gemma 4** vision models!
 
 ![Logo](./img/logo.svg)
 
@@ -12,7 +12,7 @@ It runs natively on **Google Cloud Platform (GCP)** and **Locally** using
   (`lostpet-service`, `foundpet-service`, `pet-matcher`,
   `notification-service`).
 - **Local Dev & Local AI**: Zero-dependency local orchestration using
-  `docker-compose` and local Ollama (`gemma2:2b`).
+  `docker-compose` and local Ollama (`gemma4:2b`).
 - **GCP Cloud Infrastructure**: Deployed on Google Cloud Run, Cloud Pub/Sub,
   Cloud Firestore, and GCS using OpenTofu
   ([`infra/opentofu/`](./infra/opentofu)).
@@ -27,7 +27,7 @@ It runs natively on **Google Cloud Platform (GCP)** and **Locally** using
 
 - [Go](https://go.dev) - High-performance backend programming language
 - [Ollama](https://ollama.com) &
-  [Gemma 2](https://huggingface.co/google/gemma-2-2b) - Local & Cloud AI vision
+  [Gemma 4](https://huggingface.co/google/gemma-4-2b) - Local & Cloud AI vision
   model inference
 - [Google Cloud Run](https://cloud.google.com/run) - Serverless container hosting
 - [Google Cloud Pub/Sub](https://cloud.google.com/pubsub) - Scalable event-driven messaging
@@ -51,7 +51,7 @@ go test -race -v -cover ./...
 To start the full local microservice stack and Ollama:
 
 ```bash
-ollama pull gemma2:2b
+ollama pull gemma4:2b
 docker-compose up --build
 ```
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
@@ -18,14 +19,20 @@ type Worker struct {
 	store        store.StateStore
 	broker       pubsub.Broker
 	ollamaClient *ollama.Client
+	modelName    string
 }
 
 // NewWorker constructs a Worker instance.
 func NewWorker(st store.StateStore, br pubsub.Broker, oc *ollama.Client) *Worker {
+	model := os.Getenv("OLLAMA_MODEL")
+	if model == "" {
+		model = "gemma4:2b"
+	}
 	return &Worker{
 		store:        st,
 		broker:       br,
 		ollamaClient: oc,
+		modelName:    model,
 	}
 }
 
@@ -50,10 +57,10 @@ func (w *Worker) ProcessFoundPet(ctx context.Context, foundPetData []byte) error
 		return fmt.Errorf("pet-matcher: invalid foundPet event: %w", err)
 	}
 
-	// 1. Analyze found pet image with Ollama + Gemma 2
+	// 1. Analyze found pet image with Ollama + Gemma 4
 	prompt := scoring.BuildGemmaPrompt("Pet", "")
 	genReq := &ollama.GenerateRequest{
-		Model:  "gemma2:2b",
+		Model:  w.modelName,
 		Prompt: prompt,
 		Images: []string{foundEvt.ImageURL},
 	}
