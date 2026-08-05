@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Report a lost pet on PetSpotR - Multi-step AI matching report wizard.">
+  <title>Report Lost Pet — PetSpotR</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #6366f1;">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode"></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" style="padding: 3rem 1.5rem;" id="main-content">
+    <div class="lost-wizard glass-card" style="max-width: 800px; margin: 0 auto;">
+      <div style="margin-bottom: 2rem; text-align: center;">
+        <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Report Lost Pet</h1>
+        <p style="color: var(--text-secondary);">Help our AI vision matcher identify your missing companion.</p>
+      </div>
+
+      <!-- Step Indicator Bar -->
+      <div style="display: flex; justify-content: space-between; margin-bottom: 2.5rem; position: relative;">
+        <div class="wizard-step-badge active" id="step-badge-1" style="flex: 1; text-align: center; font-weight: 600; padding: 0.5rem; border-bottom: 3px solid var(--brand-primary); color: var(--brand-primary);">1. Pet Info</div>
+        <div class="wizard-step-badge" id="step-badge-2" style="flex: 1; text-align: center; font-weight: 600; padding: 0.5rem; border-bottom: 3px solid var(--border-color); color: var(--text-muted);">2. Photos</div>
+        <div class="wizard-step-badge" id="step-badge-3" style="flex: 1; text-align: center; font-weight: 600; padding: 0.5rem; border-bottom: 3px solid var(--border-color); color: var(--text-muted);">3. Location</div>
+        <div class="wizard-step-badge" id="step-badge-4" style="flex: 1; text-align: center; font-weight: 600; padding: 0.5rem; border-bottom: 3px solid var(--border-color); color: var(--text-muted);">4. Contact</div>
+      </div>
+
+      <form id="lost-pet-form" onsubmit="return false;">
+        <!-- Step 1: Pet Details -->
+        <div class="wizard-step" id="wizard-step-1">
+          <h2 style="font-size: 1.25rem; margin-bottom: 1.25rem;">Pet Characteristics</h2>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+            <div>
+              <label for="petName" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Pet Name *</label>
+              <input type="text" id="petName" name="petName" required placeholder="e.g. Buddy" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+            </div>
+            <div>
+              <label for="species" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Species *</label>
+              <select id="species" name="species" required style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+                <option value="Dog">Dog</option>
+                <option value="Cat">Cat</option>
+                <option value="Bird">Bird</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+            <div>
+              <label for="breed" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Breed</label>
+              <input type="text" id="breed" name="breed" placeholder="e.g. Golden Retriever" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+            </div>
+            <div>
+              <label for="primaryColor" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Primary Color</label>
+              <input type="text" id="primaryColor" name="primaryColor" placeholder="e.g. Golden / Cream" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+            </div>
+          </div>
+
+          <div style="margin-bottom: 1.5rem;">
+            <label for="description" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Distinguishing Features & Description</label>
+            <textarea id="description" name="description" rows="3" placeholder="e.g. White chest patch, wearing red collar with tag" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);"></textarea>
+          </div>
+        </div>
+
+        <!-- Step 2: Photo Upload & Drag Drop Zone -->
+        <div class="wizard-step" id="wizard-step-2" style="display: none;">
+          <h2 style="font-size: 1.25rem; margin-bottom: 1.25rem;">Upload Pet Photo</h2>
+          <div id="dropzone" style="border: 2px dashed var(--brand-primary); border-radius: var(--radius-lg); padding: 2.5rem; text-align: center; cursor: pointer; background: rgba(99, 102, 241, 0.05); transition: background var(--transition-fast);">
+            <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--brand-primary); margin-bottom: 1rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <p style="font-weight: 600; margin-bottom: 0.5rem;">Drag & drop photo here, or click to browse</p>
+            <p style="font-size: 0.85rem; color: var(--text-secondary);">Supports JPG, PNG, WEBP up to 10MB</p>
+            <input type="file" id="photoInput" accept="image/*" style="display: none;">
+          </div>
+
+          <div id="preview-container" style="display: none; margin-top: 1.5rem; text-align: center;">
+            <p style="font-weight: 600; margin-bottom: 0.5rem; color: var(--brand-primary);">Live Photo Preview:</p>
+            <img id="imagePreview" src="" alt="Pet Preview" style="max-height: 240px; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--glass-shadow);">
+          </div>
+        </div>
+
+        <!-- Step 3: Location Picker -->
+        <div class="wizard-step" id="wizard-step-3" style="display: none;">
+          <h2 style="font-size: 1.25rem; margin-bottom: 1.25rem;">Last Seen Location</h2>
+          <div style="margin-bottom: 1.25rem;">
+            <label for="location" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Address / Neighborhood *</label>
+            <input type="text" id="location" name="location" required placeholder="e.g. Capitol Hill, Seattle, WA" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+          </div>
+
+          <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem; text-align: center;">
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Interactive Map Location Pin Marker (Geospatial Tagging)</p>
+            <div style="height: 160px; background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; gap: 0.5rem; color: var(--brand-primary);">
+              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              <span>Lat: 47.6062, Long: -122.3321 (Seattle Center)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Owner Contact -->
+        <div class="wizard-step" id="wizard-step-4" style="display: none;">
+          <h2 style="font-size: 1.25rem; margin-bottom: 1.25rem;">Owner Contact Details</h2>
+          <div style="margin-bottom: 1.25rem;">
+            <label for="reporterEmail" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Contact Email *</label>
+            <input type="email" id="reporterEmail" name="reporterEmail" required placeholder="owner@example.com" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+          </div>
+          <div style="margin-bottom: 1.25rem;">
+            <label for="phone" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Phone Number (Optional)</label>
+            <input type="tel" id="phone" name="phone" placeholder="(555) 019-2834" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+          </div>
+        </div>
+
+        <!-- Wizard Navigation Buttons -->
+        <div style="display: flex; justify-content: space-between; margin-top: 2rem; pt: 1rem; border-top: 1px solid var(--border-color);">
+          <button type="button" class="btn btn-secondary" id="btn-prev" style="visibility: hidden;">Previous</button>
+          <button type="button" class="btn btn-primary" id="btn-next">Next Step</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit" style="display: none;">Submit Report</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="success-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 200; align-items: center; justify-content: center;">
+      <div class="glass-card" style="max-width: 480px; text-align: center; padding: 2.5rem;">
+        <div style="width: 64px; height: 64px; background: rgba(16, 185, 129, 0.15); color: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+          <svg width="36" height="36" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+        </div>
+        <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">Report Submitted!</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1.75rem;">Our Gemma 4 AI matching engine has indexed your report and is continuously scanning found pet events.</p>
+        <a href="/" class="btn btn-primary" style="width: 100%;">Return to Home</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container footer-content">
+      <p>&copy; 2026 PetSpotR. Event-driven Go & GCP AI Microservices.</p>
+    </div>
+  </footer>
+
+  <script src="/static/js/theme.js"></script>
+  <script src="/static/js/lost-wizard.js"></script>
+</body>
+</html>
