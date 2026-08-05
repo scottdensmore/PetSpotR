@@ -81,9 +81,12 @@ jobs:
 
       - name: Lint
         if: steps.check_go.outputs.has_go == 'true'
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          # Pinned, not "latest": .golangci.yml uses the v2 schema, which
+          # golangci-lint v1 cannot parse. Keep this in sync with the version
+          # the verifier runs locally.
+          version: v2.12.2
 
   infra-checks:
     name: OpenTofu Format & Validate

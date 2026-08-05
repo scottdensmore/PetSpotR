@@ -40,6 +40,13 @@ go vet ./...
 go test -race -cover ./...
 ```
 
+Lint. `.golangci.yml` uses the **v2** config schema, so a v1 binary will fail to
+parse it. CI pins `v2.12.2`; match it locally:
+
+```bash
+go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run
+```
+
 Markdown lint (matches CI):
 
 ```bash
