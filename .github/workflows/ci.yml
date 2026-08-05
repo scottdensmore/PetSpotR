@@ -45,7 +45,8 @@ jobs:
 
       - name: Install & Run Markdown Linter
         run: |
-          npx --yes markdownlint-cli "Agents.md" "docs/**/*.md"
+          npx --yes markdownlint-cli --config .markdownlint.json \
+            "AGENTS.md" "CLAUDE.md" "README.md" "docs/**/*.md"
 
   go-checks:
     name: Go Build & Unit Tests
@@ -70,8 +71,37 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Go Vet & Test
+      - name: Go Vet
         if: steps.check_go.outputs.has_go == 'true'
+        run: go vet ./...
+
+      - name: Go Test (race + coverage)
+        if: steps.check_go.outputs.has_go == 'true'
+        run: go test -race -cover ./...
+
+      - name: Lint
+        if: steps.check_go.outputs.has_go == 'true'
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+  infra-checks:
+    name: OpenTofu Format & Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+
+      - name: Format Check
+        working-directory: infra/opentofu
+        run: tofu fmt -check -recursive
+
+      - name: Validate
+        working-directory: infra/opentofu
         run: |
-          go vet ./...
-          go test -v ./...
+          tofu init -backend=false
+          tofu validate
