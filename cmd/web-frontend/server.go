@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
 )
@@ -52,6 +53,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/reunions/resolve", s.handleApiReunionResolve)
 	s.mux.HandleFunc("/api/v1/push/subscribe", s.handleApiPushSubscribe)
 	s.mux.HandleFunc("/api/v1/push/test", s.handleApiPushTest)
+	s.mux.HandleFunc("/api/v1/uploads/presigned-url", s.handleApiPresignedURL)
 	s.mux.HandleFunc("/healthz", s.handleHealthz)
 }
 
@@ -495,6 +497,32 @@ func (s *Server) handleApiPushTest(w http.ResponseWriter, r *http.Request) {
 		"body":  "A 95% visual match was found for your pet Buddy in Capitol Hill.",
 		"url":   "/matches",
 	})
+}
+
+type PresignedURLRequest struct {
+	FileName    string `json:"fileName"`
+	ContentType string `json:"contentType"`
+}
+
+func (s *Server) handleApiPresignedURL(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req PresignedURLRequest
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	blobStore := blob.NewMemoryBlobStore("https://storage.petspotr.io/images")
+	res, err := blobStore.GeneratePresignedUploadURL(r.Context(), req.FileName, req.ContentType, 15*time.Minute)
+	if err != nil {
+		http.Error(w, "Failed to generate presigned upload URL", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(res)
 }
 
 func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
