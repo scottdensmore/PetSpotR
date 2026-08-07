@@ -81,11 +81,15 @@ func (w *Worker) ProcessFoundPet(ctx context.Context, foundPetData []byte) error
 	lostStateBytes, err := w.store.GetState(ctx, "lostPets", "lost-101")
 	var lostTraits *scoring.PetTraits
 	lostPetID := "lost-101"
+	lostLocation := "Capitol Hill, Seattle, WA"
 	if err == nil {
 		var lostEvt domain.LostPetEvent
 		if json.Unmarshal(lostStateBytes, &lostEvt) == nil {
 			if lostEvt.PetID != "" {
 				lostPetID = lostEvt.PetID
+			}
+			if lostEvt.Location != "" {
+				lostLocation = lostEvt.Location
 			}
 			lostTraits = &scoring.PetTraits{
 				Breed:               "Golden Retriever",
@@ -101,8 +105,8 @@ func (w *Worker) ProcessFoundPet(ctx context.Context, foundPetData []byte) error
 		return nil // No candidate available to compare against
 	}
 
-	// 3. Compute visual similarity score
-	matchResult := scoring.ComparePets(lostPetID, foundEvt.PetID, lostTraits, foundTraits)
+	// 3. Compute distance-weighted combined similarity score
+	matchResult := scoring.ComparePetsGeo(lostPetID, foundEvt.PetID, lostLocation, foundEvt.Location, lostTraits, foundTraits)
 	if matchResult != nil && matchResult.IsMatch {
 		resultBytes, err := matchResult.ToJSON()
 		if err != nil {
