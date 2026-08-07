@@ -10,15 +10,30 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 )
 
-// Worker subscribes to matchFound events and dispatches owner notifications.
+// Worker subscribes to matchFound events and dispatches multi-channel owner notifications.
 type Worker struct {
-	broker pubsub.Broker
+	broker     pubsub.Broker
+	dispatcher *MultiChannelDispatcher
 }
 
-// NewWorker constructs a Worker instance.
+// NewWorker constructs a Worker instance with default multi-channel senders.
 func NewWorker(br pubsub.Broker) *Worker {
+	dispatcher := NewMultiChannelDispatcher(
+		NewMockEmailSender(),
+		NewMockSMSSender(),
+		NewMockWebPushSender(),
+	)
 	return &Worker{
-		broker: br,
+		broker:     br,
+		dispatcher: dispatcher,
+	}
+}
+
+// NewWorkerWithDispatcher constructs a Worker with a custom MultiChannelDispatcher.
+func NewWorkerWithDispatcher(br pubsub.Broker, dispatcher *MultiChannelDispatcher) *Worker {
+	return &Worker{
+		broker:     br,
+		dispatcher: dispatcher,
 	}
 }
 
@@ -33,7 +48,7 @@ func (w *Worker) Start(ctx context.Context) error {
 	})
 }
 
-// ProcessMatchFound converts a matchFound event payload into an OwnerNotification.
+// ProcessMatchFound converts a matchFound event payload into an OwnerNotification and dispatches multi-channel alerts.
 func (w *Worker) ProcessMatchFound(ctx context.Context, matchResultData []byte) (*domain.OwnerNotification, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -64,6 +79,26 @@ func (w *Worker) ProcessMatchFound(ctx context.Context, matchResultData []byte) 
 
 	log.Printf("[Notification Service] DISPATCHING NOTIFICATION to %s: %s (Score: %.2f)",
 		notif.ToEmail, notif.Subject, notif.MatchScore)
+
+	// Multi-Channel Dispatch Execution
+	if w.dispatcher != nil {
+		msg := &NotificationMessage{
+			RecipientID: res.MatchedPetID,
+			Email:       notif.ToEmail,
+			Phone:       "+12065550199",
+			PushToken:   "push-token-default",
+			Subject:     notif.Subject,
+			Body:        notif.Body,
+			Channels:    []Channel{ChannelEmail, ChannelSMS, ChannelPush},
+		}
+
+		results, err := w.dispatcher.Dispatch(ctx, msg)
+		if err != nil {
+			log.Printf("[Notification Service] Dispatch error: %v", err)
+		} else {
+			log.Printf("[Notification Service] Dispatched across %d channels successfully", len(results))
+		}
+	}
 
 	return notif, nil
 }
