@@ -322,4 +322,20 @@ func TestNewServer_Routes(t *testing.T) {
 			t.Errorf("expected test push payload in response, got %s", rec.Body.String())
 		}
 	})
+
+	t.Run("POST /api/v1/uploads/presigned-url generates direct GCS upload URL", func(t *testing.T) {
+		payload := `{"fileName":"pet-photo.jpg","contentType":"image/jpeg"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/uploads/presigned-url", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200 OK, got %d (body: %s)", rec.Code, rec.Body.String())
+		}
+		if !strings.Contains(rec.Body.String(), "uploadUrl") || !strings.Contains(rec.Body.String(), "publicUrl") {
+			t.Errorf("expected presigned upload URL response, got %s", rec.Body.String())
+		}
+	})
 }

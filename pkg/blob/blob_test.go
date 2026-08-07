@@ -89,4 +89,23 @@ func TestMemoryBlobStore(t *testing.T) {
 			t.Errorf("GetImage: got %v, want %v", err, context.Canceled)
 		}
 	})
+
+	t.Run("generate presigned upload URL", func(t *testing.T) {
+		res, err := bs.GeneratePresignedUploadURL(ctx, "photo.jpg", "image/jpeg", 15*20)
+		if err != nil {
+			t.Fatalf("failed to generate presigned upload URL: %v", err)
+		}
+
+		if res == nil {
+			t.Fatal("expected non-nil PresignedURLResponse")
+		}
+
+		if res.UploadURL == "" || res.PublicURL == "" {
+			t.Errorf("expected non-empty upload and public URLs, got %+v", res)
+		}
+
+		if res.FileName != "photo.jpg" {
+			t.Errorf("expected fileName photo.jpg, got %s", res.FileName)
+		}
+	})
 }
