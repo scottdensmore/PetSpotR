@@ -51,17 +51,51 @@ func CalculateMatchScore(t1, t2 *PetTraits) float64 {
 	return math.Min(1.0, math.Max(0.0, score))
 }
 
+// CalculateDistanceScore computes a spatial score between 0.0 and 1.0 based on physical distance miles.
+func CalculateDistanceScore(distanceMiles, maxRadiusMiles float64) float64 {
+	if maxRadiusMiles <= 0 {
+		maxRadiusMiles = 15.0
+	}
+	if distanceMiles <= 0 {
+		return 1.0
+	}
+	if distanceMiles >= maxRadiusMiles {
+		return 0.0
+	}
+	return math.Max(0.0, 1.0-(distanceMiles/maxRadiusMiles))
+}
+
+// CalculateCombinedMatchScore combines visual similarity (70% weight) and spatial proximity (30% weight).
+func CalculateCombinedMatchScore(visualScore, spatialScore float64) float64 {
+	combined := (0.70 * visualScore) + (0.30 * spatialScore)
+	return math.Min(1.0, math.Max(0.0, combined))
+}
+
 // ComparePets generates a validated domain.MatchResult from two pet trait sets.
 func ComparePets(lostPetID, foundPetID string, lostTraits, foundTraits *PetTraits) *domain.MatchResult {
-	score := CalculateMatchScore(lostTraits, foundTraits)
-	isMatch := score >= MatchThreshold
+	return ComparePetsGeo(lostPetID, foundPetID, "", "", lostTraits, foundTraits)
+}
 
-	details := fmt.Sprintf("Calculated visual match score: %.2f (Threshold: %.2f)", score, MatchThreshold)
+// ComparePetsGeo generates a validated domain.MatchResult combining visual similarity and spatial distance.
+func ComparePetsGeo(lostPetID, foundPetID, lostLocation, foundLocation string, lostTraits, foundTraits *PetTraits) *domain.MatchResult {
+	visualScore := CalculateMatchScore(lostTraits, foundTraits)
+
+	// Distance Calculation
+	p1 := domain.ParseLocationCoordinates(lostLocation)
+	p2 := domain.ParseLocationCoordinates(foundLocation)
+	distMiles := domain.HaversineDistanceMiles(p1, p2)
+	spatialScore := CalculateDistanceScore(distMiles, 15.0)
+
+	combinedScore := CalculateCombinedMatchScore(visualScore, spatialScore)
+	isMatch := combinedScore >= MatchThreshold
+
+	details := fmt.Sprintf("Match score: %.2f (Visual: %.2f, Spatial: %.2f, Distance: %.1f mi, Threshold: %.2f)",
+		combinedScore, visualScore, spatialScore, distMiles, MatchThreshold)
 
 	res := &domain.MatchResult{
 		FoundPetID:   foundPetID,
 		MatchedPetID: lostPetID,
-		Score:        score,
+		Score:        combinedScore,
 		IsMatch:      isMatch,
 		Details:      details,
 	}

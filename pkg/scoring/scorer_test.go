@@ -130,3 +130,25 @@ func TestComparePets(t *testing.T) {
 		}
 	})
 }
+
+func TestComparePetsGeo(t *testing.T) {
+	t.Run("calculates distance-weighted combined match score", func(t *testing.T) {
+		lost := &scoring.PetTraits{Breed: "Golden Retriever", PrimaryColor: "Golden", SecondaryColor: "White", DistinctiveMarkings: []string{"White patch on chest"}, EyeColor: "Brown"}
+		found := &scoring.PetTraits{Breed: "Golden Retriever", PrimaryColor: "Golden", SecondaryColor: "White", DistinctiveMarkings: []string{"White patch on chest"}, EyeColor: "Brown"}
+
+		// Capitol Hill to Green Lake (~4.5 miles)
+		res := scoring.ComparePetsGeo("lost-101", "found-202", "Capitol Hill, Seattle, WA", "Green Lake Park, Seattle, WA", lost, found)
+
+		if res == nil {
+			t.Fatal("expected non-nil MatchResult")
+		}
+
+		if !res.IsMatch {
+			t.Errorf("expected IsMatch to be true, got false")
+		}
+
+		if res.Score < 0.70 {
+			t.Errorf("expected combined score >= 0.70, got %f", res.Score)
+		}
+	})
+}
