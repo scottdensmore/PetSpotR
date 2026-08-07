@@ -41,9 +41,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/", s.handleIndex)
 	s.mux.HandleFunc("/report-lost", s.handleReportLost)
 	s.mux.HandleFunc("/report-found", s.handleReportFound)
+	s.mux.HandleFunc("/matches", s.handleMatches)
 	s.mux.HandleFunc("/api/v1/lost-pets", s.handleApiLostPets)
 	s.mux.HandleFunc("/api/v1/found-pets/extract-features", s.handleApiExtractFeatures)
 	s.mux.HandleFunc("/api/v1/found-pets", s.handleApiFoundPets)
+	s.mux.HandleFunc("/api/v1/matches", s.handleApiMatches)
+	s.mux.HandleFunc("/api/v1/matches/action", s.handleApiMatchAction)
 	s.mux.HandleFunc("/healthz", s.handleHealthz)
 }
 
@@ -80,6 +83,18 @@ func (s *Server) handleReportFound(w http.ResponseWriter, r *http.Request) {
 	content, err := embeddedFiles.ReadFile("templates/report-found.html")
 	if err != nil {
 		http.Error(w, "Failed to load report-found template", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(content)
+}
+
+func (s *Server) handleMatches(w http.ResponseWriter, r *http.Request) {
+	content, err := embeddedFiles.ReadFile("templates/matches.html")
+	if err != nil {
+		http.Error(w, "Failed to load matches template", http.StatusInternalServerError)
 		return
 	}
 
@@ -217,6 +232,132 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{
 		"status": "success",
 		"petId":  evt.PetID,
+	})
+}
+
+type MatchScoreBreakdown struct {
+	Visual        float64 `json:"visual"`
+	Color         float64 `json:"color"`
+	Spatial       float64 `json:"spatial"`
+	DistanceMiles float64 `json:"distanceMiles"`
+}
+
+type PetDetail struct {
+	PetID    string `json:"petId"`
+	PetName  string `json:"petName,omitempty"`
+	Breed    string `json:"breed"`
+	ImageURL string `json:"imageUrl"`
+	Location string `json:"location"`
+}
+
+type MatchRecord struct {
+	MatchID      string              `json:"matchId"`
+	FoundPetID   string              `json:"foundPetId"`
+	MatchedPetID string              `json:"matchedPetId"`
+	Score        float64             `json:"score"`
+	Status       string              `json:"status"`
+	MatchedAt    time.Time           `json:"matchedAt"`
+	Scores       MatchScoreBreakdown `json:"scores"`
+	LostPet      PetDetail           `json:"lostPet"`
+	FoundPet     PetDetail           `json:"foundPet"`
+}
+
+func (s *Server) handleApiMatches(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	matches := []MatchRecord{
+		{
+			MatchID:      "match-101",
+			FoundPetID:   "found-202",
+			MatchedPetID: "lost-101",
+			Score:        0.92,
+			Status:       "PENDING_REVIEW",
+			MatchedAt:    time.Now().UTC().Add(-15 * time.Minute),
+			Scores: MatchScoreBreakdown{
+				Visual:        0.95,
+				Color:         0.90,
+				Spatial:       0.88,
+				DistanceMiles: 2.4,
+			},
+			LostPet: PetDetail{
+				PetID:    "lost-101",
+				PetName:  "Buddy",
+				Breed:    "Golden Retriever",
+				ImageURL: "https://storage.petspotr.io/lost-101.jpg",
+				Location: "Capitol Hill, Seattle, WA",
+			},
+			FoundPet: PetDetail{
+				PetID:    "found-202",
+				Breed:    "Golden Retriever",
+				ImageURL: "https://storage.petspotr.io/found-202.jpg",
+				Location: "Green Lake Park, Seattle, WA",
+			},
+		},
+		{
+			MatchID:      "match-102",
+			FoundPetID:   "found-203",
+			MatchedPetID: "lost-105",
+			Score:        0.87,
+			Status:       "PENDING_REVIEW",
+			MatchedAt:    time.Now().UTC().Add(-2 * time.Hour),
+			Scores: MatchScoreBreakdown{
+				Visual:        0.88,
+				Color:         0.85,
+				Spatial:       0.86,
+				DistanceMiles: 4.1,
+			},
+			LostPet: PetDetail{
+				PetID:    "lost-105",
+				PetName:  "Luna",
+				Breed:    "Siamese Cat",
+				ImageURL: "https://storage.petspotr.io/lost-105.jpg",
+				Location: "Ballard, Seattle, WA",
+			},
+			FoundPet: PetDetail{
+				PetID:    "found-203",
+				Breed:    "Siamese Cat",
+				ImageURL: "https://storage.petspotr.io/found-203.jpg",
+				Location: "Fremont, Seattle, WA",
+			},
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(matches)
+}
+
+type MatchActionRequest struct {
+	MatchID string `json:"matchId"`
+	Action  string `json:"action"`
+}
+
+func (s *Server) handleApiMatchAction(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req MatchActionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	status := "CONFIRMED"
+	if strings.ToLower(req.Action) == "reject" {
+		status = "REJECTED"
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"matchId": req.MatchID,
+		"status":  status,
+		"message": fmt.Sprintf("Match status updated to %s", status),
 	})
 }
 
