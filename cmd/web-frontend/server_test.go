@@ -171,4 +171,53 @@ func TestNewServer_Routes(t *testing.T) {
 			t.Errorf("expected status 400 Bad Request, got %d", rec.Code)
 		}
 	})
+
+	t.Run("GET /matches returns 200 OK with match dashboard page", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/matches", nil)
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200 OK, got %d", rec.Code)
+		}
+
+		body := rec.Body.String()
+		if !strings.Contains(body, "matches-dashboard") {
+			t.Error("expected body to contain matches-dashboard container")
+		}
+		if !strings.Contains(body, "Match Comparison Dashboard") {
+			t.Error("expected body to contain Match Comparison Dashboard heading")
+		}
+	})
+
+	t.Run("GET /api/v1/matches returns 200 OK with match records", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/matches", nil)
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200 OK, got %d", rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), "foundPetId") || !strings.Contains(rec.Body.String(), "score") {
+			t.Errorf("expected match records in response, got %s", rec.Body.String())
+		}
+	})
+
+	t.Run("POST /api/v1/matches/action handles match confirmation", func(t *testing.T) {
+		payload := `{"matchId":"match-101","action":"confirm"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/matches/action", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200 OK, got %d (body: %s)", rec.Code, rec.Body.String())
+		}
+		if !strings.Contains(rec.Body.String(), "CONFIRMED") {
+			t.Errorf("expected status CONFIRMED in response, got %s", rec.Body.String())
+		}
+	})
 }
