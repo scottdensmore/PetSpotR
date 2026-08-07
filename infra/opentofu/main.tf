@@ -29,8 +29,11 @@ module "firestore" {
 }
 
 module "cloudrun" {
-  source         = "./modules/cloudrun"
-  region         = var.region
-  lostpet_image  = var.lostpet_image
-  foundpet_image = var.foundpet_image
+  source                     = "./modules/cloudrun"
+  region                     = var.region
+  web_frontend_image         = var.web_frontend_image
+  lostpet_image              = var.lostpet_image
+  foundpet_image             = var.foundpet_image
+  pet_matcher_image          = var.pet_matcher_image
+  notification_service_image = var.notification_service_image
 }
