@@ -9,6 +9,12 @@ variable "region" {
   default     = "us-central1"
 }
 
+variable "web_frontend_image" {
+  description = "Container image for web-frontend"
+  type        = string
+  default     = "gcr.io/petspotr/web-frontend:latest"
+}
+
 variable "lostpet_image" {
   description = "Container image for lostpet-service"
   type        = string
@@ -19,4 +25,16 @@ variable "foundpet_image" {
   description = "Container image for foundpet-service"
   type        = string
   default     = "gcr.io/petspotr/foundpet-service:latest"
+}
+
+variable "pet_matcher_image" {
+  description = "Container image for pet-matcher"
+  type        = string
+  default     = "gcr.io/petspotr/pet-matcher:latest"
+}
+
+variable "notification_service_image" {
+  description = "Container image for notification-service"
+  type        = string
+  default     = "gcr.io/petspotr/notification-service:latest"
 }
