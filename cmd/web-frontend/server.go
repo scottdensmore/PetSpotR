@@ -12,6 +12,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
+	"github.com/scottdensmore/petspotr/pkg/telemetry"
 )
 
 //go:embed static/* templates/*
@@ -19,13 +20,15 @@ var embeddedFiles embed.FS
 
 // Server encapsulates HTTP routes and handlers for the PetSpotR Web Frontend.
 type Server struct {
-	mux *http.ServeMux
+	mux     *http.ServeMux
+	metrics *telemetry.MetricsRegistry
 }
 
 // NewServer initializes a new Server instance with static asset handlers and page routes.
 func NewServer() *Server {
 	s := &Server{
-		mux: http.NewServeMux(),
+		mux:     http.NewServeMux(),
+		metrics: telemetry.NewMetricsRegistry("web-frontend"),
 	}
 	s.routes()
 	return s
@@ -54,6 +57,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/push/subscribe", s.handleApiPushSubscribe)
 	s.mux.HandleFunc("/api/v1/push/test", s.handleApiPushTest)
 	s.mux.HandleFunc("/api/v1/uploads/presigned-url", s.handleApiPresignedURL)
+	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	s.mux.HandleFunc("/healthz", s.handleHealthz)
 }
 
