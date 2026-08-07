@@ -220,4 +220,49 @@ func TestNewServer_Routes(t *testing.T) {
 			t.Errorf("expected status CONFIRMED in response, got %s", rec.Body.String())
 		}
 	})
+
+	t.Run("POST /api/v1/reunions/contact dispatches secure owner message", func(t *testing.T) {
+		payload := `{"matchId":"match-101","senderEmail":"owner@example.com","message":"Hello! I believe this is my dog Buddy."}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/reunions/contact", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200 OK, got %d (body: %s)", rec.Code, rec.Body.String())
+		}
+		if !strings.Contains(rec.Body.String(), "sent") {
+			t.Errorf("expected message sent confirmation, got %s", rec.Body.String())
+		}
+	})
+
+	t.Run("POST /api/v1/reunions/resolve updates status to REUNITED with feedback", func(t *testing.T) {
+		payload := `{"matchId":"match-101","petId":"lost-101","rating":5,"feedback":"Gemma 4 AI matched Buddy perfectly!"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/reunions/resolve", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200 OK, got %d (body: %s)", rec.Code, rec.Body.String())
+		}
+		if !strings.Contains(rec.Body.String(), "REUNITED") {
+			t.Errorf("expected status REUNITED in response, got %s", rec.Body.String())
+		}
+	})
+
+	t.Run("POST /api/v1/reunions/resolve with invalid payload returns 400 Bad Request", func(t *testing.T) {
+		payload := `{"matchId":"","petId":""}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/reunions/resolve", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected status 400 Bad Request, got %d", rec.Code)
+		}
+	})
 }

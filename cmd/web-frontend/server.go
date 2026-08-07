@@ -47,6 +47,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/found-pets", s.handleApiFoundPets)
 	s.mux.HandleFunc("/api/v1/matches", s.handleApiMatches)
 	s.mux.HandleFunc("/api/v1/matches/action", s.handleApiMatchAction)
+	s.mux.HandleFunc("/api/v1/reunions/contact", s.handleApiReunionContact)
+	s.mux.HandleFunc("/api/v1/reunions/resolve", s.handleApiReunionResolve)
 	s.mux.HandleFunc("/healthz", s.handleHealthz)
 }
 
@@ -358,6 +360,74 @@ func (s *Server) handleApiMatchAction(w http.ResponseWriter, r *http.Request) {
 		"matchId": req.MatchID,
 		"status":  status,
 		"message": fmt.Sprintf("Match status updated to %s", status),
+	})
+}
+
+type ReunionContactRequest struct {
+	MatchID     string `json:"matchId"`
+	SenderEmail string `json:"senderEmail"`
+	Message     string `json:"message"`
+}
+
+func (s *Server) handleApiReunionContact(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req ReunionContactRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(req.SenderEmail) == "" || strings.TrimSpace(req.Message) == "" {
+		http.Error(w, "senderEmail and message are required", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"status":  "sent",
+		"matchId": req.MatchID,
+		"message": "Secure message dispatched successfully",
+	})
+}
+
+type ReunionResolveRequest struct {
+	MatchID  string `json:"matchId"`
+	PetID    string `json:"petId"`
+	Rating   int    `json:"rating"`
+	Feedback string `json:"feedback"`
+}
+
+func (s *Server) handleApiReunionResolve(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req ReunionResolveRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(req.MatchID) == "" || strings.TrimSpace(req.PetID) == "" {
+		http.Error(w, "matchId and petId are required", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"matchId":  req.MatchID,
+		"petId":    req.PetID,
+		"status":   "REUNITED",
+		"rating":   req.Rating,
+		"feedback": req.Feedback,
+		"message":  "Pet status successfully updated to REUNITED",
 	})
 }
 

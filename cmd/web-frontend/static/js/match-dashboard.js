@@ -121,9 +121,11 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
 
         <!-- Action Controls -->
-        <div style="display: flex; justify-content: flex-end; gap: 1rem; flex-wrap: wrap;">
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
+          <button class="btn btn-secondary contact-btn" data-match-id="${m.matchId}">💬 Contact Finder / Owner</button>
           <button class="btn btn-secondary action-btn" data-action="reject" data-match-id="${m.matchId}">Reject Match</button>
           <button class="btn btn-primary action-btn" data-action="confirm" data-match-id="${m.matchId}">Confirm Reunion Match</button>
+          <button class="btn btn-primary reunion-btn" style="background: var(--status-reunited);" data-match-id="${m.matchId}" data-pet-id="${m.lostPet.petId}">🎉 Mark as Reunited</button>
         </div>
       </article>
     `;
@@ -137,6 +139,35 @@ document.addEventListener('DOMContentLoaded', () => {
         if (zoomedImage && zoomModal && src) {
           zoomedImage.src = src;
           zoomModal.style.display = 'flex';
+        }
+      });
+    });
+
+    // Contact Handler
+    document.querySelectorAll('.contact-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const matchId = e.currentTarget.getAttribute('data-match-id');
+        const contactMatchIdInput = document.getElementById('contact-match-id');
+        const contactModal = document.getElementById('contact-modal');
+        if (contactMatchIdInput && contactModal) {
+          contactMatchIdInput.value = matchId;
+          contactModal.style.display = 'flex';
+        }
+      });
+    });
+
+    // Reunion Resolution Handler
+    document.querySelectorAll('.reunion-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const matchId = e.currentTarget.getAttribute('data-match-id');
+        const petId = e.currentTarget.getAttribute('data-pet-id');
+        const reunionMatchIdInput = document.getElementById('reunion-match-id');
+        const reunionPetIdInput = document.getElementById('reunion-pet-id');
+        const reunionModal = document.getElementById('reunion-modal');
+        if (reunionModal && reunionMatchIdInput && reunionPetIdInput) {
+          reunionMatchIdInput.value = matchId;
+          reunionPetIdInput.value = petId;
+          reunionModal.style.display = 'flex';
         }
       });
     });
@@ -163,6 +194,60 @@ document.addEventListener('DOMContentLoaded', () => {
           console.error('Action error:', err);
         }
       });
+    });
+  }
+
+  // Bind Contact Form Submission
+  const contactForm = document.getElementById('contact-form');
+  if (contactForm) {
+    contactForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const matchId = document.getElementById('contact-match-id')?.value || '';
+      const senderEmail = document.getElementById('contact-sender-email')?.value || '';
+      const message = document.getElementById('contact-message')?.value || '';
+
+      try {
+        const resp = await fetch('/api/v1/reunions/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ matchId, senderEmail, message })
+        });
+
+        if (resp.ok) {
+          document.getElementById('contact-modal').style.display = 'none';
+          showActionModal('CONFIRMED', 'contact');
+        }
+      } catch (err) {
+        console.error('Contact submit error:', err);
+      }
+    });
+  }
+
+  // Bind Reunion Resolution Form Submission
+  const reunionForm = document.getElementById('reunion-form');
+  if (reunionForm) {
+    reunionForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const matchId = document.getElementById('reunion-match-id')?.value || '';
+      const petId = document.getElementById('reunion-pet-id')?.value || '';
+      const rating = parseInt(document.getElementById('reunion-rating')?.value || '5', 10);
+      const feedback = document.getElementById('reunion-feedback')?.value || '';
+
+      try {
+        const resp = await fetch('/api/v1/reunions/resolve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ matchId, petId, rating, feedback })
+        });
+
+        if (resp.ok) {
+          document.getElementById('reunion-modal').style.display = 'none';
+          showActionModal('REUNITED', 'resolve');
+          fetchMatches();
+        }
+      } catch (err) {
+        console.error('Reunion resolve error:', err);
+      }
     });
   }
 

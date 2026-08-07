@@ -78,6 +78,64 @@
         <button class="btn btn-primary" onclick="document.getElementById('match-action-modal').style.display='none'" style="width: 100%;">Close</button>
       </div>
     </div>
+
+    <!-- Secure Contact Modal -->
+    <div id="contact-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 250; align-items: center; justify-content: center;">
+      <div class="glass-card" style="max-width: 520px; width: 90%; padding: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <h2 style="font-size: 1.35rem;">Send Secure Message</h2>
+          <button style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.25rem;" onclick="document.getElementById('contact-modal').style.display='none'">&times;</button>
+        </div>
+        <form id="contact-form" onsubmit="return false;">
+          <input type="hidden" id="contact-match-id" value="">
+          <div style="margin-bottom: 1rem;">
+            <label for="contact-sender-email" style="display: block; font-weight: 500; margin-bottom: 0.4rem;">Your Email *</label>
+            <input type="email" id="contact-sender-email" required placeholder="owner@example.com" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+          </div>
+          <div style="margin-bottom: 1.5rem;">
+            <label for="contact-message" style="display: block; font-weight: 500; margin-bottom: 0.4rem;">Message *</label>
+            <textarea id="contact-message" rows="4" required placeholder="Hello! I am the owner of Buddy. I can provide verification documents and schedule a pickup." style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);"></textarea>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('contact-modal').style.display='none'">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btn-send-contact">Send Message</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Mark as Reunited Modal with Feedback Form -->
+    <div id="reunion-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 250; align-items: center; justify-content: center;">
+      <div class="glass-card" style="max-width: 520px; width: 90%; padding: 2rem;">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <div style="width: 56px; height: 56px; background: rgba(16, 185, 129, 0.15); color: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+          </div>
+          <h2 style="font-size: 1.4rem;">Confirm Pet Reunion! 🎉</h2>
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">Mark this pet report as REUNITED and rate the AI matching accuracy.</p>
+        </div>
+        <form id="reunion-form" onsubmit="return false;">
+          <input type="hidden" id="reunion-match-id" value="">
+          <input type="hidden" id="reunion-pet-id" value="">
+          <div style="margin-bottom: 1.25rem;">
+            <label for="reunion-rating" style="display: block; font-weight: 500; margin-bottom: 0.4rem;">AI Match Accuracy Rating</label>
+            <select id="reunion-rating" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+              <option value="5">⭐⭐⭐⭐⭐ 5 Stars - Exact Match!</option>
+              <option value="4">⭐⭐⭐⭐ 4 Stars - Very Accurate</option>
+              <option value="3">⭐⭐⭐ 3 Stars - Moderate Accuracy</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 1.5rem;">
+            <label for="reunion-feedback" style="display: block; font-weight: 500; margin-bottom: 0.4rem;">Reunion Notes / Model Feedback</label>
+            <textarea id="reunion-feedback" rows="3" placeholder="Gemma 4 AI visual matching identified Buddy perfectly via chest markings!" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);"></textarea>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('reunion-modal').style.display='none'">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btn-submit-reunion">Confirm REUNITED Status</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </main>
 
   <footer>
