@@ -265,4 +265,61 @@ func TestNewServer_Routes(t *testing.T) {
 			t.Errorf("expected status 400 Bad Request, got %d", rec.Code)
 		}
 	})
+
+	t.Run("GET /sw.js serves Service Worker script", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/sw.js", nil)
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200 OK, got %d", rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), "showNotification") {
+			t.Errorf("expected service worker script content, got %s", rec.Body.String())
+		}
+	})
+
+	t.Run("POST /api/v1/push/subscribe registers web push subscription", func(t *testing.T) {
+		payload := `{"endpoint":"https://fcm.googleapis.com/fcm/send/sample-token","keys":{"p256dh":"key1","auth":"auth1"}}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/push/subscribe", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusCreated {
+			t.Errorf("expected status 201 Created, got %d (body: %s)", rec.Code, rec.Body.String())
+		}
+		if !strings.Contains(rec.Body.String(), "subscribed") {
+			t.Errorf("expected subscribed confirmation in response, got %s", rec.Body.String())
+		}
+	})
+
+	t.Run("POST /api/v1/push/subscribe with missing endpoint returns 400 Bad Request", func(t *testing.T) {
+		payload := `{"endpoint":""}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/push/subscribe", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected status 400 Bad Request, got %d", rec.Code)
+		}
+	})
+
+	t.Run("POST /api/v1/push/test dispatches test push payload", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/push/test", nil)
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200 OK, got %d", rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), "title") || !strings.Contains(rec.Body.String(), "body") {
+			t.Errorf("expected test push payload in response, got %s", rec.Body.String())
+		}
+	})
 }

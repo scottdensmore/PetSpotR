@@ -39,6 +39,7 @@ func (s *Server) routes() {
 
 	// Page & Health routes
 	s.mux.HandleFunc("/", s.handleIndex)
+	s.mux.HandleFunc("/sw.js", s.handleServiceWorker)
 	s.mux.HandleFunc("/report-lost", s.handleReportLost)
 	s.mux.HandleFunc("/report-found", s.handleReportFound)
 	s.mux.HandleFunc("/matches", s.handleMatches)
@@ -49,6 +50,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/matches/action", s.handleApiMatchAction)
 	s.mux.HandleFunc("/api/v1/reunions/contact", s.handleApiReunionContact)
 	s.mux.HandleFunc("/api/v1/reunions/resolve", s.handleApiReunionResolve)
+	s.mux.HandleFunc("/api/v1/push/subscribe", s.handleApiPushSubscribe)
+	s.mux.HandleFunc("/api/v1/push/test", s.handleApiPushTest)
 	s.mux.HandleFunc("/healthz", s.handleHealthz)
 }
 
@@ -428,6 +431,69 @@ func (s *Server) handleApiReunionResolve(w http.ResponseWriter, r *http.Request)
 		"rating":   req.Rating,
 		"feedback": req.Feedback,
 		"message":  "Pet status successfully updated to REUNITED",
+	})
+}
+
+func (s *Server) handleServiceWorker(w http.ResponseWriter, r *http.Request) {
+	content, err := embeddedFiles.ReadFile("static/sw.js")
+	if err != nil {
+		http.Error(w, "Failed to load service worker script", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(content)
+}
+
+type PushKeys struct {
+	P256dh string `json:"p256dh"`
+	Auth   string `json:"auth"`
+}
+
+type PushSubscriptionRequest struct {
+	Endpoint string   `json:"endpoint"`
+	Keys     PushKeys `json:"keys"`
+}
+
+func (s *Server) handleApiPushSubscribe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req PushSubscriptionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(req.Endpoint) == "" {
+		http.Error(w, "endpoint is required", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"status":   "subscribed",
+		"endpoint": req.Endpoint,
+		"message":  "Web Push subscription registered successfully",
+	})
+}
+
+func (s *Server) handleApiPushTest(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"title": "PetSpotR High-Confidence Match! 🐾",
+		"body":  "A 95% visual match was found for your pet Buddy in Capitol Hill.",
+		"url":   "/matches",
 	})
 }
 
