@@ -18,7 +18,7 @@ func TestDocumentationFilesExist(t *testing.T) {
 		}
 
 		str := string(content)
-		keywords := []string{"docker-compose", "Ollama", "gemma2", "Cloud Run", "OpenTofu", "go test"}
+		keywords := []string{"docker-compose", "Ollama", "gemma4", "Cloud Run", "OpenTofu", "go test"}
 		for _, kw := range keywords {
 			if !strings.Contains(str, kw) {
 				t.Errorf("docs/DEVELOPMENT.md missing keyword %s", kw)

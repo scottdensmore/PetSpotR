@@ -9,6 +9,8 @@ outlines how to build, test, run locally, and deploy PetSpotR.
 
 PetSpotR is an event-driven microservice system written in **Go 1.22+**:
 
+- **`web-frontend`** (`cmd/web-frontend`): Modern web application UI at `http://localhost:8082`,
+  offering Lost Pet wizards, Found Pet dropzone, AI visual match comparison dashboard, and Web Push.
 - **`lostpet-service`** (`cmd/lostpet-service`): Exposes REST API
   `POST /lostPet`, persists lost pet events, and emits `lostPet` events.
 - **`foundpet-service`** (`cmd/foundpet-service`): Exposes REST API
@@ -16,12 +18,10 @@ PetSpotR is an event-driven microservice system written in **Go 1.22+**:
   `foundPet` events.
 - **`pet-matcher`** (`cmd/pet-matcher`): Background worker subscribing to
   `foundPet` events, performing visual feature extraction using **Ollama** and
-  **Gemma 4** models (`gemma4:e4b`, with `gemma2:2b` fallback), scoring similarity
-  against lost pets, and emitting `matchFound` events when the score is at
-  least `0.70`.
+  **Gemma 4** models (`gemma4:2b`), scoring similarity against lost pets, and
+  emitting `matchFound` events.
 - **`notification-service`** (`cmd/notification-service`): Background worker
-  subscribing to `matchFound` events, generating owner alert emails, and
-  logging notifications.
+  subscribing to `matchFound` events, generating owner alert emails, SMS, and Web Push notifications.
 
 ---
 
@@ -50,16 +50,18 @@ go vet ./...
 
 ### Running Locally with Docker Compose
 
-To launch all 4 Go microservices and an Ollama instance running Gemma 4
-locally:
+To launch all 5 microservices (`web-frontend`, `lostpet-service`, `foundpet-service`,
+`pet-matcher`, `notification-service`) and an Ollama instance running Gemma 4 locally:
 
 ```bash
 # Pull Gemma 4 model in Ollama
-ollama pull gemma4:e4b
+ollama pull gemma4:2b
 
 # Start local microservice stack
 docker-compose up --build
 ```
+
+Access the application in your browser at `http://localhost:8082`.
 
 ---
 
