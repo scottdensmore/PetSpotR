@@ -12,7 +12,7 @@ It runs natively on **Google Cloud Platform (GCP)** and **Locally** using
   (`lostpet-service`, `foundpet-service`, `pet-matcher`,
   `notification-service`).
 - **Local Dev & Local AI**: Zero-dependency local orchestration using
-  `docker-compose` and local Ollama (`gemma4:e4b`).
+  `docker-compose` and local Ollama (`gemma4:e2b`).
 - **GCP Cloud Infrastructure**: Deployed on Google Cloud Run, Cloud Pub/Sub,
   Cloud Firestore, and GCS using OpenTofu
   ([`infra/opentofu/`](./infra/opentofu)).
@@ -51,7 +51,7 @@ go test -race -v -cover ./...
 To start the full local microservice stack and Ollama:
 
 ```bash
-ollama pull gemma4:e4b
+ollama pull gemma4:e2b
 docker-compose up --build
 ```
 

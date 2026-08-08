@@ -11,7 +11,7 @@ here instead.
 
 Event-driven Go microservices for reporting and matching lost pets, running on
 GCP (Cloud Run, Pub/Sub, Firestore, GCS) and locally via `docker-compose` plus
-Ollama `gemma4:e4b`.
+Ollama `gemma4:e2b`.
 
 There is **no frontend**. All four services expose JSON HTTP endpoints or run as
 Pub/Sub workers. The Playwright suite exercises HTTP APIs, not a browser UI.
@@ -221,7 +221,7 @@ full stack; if none is running, the verifier must report `NOT RUN` with the
 reason rather than silently skipping:
 
 ```bash
-ollama pull gemma4:e4b
+ollama pull gemma4:e2b
 docker-compose up --build
 
 go test ./e2e/...
