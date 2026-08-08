@@ -26,7 +26,6 @@ func main() {
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
 
 	go func() {
 		log.Printf("PetSpotR Web Frontend Server listening on http://localhost:%s", port)
@@ -36,13 +35,15 @@ func main() {
 	}()
 
 	<-ctx.Done()
+	cancel()
 	log.Println("Shutting down Web Frontend Server...")
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer shutdownCancel()
 
 	if err := httpSrv.Shutdown(shutdownCtx); err != nil {
+		shutdownCancel()
 		log.Fatalf("Server forced to shutdown: %v", err)
 	}
+	shutdownCancel()
 	log.Println("Web Frontend Server exited cleanly.")
 }
