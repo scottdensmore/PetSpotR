@@ -26,7 +26,7 @@ type Worker struct {
 func NewWorker(st store.StateStore, br pubsub.Broker, oc *ollama.Client) *Worker {
 	model := os.Getenv("OLLAMA_MODEL")
 	if model == "" {
-		model = "gemma4:2b"
+		model = "gemma4:e4b"
 	}
 	return &Worker{
 		store:        st,

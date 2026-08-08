@@ -16,7 +16,7 @@ PetSpotR is an event-driven microservice system written in **Go 1.22+**:
   `foundPet` events.
 - **`pet-matcher`** (`cmd/pet-matcher`): Background worker subscribing to
   `foundPet` events, performing visual feature extraction using **Ollama** and
-  **Gemma 4** models (`gemma4:2b`, with `gemma2:2b` fallback), scoring similarity
+  **Gemma 4** models (`gemma4:e4b`, with `gemma2:2b` fallback), scoring similarity
   against lost pets, and emitting `matchFound` events when the score is at
   least `0.70`.
 - **`notification-service`** (`cmd/notification-service`): Background worker
@@ -55,7 +55,7 @@ locally:
 
 ```bash
 # Pull Gemma 4 model in Ollama
-ollama pull gemma4:2b
+ollama pull gemma4:e4b
 
 # Start local microservice stack
 docker-compose up --build
