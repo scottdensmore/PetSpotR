@@ -20,13 +20,13 @@ func main() {
 	worker := NewWorker(st, ps, oc)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
-
 	if err := worker.Start(ctx); err != nil {
+		cancel()
 		log.Fatalf("Failed to start Pet Matcher worker: %v", err)
 	}
 
 	log.Println("Pet Matcher Worker running and listening for foundPet events...")
 	<-ctx.Done()
+	cancel()
 	log.Println("Pet Matcher Worker shutting down gracefully.")
 }
