@@ -39,3 +39,30 @@ func TestDocumentationFilesExist(t *testing.T) {
 		}
 	})
 }
+
+func TestAgentWorkflowIncludesCodexReviewGate(t *testing.T) {
+	content, err := os.ReadFile(filepath.Join("..", "AGENTS.md"))
+	if err != nil {
+		t.Fatalf("failed to read AGENTS.md: %v", err)
+	}
+
+	workflow := string(content)
+	required := []string{
+		"11. **Complete the Codex GitHub review loop.**",
+		"chatgpt-codex-connector[bot]",
+		"`eyes`",
+		"`+1`",
+		"cutoff timestamp immediately before",
+		"reaction's `created_at`",
+		"PR head still matches the recorded SHA",
+		"conversation comments, review bodies",
+		"thread-aware inline comments",
+		"resolve every addressed thread",
+		"12. **Merge only clean, passing pull requests.**",
+	}
+	for _, fragment := range required {
+		if !strings.Contains(workflow, fragment) {
+			t.Errorf("AGENTS.md missing Codex review workflow %q", fragment)
+		}
+	}
+}

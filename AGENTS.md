@@ -127,7 +127,27 @@ These apply at every step, not just at the gate where they are mentioned.
     - Push and open a normal, ready-for-review pull request. Do not open draft
       pull requests unless the user explicitly asks for a draft.
 
-11. **Merge only clean, passing pull requests.** Merge only after GitHub reports
+11. **Complete the Codex GitHub review loop.** The repository's automatic
+    reviewer runs after a pull request opens and after every push.
+    - Record the expected head SHA and a UTC cutoff timestamp immediately before
+      opening the pull request or pushing. Poll PR reactions from
+      `chatgpt-codex-connector[bot]`: `eyes` means the review is in progress;
+      `+1` means Codex completed that review with no findings. Compare the
+      reaction's `created_at` value with the cutoff instead of a commit time.
+    - Read conversation comments, review bodies, and thread-aware inline comments.
+      Address every actionable finding. Reply to inline feedback with the
+      resolution and verification evidence, and resolve every addressed thread;
+      acknowledge non-thread feedback in the PR conversation. Ask the user about
+      ambiguous or conflicting feedback rather than guessing.
+    - If a finding causes changes, rerun the affected tests and gates, create a
+      new commit without amending the pushed commit, push, and restart this step
+      for the new head.
+    - The gate passes only when the bot's `+1` reaction was created after the
+      cutoff, the PR head still matches the recorded SHA, and there are no
+      unresolved Codex threads or unaddressed Codex comments. An absent review,
+      green CI, or a reaction from an older push is not completion.
+
+12. **Merge only clean, passing pull requests.** Merge only after GitHub reports
     a clean merge state and every configured check passes. Never bypass a
     failing or pending required check. Self-merges are allowed when these
     conditions are met. Use squash merge for short-lived development branches to
@@ -257,7 +277,7 @@ step 7.
 `main` is protected by an active ruleset: pull request required, squash-only
 merges, no deletion, no force-push, and all four checks green before merge.
 There are no bypass actors — it applies to repository owners too, which is what
-makes step 11 enforceable rather than aspirational.
+makes step 12 enforceable rather than aspirational.
 
 Required status checks are **strict**: a branch must also be up to date with
 `main` before it can merge. If GitHub reports `BLOCKED` while every check is
