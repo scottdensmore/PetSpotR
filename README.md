@@ -51,9 +51,13 @@ go test -race -v -cover ./...
 To start the full local microservice stack and Ollama:
 
 ```bash
-ollama pull gemma4:e2b
-docker-compose up --build
+docker compose up --build
 ```
+
+Compose waits for Ollama to become healthy and downloads `gemma4:e2b` into a
+persistent volume before starting the pet matcher. Subsequent starts reuse the
+downloaded model. Ollama stays inside the Compose network to avoid conflicting
+with a host installation. Set `OLLAMA_MODEL` to override the default model.
 
 For complete development details and GCP deployment instructions, see
 [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md).

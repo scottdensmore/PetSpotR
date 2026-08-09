@@ -54,12 +54,15 @@ To launch all 5 microservices (`web-frontend`, `lostpet-service`, `foundpet-serv
 `pet-matcher`, `notification-service`) and an Ollama instance running Gemma 4 locally:
 
 ```bash
-# Pull Gemma 4 model in Ollama
-ollama pull gemma4:e2b
-
-# Start local microservice stack
-docker-compose up --build
+# Start the stack and automatically download Gemma 4 on first use
+docker compose up --build
 ```
+
+Compose waits for Ollama to become healthy and downloads `gemma4:e2b` into a
+persistent volume before starting the pet matcher. Subsequent starts reuse the
+downloaded model. Ollama stays inside the Compose network to avoid conflicting
+with a host installation. To use another model, set `OLLAMA_MODEL` before
+starting the stack.
 
 Access the application in your browser at `http://localhost:8082`.
 
