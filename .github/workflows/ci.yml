@@ -127,9 +127,11 @@ jobs:
             fi
           done
 
-      - name: Install Playwright Dependencies
+      - name: Install Playwright Dependencies & Browsers
         working-directory: tests/playwright
-        run: npm ci
+        run: |
+          npm ci
+          npx playwright install chromium
 
       - name: Run Playwright API Journeys
         working-directory: tests/playwright
