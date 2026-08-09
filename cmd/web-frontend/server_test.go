@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
 func TestNewServer_Routes(t *testing.T) {
@@ -378,6 +380,76 @@ func TestNewServer_Routes(t *testing.T) {
 		}
 		if !strings.Contains(recGet.Body.String(), "found-rover.jpg") {
 			t.Errorf("expected GET /api/v1/found-pets to contain persisted record, got %s", recGet.Body.String())
+		}
+	})
+
+	t.Run("GET /api/v1/lost-pets supports pagination and spatial radius filtering", func(t *testing.T) {
+		memStore := store.NewMemoryStore()
+		stSrv := NewServerWithStore(memStore)
+
+		// Seed 3 lost pet reports with different locations
+		pet1 := `{"petName":"CapitolPet","reporterEmail":"p1@example.com","location":"Capitol Hill, Seattle, WA"}`
+		pet2 := `{"petName":"BallardPet","reporterEmail":"p2@example.com","location":"Ballard, Seattle, WA"}`
+		pet3 := `{"petName":"GreenLakePet","reporterEmail":"p3@example.com","location":"Green Lake, Seattle, WA"}`
+
+		for _, p := range []string{pet1, pet2, pet3} {
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/lost-pets", strings.NewReader(p))
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+			stSrv.ServeHTTP(rec, req)
+			if rec.Code != http.StatusCreated {
+				t.Fatalf("failed to post lost pet: %d", rec.Code)
+			}
+		}
+
+		// 1. Pagination limit=1 & offset=0
+		reqPag := httptest.NewRequest(http.MethodGet, "/api/v1/lost-pets?limit=1&offset=0", nil)
+		recPag := httptest.NewRecorder()
+		stSrv.ServeHTTP(recPag, reqPag)
+		if recPag.Code != http.StatusOK {
+			t.Fatalf("expected status 200 OK, got %d", recPag.Code)
+		}
+		if recPag.Header().Get("X-Total-Count") != "3" {
+			t.Errorf("expected X-Total-Count header to be 3, got %s", recPag.Header().Get("X-Total-Count"))
+		}
+
+		// 2. Spatial radius filtering around Capitol Hill (47.6150, -122.3200) within 3 miles
+		reqGeo := httptest.NewRequest(http.MethodGet, "/api/v1/lost-pets?lat=47.6150&lng=-122.3200&radiusMiles=3", nil)
+		recGeo := httptest.NewRecorder()
+		stSrv.ServeHTTP(recGeo, reqGeo)
+		if recGeo.Code != http.StatusOK {
+			t.Fatalf("expected status 200 OK, got %d", recGeo.Code)
+		}
+		if !strings.Contains(recGeo.Body.String(), "capitolpet") {
+			t.Errorf("expected spatial radius filter result to contain capitolpet, got %s", recGeo.Body.String())
+		}
+	})
+
+	t.Run("GET /api/v1/found-pets supports species filtering", func(t *testing.T) {
+		memStore := store.NewMemoryStore()
+		stSrv := NewServerWithStore(memStore)
+
+		dog := `{"imageUrl":"https://storage.petspotr.io/dog.jpg","location":"Seattle, WA","species":"Dog"}`
+		cat := `{"imageUrl":"https://storage.petspotr.io/cat.jpg","location":"Seattle, WA","species":"Cat"}`
+
+		for _, p := range []string{dog, cat} {
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets", strings.NewReader(p))
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+			stSrv.ServeHTTP(rec, req)
+			if rec.Code != http.StatusCreated {
+				t.Fatalf("failed to post found pet: %d", rec.Code)
+			}
+		}
+
+		reqCat := httptest.NewRequest(http.MethodGet, "/api/v1/found-pets?species=Cat", nil)
+		recCat := httptest.NewRecorder()
+		stSrv.ServeHTTP(recCat, reqCat)
+		if recCat.Code != http.StatusOK {
+			t.Fatalf("expected status 200 OK, got %d", recCat.Code)
+		}
+		if !strings.Contains(recCat.Body.String(), "cat.jpg") {
+			t.Errorf("expected species filter result to contain cat.jpg, got %s", recCat.Body.String())
 		}
 	})
 }
