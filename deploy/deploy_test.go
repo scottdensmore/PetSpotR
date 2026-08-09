@@ -39,6 +39,31 @@ func TestDeploymentArtifactsExist(t *testing.T) {
 		}
 	})
 
+	t.Run("docker-compose.yml bootstraps the Ollama model before pet-matcher", func(t *testing.T) {
+		composePath := filepath.Join(root, "docker-compose.yml")
+		content, err := os.ReadFile(composePath)
+		if err != nil {
+			t.Fatalf("failed to read docker-compose.yml: %v", err)
+		}
+
+		str := string(content)
+		required := []string{
+			"healthcheck:",
+			"ollama-init:",
+			"condition: service_healthy",
+			"condition: service_completed_successfully",
+			"command: [\"pull\", \"${OLLAMA_MODEL:-gemma4:e2b}\"]",
+		}
+		for _, fragment := range required {
+			if !strings.Contains(str, fragment) {
+				t.Errorf("docker-compose.yml missing Ollama bootstrap configuration %q", fragment)
+			}
+		}
+		if strings.Contains(str, `"11434:11434"`) {
+			t.Error("docker-compose.yml should not publish Ollama's port by default")
+		}
+	})
+
 	t.Run("Cloud Run service manifest YAMLs exist", func(t *testing.T) {
 		manifests := []string{
 			"lostpet-service.yaml",
