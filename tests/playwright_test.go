@@ -62,3 +62,30 @@ func TestPlaywrightUserJourneysExist(t *testing.T) {
 		}
 	})
 }
+
+func TestCIWorkflowRunsPlaywrightAPIJourneys(t *testing.T) {
+	path := filepath.Join("..", ".github", "workflows", "ci.yml")
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("failed to read CI workflow: %v", err)
+	}
+
+	workflow := string(content)
+	required := []string{
+		"e2e-playwright-tests:",
+		"name: Playwright API Journeys",
+		"docker compose up --build --detach lostpet-service foundpet-service web-frontend",
+		"npm ci",
+		"LOSTPET_SERVICE_URL: http://localhost:8080",
+		"FOUNDPET_SERVICE_URL: http://localhost:8081",
+		"WEB_FRONTEND_URL: http://localhost:8082",
+		"npx playwright test",
+		"actions/upload-artifact@v4",
+		"docker compose down",
+	}
+	for _, fragment := range required {
+		if !strings.Contains(workflow, fragment) {
+			t.Errorf("CI workflow missing Playwright journey configuration %q", fragment)
+		}
+	}
+}

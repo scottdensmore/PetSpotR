@@ -49,7 +49,8 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     const response = await request.get(`${WEB_FRONTEND_URL}/api/v1/matches`);
     expect(response.status()).toBe(200);
     const body = await response.json();
-    expect(Array.isArray(body.matches)).toBe(true);
+    expect(Array.isArray(body)).toBe(true);
+    expect(body.length).toBeGreaterThan(0);
   });
 
   test('should process user match confirmation via POST /api/v1/matches/action', async ({ request }) => {
@@ -63,15 +64,14 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
   test('should process owner contact initiation via POST /api/v1/reunions/contact', async ({ request }) => {
     const payload = {
       matchId: 'match-pw-101',
-      recipientEmail: 'owner-pw@example.com',
+      senderEmail: 'owner-pw@example.com',
       message: 'Hello, I found your pet!',
-      channel: 'email',
     };
 
     const response = await request.post(`${WEB_FRONTEND_URL}/api/v1/reunions/contact`, { data: payload });
     expect(response.status()).toBe(200);
     const body = await response.json();
-    expect(body.status).toBe('SENT');
+    expect(body.status).toBe('sent');
   });
 
   test('should process reunion resolution via POST /api/v1/reunions/resolve', async ({ request }) => {

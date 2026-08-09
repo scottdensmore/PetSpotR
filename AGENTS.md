@@ -127,7 +127,27 @@ These apply at every step, not just at the gate where they are mentioned.
     - Push and open a normal, ready-for-review pull request. Do not open draft
       pull requests unless the user explicitly asks for a draft.
 
-11. **Merge only clean, passing pull requests.** Merge only after GitHub reports
+11. **Complete the Codex GitHub review loop.** The repository's automatic
+    reviewer runs after a pull request opens and after every push.
+    - Record the expected head SHA and a UTC cutoff timestamp immediately before
+      opening the pull request or pushing. Poll PR reactions from
+      `chatgpt-codex-connector[bot]`: `eyes` means the review is in progress;
+      `+1` means Codex completed that review with no findings. Compare the
+      reaction's `created_at` value with the cutoff instead of a commit time.
+    - Read conversation comments, review bodies, and thread-aware inline comments.
+      Address every actionable finding. Reply to inline feedback with the
+      resolution and verification evidence, and resolve every addressed thread;
+      acknowledge non-thread feedback in the PR conversation. Ask the user about
+      ambiguous or conflicting feedback rather than guessing.
+    - If a finding causes changes, rerun the affected tests and gates, create a
+      new commit without amending the pushed commit, push, and restart this step
+      for the new head.
+    - The gate passes only when the bot's `+1` reaction was created after the
+      cutoff, the PR head still matches the recorded SHA, and there are no
+      unresolved Codex threads or unaddressed Codex comments. An absent review,
+      green CI, or a reaction from an older push is not completion.
+
+12. **Merge only clean, passing pull requests.** Merge only after GitHub reports
     a clean merge state and every configured check passes. Never bypass a
     failing or pending required check. Self-merges are allowed when these
     conditions are met. Use squash merge for short-lived development branches to
@@ -230,8 +250,8 @@ cd tests/playwright && npm install && npx playwright test
 
 ## CI
 
-`.github/workflows/ci.yml` runs four jobs on pull requests, all four required
-before merge:
+`.github/workflows/ci.yml` runs five jobs on pull requests. The first four are
+required before merge:
 
 - `pr-title` — validates the **PR title** as a Conventional Commit. Because
   short-lived branches are squash-merged, the PR title becomes the commit
@@ -240,18 +260,24 @@ before merge:
   renaming or adding a top-level doc requires updating it in the same commit.
 - `go-checks` — `go vet`, `go test -race -cover`, `golangci-lint`.
 - `infra-checks` — `tofu fmt -check -recursive` and `tofu validate`.
+- `e2e-playwright-tests` — builds the three HTTP services used by the Playwright
+  API journeys, waits for them to become ready, runs the suite, and uploads its
+  report, traces, and service logs on failure. This job is not a required check
+  until the repository ruleset is updated separately.
 
-CI does **not** run the Playwright suite or `e2e/`: both need the full stack
-plus an `ollama pull`. Those stay verifier-owned local steps, so a green CI is
-narrower than the verification this document asks for. Do not treat CI alone as
-having satisfied step 7.
+CI does **not** run `e2e/` or a live Ollama matching cascade. The Playwright API
+journeys only need `lostpet-service`, `foundpet-service`, and `web-frontend`, so
+their CI job deliberately avoids downloading a model. Full event-cascade and
+AI coverage stay verifier-owned local steps, so a green CI is narrower than the
+verification this document asks for. Do not treat CI alone as having satisfied
+step 7.
 
 ## Branch protection
 
 `main` is protected by an active ruleset: pull request required, squash-only
 merges, no deletion, no force-push, and all four checks green before merge.
 There are no bypass actors — it applies to repository owners too, which is what
-makes step 11 enforceable rather than aspirational.
+makes step 12 enforceable rather than aspirational.
 
 Required status checks are **strict**: a branch must also be up to date with
 `main` before it can merge. If GitHub reports `BLOCKED` while every check is

@@ -83,6 +83,82 @@ jobs:
           # golangci-lint v1 cannot parse. Keep in sync with AGENTS.md.
           version: v2.12.2
 
+  e2e-playwright-tests:
+    name: Playwright API Journeys
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: tests/playwright/package-lock.json
+
+      - name: Start API Services
+        run: docker compose up --build --detach lostpet-service foundpet-service web-frontend
+
+      - name: Wait for API Services
+        shell: bash
+        run: |
+          endpoints=(
+            "http://localhost:8080/lostPet"
+            "http://localhost:8081/foundPet"
+            "http://localhost:8082/healthz"
+          )
+
+          for endpoint in "${endpoints[@]}"; do
+            ready=false
+            for attempt in {1..30}; do
+              if curl --silent --show-error --output /dev/null "$endpoint"; then
+                ready=true
+                break
+              fi
+              sleep 2
+            done
+
+            if [[ "$ready" != "true" ]]; then
+              echo "::error::Service did not become ready at $endpoint"
+              docker compose logs
+              exit 1
+            fi
+          done
+
+      - name: Install Playwright Dependencies
+        working-directory: tests/playwright
+        run: npm ci
+
+      - name: Run Playwright API Journeys
+        working-directory: tests/playwright
+        env:
+          LOSTPET_SERVICE_URL: http://localhost:8080
+          FOUNDPET_SERVICE_URL: http://localhost:8081
+          WEB_FRONTEND_URL: http://localhost:8082
+        run: npx playwright test
+
+      - name: Capture Service Logs
+        if: failure()
+        run: docker compose logs --no-color > compose.log
+
+      - name: Upload Failure Artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-api-journey-failure
+          path: |
+            tests/playwright/playwright-report/
+            tests/playwright/test-results/
+            compose.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop API Services
+        if: always()
+        run: docker compose down --volumes --remove-orphans
+
   infra-checks:
     name: OpenTofu Format & Validate
     runs-on: ubuntu-latest
