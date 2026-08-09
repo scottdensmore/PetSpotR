@@ -30,6 +30,17 @@ func TestLostPetEvent_Validation(t *testing.T) {
 			t.Fatal("expected error for missing pet ID, got nil")
 		}
 	})
+
+	t.Run("invalid reporter email format", func(t *testing.T) {
+		evt := domain.LostPetEvent{
+			PetID:         "pet-123",
+			ReporterEmail: "invalid-email-format",
+		}
+
+		if err := evt.Validate(); err == nil {
+			t.Fatal("expected error for invalid reporterEmail format, got nil")
+		}
+	})
 }
 
 func TestFoundPetEvent_Validation(t *testing.T) {

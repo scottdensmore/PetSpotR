@@ -41,6 +41,8 @@ func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
 	var evt domain.LostPetEvent
 	if err := json.NewDecoder(r.Body).Decode(&evt); err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid JSON payload: %v", err))

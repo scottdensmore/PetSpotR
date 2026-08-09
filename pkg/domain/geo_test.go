@@ -23,3 +23,26 @@ func TestHaversineDistanceMiles(t *testing.T) {
 		t.Errorf("expected 0 distance for same point, got %.4f", zeroDist)
 	}
 }
+
+func TestLocationPoint_Validation(t *testing.T) {
+	t.Run("valid location point", func(t *testing.T) {
+		pt := domain.LocationPoint{Latitude: 47.6062, Longitude: -122.3321}
+		if err := pt.Validate(); err != nil {
+			t.Fatalf("expected valid location point, got %v", err)
+		}
+	})
+
+	t.Run("invalid latitude out of range", func(t *testing.T) {
+		pt := domain.LocationPoint{Latitude: 95.5, Longitude: -122.3321}
+		if err := pt.Validate(); err == nil {
+			t.Fatal("expected error for latitude > 90, got nil")
+		}
+	})
+
+	t.Run("invalid longitude out of range", func(t *testing.T) {
+		pt := domain.LocationPoint{Latitude: 47.6062, Longitude: -190.0}
+		if err := pt.Validate(); err == nil {
+			t.Fatal("expected error for longitude < -180, got nil")
+		}
+	})
+}
