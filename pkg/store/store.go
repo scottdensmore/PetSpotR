@@ -19,6 +19,7 @@ type StateStore interface {
 	SaveState(ctx context.Context, storeName, key string, data []byte) error
 	GetState(ctx context.Context, storeName, key string) ([]byte, error)
 	DeleteState(ctx context.Context, storeName, key string) error
+	ListState(ctx context.Context, storeName string) (map[string][]byte, error)
 }
 
 // MemoryStore implements StateStore in memory for testing and local dev.
@@ -85,4 +86,25 @@ func (m *MemoryStore) DeleteState(ctx context.Context, storeName, key string) er
 		delete(storeMap, key)
 	}
 	return nil
+}
+
+// ListState returns all keys and byte clones for a storeName.
+func (m *MemoryStore) ListState(ctx context.Context, storeName string) (map[string][]byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	res := make(map[string][]byte)
+	storeMap, exists := m.items[storeName]
+	if !exists {
+		return res, nil
+	}
+
+	for k, v := range storeMap {
+		res[k] = bytes.Clone(v)
+	}
+	return res, nil
 }
