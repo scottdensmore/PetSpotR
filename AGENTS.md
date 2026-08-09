@@ -230,8 +230,8 @@ cd tests/playwright && npm install && npx playwright test
 
 ## CI
 
-`.github/workflows/ci.yml` runs four jobs on pull requests, all four required
-before merge:
+`.github/workflows/ci.yml` runs five jobs on pull requests. The first four are
+required before merge:
 
 - `pr-title` — validates the **PR title** as a Conventional Commit. Because
   short-lived branches are squash-merged, the PR title becomes the commit
@@ -240,11 +240,17 @@ before merge:
   renaming or adding a top-level doc requires updating it in the same commit.
 - `go-checks` — `go vet`, `go test -race -cover`, `golangci-lint`.
 - `infra-checks` — `tofu fmt -check -recursive` and `tofu validate`.
+- `e2e-playwright-tests` — builds the three HTTP services used by the Playwright
+  API journeys, waits for them to become ready, runs the suite, and uploads its
+  report, traces, and service logs on failure. This job is not a required check
+  until the repository ruleset is updated separately.
 
-CI does **not** run the Playwright suite or `e2e/`: both need the full stack
-plus an `ollama pull`. Those stay verifier-owned local steps, so a green CI is
-narrower than the verification this document asks for. Do not treat CI alone as
-having satisfied step 7.
+CI does **not** run `e2e/` or a live Ollama matching cascade. The Playwright API
+journeys only need `lostpet-service`, `foundpet-service`, and `web-frontend`, so
+their CI job deliberately avoids downloading a model. Full event-cascade and
+AI coverage stay verifier-owned local steps, so a green CI is narrower than the
+verification this document asks for. Do not treat CI alone as having satisfied
+step 7.
 
 ## Branch protection
 
