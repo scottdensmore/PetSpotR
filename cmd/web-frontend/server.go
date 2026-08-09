@@ -12,6 +12,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
+	"github.com/scottdensmore/petspotr/pkg/store"
 	"github.com/scottdensmore/petspotr/pkg/telemetry"
 )
 
@@ -20,15 +21,22 @@ var embeddedFiles embed.FS
 
 // Server encapsulates HTTP routes and handlers for the PetSpotR Web Frontend.
 type Server struct {
-	mux     *http.ServeMux
-	metrics *telemetry.MetricsRegistry
+	mux        *http.ServeMux
+	metrics    *telemetry.MetricsRegistry
+	stateStore store.StateStore
 }
 
-// NewServer initializes a new Server instance with static asset handlers and page routes.
+// NewServer initializes a new Server instance with default MemoryStore.
 func NewServer() *Server {
+	return NewServerWithStore(store.NewMemoryStore())
+}
+
+// NewServerWithStore constructs a Server instance with a custom StateStore.
+func NewServerWithStore(st store.StateStore) *Server {
 	s := &Server{
-		mux:     http.NewServeMux(),
-		metrics: telemetry.NewMetricsRegistry("web-frontend"),
+		mux:        http.NewServeMux(),
+		metrics:    telemetry.NewMetricsRegistry("web-frontend"),
+		stateStore: st,
 	}
 	s.routes()
 	return s
@@ -126,10 +134,33 @@ type LostPetFormRequest struct {
 }
 
 func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		rawItems, err := s.stateStore.ListState(r.Context(), "lost_pets")
+		if err != nil {
+			http.Error(w, "Failed to query lost pets", http.StatusInternalServerError)
+			return
+		}
+
+		pets := make([]domain.LostPetEvent, 0, len(rawItems))
+		for _, b := range rawItems {
+			var pet domain.LostPetEvent
+			if err := json.Unmarshal(b, &pet); err == nil {
+				pets = append(pets, pet)
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(pets)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
 	var req LostPetFormRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -159,6 +190,11 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	data, err := json.Marshal(evt)
+	if err == nil {
+		_ = s.stateStore.SaveState(r.Context(), "lost_pets", evt.PetID, data)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(map[string]string{
@@ -176,6 +212,8 @@ func (s *Server) handleApiExtractFeatures(w http.ResponseWriter, r *http.Request
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
 	var req FeatureExtractRequest
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -208,10 +246,33 @@ type FoundPetFormRequest struct {
 }
 
 func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		rawItems, err := s.stateStore.ListState(r.Context(), "found_pets")
+		if err != nil {
+			http.Error(w, "Failed to query found pets", http.StatusInternalServerError)
+			return
+		}
+
+		pets := make([]domain.FoundPetEvent, 0, len(rawItems))
+		for _, b := range rawItems {
+			var pet domain.FoundPetEvent
+			if err := json.Unmarshal(b, &pet); err == nil {
+				pets = append(pets, pet)
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(pets)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
 	var req FoundPetFormRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -236,6 +297,11 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 	if err := evt.Validate(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+
+	data, err := json.Marshal(evt)
+	if err == nil {
+		_ = s.stateStore.SaveState(r.Context(), "found_pets", evt.PetID, data)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -279,61 +345,84 @@ func (s *Server) handleApiMatches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	matches := []MatchRecord{
-		{
-			MatchID:      "match-101",
-			FoundPetID:   "found-202",
-			MatchedPetID: "lost-101",
-			Score:        0.92,
-			Status:       "PENDING_REVIEW",
-			MatchedAt:    time.Now().UTC().Add(-15 * time.Minute),
-			Scores: MatchScoreBreakdown{
-				Visual:        0.95,
-				Color:         0.90,
-				Spatial:       0.88,
-				DistanceMiles: 2.4,
+	rawMatches, err := s.stateStore.ListState(r.Context(), "matches")
+	if err != nil {
+		http.Error(w, "Failed to query matches from state store", http.StatusInternalServerError)
+		return
+	}
+
+	if len(rawMatches) == 0 {
+		seedMatches := []MatchRecord{
+			{
+				MatchID:      "match-101",
+				FoundPetID:   "found-202",
+				MatchedPetID: "lost-101",
+				Score:        0.92,
+				Status:       "PENDING_REVIEW",
+				MatchedAt:    time.Now().UTC().Add(-15 * time.Minute),
+				Scores: MatchScoreBreakdown{
+					Visual:        0.95,
+					Color:         0.90,
+					Spatial:       0.88,
+					DistanceMiles: 2.4,
+				},
+				LostPet: PetDetail{
+					PetID:    "lost-101",
+					PetName:  "Buddy",
+					Breed:    "Golden Retriever",
+					ImageURL: "https://storage.petspotr.io/lost-101.jpg",
+					Location: "Capitol Hill, Seattle, WA",
+				},
+				FoundPet: PetDetail{
+					PetID:    "found-202",
+					Breed:    "Golden Retriever",
+					ImageURL: "https://storage.petspotr.io/found-202.jpg",
+					Location: "Green Lake Park, Seattle, WA",
+				},
 			},
-			LostPet: PetDetail{
-				PetID:    "lost-101",
-				PetName:  "Buddy",
-				Breed:    "Golden Retriever",
-				ImageURL: "https://storage.petspotr.io/lost-101.jpg",
-				Location: "Capitol Hill, Seattle, WA",
+			{
+				MatchID:      "match-102",
+				FoundPetID:   "found-203",
+				MatchedPetID: "lost-105",
+				Score:        0.87,
+				Status:       "PENDING_REVIEW",
+				MatchedAt:    time.Now().UTC().Add(-2 * time.Hour),
+				Scores: MatchScoreBreakdown{
+					Visual:        0.88,
+					Color:         0.85,
+					Spatial:       0.86,
+					DistanceMiles: 4.1,
+				},
+				LostPet: PetDetail{
+					PetID:    "lost-105",
+					PetName:  "Luna",
+					Breed:    "Siamese Cat",
+					ImageURL: "https://storage.petspotr.io/lost-105.jpg",
+					Location: "Ballard, Seattle, WA",
+				},
+				FoundPet: PetDetail{
+					PetID:    "found-203",
+					Breed:    "Siamese Cat",
+					ImageURL: "https://storage.petspotr.io/found-203.jpg",
+					Location: "Fremont, Seattle, WA",
+				},
 			},
-			FoundPet: PetDetail{
-				PetID:    "found-202",
-				Breed:    "Golden Retriever",
-				ImageURL: "https://storage.petspotr.io/found-202.jpg",
-				Location: "Green Lake Park, Seattle, WA",
-			},
-		},
-		{
-			MatchID:      "match-102",
-			FoundPetID:   "found-203",
-			MatchedPetID: "lost-105",
-			Score:        0.87,
-			Status:       "PENDING_REVIEW",
-			MatchedAt:    time.Now().UTC().Add(-2 * time.Hour),
-			Scores: MatchScoreBreakdown{
-				Visual:        0.88,
-				Color:         0.85,
-				Spatial:       0.86,
-				DistanceMiles: 4.1,
-			},
-			LostPet: PetDetail{
-				PetID:    "lost-105",
-				PetName:  "Luna",
-				Breed:    "Siamese Cat",
-				ImageURL: "https://storage.petspotr.io/lost-105.jpg",
-				Location: "Ballard, Seattle, WA",
-			},
-			FoundPet: PetDetail{
-				PetID:    "found-203",
-				Breed:    "Siamese Cat",
-				ImageURL: "https://storage.petspotr.io/found-203.jpg",
-				Location: "Fremont, Seattle, WA",
-			},
-		},
+		}
+
+		for _, m := range seedMatches {
+			data, _ := json.Marshal(m)
+			_ = s.stateStore.SaveState(r.Context(), "matches", m.MatchID, data)
+		}
+
+		rawMatches, _ = s.stateStore.ListState(r.Context(), "matches")
+	}
+
+	matches := make([]MatchRecord, 0, len(rawMatches))
+	for _, b := range rawMatches {
+		var m MatchRecord
+		if err := json.Unmarshal(b, &m); err == nil {
+			matches = append(matches, m)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -352,15 +441,33 @@ func (s *Server) handleApiMatchAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
 	var req MatchActionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
 		return
 	}
 
+	actionLower := strings.ToLower(strings.TrimSpace(req.Action))
+	if actionLower != "confirm" && actionLower != "reject" {
+		http.Error(w, "invalid action: must be confirm or reject", http.StatusBadRequest)
+		return
+	}
+
 	status := "CONFIRMED"
-	if strings.ToLower(req.Action) == "reject" {
+	if actionLower == "reject" {
 		status = "REJECTED"
+	}
+
+	if data, err := s.stateStore.GetState(r.Context(), "matches", req.MatchID); err == nil {
+		var record MatchRecord
+		if err := json.Unmarshal(data, &record); err == nil {
+			record.Status = status
+			if updated, err := json.Marshal(record); err == nil {
+				_ = s.stateStore.SaveState(r.Context(), "matches", req.MatchID, updated)
+			}
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -383,6 +490,8 @@ func (s *Server) handleApiReunionContact(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
 	var req ReunionContactRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -417,6 +526,8 @@ func (s *Server) handleApiReunionResolve(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
 	var req ReunionResolveRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
@@ -426,6 +537,16 @@ func (s *Server) handleApiReunionResolve(w http.ResponseWriter, r *http.Request)
 	if strings.TrimSpace(req.MatchID) == "" || strings.TrimSpace(req.PetID) == "" {
 		http.Error(w, "matchId and petId are required", http.StatusBadRequest)
 		return
+	}
+
+	if data, err := s.stateStore.GetState(r.Context(), "matches", req.MatchID); err == nil {
+		var record MatchRecord
+		if err := json.Unmarshal(data, &record); err == nil {
+			record.Status = "REUNITED"
+			if updated, err := json.Marshal(record); err == nil {
+				_ = s.stateStore.SaveState(r.Context(), "matches", req.MatchID, updated)
+			}
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -468,22 +589,29 @@ func (s *Server) handleApiPushSubscribe(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
 	var req PushSubscriptionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
 		return
 	}
 
-	if strings.TrimSpace(req.Endpoint) == "" {
-		http.Error(w, "endpoint is required", http.StatusBadRequest)
+	endpoint := strings.TrimSpace(req.Endpoint)
+	if endpoint == "" || len(endpoint) > 2048 || !strings.HasPrefix(endpoint, "https://") {
+		http.Error(w, "valid https endpoint URL is required", http.StatusBadRequest)
 		return
+	}
+
+	if data, err := json.Marshal(req); err == nil {
+		_ = s.stateStore.SaveState(r.Context(), "push_subscriptions", endpoint, data)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(map[string]string{
 		"status":   "subscribed",
-		"endpoint": req.Endpoint,
+		"endpoint": endpoint,
 		"message":  "Web Push subscription registered successfully",
 	})
 }

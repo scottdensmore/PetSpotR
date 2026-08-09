@@ -105,4 +105,20 @@ func TestMemoryStateStore(t *testing.T) {
 			t.Errorf("DeleteState: got %v, want %v", err, context.Canceled)
 		}
 	})
+
+	t.Run("list state", func(t *testing.T) {
+		_ = s.SaveState(ctx, "list_test", "k1", []byte("v1"))
+		_ = s.SaveState(ctx, "list_test", "k2", []byte("v2"))
+
+		items, err := s.ListState(ctx, "list_test")
+		if err != nil {
+			t.Fatalf("ListState failed: %v", err)
+		}
+		if len(items) != 2 {
+			t.Errorf("got %d items, want 2", len(items))
+		}
+		if string(items["k1"]) != "v1" || string(items["k2"]) != "v2" {
+			t.Errorf("unexpected list state output: %v", items)
+		}
+	})
 }

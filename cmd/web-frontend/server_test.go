@@ -338,4 +338,46 @@ func TestNewServer_Routes(t *testing.T) {
 			t.Errorf("expected presigned upload URL response, got %s", rec.Body.String())
 		}
 	})
+
+	t.Run("GET /api/v1/lost-pets returns persisted lost pets from StateStore", func(t *testing.T) {
+		payload := `{"petName":"Rover","reporterEmail":"rover@example.com","location":"Portland, OR"}`
+		reqPost := httptest.NewRequest(http.MethodPost, "/api/v1/lost-pets", strings.NewReader(payload))
+		reqPost.Header.Set("Content-Type", "application/json")
+		recPost := httptest.NewRecorder()
+		srv.ServeHTTP(recPost, reqPost)
+		if recPost.Code != http.StatusCreated {
+			t.Fatalf("failed to create lost pet: %d", recPost.Code)
+		}
+
+		reqGet := httptest.NewRequest(http.MethodGet, "/api/v1/lost-pets", nil)
+		recGet := httptest.NewRecorder()
+		srv.ServeHTTP(recGet, reqGet)
+		if recGet.Code != http.StatusOK {
+			t.Fatalf("expected status 200 OK, got %d", recGet.Code)
+		}
+		if !strings.Contains(recGet.Body.String(), "rover@example.com") {
+			t.Errorf("expected GET /api/v1/lost-pets to contain persisted record, got %s", recGet.Body.String())
+		}
+	})
+
+	t.Run("GET /api/v1/found-pets returns persisted found pets from StateStore", func(t *testing.T) {
+		payload := `{"imageUrl":"https://storage.petspotr.io/found-rover.jpg","location":"Portland, OR"}`
+		reqPost := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets", strings.NewReader(payload))
+		reqPost.Header.Set("Content-Type", "application/json")
+		recPost := httptest.NewRecorder()
+		srv.ServeHTTP(recPost, reqPost)
+		if recPost.Code != http.StatusCreated {
+			t.Fatalf("failed to create found pet: %d", recPost.Code)
+		}
+
+		reqGet := httptest.NewRequest(http.MethodGet, "/api/v1/found-pets", nil)
+		recGet := httptest.NewRecorder()
+		srv.ServeHTTP(recGet, reqGet)
+		if recGet.Code != http.StatusOK {
+			t.Fatalf("expected status 200 OK, got %d", recGet.Code)
+		}
+		if !strings.Contains(recGet.Body.String(), "found-rover.jpg") {
+			t.Errorf("expected GET /api/v1/found-pets to contain persisted record, got %s", recGet.Body.String())
+		}
+	})
 }
