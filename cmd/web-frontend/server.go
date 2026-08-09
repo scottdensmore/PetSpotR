@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -176,9 +177,12 @@ func parseQueryParams(r *http.Request) QueryParams {
 	if latStr != "" && lngStr != "" {
 		lat, err1 := strconv.ParseFloat(latStr, 64)
 		lng, err2 := strconv.ParseFloat(lngStr, 64)
-		if err1 == nil && err2 == nil {
-			hasGeo = true
-			geoPoint = domain.LocationPoint{Latitude: lat, Longitude: lng}
+		if err1 == nil && err2 == nil && !math.IsNaN(lat) && !math.IsNaN(lng) && !math.IsInf(lat, 0) && !math.IsInf(lng, 0) {
+			pt := domain.LocationPoint{Latitude: lat, Longitude: lng}
+			if pt.Validate() == nil {
+				hasGeo = true
+				geoPoint = pt
+			}
 		}
 	}
 
@@ -213,6 +217,16 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		for _, b := range rawItems {
 			var pet domain.LostPetEvent
 			if err := json.Unmarshal(b, &pet); err == nil {
+				// Species filter check
+				if params.Species != "" {
+					var rawMap map[string]any
+					_ = json.Unmarshal(b, &rawMap)
+					if sp, ok := rawMap["species"].(string); ok && sp != "" {
+						if !strings.EqualFold(sp, params.Species) {
+							continue
+						}
+					}
+				}
 				// Geo radius filter
 				if params.HasGeo {
 					locPt := domain.ParseLocationCoordinates(pet.Location)
