@@ -109,4 +109,62 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     expect(body.uploadUrl).toBeDefined();
     expect(body.publicUrl).toBeDefined();
   });
+
+  test('should extract visual features via POST /api/v1/found-pets/extract-features', async ({ request }) => {
+    const payload = { imageUrl: 'https://storage.petspotr.io/found-test.jpg' };
+    const response = await request.post(`${WEB_FRONTEND_URL}/api/v1/found-pets/extract-features`, { data: payload });
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.breed).toBeDefined();
+    expect(body.primaryColor).toBeDefined();
+  });
+
+  test('should return push notification test payload via POST /api/v1/push/test', async ({ request }) => {
+    const response = await request.post(`${WEB_FRONTEND_URL}/api/v1/push/test`);
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.title).toContain('Match');
+    expect(body.url).toBe('/matches');
+  });
+
+  test('should serve PWA service worker script via GET /sw.js with correct Content-Type', async ({ request }) => {
+    const response = await request.get(`${WEB_FRONTEND_URL}/sw.js`);
+    expect(response.status()).toBe(200);
+    const contentType = response.headers()['content-type'];
+    expect(contentType).toContain('javascript');
+  });
+
+  test('should render HTML pages (index, report-lost, report-found, matches)', async ({ request }) => {
+    const pages = ['/', '/report-lost', '/report-found', '/matches'];
+    for (const pagePath of pages) {
+      const response = await request.get(`${WEB_FRONTEND_URL}${pagePath}`);
+      expect(response.status()).toBe(200);
+      const text = await response.text();
+      expect(text).toContain('<!DOCTYPE html>');
+    }
+  });
+
+  test('should reject lost pet report with missing email via POST /api/v1/lost-pets', async ({ request }) => {
+    const payload = { petName: 'NoEmail', location: 'Seattle, WA' };
+    const response = await request.post(`${WEB_FRONTEND_URL}/api/v1/lost-pets`, { data: payload });
+    expect(response.status()).toBe(400);
+  });
+
+  test('should reject found pet report missing imageUrl via POST /api/v1/found-pets', async ({ request }) => {
+    const payload = { location: 'Seattle, WA' };
+    const response = await request.post(`${WEB_FRONTEND_URL}/api/v1/found-pets`, { data: payload });
+    expect(response.status()).toBe(400);
+  });
+
+  test('should reject reunion contact missing message via POST /api/v1/reunions/contact', async ({ request }) => {
+    const payload = { matchId: 'm-1', senderEmail: 'test@example.com' };
+    const response = await request.post(`${WEB_FRONTEND_URL}/api/v1/reunions/contact`, { data: payload });
+    expect(response.status()).toBe(400);
+  });
+
+  test('should reject reunion resolve missing matchId via POST /api/v1/reunions/resolve', async ({ request }) => {
+    const payload = { petId: 'p-1', rating: 5 };
+    const response = await request.post(`${WEB_FRONTEND_URL}/api/v1/reunions/resolve`, { data: payload });
+    expect(response.status()).toBe(400);
+  });
 });
