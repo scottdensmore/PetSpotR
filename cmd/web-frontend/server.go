@@ -160,6 +160,8 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
 	var req LostPetFormRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
@@ -210,6 +212,8 @@ func (s *Server) handleApiExtractFeatures(w http.ResponseWriter, r *http.Request
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
 	var req FeatureExtractRequest
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -267,6 +271,8 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
 	var req FoundPetFormRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -435,14 +441,22 @@ func (s *Server) handleApiMatchAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
 	var req MatchActionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
 		return
 	}
 
+	actionLower := strings.ToLower(strings.TrimSpace(req.Action))
+	if actionLower != "confirm" && actionLower != "reject" {
+		http.Error(w, "invalid action: must be confirm or reject", http.StatusBadRequest)
+		return
+	}
+
 	status := "CONFIRMED"
-	if strings.ToLower(req.Action) == "reject" {
+	if actionLower == "reject" {
 		status = "REJECTED"
 	}
 
@@ -477,6 +491,8 @@ func (s *Server) handleApiReunionContact(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
 	var req ReunionContactRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
@@ -509,6 +525,8 @@ func (s *Server) handleApiReunionResolve(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
 	var req ReunionResolveRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -571,26 +589,29 @@ func (s *Server) handleApiPushSubscribe(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
 	var req PushSubscriptionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
 		return
 	}
 
-	if strings.TrimSpace(req.Endpoint) == "" {
-		http.Error(w, "endpoint is required", http.StatusBadRequest)
+	endpoint := strings.TrimSpace(req.Endpoint)
+	if endpoint == "" || len(endpoint) > 2048 || !strings.HasPrefix(endpoint, "https://") {
+		http.Error(w, "valid https endpoint URL is required", http.StatusBadRequest)
 		return
 	}
 
 	if data, err := json.Marshal(req); err == nil {
-		_ = s.stateStore.SaveState(r.Context(), "push_subscriptions", req.Endpoint, data)
+		_ = s.stateStore.SaveState(r.Context(), "push_subscriptions", endpoint, data)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(map[string]string{
 		"status":   "subscribed",
-		"endpoint": req.Endpoint,
+		"endpoint": endpoint,
 		"message":  "Web Push subscription registered successfully",
 	})
 }
