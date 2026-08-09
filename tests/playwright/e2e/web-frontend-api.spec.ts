@@ -166,4 +166,21 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     const response = await request.post(`${WEB_FRONTEND_URL}/api/v1/reunions/resolve`, { data: payload });
     expect(response.status()).toBe(400);
   });
+
+  test('should support pagination query params on GET /api/v1/lost-pets?limit=1&offset=0', async ({ request }) => {
+    const response = await request.get(`${WEB_FRONTEND_URL}/api/v1/lost-pets?limit=1&offset=0`);
+    expect(response.status()).toBe(200);
+    expect(response.headers()['x-total-count']).toBeDefined();
+    const data = await response.json();
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBeLessThanOrEqual(1);
+  });
+
+  test('should support species and spatial radius filtering on GET /api/v1/found-pets', async ({ request }) => {
+    const response = await request.get(`${WEB_FRONTEND_URL}/api/v1/found-pets?species=Dog&lat=47.6150&lng=-122.3200&radiusMiles=10`);
+    expect(response.status()).toBe(200);
+    expect(response.headers()['x-total-count']).toBeDefined();
+    const data = await response.json();
+    expect(Array.isArray(data)).toBe(true);
+  });
 });

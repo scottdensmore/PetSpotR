@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -133,6 +135,74 @@ type LostPetFormRequest struct {
 	Phone         string `json:"phone"`
 }
 
+type QueryParams struct {
+	Limit       int
+	Offset      int
+	Species     string
+	Status      string
+	HasGeo      bool
+	GeoPoint    domain.LocationPoint
+	RadiusMiles float64
+}
+
+func parseQueryParams(r *http.Request) QueryParams {
+	q := r.URL.Query()
+
+	limit := 20
+	if lStr := q.Get("limit"); lStr != "" {
+		if l, err := strconv.Atoi(lStr); err == nil && l >= 1 {
+			if l > 100 {
+				l = 100
+			}
+			limit = l
+		}
+	}
+
+	offset := 0
+	if oStr := q.Get("offset"); oStr != "" {
+		if o, err := strconv.Atoi(oStr); err == nil && o >= 0 {
+			offset = o
+		}
+	}
+
+	species := strings.TrimSpace(q.Get("species"))
+	status := strings.TrimSpace(q.Get("status"))
+
+	var hasGeo bool
+	var geoPoint domain.LocationPoint
+	radiusMiles := 10.0
+
+	latStr := q.Get("lat")
+	lngStr := q.Get("lng")
+	if latStr != "" && lngStr != "" {
+		lat, err1 := strconv.ParseFloat(latStr, 64)
+		lng, err2 := strconv.ParseFloat(lngStr, 64)
+		if err1 == nil && err2 == nil && !math.IsNaN(lat) && !math.IsNaN(lng) && !math.IsInf(lat, 0) && !math.IsInf(lng, 0) {
+			pt := domain.LocationPoint{Latitude: lat, Longitude: lng}
+			if pt.Validate() == nil {
+				hasGeo = true
+				geoPoint = pt
+			}
+		}
+	}
+
+	if rStr := q.Get("radiusMiles"); rStr != "" {
+		if rVal, err := strconv.ParseFloat(rStr, 64); err == nil && rVal > 0 {
+			radiusMiles = rVal
+		}
+	}
+
+	return QueryParams{
+		Limit:       limit,
+		Offset:      offset,
+		Species:     species,
+		Status:      status,
+		HasGeo:      hasGeo,
+		GeoPoint:    geoPoint,
+		RadiusMiles: radiusMiles,
+	}
+}
+
 func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		rawItems, err := s.stateStore.ListState(r.Context(), "lost_pets")
@@ -141,12 +211,46 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		params := parseQueryParams(r)
+
 		pets := make([]domain.LostPetEvent, 0, len(rawItems))
 		for _, b := range rawItems {
 			var pet domain.LostPetEvent
 			if err := json.Unmarshal(b, &pet); err == nil {
+				// Species filter check
+				if params.Species != "" {
+					var rawMap map[string]any
+					_ = json.Unmarshal(b, &rawMap)
+					if sp, ok := rawMap["species"].(string); ok && sp != "" {
+						if !strings.EqualFold(sp, params.Species) {
+							continue
+						}
+					}
+				}
+				// Geo radius filter
+				if params.HasGeo {
+					locPt := domain.ParseLocationCoordinates(pet.Location)
+					dist := domain.HaversineDistanceMiles(params.GeoPoint, locPt)
+					if dist > params.RadiusMiles {
+						continue
+					}
+				}
 				pets = append(pets, pet)
 			}
+		}
+
+		totalCount := len(pets)
+		w.Header().Set("X-Total-Count", strconv.Itoa(totalCount))
+
+		// Apply pagination limit & offset
+		if params.Offset > len(pets) {
+			pets = []domain.LostPetEvent{}
+		} else {
+			end := params.Offset + params.Limit
+			if end > len(pets) {
+				end = len(pets)
+			}
+			pets = pets[params.Offset:end]
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -253,12 +357,46 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		params := parseQueryParams(r)
+
 		pets := make([]domain.FoundPetEvent, 0, len(rawItems))
 		for _, b := range rawItems {
 			var pet domain.FoundPetEvent
 			if err := json.Unmarshal(b, &pet); err == nil {
+				// Species filter check
+				if params.Species != "" {
+					var rawMap map[string]any
+					_ = json.Unmarshal(b, &rawMap)
+					if sp, ok := rawMap["species"].(string); ok && sp != "" {
+						if !strings.EqualFold(sp, params.Species) {
+							continue
+						}
+					}
+				}
+				// Geo filter check
+				if params.HasGeo {
+					locPt := domain.ParseLocationCoordinates(pet.Location)
+					dist := domain.HaversineDistanceMiles(params.GeoPoint, locPt)
+					if dist > params.RadiusMiles {
+						continue
+					}
+				}
 				pets = append(pets, pet)
 			}
+		}
+
+		totalCount := len(pets)
+		w.Header().Set("X-Total-Count", strconv.Itoa(totalCount))
+
+		// Apply pagination limit & offset
+		if params.Offset > len(pets) {
+			pets = []domain.FoundPetEvent{}
+		} else {
+			end := params.Offset + params.Limit
+			if end > len(pets) {
+				end = len(pets)
+			}
+			pets = pets[params.Offset:end]
 		}
 
 		w.Header().Set("Content-Type", "application/json")
