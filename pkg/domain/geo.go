@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -10,6 +11,17 @@ import (
 type LocationPoint struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
+}
+
+// Validate checks that Latitude is between -90 and 90, and Longitude is between -180 and 180.
+func (p LocationPoint) Validate() error {
+	if p.Latitude < -90.0 || p.Latitude > 90.0 {
+		return fmt.Errorf("domain: latitude must be between -90 and 90, got %f", p.Latitude)
+	}
+	if p.Longitude < -180.0 || p.Longitude > 180.0 {
+		return fmt.Errorf("domain: longitude must be between -180 and 180, got %f", p.Longitude)
+	}
+	return nil
 }
 
 // EarthRadiusMiles is the mean radius of Earth in miles.

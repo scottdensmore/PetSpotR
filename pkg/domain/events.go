@@ -16,13 +16,17 @@ type LostPetEvent struct {
 	Location      string    `json:"location"`
 }
 
-// Validate checks that mandatory fields on LostPetEvent are non-empty.
+// Validate checks that mandatory fields on LostPetEvent are valid.
 func (e *LostPetEvent) Validate() error {
 	if strings.TrimSpace(e.PetID) == "" {
 		return errors.New("domain: petId is required")
 	}
-	if strings.TrimSpace(e.ReporterEmail) == "" {
+	email := strings.TrimSpace(e.ReporterEmail)
+	if email == "" {
 		return errors.New("domain: reporterEmail is required")
+	}
+	if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
+		return fmt.Errorf("domain: invalid reporterEmail address: %s", email)
 	}
 	return nil
 }
