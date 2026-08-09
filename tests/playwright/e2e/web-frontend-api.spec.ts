@@ -134,13 +134,12 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     expect(contentType).toContain('javascript');
   });
 
-  test('should render HTML pages (index, report-lost, report-found, matches)', async ({ request }) => {
+  test('should render HTML pages and DOM elements in browser', async ({ page }) => {
     const pages = ['/', '/report-lost', '/report-found', '/matches'];
     for (const pagePath of pages) {
-      const response = await request.get(`${WEB_FRONTEND_URL}${pagePath}`);
-      expect(response.status()).toBe(200);
-      const text = await response.text();
-      expect(text).toContain('<!DOCTYPE html>');
+      const response = await page.goto(`${WEB_FRONTEND_URL}${pagePath}`);
+      expect(response?.status()).toBe(200);
+      await expect(page.locator('body')).toBeVisible();
     }
   });
 
