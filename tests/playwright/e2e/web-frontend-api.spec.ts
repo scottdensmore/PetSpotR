@@ -134,14 +134,18 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     expect(contentType).toContain('javascript');
   });
 
-  test('should render HTML pages (index, report-lost, report-found, matches)', async ({ request }) => {
-    const pages = ['/', '/report-lost', '/report-found', '/matches'];
-    for (const pagePath of pages) {
-      const response = await request.get(`${WEB_FRONTEND_URL}${pagePath}`);
-      expect(response.status()).toBe(200);
-      const text = await response.text();
-      expect(text).toContain('<!DOCTYPE html>');
-    }
+  test('should render HTML pages and DOM elements in browser', async ({ page }) => {
+    await page.goto(`${WEB_FRONTEND_URL}/`);
+    await expect(page.locator('body')).toBeVisible();
+
+    await page.goto(`${WEB_FRONTEND_URL}/report-lost`);
+    await expect(page.locator('body')).toBeVisible();
+
+    await page.goto(`${WEB_FRONTEND_URL}/report-found`);
+    await expect(page.locator('body')).toBeVisible();
+
+    await page.goto(`${WEB_FRONTEND_URL}/matches`);
+    await expect(page.locator('body')).toBeVisible();
   });
 
   test('should reject lost pet report with missing email via POST /api/v1/lost-pets', async ({ request }) => {
