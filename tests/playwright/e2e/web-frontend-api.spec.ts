@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || process.env.BASE_URL || 'http://localhost:8080';
+const WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || process.env.BASE_URL || 'http://localhost:8082';
 
 test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
   test('should return 200 OK on GET /healthz', async ({ request }) => {
