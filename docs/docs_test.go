@@ -57,7 +57,7 @@ func TestAgentWorkflowIncludesCodexReviewGate(t *testing.T) {
 		"`@codex review`",
 		"`eyes`",
 		"`+1`",
-		"exact trigger comment",
+		"pull request reactions",
 		"GitHub reports that SHA as the PR head",
 		"trigger comment's",
 		"`created_at` value as the cutoff",

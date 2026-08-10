@@ -158,12 +158,15 @@ These apply at every step, not just at the gate where they are mentioned.
       until GitHub reports that SHA as the PR head. Then add a pull request
       comment containing exactly `@codex review` and record the trigger comment's
       `created_at` value as the cutoff for this review attempt.
-    - Poll reactions from the Codex GitHub App
-      (`chatgpt-codex-connector[bot]`; GraphQL may omit the `[bot]` suffix) on
-      the exact trigger comment. `eyes` is progress only; the repository's
-      current integration uses `+1` when a review completes with no findings.
-      Never use a pull-request-level reaction as exact-head proof because it
-      carries no reviewed SHA.
+    - Poll pull request reactions from the Codex GitHub App
+      (`chatgpt-codex-connector[bot]`; GraphQL may omit the `[bot]` suffix).
+      The repository's current integration adds `+1` to the pull request when a
+      review completes with no findings. It may temporarily add `eyes` to the
+      trigger comment while processing; that reaction is progress only. Require
+      the `+1` reaction's `created_at` value to be after the trigger cutoff, and
+      confirm the PR head still equals the expected full SHA. The reaction
+      itself does not identify a commit, so the cutoff and unchanged-head checks
+      are what tie that clean result to the current attempt.
     - When Codex posts a review, use thread-aware GraphQL review metadata and
       require that the review's `commit.oid` equals the expected full SHA before
       acting on it. The human-readable `Reviewed commit:` text is useful for
@@ -179,11 +182,11 @@ These apply at every step, not just at the gate where they are mentioned.
       for the new head.
     - The gate passes only when the PR head still matches the expected SHA,
       there are no unresolved Codex threads or unaddressed Codex comments, and
-      the current attempt ended in either a bot `+1` created after the trigger
-      cutoff on the exact trigger comment or an exact-head review whose findings
+      the current attempt ended in either a bot `+1` pull request reaction
+      created after the trigger cutoff or an exact-head review whose findings
       were all resolved without changing the reviewed state. If an actionable
       finding requires a change, the resulting new head must complete a new
-      review attempt. If the available tooling cannot retrieve trigger-comment
+      review attempt. If the available tooling cannot retrieve pull request
       reactions or the review `commit.oid`, the gate remains incomplete. An
       absent review, green CI, a pre-trigger reaction, or a result for an older
       head is not completion.
