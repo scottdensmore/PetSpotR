@@ -1,0 +1,1 @@
+ok lets remove the entire codex code review portion of the workflow. Get rid of it from everywhere and get to a clean state on main
