@@ -32,8 +32,8 @@ and browser-driven page coverage.
 
 ## Code Review Rules
 
-These rules guide both local reviewers and the Codex GitHub reviewer. Keep
-deterministic formatting, lint, build, and test checks in the verifier and CI.
+These rules guide local reviewers. Keep deterministic formatting, lint, build,
+and test checks in the verifier and CI.
 
 - Pub/Sub handlers must remain idempotent under redelivery. Flag writes,
   notifications, or state transitions that can be duplicated when the same
@@ -122,11 +122,11 @@ These apply at every step, not just at the gate where they are mentioned.
    the verifier after addressing it.
 
 8. **Run the local `code-review` before every commit.** Invoke the
-   `code-review` sub-agent against the current branch diff and every staged,
-   unstaged, and untracked file. This is separate from the post-push Codex
-   GitHub review in step 11. Address every actionable finding before committing.
-   If review findings cause changes, rerun the affected tests and the
-   `verifier`, then obtain a fresh `code-review` approval for the changed state.
+    `code-review` sub-agent against the current branch diff and every staged,
+    unstaged, and untracked file. Address every actionable finding before
+    committing. If review findings cause changes, rerun the affected tests and
+    the `verifier`, then obtain a fresh `code-review` approval for the changed
+    state.
 
 9. **Commit after approval.** Commit only after verification and code review are
    complete. Use Conventional Commits:
@@ -151,51 +151,7 @@ These apply at every step, not just at the gate where they are mentioned.
     - Push and open a normal, ready-for-review pull request. Do not open draft
       pull requests unless the user explicitly asks for a draft.
 
-11. **Complete the Codex GitHub review loop.** The repository has Codex Code
-    review and automatic reviews enabled, but do not treat an automatic trigger
-    as proof that the current head was reviewed.
-    - Record the expected full head SHA, push or open the pull request, and wait
-      until GitHub reports that SHA as the PR head. Then add a pull request
-      comment containing exactly `@codex review` and record the trigger comment's
-      `created_at` value as the cutoff for this review attempt.
-    - Poll pull request reactions from the Codex GitHub App
-      (`chatgpt-codex-connector[bot]`; GraphQL may omit the `[bot]` suffix).
-      The repository's current integration adds `+1` to the pull request when a
-      review completes with no findings. It may temporarily add `eyes` to the
-      trigger comment while processing; that reaction is progress only. Require
-      the `+1` reaction's `created_at` value to be after the trigger cutoff, and
-      confirm the PR head still equals the expected full SHA. The reaction
-      itself does not identify a commit, so the cutoff and unchanged-head checks
-      are what tie that clean result to the current attempt.
-    - When Codex posts a review, use thread-aware GraphQL review metadata and
-      require that the review's `commit.oid` equals the expected full SHA before
-      acting on it. The human-readable `Reviewed commit:` text is useful for
-      display, but it is not authoritative. A review for an older head does not
-      satisfy or fail the current attempt.
-    - Read conversation comments, review bodies, and thread-aware inline comments.
-      Address every actionable finding. Reply to inline feedback with the
-      resolution and verification evidence, and resolve every addressed thread;
-      acknowledge non-thread feedback in the PR conversation. Ask the user about
-      ambiguous or conflicting feedback rather than guessing.
-    - If a finding causes changes, rerun the affected tests and gates, create a
-      new commit without amending the pushed commit, push, and restart this step
-      for the new head.
-    - The gate passes only when the PR head still matches the expected SHA,
-      there are no unresolved Codex threads or unaddressed Codex comments, and
-      the current attempt ended in either a bot `+1` pull request reaction
-      created after the trigger cutoff or an exact-head review whose findings
-      were all resolved without changing the reviewed state. If an actionable
-      finding requires a change, the resulting new head must complete a new
-      review attempt. If the available tooling cannot retrieve pull request
-      reactions or the review `commit.oid`, the gate remains incomplete. An
-      absent review, green CI, a pre-trigger reaction, or a result for an older
-      head is not completion.
-    - This Codex review loop is a repository policy gate, not a configured
-      GitHub required status check. Branch protection can still report a pull
-      request as mergeable before Codex responds, so agents must enforce this
-      step explicitly and never merge early.
-
-12. **Merge only clean, passing pull requests.** Merge only after GitHub reports
+11. **Merge only clean, passing pull requests.** Merge only after GitHub reports
     a clean merge state and every configured check passes. Never bypass a
     failing or pending required check. Self-merges are allowed when these
     conditions are met. Use squash merge for short-lived development branches to
@@ -332,7 +288,7 @@ replace the independent verifier report required by step 7.
 `main` is protected by an active ruleset: pull request required, squash-only
 merges, no deletion, no force-push, and all four checks green before merge.
 There are no bypass actors — it applies to repository owners too, which is what
-makes step 12 enforceable rather than aspirational.
+makes step 11 enforceable rather than aspirational.
 
 Required status checks are **strict**: a branch must also be up to date with
 `main` before it can merge. If GitHub reports `BLOCKED` while every check is

@@ -40,7 +40,7 @@ func TestDocumentationFilesExist(t *testing.T) {
 	})
 }
 
-func TestAgentWorkflowIncludesCodexReviewGate(t *testing.T) {
+func TestAgentWorkflowIncludesRequiredRules(t *testing.T) {
 	content, err := os.ReadFile(filepath.Join("..", "AGENTS.md"))
 	if err != nil {
 		t.Fatalf("failed to read AGENTS.md: %v", err)
@@ -52,30 +52,14 @@ func TestAgentWorkflowIncludesCodexReviewGate(t *testing.T) {
 		"Pub/Sub handlers must remain idempotent under redelivery",
 		"Event schema changes must remain backward compatible",
 		"Reporter contact details and state-changing actions",
-		"11. **Complete the Codex GitHub review loop.**",
-		"chatgpt-codex-connector[bot]",
-		"`@codex review`",
-		"`eyes`",
-		"`+1`",
-		"pull request reactions",
-		"GitHub reports that SHA as the PR head",
-		"trigger comment's",
-		"`created_at` value as the cutoff",
-		"review's `commit.oid` equals the expected full SHA",
-		"PR head still matches the expected SHA",
-		"conversation comments, review bodies",
-		"thread-aware inline comments",
-		"resolve every addressed thread",
-		"repository policy gate",
-		"GitHub required status check",
 		"self-contained in-process cascade coverage",
 		"docker compose up --build --detach lostpet-service foundpet-service web-frontend",
 		"Neither CI nor the documented verifier commands exercise a live Ollama",
-		"12. **Merge only clean, passing pull requests.**",
+		"11. **Merge only clean, passing pull requests.**",
 	}
 	for _, fragment := range required {
 		if !strings.Contains(workflow, fragment) {
-			t.Errorf("AGENTS.md missing Codex review workflow %q", fragment)
+			t.Errorf("AGENTS.md missing required workflow %q", fragment)
 		}
 	}
 
@@ -84,8 +68,7 @@ func TestAgentWorkflowIncludesCodexReviewGate(t *testing.T) {
 		"All four services",
 		"docker-compose up --build",
 		"ollama pull gemma4:e2b",
-		"reviewer runs after a pull request opens and after every push",
-		"both the trigger comment and the pull request",
+		"step 12 enforceable",
 		"CI does **not** run `e2e/`",
 		"Both need the full stack",
 		"no local stack for `e2e/`",
