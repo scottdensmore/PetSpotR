@@ -1,0 +1,24 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01KZMTWVQSXT8K5KHBJEENDZ5H",
+  "strategy": "manual-commit",
+  "branch": "test/review-gate-smoke",
+  "checkpoints_count": 7,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 121,
+    "cache_creation_tokens": 81773,
+    "cache_read_tokens": 4482196,
+    "output_tokens": 43088,
+    "api_call_count": 65
+  }
+}
