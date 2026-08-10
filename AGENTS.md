@@ -156,18 +156,23 @@ These apply at every step, not just at the gate where they are mentioned.
 
     - It reacts 👀 on the pull request while reading and 👍 when it is satisfied.
       The reactions are on the pull request itself:
-      `gh api repos/<owner>/<repo>/issues/<pr>/reactions`.
+      `gh api repos/<owner>/<repo>/issues/<pr>/reactions`. Only reactions whose
+      `user.login` is `chatgpt-codex-connector[bot]` count.
+      Record the expected full head SHA after every push, and wait until GitHub
+      reports that SHA as the PR head.
     - Findings are inline review threads, invisible to
       `gh pr view --json comments`. Read them through GraphQL `reviewThreads`,
       which gives the body, the `isResolved` state the merge gate turns on, and
       the thread id needed to resolve it — the REST comments endpoint carries
       none of the last two. Page it: a missed page reads as a finding that is
-      not there.
+      not there. Require that the review's GraphQL `commit.oid` equals that SHA
+      and confirm the PR head still matches the expected SHA before accepting
+      its verdict.
     - The loop: address the findings, re-run steps 6 to 9 for what changed,
       push, reply to each thread saying what changed, resolve it, wait for the
-      next verdict. Repeat until 👍. Treat P1 as blocking, and where a finding
-      is right about the problem but wrong about the fix, say so rather than
-      resolving quietly.
+      next verdict. Repeat until 👍. Treat P0 and P1 as blocking, and where a
+      finding is right about the problem but wrong about the fix, say so rather
+      than resolving quietly.
     - **Only a 👍 you watched arrive counts.** The old one survives a push, and
       survives a later review that had findings, so the reaction sitting there
       may be about a commit two revisions back. Watch it go 👀 and then 👍
