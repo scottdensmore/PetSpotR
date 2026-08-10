@@ -1,5 +1,1 @@
-Take a look at the AGENTS.md file and scrutinize it and make sure it makes sense. I want to make sure the part that uses the codex code review agent on PRs is correct
-
----
-
 Ok lets cleanup the AGENTS.md file. Please make the changes based on what you discovered
