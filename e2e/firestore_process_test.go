@@ -52,10 +52,14 @@ func TestFirestoreStateCrossesServiceProcessesAndSurvivesRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create cleanup runtime: %v", err)
 	}
+	eventID := ""
 	t.Cleanup(func() {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cleanupCancel()
 		_ = stateRuntime.Store.DeleteState(cleanupCtx, store.LostPetsCollection, petID)
+		if eventID != "" {
+			_ = stateRuntime.Store.DeleteState(cleanupCtx, store.OutboxCollection, eventID)
+		}
 		_ = stateRuntime.Close()
 	})
 
@@ -86,6 +90,14 @@ func TestFirestoreStateCrossesServiceProcessesAndSurvivesRestart(t *testing.T) {
 	_ = response.Body.Close()
 	if response.StatusCode != http.StatusCreated {
 		t.Fatalf("lost service status = %d, want %d; body = %s\nlogs:\n%s", response.StatusCode, http.StatusCreated, responseBody, lostProcess.logs.String())
+	}
+	var submission map[string]string
+	if err := json.Unmarshal(responseBody, &submission); err != nil {
+		t.Fatalf("decode lost service response: %v", err)
+	}
+	eventID = submission["eventId"]
+	if eventID == "" {
+		t.Fatal("lost service response did not contain eventId")
 	}
 
 	webPort := reserveLocalPort(t)

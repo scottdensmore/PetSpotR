@@ -141,6 +141,9 @@ func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to subscribe to matchFound: %v", err)
 	}
+	if err := ps.Subscribe("lostPet", func(context.Context, []byte) error { return nil }); err != nil {
+		t.Fatalf("failed to subscribe to lostPet: %v", err)
+	}
 
 	// 5. Register Pet Matcher Worker Subscriber using real scoring pipeline & store lookup
 	err = ps.Subscribe("foundPet", func(ctx context.Context, data []byte) error {

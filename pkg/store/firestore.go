@@ -92,6 +92,74 @@ func (s *FirestoreStore) SaveState(ctx context.Context, storeName, key string, d
 	return nil
 }
 
+// CreateStateAndOutbox creates aggregate state and an outbox record in one
+// Firestore transaction. Exact retries do not replace a completed outbox
+// record, while competing aggregate creates fail with ErrConflict.
+func (s *FirestoreStore) CreateStateAndOutbox(ctx context.Context, state, outbox StateWrite) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	if err := validateAtomicWrites(state, outbox); err != nil {
+		return false, err
+	}
+	stateDoc, err := s.document(state.StoreName, state.Key)
+	if err != nil {
+		return false, err
+	}
+	outboxDoc, err := s.document(outbox.StoreName, outbox.Key)
+	if err != nil {
+		return false, err
+	}
+
+	created := false
+	err = s.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		// Firestore may retry this callback after contention. Reset the result
+		// for every attempt so a superseded write cannot leak into the return.
+		created = false
+		stateSnapshot, stateErr := tx.Get(stateDoc)
+		outboxSnapshot, outboxErr := tx.Get(outboxDoc)
+		stateExists := stateErr == nil
+		outboxExists := outboxErr == nil
+		if stateErr != nil && status.Code(stateErr) != codes.NotFound {
+			return stateErr
+		}
+		if outboxErr != nil && status.Code(outboxErr) != codes.NotFound {
+			return outboxErr
+		}
+		if stateExists || outboxExists {
+			if !stateExists || !outboxExists {
+				return fmt.Errorf("%w: %s/%s", ErrConflict, state.StoreName, state.Key)
+			}
+			var storedState, storedOutbox firestoreRecord
+			if err := stateSnapshot.DataTo(&storedState); err != nil {
+				return err
+			}
+			if err := outboxSnapshot.DataTo(&storedOutbox); err != nil {
+				return err
+			}
+			if storedState.Key == state.Key && storedOutbox.Key == outbox.Key && bytes.Equal(storedState.Data, state.Data) {
+				return nil
+			}
+			return fmt.Errorf("%w: %s/%s", ErrConflict, state.StoreName, state.Key)
+		}
+		if err := tx.Set(stateDoc, firestoreRecord{Key: state.Key, Data: bytes.Clone(state.Data)}); err != nil {
+			return err
+		}
+		if err := tx.Set(outboxDoc, firestoreRecord{Key: outbox.Key, Data: bytes.Clone(outbox.Data)}); err != nil {
+			return err
+		}
+		created = true
+		return nil
+	})
+	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return false, ctxErr
+		}
+		return false, fmt.Errorf("store: create state and outbox: %w", err)
+	}
+	return created, nil
+}
+
 // GetState retrieves data from a top-level collection and document key.
 func (s *FirestoreStore) GetState(ctx context.Context, storeName, key string) ([]byte, error) {
 	doc, err := s.document(storeName, key)

@@ -4,8 +4,13 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 )
+
+// ErrNoSubscribers prevents an in-memory broker from falsely acknowledging an
+// event that no local consumer received.
+var ErrNoSubscribers = errors.New("pubsub: topic has no subscribers")
 
 // Handler handles an incoming pub/sub event message payload.
 type Handler func(ctx context.Context, data []byte) error
@@ -14,6 +19,12 @@ type Handler func(ctx context.Context, data []byte) error
 type Broker interface {
 	Publish(ctx context.Context, topic string, data []byte) error
 	Subscribe(topic string, handler Handler) error
+}
+
+// TopicAvailability is implemented by brokers that can determine locally
+// whether publishing a topic can currently reach any consumer.
+type TopicAvailability interface {
+	HasSubscribers(topic string) bool
 }
 
 // PubSubBroker is an alias for Broker.
@@ -41,6 +52,9 @@ func (m *MemoryPubSub) Publish(ctx context.Context, topic string, data []byte) e
 	m.mu.RLock()
 	handlers := append([]Handler(nil), m.subscribers[topic]...)
 	m.mu.RUnlock()
+	if len(handlers) == 0 {
+		return fmt.Errorf("%w: %s", ErrNoSubscribers, topic)
+	}
 
 	var errs []error
 	for _, h := range handlers {
@@ -59,4 +73,11 @@ func (m *MemoryPubSub) Subscribe(topic string, handler Handler) error {
 
 	m.subscribers[topic] = append(m.subscribers[topic], handler)
 	return nil
+}
+
+// HasSubscribers reports whether this process has a handler for topic.
+func (m *MemoryPubSub) HasSubscribers(topic string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return len(m.subscribers[topic]) > 0
 }

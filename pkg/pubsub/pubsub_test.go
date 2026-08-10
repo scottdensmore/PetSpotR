@@ -108,3 +108,11 @@ func TestMemoryPubSub(t *testing.T) {
 		}
 	})
 }
+
+func TestMemoryPubSubPublishWithoutSubscribersDoesNotAcknowledgeDelivery(t *testing.T) {
+	ps := pubsub.NewMemoryPubSub()
+	err := ps.Publish(context.Background(), "lostPet", []byte("event-data"))
+	if !errors.Is(err, pubsub.ErrNoSubscribers) {
+		t.Fatalf("Publish() error = %v, want ErrNoSubscribers", err)
+	}
+}
