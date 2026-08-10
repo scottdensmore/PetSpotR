@@ -66,6 +66,59 @@ starting the stack.
 
 Access the application in your browser at `http://localhost:8082`.
 
+### State Runtime Modes
+
+The four stateful processes select their state backend with
+`PETSPOTR_RUNTIME_MODE`:
+
+| Mode | Required configuration | State backend | Intended use |
+| --- | --- | --- | --- |
+| `memory` | None | Process-local memory | Unit tests and demo-only development |
+| `local-emulator` | `GOOGLE_CLOUD_PROJECT`, `FIRESTORE_EMULATOR_HOST` | Firestore emulator | Shared local development and integration tests |
+| `gcp` | Application Default Credentials; optional explicit `GOOGLE_CLOUD_PROJECT` | Managed Firestore | Deployed environments |
+
+Outside Cloud Run, an unset mode defaults to `memory` for compatibility with
+the current Compose demo. Cloud Run selects `gcp` automatically, rejects an
+explicit `memory` mode, and detects the project ID through Application Default
+Credentials or the metadata server when `GOOGLE_CLOUD_PROJECT` is not set. A
+deployed service therefore cannot silently start with ephemeral state.
+
+Managed emulator and GCP servers return redacted public lost-pet records.
+Contact, match/reunion transition, and push-subscription endpoints remain
+disabled with `403 Forbidden` outside explicit `memory` demo mode until
+issue #110 adds authentication and ownership enforcement.
+
+For example, after starting a Firestore emulator on port 8085:
+
+```bash
+export PETSPOTR_RUNTIME_MODE=local-emulator
+export GOOGLE_CLOUD_PROJECT=petspotr-local
+export FIRESTORE_EMULATOR_HOST=127.0.0.1:8085
+go run ./cmd/lostpet-service
+```
+
+Run the cross-client persistence contract against that emulator with:
+
+```bash
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
+  go test ./pkg/runtimeconfig \
+  -run TestStateRuntimeSharesAndRetainsStateWithFirestoreEmulator
+```
+
+The separate-process contract builds the real lost-pet and web binaries,
+writes through the first process, reads through the second, restarts it, and
+verifies retention:
+
+```bash
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
+  go test ./e2e \
+  -run TestFirestoreStateCrossesServiceProcessesAndSurvivesRestart
+```
+
+This runtime slice covers shared state only. Pub/Sub delivery and GCS uploads
+remain in-memory until issues #108 and #109 are completed, so it does not yet
+provide a complete cross-process event cascade.
+
 ---
 
 ## 3. Google Cloud Platform (GCP) Deployment

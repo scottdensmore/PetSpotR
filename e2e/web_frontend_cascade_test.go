@@ -77,7 +77,7 @@ func TestWebFrontendFullEventCascadeJourney(t *testing.T) {
 			return err
 		}
 
-		lostStateBytes, err := st.GetState(ctx, "lostPets", "lost-999")
+		lostStateBytes, err := st.GetState(ctx, store.LostPetsCollection, "lost-999")
 		if err != nil {
 			return err
 		}
@@ -112,7 +112,7 @@ func TestWebFrontendFullEventCascadeJourney(t *testing.T) {
 		Location:      "Capitol Hill, Seattle, WA",
 	}
 	lostBytes, _ := lostEvt.ToJSON()
-	_ = st.SaveState(context.Background(), "lostPets", "lost-999", lostBytes)
+	_ = st.SaveState(context.Background(), store.LostPetsCollection, "lost-999", lostBytes)
 	_ = ps.Publish(context.Background(), "lostPet", lostBytes)
 
 	// Step 2: Extract visual features from photo
@@ -141,7 +141,7 @@ func TestWebFrontendFullEventCascadeJourney(t *testing.T) {
 		Location: "Capitol Hill, Seattle, WA",
 	}
 	foundBytes, _ := foundEvt.ToJSON()
-	_ = st.SaveState(context.Background(), "foundPets", "found-999", foundBytes)
+	_ = st.SaveState(context.Background(), store.FoundPetsCollection, "found-999", foundBytes)
 	_ = ps.Publish(context.Background(), "foundPet", foundBytes)
 
 	// Step 4: Verify Event Cascade & Match Result

@@ -47,7 +47,7 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 		Location:      "Seattle, WA",
 	}
 	lostData, _ := lostEvt.ToJSON()
-	_ = st.SaveState(context.Background(), "lostPets", "lost-101", lostData)
+	_ = st.SaveState(context.Background(), store.LostPetsCollection, "lost-101", lostData)
 
 	var matchFoundEvent domain.MatchResult
 	var matchPublished bool

@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
 )
 
 func main() {
@@ -17,15 +19,32 @@ func main() {
 		port = "8082"
 	}
 
-	srv := NewServer()
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	config, err := runtimeconfig.LoadStateConfigFromEnv()
+	if err != nil {
+		log.Fatalf("Invalid runtime configuration: %v", err)
+	}
+	stateRuntime, err := runtimeconfig.NewStateRuntime(ctx, config)
+	if err != nil {
+		log.Fatalf("Failed to initialize state runtime: %v", err)
+	}
+	defer func() {
+		if err := stateRuntime.Close(); err != nil {
+			log.Printf("Failed to close state runtime: %v", err)
+		}
+	}()
+
+	srv := NewServerWithOptions(stateRuntime.Store, ServerOptions{
+		AllowPrivilegedMutations: config.Mode == runtimeconfig.ModeMemory,
+	})
 	httpSrv := &http.Server{
 		Addr:         ":" + port,
 		Handler:      srv,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
-
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		log.Printf("PetSpotR Web Frontend Server listening on http://localhost:%s", port)
@@ -35,7 +54,6 @@ func main() {
 	}()
 
 	<-ctx.Done()
-	cancel()
 	log.Println("Shutting down Web Frontend Server...")
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)

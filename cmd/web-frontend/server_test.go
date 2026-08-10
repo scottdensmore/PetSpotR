@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -8,6 +10,16 @@ import (
 
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
+
+var errStateWrite = errors.New("state write failed")
+
+type failingSaveStore struct {
+	*store.MemoryStore
+}
+
+func (s *failingSaveStore) SaveState(context.Context, string, string, []byte) error {
+	return errStateWrite
+}
 
 func TestNewServer_Routes(t *testing.T) {
 	srv := NewServer()
@@ -357,8 +369,11 @@ func TestNewServer_Routes(t *testing.T) {
 		if recGet.Code != http.StatusOK {
 			t.Fatalf("expected status 200 OK, got %d", recGet.Code)
 		}
-		if !strings.Contains(recGet.Body.String(), "rover@example.com") {
-			t.Errorf("expected GET /api/v1/lost-pets to contain persisted record, got %s", recGet.Body.String())
+		if strings.Contains(recGet.Body.String(), "rover@example.com") || strings.Contains(recGet.Body.String(), "reporterEmail") {
+			t.Errorf("expected GET /api/v1/lost-pets to redact reporter contact, got %s", recGet.Body.String())
+		}
+		if !strings.Contains(recGet.Body.String(), "Portland, OR") {
+			t.Errorf("expected GET /api/v1/lost-pets to contain the public report, got %s", recGet.Body.String())
 		}
 	})
 
@@ -452,4 +467,186 @@ func TestNewServer_Routes(t *testing.T) {
 			t.Errorf("expected species filter result to contain cat.jpg, got %s", recCat.Body.String())
 		}
 	})
+}
+
+func TestDurableStateFailuresAreNotReportedAsSuccess(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		path      string
+		payload   string
+		seedMatch bool
+	}{
+		{
+			name:    "lost pet report",
+			path:    "/api/v1/lost-pets",
+			payload: `{"petName":"Rover","reporterEmail":"rover@example.com","location":"Portland, OR"}`,
+		},
+		{
+			name:    "found pet report",
+			path:    "/api/v1/found-pets",
+			payload: `{"imageUrl":"https://storage.petspotr.io/found-rover.jpg","location":"Portland, OR"}`,
+		},
+		{
+			name:    "push subscription",
+			path:    "/api/v1/push/subscribe",
+			payload: `{"endpoint":"https://push.example.test/send/subscription","keys":{"p256dh":"key","auth":"auth"}}`,
+		},
+		{
+			name:      "match action",
+			path:      "/api/v1/matches/action",
+			payload:   `{"matchId":"match-write-failure","action":"confirm"}`,
+			seedMatch: true,
+		},
+		{
+			name:      "reunion resolution",
+			path:      "/api/v1/reunions/resolve",
+			payload:   `{"matchId":"match-write-failure","petId":"lost-1","rating":5}`,
+			seedMatch: true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			memory := store.NewMemoryStore()
+			if tt.seedMatch {
+				record := []byte(`{"matchId":"match-write-failure","status":"PENDING_REVIEW"}`)
+				if err := memory.SaveState(context.Background(), store.MatchesCollection, "match-write-failure", record); err != nil {
+					t.Fatalf("seed match: %v", err)
+				}
+			}
+			srv := NewServerWithOptions(&failingSaveStore{MemoryStore: memory}, ServerOptions{
+				AllowPrivilegedMutations: true,
+			})
+			req := httptest.NewRequest(http.MethodPost, tt.path, strings.NewReader(tt.payload))
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+
+			srv.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusInternalServerError {
+				t.Fatalf("status = %d, want %d; body = %s", rec.Code, http.StatusInternalServerError, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestMatchMutationsReturnNotFoundForUnknownMatch(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		path    string
+		payload string
+	}{
+		{
+			path:    "/api/v1/matches/action",
+			payload: `{"matchId":"missing","action":"confirm"}`,
+		},
+		{
+			path:    "/api/v1/reunions/resolve",
+			payload: `{"matchId":"missing","petId":"lost-1"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.path, func(t *testing.T) {
+			t.Parallel()
+			srv := NewServerWithOptions(store.NewMemoryStore(), ServerOptions{
+				AllowPrivilegedMutations: true,
+			})
+			req := httptest.NewRequest(http.MethodPost, tt.path, strings.NewReader(tt.payload))
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+
+			srv.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusNotFound {
+				t.Fatalf("status = %d, want %d; body = %s", rec.Code, http.StatusNotFound, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestManagedServerRejectsPrivilegedMutations(t *testing.T) {
+	t.Parallel()
+
+	memory := store.NewMemoryStore()
+	record := []byte(`{"matchId":"managed-match","status":"PENDING_REVIEW"}`)
+	if err := memory.SaveState(context.Background(), store.MatchesCollection, "managed-match", record); err != nil {
+		t.Fatalf("seed match: %v", err)
+	}
+	srv := NewServerWithStore(memory)
+
+	tests := []struct {
+		path    string
+		payload string
+	}{
+		{
+			path:    "/api/v1/matches/action",
+			payload: `{"matchId":"managed-match","action":"confirm"}`,
+		},
+		{
+			path:    "/api/v1/reunions/resolve",
+			payload: `{"matchId":"managed-match","petId":"lost-1"}`,
+		},
+		{
+			path:    "/api/v1/reunions/contact",
+			payload: `{"matchId":"managed-match","senderEmail":"sender@example.com","message":"hello"}`,
+		},
+		{
+			path:    "/api/v1/push/subscribe",
+			payload: `{"endpoint":"https://push.example.test/send/managed","keys":{"p256dh":"key","auth":"auth"}}`,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.path, func(t *testing.T) {
+			t.Parallel()
+			req := httptest.NewRequest(http.MethodPost, tt.path, strings.NewReader(tt.payload))
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+
+			srv.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusForbidden {
+				t.Fatalf("status = %d, want %d; body = %s", rec.Code, http.StatusForbidden, rec.Body.String())
+			}
+		})
+	}
+
+	got, err := memory.GetState(context.Background(), store.MatchesCollection, "managed-match")
+	if err != nil {
+		t.Fatalf("load match: %v", err)
+	}
+	if string(got) != string(record) {
+		t.Fatalf("managed match was mutated: got %s, want %s", got, record)
+	}
+}
+
+func TestMatchListDoesNotSeedInjectedStore(t *testing.T) {
+	t.Parallel()
+
+	memory := store.NewMemoryStore()
+	srv := NewServerWithStore(memory)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/matches", nil)
+	rec := httptest.NewRecorder()
+
+	srv.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	items, err := memory.ListState(context.Background(), store.MatchesCollection)
+	if err != nil {
+		t.Fatalf("ListState() error = %v", err)
+	}
+	if len(items) != 0 {
+		t.Fatalf("persisted matches = %d, want 0", len(items))
+	}
 }

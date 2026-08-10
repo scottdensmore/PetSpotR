@@ -50,15 +50,12 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     expect(response.status()).toBe(200);
     const body = await response.json();
     expect(Array.isArray(body)).toBe(true);
-    expect(body.length).toBeGreaterThan(0);
   });
 
-  test('should process user match confirmation via POST /api/v1/matches/action', async ({ request }) => {
+  test('should reject match confirmation for an unknown match', async ({ request }) => {
     const payload = { matchId: 'match-pw-101', action: 'confirm' };
     const response = await request.post(`${WEB_FRONTEND_URL}/api/v1/matches/action`, { data: payload });
-    expect(response.status()).toBe(200);
-    const body = await response.json();
-    expect(body.status).toBe('CONFIRMED');
+    expect(response.status()).toBe(404);
   });
 
   test('should process owner contact initiation via POST /api/v1/reunions/contact', async ({ request }) => {
@@ -74,7 +71,7 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     expect(body.status).toBe('sent');
   });
 
-  test('should process reunion resolution via POST /api/v1/reunions/resolve', async ({ request }) => {
+  test('should reject reunion resolution for an unknown match', async ({ request }) => {
     const payload = {
       matchId: 'match-pw-101',
       petId: 'lost-pw-api-1',
@@ -83,10 +80,7 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     };
 
     const response = await request.post(`${WEB_FRONTEND_URL}/api/v1/reunions/resolve`, { data: payload });
-    expect(response.status()).toBe(200);
-    const body = await response.json();
-    expect(body.status).toBe('REUNITED');
-    expect(body.rating).toBe(5);
+    expect(response.status()).toBe(404);
   });
 
   test('should register Web Push subscription via POST /api/v1/push/subscribe', async ({ request }) => {
