@@ -63,7 +63,7 @@ func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// 1. Save state
-	if err := s.store.SaveState(ctx, "lostPets", evt.PetID, data); err != nil {
+	if err := s.store.SaveState(ctx, store.LostPetsCollection, evt.PetID, data); err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to save state: %v", err))
 		return
 	}

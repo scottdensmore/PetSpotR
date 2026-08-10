@@ -39,7 +39,7 @@ func (s *lostPetService) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := s.store.SaveState(r.Context(), "lostPets", evt.PetID, data); err != nil {
+	if err := s.store.SaveState(r.Context(), store.LostPetsCollection, evt.PetID, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -72,7 +72,7 @@ func (s *foundPetService) HandleFoundPet(w http.ResponseWriter, r *http.Request)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := s.store.SaveState(r.Context(), "foundPets", evt.PetID, data); err != nil {
+	if err := s.store.SaveState(r.Context(), store.FoundPetsCollection, evt.PetID, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -167,7 +167,7 @@ func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 		}
 
 		// State lookup for lost pet candidate
-		lostStateBytes, err := st.GetState(ctx, "lostPets", "lost-777")
+		lostStateBytes, err := st.GetState(ctx, store.LostPetsCollection, "lost-777")
 		if err != nil {
 			return err
 		}

@@ -78,7 +78,7 @@ func (w *Worker) ProcessFoundPet(ctx context.Context, foundPetData []byte) error
 	// 2. Fetch lost pets state candidate
 	// Note: In memory store testing, lost pets are queried directly or retrieved by key.
 	// For current vertical slice, attempt matching against stored candidate or default lost pet traits.
-	lostStateBytes, err := w.store.GetState(ctx, "lostPets", "lost-101")
+	lostStateBytes, err := w.store.GetState(ctx, store.LostPetsCollection, "lost-101")
 	var lostTraits *scoring.PetTraits
 	lostPetID := "lost-101"
 	lostLocation := "Capitol Hill, Seattle, WA"

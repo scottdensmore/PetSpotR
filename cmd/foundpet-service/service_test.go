@@ -47,7 +47,7 @@ func TestFoundPetService_HandleFoundPet(t *testing.T) {
 		}
 
 		// Verify state persistence
-		data, err := st.GetState(context.Background(), "foundPets", "pet-found-555")
+		data, err := st.GetState(context.Background(), store.FoundPetsCollection, "pet-found-555")
 		if err != nil {
 			t.Fatalf("failed to retrieve saved state: %v", err)
 		}

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"math"
@@ -23,22 +25,40 @@ var embeddedFiles embed.FS
 
 // Server encapsulates HTTP routes and handlers for the PetSpotR Web Frontend.
 type Server struct {
-	mux        *http.ServeMux
-	metrics    *telemetry.MetricsRegistry
-	stateStore store.StateStore
+	mux                      *http.ServeMux
+	metrics                  *telemetry.MetricsRegistry
+	stateStore               store.StateStore
+	allowPrivilegedMutations bool
 }
 
-// NewServer initializes a new Server instance with default MemoryStore.
+// ServerOptions controls behavior that must remain limited to explicit demo
+// runtimes until authentication and ownership checks are implemented.
+type ServerOptions struct {
+	AllowPrivilegedMutations bool
+}
+
+// NewServer initializes a demo/test Server with seeded in-memory match data.
 func NewServer() *Server {
-	return NewServerWithStore(store.NewMemoryStore())
+	memory := store.NewMemoryStore()
+	if err := seedDemoMatches(context.Background(), memory); err != nil {
+		panic(fmt.Sprintf("seed demo matches: %v", err))
+	}
+	return NewServerWithOptions(memory, ServerOptions{AllowPrivilegedMutations: true})
 }
 
-// NewServerWithStore constructs a Server instance with a custom StateStore.
+// NewServerWithStore constructs a secure-by-default Server with a custom
+// StateStore. Privileged mutations remain disabled.
 func NewServerWithStore(st store.StateStore) *Server {
+	return NewServerWithOptions(st, ServerOptions{})
+}
+
+// NewServerWithOptions constructs a Server with explicit demo-only behavior.
+func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 	s := &Server{
-		mux:        http.NewServeMux(),
-		metrics:    telemetry.NewMetricsRegistry("web-frontend"),
-		stateStore: st,
+		mux:                      http.NewServeMux(),
+		metrics:                  telemetry.NewMetricsRegistry("web-frontend"),
+		stateStore:               st,
+		allowPrivilegedMutations: options.AllowPrivilegedMutations,
 	}
 	s.routes()
 	return s
@@ -135,6 +155,12 @@ type LostPetFormRequest struct {
 	Phone         string `json:"phone"`
 }
 
+type PublicLostPet struct {
+	PetID      string    `json:"petId"`
+	ReportedAt time.Time `json:"reportedAt"`
+	Location   string    `json:"location"`
+}
+
 type QueryParams struct {
 	Limit       int
 	Offset      int
@@ -205,7 +231,7 @@ func parseQueryParams(r *http.Request) QueryParams {
 
 func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
-		rawItems, err := s.stateStore.ListState(r.Context(), "lost_pets")
+		rawItems, err := s.stateStore.ListState(r.Context(), store.LostPetsCollection)
 		if err != nil {
 			http.Error(w, "Failed to query lost pets", http.StatusInternalServerError)
 			return
@@ -253,9 +279,18 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 			pets = pets[params.Offset:end]
 		}
 
+		publicPets := make([]PublicLostPet, 0, len(pets))
+		for _, pet := range pets {
+			publicPets = append(publicPets, PublicLostPet{
+				PetID:      pet.PetID,
+				ReportedAt: pet.ReportedAt,
+				Location:   pet.Location,
+			})
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(pets)
+		_ = json.NewEncoder(w).Encode(publicPets)
 		return
 	}
 
@@ -295,8 +330,13 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data, err := json.Marshal(evt)
-	if err == nil {
-		_ = s.stateStore.SaveState(r.Context(), "lost_pets", evt.PetID, data)
+	if err != nil {
+		http.Error(w, "Failed to encode lost pet report", http.StatusInternalServerError)
+		return
+	}
+	if err := s.stateStore.SaveState(r.Context(), store.LostPetsCollection, evt.PetID, data); err != nil {
+		http.Error(w, "Failed to save lost pet report", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -351,7 +391,7 @@ type FoundPetFormRequest struct {
 
 func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
-		rawItems, err := s.stateStore.ListState(r.Context(), "found_pets")
+		rawItems, err := s.stateStore.ListState(r.Context(), store.FoundPetsCollection)
 		if err != nil {
 			http.Error(w, "Failed to query found pets", http.StatusInternalServerError)
 			return
@@ -438,8 +478,13 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data, err := json.Marshal(evt)
-	if err == nil {
-		_ = s.stateStore.SaveState(r.Context(), "found_pets", evt.PetID, data)
+	if err != nil {
+		http.Error(w, "Failed to encode found pet report", http.StatusInternalServerError)
+		return
+	}
+	if err := s.stateStore.SaveState(r.Context(), store.FoundPetsCollection, evt.PetID, data); err != nil {
+		http.Error(w, "Failed to save found pet report", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -477,82 +522,88 @@ type MatchRecord struct {
 	FoundPet     PetDetail           `json:"foundPet"`
 }
 
+func demoMatchRecords() []MatchRecord {
+	return []MatchRecord{
+		{
+			MatchID:      "match-101",
+			FoundPetID:   "found-202",
+			MatchedPetID: "lost-101",
+			Score:        0.92,
+			Status:       "PENDING_REVIEW",
+			MatchedAt:    time.Now().UTC().Add(-15 * time.Minute),
+			Scores: MatchScoreBreakdown{
+				Visual:        0.95,
+				Color:         0.90,
+				Spatial:       0.88,
+				DistanceMiles: 2.4,
+			},
+			LostPet: PetDetail{
+				PetID:    "lost-101",
+				PetName:  "Buddy",
+				Breed:    "Golden Retriever",
+				ImageURL: "https://storage.petspotr.io/lost-101.jpg",
+				Location: "Capitol Hill, Seattle, WA",
+			},
+			FoundPet: PetDetail{
+				PetID:    "found-202",
+				Breed:    "Golden Retriever",
+				ImageURL: "https://storage.petspotr.io/found-202.jpg",
+				Location: "Green Lake Park, Seattle, WA",
+			},
+		},
+		{
+			MatchID:      "match-102",
+			FoundPetID:   "found-203",
+			MatchedPetID: "lost-105",
+			Score:        0.87,
+			Status:       "PENDING_REVIEW",
+			MatchedAt:    time.Now().UTC().Add(-2 * time.Hour),
+			Scores: MatchScoreBreakdown{
+				Visual:        0.88,
+				Color:         0.85,
+				Spatial:       0.86,
+				DistanceMiles: 4.1,
+			},
+			LostPet: PetDetail{
+				PetID:    "lost-105",
+				PetName:  "Luna",
+				Breed:    "Siamese Cat",
+				ImageURL: "https://storage.petspotr.io/lost-105.jpg",
+				Location: "Ballard, Seattle, WA",
+			},
+			FoundPet: PetDetail{
+				PetID:    "found-203",
+				Breed:    "Siamese Cat",
+				ImageURL: "https://storage.petspotr.io/found-203.jpg",
+				Location: "Fremont, Seattle, WA",
+			},
+		},
+	}
+}
+
+func seedDemoMatches(ctx context.Context, stateStore store.StateStore) error {
+	for _, match := range demoMatchRecords() {
+		data, err := json.Marshal(match)
+		if err != nil {
+			return fmt.Errorf("marshal %s: %w", match.MatchID, err)
+		}
+		if err := stateStore.SaveState(ctx, store.MatchesCollection, match.MatchID, data); err != nil {
+			return fmt.Errorf("save %s: %w", match.MatchID, err)
+		}
+	}
+	return nil
+}
+
 func (s *Server) handleApiMatches(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	rawMatches, err := s.stateStore.ListState(r.Context(), "matches")
+	rawMatches, err := s.stateStore.ListState(r.Context(), store.MatchesCollection)
 	if err != nil {
 		http.Error(w, "Failed to query matches from state store", http.StatusInternalServerError)
 		return
-	}
-
-	if len(rawMatches) == 0 {
-		seedMatches := []MatchRecord{
-			{
-				MatchID:      "match-101",
-				FoundPetID:   "found-202",
-				MatchedPetID: "lost-101",
-				Score:        0.92,
-				Status:       "PENDING_REVIEW",
-				MatchedAt:    time.Now().UTC().Add(-15 * time.Minute),
-				Scores: MatchScoreBreakdown{
-					Visual:        0.95,
-					Color:         0.90,
-					Spatial:       0.88,
-					DistanceMiles: 2.4,
-				},
-				LostPet: PetDetail{
-					PetID:    "lost-101",
-					PetName:  "Buddy",
-					Breed:    "Golden Retriever",
-					ImageURL: "https://storage.petspotr.io/lost-101.jpg",
-					Location: "Capitol Hill, Seattle, WA",
-				},
-				FoundPet: PetDetail{
-					PetID:    "found-202",
-					Breed:    "Golden Retriever",
-					ImageURL: "https://storage.petspotr.io/found-202.jpg",
-					Location: "Green Lake Park, Seattle, WA",
-				},
-			},
-			{
-				MatchID:      "match-102",
-				FoundPetID:   "found-203",
-				MatchedPetID: "lost-105",
-				Score:        0.87,
-				Status:       "PENDING_REVIEW",
-				MatchedAt:    time.Now().UTC().Add(-2 * time.Hour),
-				Scores: MatchScoreBreakdown{
-					Visual:        0.88,
-					Color:         0.85,
-					Spatial:       0.86,
-					DistanceMiles: 4.1,
-				},
-				LostPet: PetDetail{
-					PetID:    "lost-105",
-					PetName:  "Luna",
-					Breed:    "Siamese Cat",
-					ImageURL: "https://storage.petspotr.io/lost-105.jpg",
-					Location: "Ballard, Seattle, WA",
-				},
-				FoundPet: PetDetail{
-					PetID:    "found-203",
-					Breed:    "Siamese Cat",
-					ImageURL: "https://storage.petspotr.io/found-203.jpg",
-					Location: "Fremont, Seattle, WA",
-				},
-			},
-		}
-
-		for _, m := range seedMatches {
-			data, _ := json.Marshal(m)
-			_ = s.stateStore.SaveState(r.Context(), "matches", m.MatchID, data)
-		}
-
-		rawMatches, _ = s.stateStore.ListState(r.Context(), "matches")
 	}
 
 	matches := make([]MatchRecord, 0, len(rawMatches))
@@ -578,6 +629,10 @@ func (s *Server) handleApiMatchAction(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if !s.allowPrivilegedMutations {
+		http.Error(w, "Authentication is required for match actions", http.StatusForbidden)
+		return
+	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
@@ -598,14 +653,29 @@ func (s *Server) handleApiMatchAction(w http.ResponseWriter, r *http.Request) {
 		status = "REJECTED"
 	}
 
-	if data, err := s.stateStore.GetState(r.Context(), "matches", req.MatchID); err == nil {
-		var record MatchRecord
-		if err := json.Unmarshal(data, &record); err == nil {
-			record.Status = status
-			if updated, err := json.Marshal(record); err == nil {
-				_ = s.stateStore.SaveState(r.Context(), "matches", req.MatchID, updated)
-			}
-		}
+	data, err := s.stateStore.GetState(r.Context(), store.MatchesCollection, req.MatchID)
+	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+		http.Error(w, "Match not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, "Failed to load match", http.StatusInternalServerError)
+		return
+	}
+	var record MatchRecord
+	if err := json.Unmarshal(data, &record); err != nil {
+		http.Error(w, "Failed to decode match", http.StatusInternalServerError)
+		return
+	}
+	record.Status = status
+	updated, err := json.Marshal(record)
+	if err != nil {
+		http.Error(w, "Failed to encode match", http.StatusInternalServerError)
+		return
+	}
+	if err := s.stateStore.SaveState(r.Context(), store.MatchesCollection, req.MatchID, updated); err != nil {
+		http.Error(w, "Failed to save match", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -626,6 +696,10 @@ type ReunionContactRequest struct {
 func (s *Server) handleApiReunionContact(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !s.allowPrivilegedMutations {
+		http.Error(w, "Authentication is required for contact messages", http.StatusForbidden)
 		return
 	}
 
@@ -663,6 +737,10 @@ func (s *Server) handleApiReunionResolve(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if !s.allowPrivilegedMutations {
+		http.Error(w, "Authentication is required for reunion resolution", http.StatusForbidden)
+		return
+	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
@@ -677,14 +755,29 @@ func (s *Server) handleApiReunionResolve(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if data, err := s.stateStore.GetState(r.Context(), "matches", req.MatchID); err == nil {
-		var record MatchRecord
-		if err := json.Unmarshal(data, &record); err == nil {
-			record.Status = "REUNITED"
-			if updated, err := json.Marshal(record); err == nil {
-				_ = s.stateStore.SaveState(r.Context(), "matches", req.MatchID, updated)
-			}
-		}
+	data, err := s.stateStore.GetState(r.Context(), store.MatchesCollection, req.MatchID)
+	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+		http.Error(w, "Match not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, "Failed to load match", http.StatusInternalServerError)
+		return
+	}
+	var record MatchRecord
+	if err := json.Unmarshal(data, &record); err != nil {
+		http.Error(w, "Failed to decode match", http.StatusInternalServerError)
+		return
+	}
+	record.Status = "REUNITED"
+	updated, err := json.Marshal(record)
+	if err != nil {
+		http.Error(w, "Failed to encode match", http.StatusInternalServerError)
+		return
+	}
+	if err := s.stateStore.SaveState(r.Context(), store.MatchesCollection, req.MatchID, updated); err != nil {
+		http.Error(w, "Failed to save match", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -726,6 +819,10 @@ func (s *Server) handleApiPushSubscribe(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if !s.allowPrivilegedMutations {
+		http.Error(w, "Authentication is required for push subscriptions", http.StatusForbidden)
+		return
+	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
@@ -741,8 +838,14 @@ func (s *Server) handleApiPushSubscribe(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if data, err := json.Marshal(req); err == nil {
-		_ = s.stateStore.SaveState(r.Context(), "push_subscriptions", endpoint, data)
+	data, err := json.Marshal(req)
+	if err != nil {
+		http.Error(w, "Failed to encode push subscription", http.StatusInternalServerError)
+		return
+	}
+	if err := s.stateStore.SaveState(r.Context(), store.PushSubscriptionsCollection, endpoint, data); err != nil {
+		http.Error(w, "Failed to save push subscription", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
