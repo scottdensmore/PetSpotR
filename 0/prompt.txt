@@ -1,0 +1,5 @@
+Ok lets cleanup the AGENTS.md file. Please make the changes based on what you discovered
+
+---
+
+Ok lets create a pr and push these changes
