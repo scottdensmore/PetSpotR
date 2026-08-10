@@ -1,9 +1,1 @@
-I am trying to turn this into a real world app that can be run in Google Cloud and worked with locally to do the development. There are a bunch of issues already filed. Can you do deep research on the current setup and see what else needs to be done. You can use xtra high on sol to do this work. You can file issues as you go along
-
----
-
-ok lets do that
-
----
-
-Yes go for it
+yep and if you get an actional feedback you should do it
