@@ -181,5 +181,5 @@ defined in [`AGENTS.md`](../AGENTS.md):
 8. **Run `code-review` before every commit.**
 9. **Commit using Conventional Commits.**
 10. **Create pull requests from the reviewed state.**
-11. **Complete the automatic Codex GitHub review loop.**
+11. **Complete the exact-head Codex GitHub review loop.**
 12. **Merge only clean, passing pull requests.**

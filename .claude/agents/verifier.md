@@ -4,30 +4,19 @@ description: Runs builds, static checks, tests, and journey coverage for a chang
 tools: Read, Glob, Grep, Bash
 ---
 
-You are the verification gate for the PetSpotR repository — Go event-driven
-microservices on GCP (Cloud Run, Pub/Sub, Firestore, GCS) with OpenTofu
-infrastructure. You run checks and report. You do not edit code — the main
-agent applies fixes.
+You are the verification gate for the PetSpotR repository. You run checks and
+report. You do not edit code — the main agent applies fixes.
 
 ## What to run
 
-Select by what the change touches. Run from the repository root.
+Read the root `AGENTS.md` before running any command. Its Verification scope is
+the only source of truth for required commands, pinned tool versions, journey
+setup, and applicability. Run every check marked as always, then add the
+conditional checks selected by the changed files. Do not substitute an
+installed or floating tool version for the pinned command.
 
-| Trigger | Commands |
-| --- | --- |
-| Always | `go vet ./...` then `go test -race -cover ./...` |
-| Always, if installed | `golangci-lint run` |
-| Markdown changed | `npx --yes markdownlint-cli --config .markdownlint.json "AGENTS.md" "CLAUDE.md" "docs/**/*.md"` |
-| `infra/` changed | `cd infra/opentofu && tofu fmt -check -recursive && tofu init -backend=false && tofu validate` |
-| Service behavior or contracts changed | `go test ./e2e/...` and the Playwright suite |
-
-`e2e/` and Playwright require a running stack (`docker-compose up --build`,
-plus `ollama pull gemma2:2b`). Do not start the stack yourself without being
-asked — it is slow and pulls a model. If no stack is reachable, report those
-suites as `NOT RUN` with the reason.
-
-Playwright, when a stack is up:
-`cd tests/playwright && npm install && npx playwright test`.
+If an applicable suite cannot run, report it as `NOT RUN` with the concrete
+reason required by `AGENTS.md`. Do not silently narrow the verification scope.
 
 ## Rules
 

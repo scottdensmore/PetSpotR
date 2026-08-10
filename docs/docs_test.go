@@ -48,21 +48,83 @@ func TestAgentWorkflowIncludesCodexReviewGate(t *testing.T) {
 
 	workflow := string(content)
 	required := []string{
+		"## Code Review Rules",
+		"Pub/Sub handlers must remain idempotent under redelivery",
+		"Event schema changes must remain backward compatible",
+		"Reporter contact details and state-changing actions",
 		"11. **Complete the Codex GitHub review loop.**",
 		"chatgpt-codex-connector[bot]",
+		"`@codex review`",
 		"`eyes`",
 		"`+1`",
-		"cutoff timestamp immediately before",
-		"reaction's `created_at`",
-		"PR head still matches the recorded SHA",
+		"pull request reactions",
+		"GitHub reports that SHA as the PR head",
+		"trigger comment's",
+		"`created_at` value as the cutoff",
+		"review's `commit.oid` equals the expected full SHA",
+		"PR head still matches the expected SHA",
 		"conversation comments, review bodies",
 		"thread-aware inline comments",
 		"resolve every addressed thread",
+		"repository policy gate",
+		"GitHub required status check",
+		"self-contained in-process cascade coverage",
+		"docker compose up --build --detach lostpet-service foundpet-service web-frontend",
+		"Neither CI nor the documented verifier commands exercise a live Ollama",
 		"12. **Merge only clean, passing pull requests.**",
 	}
 	for _, fragment := range required {
 		if !strings.Contains(workflow, fragment) {
 			t.Errorf("AGENTS.md missing Codex review workflow %q", fragment)
+		}
+	}
+
+	forbidden := []string{
+		"There is **no frontend**",
+		"All four services",
+		"docker-compose up --build",
+		"ollama pull gemma4:e2b",
+		"reviewer runs after a pull request opens and after every push",
+		"both the trigger comment and the pull request",
+		"CI does **not** run `e2e/`",
+		"Both need the full stack",
+		"no local stack for `e2e/`",
+	}
+	for _, fragment := range forbidden {
+		if strings.Contains(workflow, fragment) {
+			t.Errorf("AGENTS.md contains stale workflow guidance %q", fragment)
+		}
+	}
+}
+
+func TestRegisteredSubagentsDeferToAgentSourceOfTruth(t *testing.T) {
+	paths := []string{
+		filepath.Join("..", ".claude", "agents", "ui-review.md"),
+		filepath.Join("..", ".claude", "agents", "verifier.md"),
+		filepath.Join("..", ".claude", "agents", "code-review.md"),
+	}
+	forbidden := []string{
+		"currently has **no frontend**",
+		"docker-compose up --build",
+		"gemma2:2b",
+		"golangci-lint run",
+		"markdownlint-cli --config",
+	}
+
+	for _, path := range paths {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read %s: %v", path, err)
+		}
+
+		entrypoint := string(content)
+		if !strings.Contains(entrypoint, "AGENTS.md") {
+			t.Errorf("%s does not defer to AGENTS.md", path)
+		}
+		for _, fragment := range forbidden {
+			if strings.Contains(entrypoint, fragment) {
+				t.Errorf("%s contains stale guidance %q", path, fragment)
+			}
 		}
 	}
 }
