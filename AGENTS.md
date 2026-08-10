@@ -32,8 +32,8 @@ and browser-driven page coverage.
 
 ## Code Review Rules
 
-These rules guide both local reviewers and the Codex GitHub reviewer. Keep
-deterministic formatting, lint, build, and test checks in the verifier and CI.
+These rules guide local reviewers. Keep deterministic formatting, lint, build,
+and test checks in the verifier and CI.
 
 - Pub/Sub handlers must remain idempotent under redelivery. Flag writes,
   notifications, or state transitions that can be duplicated when the same
@@ -122,11 +122,11 @@ These apply at every step, not just at the gate where they are mentioned.
    the verifier after addressing it.
 
 8. **Run the local `code-review` before every commit.** Invoke the
-   `code-review` sub-agent against the current branch diff and every staged,
-   unstaged, and untracked file. This is separate from the post-push Codex
-   GitHub review in step 11. Address every actionable finding before committing.
-   If review findings cause changes, rerun the affected tests and the
-   `verifier`, then obtain a fresh `code-review` approval for the changed state.
+    `code-review` sub-agent against the current branch diff and every staged,
+    unstaged, and untracked file. Address every actionable finding before
+    committing. If review findings cause changes, rerun the affected tests and
+    the `verifier`, then obtain a fresh `code-review` approval for the changed
+    state.
 
 9. **Commit after approval.** Commit only after verification and code review are
    complete. Use Conventional Commits:
@@ -151,37 +151,7 @@ These apply at every step, not just at the gate where they are mentioned.
     - Push and open a normal, ready-for-review pull request. Do not open draft
       pull requests unless the user explicitly asks for a draft.
 
-11. **Let Codex review the pull request, and answer it.** Automatic Codex
-    review is expected after each push, and its verdict gates the merge.
-
-    - It reacts 👀 on the pull request while reading and 👍 when it is satisfied.
-      The reactions are on the pull request itself:
-      `gh api repos/<owner>/<repo>/issues/<pr>/reactions`. Only reactions whose
-      `user.login` is `chatgpt-codex-connector[bot]` count.
-      Record the expected full head SHA after every push, and wait until GitHub
-      reports that SHA as the PR head.
-    - Findings are inline review threads, invisible to
-      `gh pr view --json comments`. Read them through GraphQL `reviewThreads`,
-      which gives the body, the `isResolved` state the merge gate turns on, and
-      the thread id needed to resolve it — the REST comments endpoint carries
-      none of the last two. Page it: a missed page reads as a finding that is
-      not there. Require that the review's GraphQL `commit.oid` equals that SHA
-      and confirm the PR head still matches the expected SHA before accepting
-      its verdict.
-    - The loop: address the findings, re-run steps 6 to 9 for what changed,
-      push, reply to each thread saying what changed, resolve it, wait for the
-      next verdict. Repeat until 👍. Treat P0 and P1 as blocking, and where a
-      finding is right about the problem but wrong about the fix, say so rather
-      than resolving quietly.
-    - **Only a 👍 you watched arrive counts.** The old one survives a push, and
-      survives a later review that had findings, so the reaction sitting there
-      may be about a commit two revisions back. Watch it go 👀 and then 👍
-      after your push; never read the one that was already there as approval.
-      Silence is pending, never approval. If no new review run starts, stop
-      before merging and report it as pending; do not post `@codex review`
-      unless the user explicitly requests it.
-
-12. **Merge only clean, passing pull requests.** Merge only after GitHub reports
+11. **Merge only clean, passing pull requests.** Merge only after GitHub reports
     a clean merge state and every configured check passes. Never bypass a
     failing or pending required check. Self-merges are allowed when these
     conditions are met. Use squash merge for short-lived development branches to
@@ -318,7 +288,7 @@ replace the independent verifier report required by step 7.
 `main` is protected by an active ruleset: pull request required, squash-only
 merges, no deletion, no force-push, and all four checks green before merge.
 There are no bypass actors — it applies to repository owners too, which is what
-makes step 12 enforceable rather than aspirational.
+makes step 11 enforceable rather than aspirational.
 
 Required status checks are **strict**: a branch must also be up to date with
 `main` before it can merge. If GitHub reports `BLOCKED` while every check is

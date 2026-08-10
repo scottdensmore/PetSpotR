@@ -40,7 +40,7 @@ func TestDocumentationFilesExist(t *testing.T) {
 	})
 }
 
-func TestAgentWorkflowIncludesCodexReviewGate(t *testing.T) {
+func TestAgentWorkflowIncludesRequiredRules(t *testing.T) {
 	content, err := os.ReadFile(filepath.Join("..", "AGENTS.md"))
 	if err != nil {
 		t.Fatalf("failed to read AGENTS.md: %v", err)
@@ -52,29 +52,14 @@ func TestAgentWorkflowIncludesCodexReviewGate(t *testing.T) {
 		"Pub/Sub handlers must remain idempotent under redelivery",
 		"Event schema changes must remain backward compatible",
 		"Reporter contact details and state-changing actions",
-		"11. **Let Codex review the pull request, and answer it.**",
-		"review is expected after each push",
-		"chatgpt-codex-connector[bot]",
-		"gh api repos/<owner>/<repo>/issues/<pr>/reactions",
-		"Record the expected full head SHA after every push",
-		"GraphQL `reviewThreads`",
-		"review's GraphQL `commit.oid` equals that SHA",
-		"PR head still matches the expected SHA",
-		"Page it: a missed page reads as a finding that is",
-		"re-run steps 6 to 9 for what changed",
-		"Treat P0 and P1 as blocking",
-		"**Only a 👍 you watched arrive counts.**",
-		"Silence is pending, never approval",
-		"do not post `@codex review`",
-		"unless the user explicitly requests it",
 		"self-contained in-process cascade coverage",
 		"docker compose up --build --detach lostpet-service foundpet-service web-frontend",
 		"Neither CI nor the documented verifier commands exercise a live Ollama",
-		"12. **Merge only clean, passing pull requests.**",
+		"11. **Merge only clean, passing pull requests.**",
 	}
 	for _, fragment := range required {
 		if !strings.Contains(workflow, fragment) {
-			t.Errorf("AGENTS.md missing Codex review workflow %q", fragment)
+			t.Errorf("AGENTS.md missing required workflow %q", fragment)
 		}
 	}
 
@@ -83,10 +68,7 @@ func TestAgentWorkflowIncludesCodexReviewGate(t *testing.T) {
 		"All four services",
 		"docker-compose up --build",
 		"ollama pull gemma4:e2b",
-		"reviewer runs after a pull request opens and after every push",
-		"both the trigger comment and the pull request",
-		"`eyes` (`👀`)",
-		"`created_at` value as the cutoff",
+		"step 12 enforceable",
 		"CI does **not** run `e2e/`",
 		"Both need the full stack",
 		"no local stack for `e2e/`",
