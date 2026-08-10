@@ -1,0 +1,51 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01KZPM0SB4A1K205CPCHZ7VAPA",
+  "strategy": "manual-commit",
+  "branch": "feat/firestore-runtime-adapter",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "cmd/foundpet-service/main.go",
+    "cmd/foundpet-service/service.go",
+    "cmd/foundpet-service/service_test.go",
+    "cmd/lostpet-service/main.go",
+    "cmd/lostpet-service/service.go",
+    "cmd/lostpet-service/service_test.go",
+    "cmd/pet-matcher/main.go",
+    "cmd/pet-matcher/worker.go",
+    "cmd/pet-matcher/worker_test.go",
+    "cmd/web-frontend/main.go",
+    "cmd/web-frontend/server.go",
+    "cmd/web-frontend/server_test.go",
+    "docs/DEVELOPMENT.md",
+    "e2e/e2e_test.go",
+    "e2e/firestore_process_test.go",
+    "e2e/web_frontend_cascade_test.go",
+    "go.mod",
+    "go.sum",
+    "pkg/runtimeconfig/config.go",
+    "pkg/runtimeconfig/config_test.go",
+    "pkg/runtimeconfig/state.go",
+    "pkg/store/firestore.go",
+    "pkg/store/firestore_test.go",
+    "pkg/store/names.go",
+    "pkg/store/names_test.go",
+    "tests/playwright/e2e/web-frontend-api.spec.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1083801,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 32940800,
+    "output_tokens": 90865,
+    "api_call_count": 260
+  }
+}

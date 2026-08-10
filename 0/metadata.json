@@ -1,0 +1,104 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01KZPM0SB4A1K205CPCHZ7VAPA",
+  "session_id": "019fecdb-8602-7b43-932d-748498b06439",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-10T19:57:39.677248694Z",
+  "branch": "feat/firestore-runtime-adapter",
+  "checkpoints_count": 3,
+  "save_step_count": 2,
+  "files_touched": [
+    "cmd/foundpet-service/main.go",
+    "cmd/foundpet-service/service.go",
+    "cmd/foundpet-service/service_test.go",
+    "cmd/lostpet-service/main.go",
+    "cmd/lostpet-service/service.go",
+    "cmd/lostpet-service/service_test.go",
+    "cmd/pet-matcher/main.go",
+    "cmd/pet-matcher/worker.go",
+    "cmd/pet-matcher/worker_test.go",
+    "cmd/web-frontend/main.go",
+    "cmd/web-frontend/server.go",
+    "cmd/web-frontend/server_test.go",
+    "docs/DEVELOPMENT.md",
+    "e2e/e2e_test.go",
+    "e2e/firestore_process_test.go",
+    "e2e/web_frontend_cascade_test.go",
+    "go.mod",
+    "go.sum",
+    "pkg/runtimeconfig/config.go",
+    "pkg/runtimeconfig/config_test.go",
+    "pkg/runtimeconfig/state.go",
+    "pkg/store/firestore.go",
+    "pkg/store/firestore_test.go",
+    "pkg/store/names.go",
+    "pkg/store/names_test.go",
+    "tests/playwright/e2e/web-frontend-api.spec.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "25975f36e3df",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 1083801,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 32940800,
+    "output_tokens": 90865,
+    "api_call_count": 260
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-10T19:57:38.894298884Z",
+    "agent_lines": 1479,
+    "agent_removed": 96,
+    "human_added": 94,
+    "human_modified": 104,
+    "human_removed": 0,
+    "total_committed": 1633,
+    "total_lines_changed": 1773,
+    "agent_percentage": 88.83248730964468,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 970,
+      "agent_lines_removed": 45
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 98,
+      "user_lines_removed": 51,
+      "agent_lines_added": 1637,
+      "agent_lines_removed": 147,
+      "user_added_per_file": {
+        "pkg/runtimeconfig/config.go": 6,
+        "pkg/runtimeconfig/config_test.go": 18,
+        "pkg/runtimeconfig/state.go": 9,
+        "pkg/store/firestore.go": 28,
+        "pkg/store/firestore_test.go": 30,
+        "pkg/store/names.go": 4,
+        "pkg/store/names_test.go": 3
+      },
+      "user_removed_per_file": {
+        "pkg/runtimeconfig/config.go": 3,
+        "pkg/runtimeconfig/config_test.go": 4,
+        "pkg/runtimeconfig/state.go": 2,
+        "pkg/store/firestore.go": 35,
+        "pkg/store/firestore_test.go": 4,
+        "pkg/store/names.go": 3
+      }
+    }
+  ]
+}
