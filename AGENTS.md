@@ -5,26 +5,50 @@ working on this codebase, and it is the single source of truth for that
 workflow. Every agent reads this file. Tool-specific entrypoints such as
 `CLAUDE.md` only point here — never add rules, commands, or project facts to
 them, because agents that read a different entrypoint will not see them. Add it
-here instead.
+here instead. Registered subagent definitions may describe their role and
+reporting format, but they must defer project facts, gate applicability, and
+verification commands to this file.
 
 ## The project
 
 Event-driven Go microservices for reporting and matching lost pets, running on
-GCP (Cloud Run, Pub/Sub, Firestore, GCS) and locally via `docker-compose` plus
+GCP (Cloud Run, Pub/Sub, Firestore, GCS) and locally via Docker Compose plus
 Ollama `gemma4:e2b`.
 
-There is **no frontend**. All four services expose JSON HTTP endpoints or run as
-Pub/Sub workers. The Playwright suite exercises HTTP APIs, not a browser UI.
+The repository has five services. Four expose JSON HTTP endpoints or run as
+Pub/Sub workers; `web-frontend` serves rendered HTML, CSS, JavaScript, and JSON
+API endpoints. The Playwright suite contains both API-level request journeys
+and browser-driven page coverage.
 
 | Path | Contents |
 | --- | --- |
-| `cmd/` | Service entrypoints: `lostpet-service`, `foundpet-service`, `pet-matcher`, `notification-service` |
+| `cmd/` | Service entrypoints: `lostpet-service`, `foundpet-service`, `pet-matcher`, `notification-service`, `web-frontend` |
 | `pkg/` | Shared packages: `domain`, `store`, `pubsub`, `blob`, `ollama`, `scoring` |
-| `e2e/` | Go end-to-end event-cascade tests (needs the stack running) |
-| `tests/playwright/` | API journey tests (needs the stack running) |
+| `e2e/` | Self-contained Go event-cascade tests using in-memory and test servers |
+| `tests/playwright/` | API and browser journeys using three local HTTP services |
 | `infra/opentofu/` | GCP infrastructure modules |
 | `deploy/cloudrun/` | Cloud Run manifests |
 | `docs/` | `DEVELOPMENT.md`, `MIGRATION_PLAN.md` |
+
+## Code Review Rules
+
+These rules guide both local reviewers and the Codex GitHub reviewer. Keep
+deterministic formatting, lint, build, and test checks in the verifier and CI.
+
+- Pub/Sub handlers must remain idempotent under redelivery. Flag writes,
+  notifications, or state transitions that can be duplicated when the same
+  event is delivered more than once; use a stable event or deduplication key,
+  or make the operation inherently idempotent.
+- Event schema changes must remain backward compatible with in-flight
+  messages. Prefer additive fields with tolerant readers; otherwise introduce
+  an explicit version and preserve a decoder or migration path for the prior
+  schema.
+- Reporter contact details and state-changing actions must not cross an
+  unauthenticated or unauthorized boundary. Apply this rule to new or changed
+  boundaries: return redacted public DTOs and require authentication plus
+  ownership or equivalent authorization before exposing contact data or
+  mutating pet and match state. Existing pre-authentication demo behavior is
+  roadmap debt, not precedent for expanding the exposed boundary.
 
 ## Ground rules
 
@@ -80,29 +104,29 @@ These apply at every step, not just at the gate where they are mentioned.
 
 6. **Run `ui-review` when the change can affect rendered UI.** Invoke the
    `ui-review` sub-agent after an implementation pass. See
-   [Applicability](#applicability) for when this gate is live — it is currently
-   dormant, because the repository has no frontend yet. When it applies,
+   [Applicability](#applicability) for when this gate is live. When it applies,
    exercise the changed journey in the rendered application at representative
    phone, tablet, and desktop viewports; inspect interaction, loading, empty,
    error, focus, keyboard, contrast, and responsive states; and capture
    screenshots or equivalent visual evidence. Address every actionable finding
-   before running the `verifier`. When the gate is dormant or the change has no
-   UI impact, record one line stating that and move on — do not fabricate a
-   review.
+   before running the `verifier`. When the change has no UI impact, record one
+   line stating that and move on — do not fabricate a review.
 
 7. **Run `verifier` before code review.** Invoke the `verifier` sub-agent to run
    the builds, static checks, tests, and journey coverage appropriate for the
    change. The verifier must report failures, flakes, missing coverage, and
    environment issues, and must state explicitly which suites it could not run
-   and why (for example, no local stack for `e2e/`). Fix or explicitly resolve
-   every actionable finding before starting code review. If a verifier finding
-   requires a code change, rerun the verifier after addressing it.
+   and why (for example, the local HTTP services required by Playwright could
+   not be started). Fix or explicitly resolve every actionable finding before
+   starting code review. If a verifier finding requires a code change, rerun
+   the verifier after addressing it.
 
-8. **Run `code-review` before every commit.** Invoke the `code-review`
-   sub-agent against the current branch diff and every staged, unstaged, and
-   untracked file. Address every actionable finding before committing. If
-   review findings cause changes, rerun the affected tests and the `verifier`,
-   then obtain a fresh `code-review` approval for the changed state.
+8. **Run the local `code-review` before every commit.** Invoke the
+   `code-review` sub-agent against the current branch diff and every staged,
+   unstaged, and untracked file. This is separate from the post-push Codex
+   GitHub review in step 11. Address every actionable finding before committing.
+   If review findings cause changes, rerun the affected tests and the
+   `verifier`, then obtain a fresh `code-review` approval for the changed state.
 
 9. **Commit after approval.** Commit only after verification and code review are
    complete. Use Conventional Commits:
@@ -127,13 +151,24 @@ These apply at every step, not just at the gate where they are mentioned.
     - Push and open a normal, ready-for-review pull request. Do not open draft
       pull requests unless the user explicitly asks for a draft.
 
-11. **Complete the Codex GitHub review loop.** The repository's automatic
-    reviewer runs after a pull request opens and after every push.
-    - Record the expected head SHA and a UTC cutoff timestamp immediately before
-      opening the pull request or pushing. Poll PR reactions from
-      `chatgpt-codex-connector[bot]`: `eyes` means the review is in progress;
-      `+1` means Codex completed that review with no findings. Compare the
-      reaction's `created_at` value with the cutoff instead of a commit time.
+11. **Complete the Codex GitHub review loop.** The repository has Codex Code
+    review and automatic reviews enabled, but do not treat an automatic trigger
+    as proof that the current head was reviewed.
+    - Record the expected full head SHA, push or open the pull request, and wait
+      until GitHub reports that SHA as the PR head. Then add a pull request
+      comment containing exactly `@codex review` and record the trigger comment's
+      `created_at` value as the cutoff for this review attempt.
+    - Poll reactions from the Codex GitHub App
+      (`chatgpt-codex-connector[bot]`; GraphQL may omit the `[bot]` suffix) on
+      the exact trigger comment. `eyes` is progress only; the repository's
+      current integration uses `+1` when a review completes with no findings.
+      Never use a pull-request-level reaction as exact-head proof because it
+      carries no reviewed SHA.
+    - When Codex posts a review, use thread-aware GraphQL review metadata and
+      require that the review's `commit.oid` equals the expected full SHA before
+      acting on it. The human-readable `Reviewed commit:` text is useful for
+      display, but it is not authoritative. A review for an older head does not
+      satisfy or fail the current attempt.
     - Read conversation comments, review bodies, and thread-aware inline comments.
       Address every actionable finding. Reply to inline feedback with the
       resolution and verification evidence, and resolve every addressed thread;
@@ -142,10 +177,20 @@ These apply at every step, not just at the gate where they are mentioned.
     - If a finding causes changes, rerun the affected tests and gates, create a
       new commit without amending the pushed commit, push, and restart this step
       for the new head.
-    - The gate passes only when the bot's `+1` reaction was created after the
-      cutoff, the PR head still matches the recorded SHA, and there are no
-      unresolved Codex threads or unaddressed Codex comments. An absent review,
-      green CI, or a reaction from an older push is not completion.
+    - The gate passes only when the PR head still matches the expected SHA,
+      there are no unresolved Codex threads or unaddressed Codex comments, and
+      the current attempt ended in either a bot `+1` created after the trigger
+      cutoff on the exact trigger comment or an exact-head review whose findings
+      were all resolved without changing the reviewed state. If an actionable
+      finding requires a change, the resulting new head must complete a new
+      review attempt. If the available tooling cannot retrieve trigger-comment
+      reactions or the review `commit.oid`, the gate remains incomplete. An
+      absent review, green CI, a pre-trigger reaction, or a result for an older
+      head is not completion.
+    - This Codex review loop is a repository policy gate, not a configured
+      GitHub required status check. Branch protection can still report a pull
+      request as mergeable before Codex responds, so agents must enforce this
+      step explicitly and never merge early.
 
 12. **Merge only clean, passing pull requests.** Merge only after GitHub reports
     a clean merge state and every configured check passes. Never bypass a
@@ -182,10 +227,10 @@ Not every gate applies to every change. Record the reason when one does not.
 | `verifier` | Always | Live |
 | `code-review` | Always | Live |
 
-The Playwright suite in `tests/playwright/` is **API journey coverage**, not UI
-coverage: it drives HTTP endpoints with `request.post(...)` and asserts on
-status codes and JSON. It belongs to the `verifier`, not to `ui-review`. When a
-real UI lands, add browser-driven specs and reassign them accordingly.
+The Playwright suite in `tests/playwright/` contains both API request specs and
+browser-driven page specs. The verifier owns all automated Playwright coverage;
+browser specs complement but do not replace the manual, viewport-based
+`ui-review` gate for rendered UI changes.
 
 ## Verification scope
 
@@ -236,16 +281,22 @@ tofu fmt -check -recursive
 tofu init -backend=false && tofu validate
 ```
 
-Journey coverage — when service behavior or contracts change. Both need the
-full stack; if none is running, the verifier must report `NOT RUN` with the
-reason rather than silently skipping:
+The always-on `go test -race -cover ./...` command includes `e2e/`, which is
+self-contained in-process cascade coverage backed by in-memory components and
+test HTTP servers. It does not require Compose, Ollama, or GCP credentials.
+
+Playwright journey coverage — when HTTP service behavior, rendered pages, or
+contracts change. It needs only the three HTTP services exercised by the suite;
+if they cannot run, the verifier must report `NOT RUN` with the reason rather
+than silently skipping:
 
 ```bash
-ollama pull gemma4:e2b
-docker-compose up --build
+docker compose up --build --detach lostpet-service foundpet-service web-frontend
 
-go test ./e2e/...
-cd tests/playwright && npm install && npx playwright test
+cd tests/playwright
+npm ci
+npx playwright install chromium
+npx playwright test
 ```
 
 ## CI
@@ -261,16 +312,17 @@ required before merge:
 - `go-checks` — `go vet`, `go test -race -cover`, `golangci-lint`.
 - `infra-checks` — `tofu fmt -check -recursive` and `tofu validate`.
 - `e2e-playwright-tests` — builds the three HTTP services used by the Playwright
-  API journeys, waits for them to become ready, runs the suite, and uploads its
-  report, traces, and service logs on failure. This job is not a required check
-  until the repository ruleset is updated separately.
+  API and browser journeys, waits for them to become ready, runs the suite, and
+  uploads its report, traces, and service logs on failure. This job is not a
+  required check until the repository ruleset is updated separately.
 
-CI does **not** run `e2e/` or a live Ollama matching cascade. The Playwright API
-journeys only need `lostpet-service`, `foundpet-service`, and `web-frontend`, so
-their CI job deliberately avoids downloading a model. Full event-cascade and
-AI coverage stay verifier-owned local steps, so a green CI is narrower than the
-verification this document asks for. Do not treat CI alone as having satisfied
-step 7.
+The `go-checks` job runs the self-contained `e2e/` package as part of
+`go test -race -cover ./...`. The Playwright job needs only `lostpet-service`,
+`foundpet-service`, and `web-frontend`, so it deliberately avoids downloading a
+model. Neither CI nor the documented verifier commands exercise a live Ollama,
+real Pub/Sub, or deployed GCP cascade; do not claim that coverage unless a task
+defines and runs an explicit integration command for it. CI results also do not
+replace the independent verifier report required by step 7.
 
 ## Branch protection
 
@@ -305,8 +357,7 @@ inline and say that you did so.
   - Inspects interaction, loading, empty, error, focus, keyboard navigation,
     contrast, and responsive layout states.
   - Captures visual evidence and screenshots.
-  - Documents UI findings, or states plainly that the gate is dormant or the
-    change has no UI impact.
+  - Documents UI findings, or states plainly that the change has no UI impact.
   - Identifies out-of-scope UI defects and files issues per step 5.
 
 ### `verifier`
