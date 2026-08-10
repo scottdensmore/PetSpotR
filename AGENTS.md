@@ -151,49 +151,30 @@ These apply at every step, not just at the gate where they are mentioned.
     - Push and open a normal, ready-for-review pull request. Do not open draft
       pull requests unless the user explicitly asks for a draft.
 
-11. **Complete the Codex GitHub review loop.** The repository has Codex Code
-    review and automatic reviews enabled, but do not treat an automatic trigger
-    as proof that the current head was reviewed.
-    - Record the expected full head SHA, push or open the pull request, and wait
-      until GitHub reports that SHA as the PR head. Then add a pull request
-      comment containing exactly `@codex review` and record the trigger comment's
-      `created_at` value as the cutoff for this review attempt.
-    - Poll pull request reactions from the Codex GitHub App
-      (`chatgpt-codex-connector[bot]`; GraphQL may omit the `[bot]` suffix).
-      The repository's current integration adds `+1` to the pull request when a
-      review completes with no findings. It may temporarily add `eyes` to the
-      trigger comment while processing; that reaction is progress only. Require
-      the `+1` reaction's `created_at` value to be after the trigger cutoff, and
-      confirm the PR head still equals the expected full SHA. The reaction
-      itself does not identify a commit, so the cutoff and unchanged-head checks
-      are what tie that clean result to the current attempt.
-    - When Codex posts a review, use thread-aware GraphQL review metadata and
-      require that the review's `commit.oid` equals the expected full SHA before
-      acting on it. The human-readable `Reviewed commit:` text is useful for
-      display, but it is not authoritative. A review for an older head does not
-      satisfy or fail the current attempt.
-    - Read conversation comments, review bodies, and thread-aware inline comments.
-      Address every actionable finding. Reply to inline feedback with the
-      resolution and verification evidence, and resolve every addressed thread;
-      acknowledge non-thread feedback in the PR conversation. Ask the user about
-      ambiguous or conflicting feedback rather than guessing.
-    - If a finding causes changes, rerun the affected tests and gates, create a
-      new commit without amending the pushed commit, push, and restart this step
-      for the new head.
-    - The gate passes only when the PR head still matches the expected SHA,
-      there are no unresolved Codex threads or unaddressed Codex comments, and
-      the current attempt ended in either a bot `+1` pull request reaction
-      created after the trigger cutoff or an exact-head review whose findings
-      were all resolved without changing the reviewed state. If an actionable
-      finding requires a change, the resulting new head must complete a new
-      review attempt. If the available tooling cannot retrieve pull request
-      reactions or the review `commit.oid`, the gate remains incomplete. An
-      absent review, green CI, a pre-trigger reaction, or a result for an older
-      head is not completion.
-    - This Codex review loop is a repository policy gate, not a configured
-      GitHub required status check. Branch protection can still report a pull
-      request as mergeable before Codex responds, so agents must enforce this
-      step explicitly and never merge early.
+11. **Let Codex review the pull request, and answer it.** Automatic Codex
+    review is expected after each push, and its verdict gates the merge.
+
+    - It reacts 👀 on the pull request while reading and 👍 when it is satisfied.
+      The reactions are on the pull request itself:
+      `gh api repos/<owner>/<repo>/issues/<pr>/reactions`.
+    - Findings are inline review threads, invisible to
+      `gh pr view --json comments`. Read them through GraphQL `reviewThreads`,
+      which gives the body, the `isResolved` state the merge gate turns on, and
+      the thread id needed to resolve it — the REST comments endpoint carries
+      none of the last two. Page it: a missed page reads as a finding that is
+      not there.
+    - The loop: address the findings, re-run steps 6 to 9 for what changed,
+      push, reply to each thread saying what changed, resolve it, wait for the
+      next verdict. Repeat until 👍. Treat P1 as blocking, and where a finding
+      is right about the problem but wrong about the fix, say so rather than
+      resolving quietly.
+    - **Only a 👍 you watched arrive counts.** The old one survives a push, and
+      survives a later review that had findings, so the reaction sitting there
+      may be about a commit two revisions back. Watch it go 👀 and then 👍
+      after your push; never read the one that was already there as approval.
+      Silence is pending, never approval. If no new review run starts, stop
+      before merging and report it as pending; do not post `@codex review`
+      unless the user explicitly requests it.
 
 12. **Merge only clean, passing pull requests.** Merge only after GitHub reports
     a clean merge state and every configured check passes. Never bypass a
