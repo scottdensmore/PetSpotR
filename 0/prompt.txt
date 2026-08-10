@@ -33,3 +33,7 @@ Ok so we should not use P0/P1 and go with what actually happens. And also we sho
 ---
 
 Ok since this plugin only is in claude agent, lets add a fall back to the previous code review sub agent
+
+---
+
+How can we test this?
