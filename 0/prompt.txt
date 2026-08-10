@@ -65,3 +65,7 @@ Lets update docs_test.go to only things that make sense.
 ---
 
 SO is there anything to commit?
+
+---
+
+yep do it
