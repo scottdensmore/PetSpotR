@@ -49,7 +49,7 @@ func (w *Worker) Start(ctx context.Context) error {
 // ProcessFoundPet processes a foundPet event payload.
 func (w *Worker) ProcessFoundPet(ctx context.Context, foundPetData []byte) error {
 	var foundEvt domain.FoundPetEvent
-	if err := json.Unmarshal(foundPetData, &foundEvt); err != nil {
+	if _, err := domain.DecodeEventPayload(foundPetData, domain.EventTypeFoundPetReported, &foundEvt); err != nil {
 		return fmt.Errorf("pet-matcher: failed to unmarshal foundPet event: %w", err)
 	}
 

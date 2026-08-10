@@ -83,6 +83,34 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 		}
 	})
 
+	t.Run("versioned found pet envelope remains consumable", func(t *testing.T) {
+		foundEvt := domain.FoundPetEvent{
+			PetID:    "found-envelope-202",
+			ImageURL: "https://storage.petspotr.io/found-envelope-202.jpg",
+			FoundAt:  time.Now().UTC(),
+			Location: "Seattle, WA",
+		}
+		payload, _ := foundEvt.ToJSON()
+		envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+			Type:             domain.EventTypeFoundPetReported,
+			OccurredAt:       foundEvt.FoundAt,
+			AggregateID:      foundEvt.PetID,
+			AggregateVersion: 1,
+			PayloadVersion:   1,
+			Payload:          payload,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, _ := json.Marshal(envelope)
+		if err := worker.ProcessFoundPet(context.Background(), data); err != nil {
+			t.Fatalf("ProcessFoundPet(envelope) error = %v", err)
+		}
+		if matchFoundEvent.FoundPetID != foundEvt.PetID {
+			t.Fatalf("match found pet ID = %q, want %q", matchFoundEvent.FoundPetID, foundEvt.PetID)
+		}
+	})
+
 	t.Run("invalid json event returns error", func(t *testing.T) {
 		err := worker.ProcessFoundPet(context.Background(), []byte("{invalid-json"))
 		if err == nil {

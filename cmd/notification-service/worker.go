@@ -123,7 +123,7 @@ func (w *Worker) ProcessLostPetBroadcast(ctx context.Context, lostPetData []byte
 	}
 
 	var evt domain.LostPetEvent
-	if err := json.Unmarshal(lostPetData, &evt); err != nil {
+	if _, err := domain.DecodeEventPayload(lostPetData, domain.EventTypeLostPetReported, &evt); err != nil {
 		return nil, fmt.Errorf("notification-service: failed to unmarshal LostPetEvent: %w", err)
 	}
 

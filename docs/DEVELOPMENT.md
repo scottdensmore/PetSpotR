@@ -115,9 +115,42 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
   -run TestFirestoreStateCrossesServiceProcessesAndSurvivesRestart
 ```
 
-This runtime slice covers shared state only. Pub/Sub delivery and GCS uploads
-remain in-memory until issues #108 and #109 are completed, so it does not yet
-provide a complete cross-process event cascade.
+### Transactional report outbox
+
+The lost- and found-report services create aggregate state and a durable
+`eventOutbox` record in one transaction. Each outbox payload uses envelope
+version 1 with a stable event ID, type, occurrence time, correlation and trace
+IDs, aggregate ID and version, and payload version. Consumers accept both this
+envelope and the legacy raw event payload so messages already in flight remain
+readable.
+
+An exact retry is a successful no-op and cannot reset a completed outbox
+record. A competing create with the same pet ID returns `409 Conflict`; report
+creation is aggregate version 1 and does not use last-write-wins ordering. The
+relay serializes publication within one process and accepts a bounded set of
+explicit event IDs rather than scanning the complete outbox collection. Failed
+publication stays pending across a restart. A crash after broker publication
+but before the completion write can publish the record again, which is the
+expected at-least-once boundary.
+
+Run the live atomic-write contract against a Firestore emulator with:
+
+```bash
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
+  go test ./pkg/store \
+  -run TestFirestoreCreateStateAndOutboxTransaction
+```
+
+This slice makes producer persistence crash-safe, but Pub/Sub remains
+process-local until issue #108 is completed. A process with no local subscriber
+leaves its outbox record pending instead of falsely acknowledging delivery.
+The services check process-local topic availability and do not attempt or
+rewrite any backlog when no subscriber exists. Issue #108 must add a bounded
+pending-record query and scheduler when it wires the managed publisher.
+Multi-instance outbox claiming, durable consumer deduplication, provider
+dispatch records, and retry/DLQ redelivery tests remain part of issue #116 and
+must land with that managed consumer boundary. GCS uploads remain in-memory
+until issue #109 is completed.
 
 ---
 

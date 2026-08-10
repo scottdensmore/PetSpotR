@@ -22,10 +22,13 @@ func TestFoundPetService_HandleFoundPet(t *testing.T) {
 	svc := NewService(st, ps, bs)
 
 	var publishedEvent domain.FoundPetEvent
+	var publishedEnvelope *domain.EventEnvelope
 	var published bool
 	_ = ps.Subscribe("foundPet", func(ctx context.Context, data []byte) error {
 		published = true
-		return json.Unmarshal(data, &publishedEvent)
+		var err error
+		publishedEnvelope, err = domain.DecodeEventPayload(data, domain.EventTypeFoundPetReported, &publishedEvent)
+		return err
 	})
 
 	t.Run("valid found pet submission saves state and publishes event", func(t *testing.T) {
@@ -64,6 +67,30 @@ func TestFoundPetService_HandleFoundPet(t *testing.T) {
 		}
 		if publishedEvent.PetID != "pet-found-555" {
 			t.Errorf("published pet ID mismatch: got %s, want pet-found-555", publishedEvent.PetID)
+		}
+		if publishedEnvelope == nil || publishedEnvelope.AggregateVersion != 1 || publishedEnvelope.PayloadVersion != 1 {
+			t.Fatalf("published envelope = %#v", publishedEnvelope)
+		}
+
+		published = false
+		retry := httptest.NewRequest(http.MethodPost, "/foundPet", bytes.NewReader(body))
+		retryRecorder := httptest.NewRecorder()
+		svc.HandleFoundPet(retryRecorder, retry)
+		if retryRecorder.Code != http.StatusCreated {
+			t.Fatalf("retry status = %d, want 201", retryRecorder.Code)
+		}
+		if published {
+			t.Fatal("exact retry republished an already completed event")
+		}
+
+		competing := evt
+		competing.Location = "Seattle, WA"
+		competingBody, _ := json.Marshal(competing)
+		competingRequest := httptest.NewRequest(http.MethodPost, "/foundPet", bytes.NewReader(competingBody))
+		competingRecorder := httptest.NewRecorder()
+		svc.HandleFoundPet(competingRecorder, competingRequest)
+		if competingRecorder.Code != http.StatusConflict {
+			t.Fatalf("competing create status = %d, want 409", competingRecorder.Code)
 		}
 	})
 

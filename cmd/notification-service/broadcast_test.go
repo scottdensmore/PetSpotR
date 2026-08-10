@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -84,6 +85,35 @@ func TestWorker_ProcessLostPetBroadcast(t *testing.T) {
 
 		if len(results) == 0 {
 			t.Errorf("expected non-empty broadcast dispatch results")
+		}
+	})
+
+	t.Run("versioned lostPet envelope remains consumable", func(t *testing.T) {
+		evt := domain.LostPetEvent{
+			PetID:         "lost-envelope-luna",
+			ReporterEmail: "owner@example.com",
+			ReportedAt:    time.Now().UTC(),
+			Location:      "Green Lake Park, Seattle, WA",
+		}
+		payload, _ := evt.ToJSON()
+		envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+			Type:             domain.EventTypeLostPetReported,
+			OccurredAt:       evt.ReportedAt,
+			AggregateID:      evt.PetID,
+			AggregateVersion: 1,
+			PayloadVersion:   1,
+			Payload:          payload,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, _ := json.Marshal(envelope)
+		results, err := worker.ProcessLostPetBroadcast(context.Background(), data)
+		if err != nil {
+			t.Fatalf("ProcessLostPetBroadcast(envelope) error = %v", err)
+		}
+		if len(results) == 0 {
+			t.Error("expected envelope broadcast dispatch results")
 		}
 	})
 }

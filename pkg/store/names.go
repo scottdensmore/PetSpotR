@@ -6,4 +6,5 @@ const (
 	FoundPetsCollection         = "foundPets"
 	MatchesCollection           = "matches"
 	PushSubscriptionsCollection = "pushSubscriptions"
+	OutboxCollection            = "eventOutbox"
 )
