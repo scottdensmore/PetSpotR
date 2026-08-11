@@ -602,6 +602,10 @@ func TestManagedServerRejectsPrivilegedMutations(t *testing.T) {
 			path:    "/api/v1/push/subscribe",
 			payload: `{"endpoint":"https://push.example.test/send/managed","keys":{"p256dh":"key","auth":"auth"}}`,
 		},
+		{
+			path:    "/api/v1/uploads/presigned-url",
+			payload: `{"fileName":"caller.jpg","contentType":"image/jpeg"}`,
+		},
 	}
 
 	for _, tt := range tests {

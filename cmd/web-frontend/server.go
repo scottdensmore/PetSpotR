@@ -882,6 +882,10 @@ func (s *Server) handleApiPresignedURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if !s.allowPrivilegedMutations {
+		http.Error(w, "Use the authenticated found-pet upload service", http.StatusForbidden)
+		return
+	}
 
 	var req PresignedURLRequest
 	_ = json.NewDecoder(r.Body).Decode(&req)

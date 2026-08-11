@@ -57,13 +57,26 @@ func TestFoundPetEvent_Validation(t *testing.T) {
 		}
 	})
 
+	t.Run("valid private found pet image object", func(t *testing.T) {
+		evt := domain.FoundPetEvent{
+			PetID:       "found-generated-report",
+			ImageObject: "images/found-pets/found-generated-report/image.jpg",
+			FoundAt:     time.Now(),
+			Location:    "Bellevue, WA",
+		}
+
+		if err := evt.Validate(); err != nil {
+			t.Fatalf("expected private image object to be valid, got error: %v", err)
+		}
+	})
+
 	t.Run("missing image URL", func(t *testing.T) {
 		evt := domain.FoundPetEvent{
 			PetID: "pet-found-999",
 		}
 
 		if err := evt.Validate(); err == nil {
-			t.Fatal("expected error for missing image URL, got nil")
+			t.Fatal("expected error for missing image reference, got nil")
 		}
 	})
 }

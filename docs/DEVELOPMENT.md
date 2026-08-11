@@ -14,8 +14,8 @@ PetSpotR is an event-driven microservice system written in **Go 1.22+**:
 - **`lostpet-service`** (`cmd/lostpet-service`): Exposes REST API
   `POST /lostPet`, persists lost pet events, and emits `lostPet` events.
 - **`foundpet-service`** (`cmd/foundpet-service`): Exposes REST API
-  `POST /foundPet`, saves image blobs, persists found pet events, and emits
-  `foundPet` events.
+  `POST /foundPet/uploads` and `POST /foundPet`, validates private image
+  uploads, persists found pet events, and emits `foundPet` events.
 - **`pet-matcher`** (`cmd/pet-matcher`): Private HTTP service receiving
   authenticated `foundPet` Pub/Sub push requests, performing visual feature
   extraction using **Ollama** and **Gemma 4** models (`gemma4:e2b`), scoring
@@ -198,6 +198,74 @@ Cloud Run rejects both local runtime modes even when they are explicitly set.
 Managed `lostPet`, `foundPet`, and `matchFound` subscriptions own transport
 retry and DLQ routing; issue #91 retains provider circuit-breaker work.
 
+### Private image storage
+
+The found-pet service and pet matcher select image storage with the same
+`PETSPOTR_RUNTIME_MODE` contract:
+
+| Mode | Required configuration | Image backend |
+| --- | --- | --- |
+| `memory` | Optional `PETSPOTR_IMAGE_BASE_URL` | Process-local compatibility store |
+| `local-emulator` | `PETSPOTR_IMAGE_BUCKET`, `STORAGE_EMULATOR_HOST` as an HTTP(S) URL | GCS-compatible local emulator |
+| `gcp` | `PETSPOTR_IMAGE_BUCKET`, Application Default Credentials | Private managed GCS bucket |
+
+Managed mode rejects an emulator endpoint and never falls back to memory.
+Cloud Run receives the bucket name from OpenTofu. Its found-pet identity has
+object-user access and may sign short-lived policies through IAM Credentials;
+the matcher has read-only object access.
+
+The secure found-pet flow is:
+
+1. `POST /foundPet/uploads` with `purpose: "found-pet"` and a JPEG or PNG
+   content type. The service ignores the caller filename and returns a
+   cryptographically generated report ID, temporary object name, and V4 POST
+   policy fields. It also returns a separate `finalizeToken`; only its SHA-256
+   digest is signed into object metadata.
+2. Multipart POST the file and every returned field to `uploadUrl`. The policy
+   expires after 15 minutes and binds the exact object, media type, report
+   metadata, finalization deadline, and a 1 byte through 10 MiB size range.
+3. `POST /foundPet` using the returned `reportId` as `petId` and temporary
+   `objectName` as `imageObject`, and send the raw capability in
+   `X-PetSpotR-Upload-Token`. Before creating report state or its outbox, the
+   service checks the capability in constant time plus immutable GCS
+   generation, size, metadata, detected media type, decoded dimensions, and
+   report binding. The signed finalization deadline remains enforced after the
+   object is copied, and the whole report operation has a two-minute server
+   deadline. It then copies the object to the private finalized namespace and
+   deletes the temporary object. The raw capability is never persisted in GCS
+   metadata or the durable event.
+
+Durable events store only the finalized object name. The matcher reads that
+private object with its service identity and base64-encodes the bytes for
+Ollama; no public or expiring URL is placed in an event. Private read URLs are
+V4-signed and capped at 15 minutes. Existing URL events remain readable during
+the schema migration, but managed found-pet report creation rejects them.
+
+The bucket enforces public access prevention and uniform access. Set
+`image_cors_allowed_origins` to exact deployed web origins; the default empty
+list permits no browser origin. Unfinalized `uploads/` objects are deleted
+after one day. The found-pet process also reconciles at most 100 finalized
+objects per pass with a cursor. After a 24-hour grace period—well beyond the
+15-minute capability and two-minute report deadlines—it deletes an object only
+when two durable-state checks find no report referencing the exact name and the
+object generation is unchanged. This recovers the crash window between GCS
+finalization and the Firestore report transaction without deleting active,
+referenced, or replaced objects. The capability authenticates the generated
+report upload; tying that capability to a signed-in user remains tracked by
+issue #110. Routing the browser through the canonical service remains tracked
+by issue #113.
+
+An opt-in deployed contract exercises signing, upload, finalization, private
+service reads, and a signed read URL against a real bucket:
+
+```bash
+PETSPOTR_GCS_INTEGRATION_BUCKET=your-disposable-test-bucket \
+  go test ./pkg/blob -run TestGCSDeployedSecureImageLifecycle
+```
+
+The test creates uniquely named objects and deletes its finalized object. Use
+only a disposable bucket configured with the same private-access policy.
+
 ### Transactional report outbox
 
 The lost- and found-report services create aggregate state and a durable
@@ -256,7 +324,9 @@ pet matcher receives authenticated `foundPet` push delivery and its durable
 authenticated subscription. The notification service also receives `lostPet`
 pushes on its community-broadcast route. All three subscriptions have retry,
 retention, expiration, and DLQ policy. Multi-instance outbox claiming is
-durable. GCS uploads remain in-memory until issue #109 is completed.
+durable. Found-pet image events carry a private finalized GCS object name in
+managed mode and retain legacy `imageUrl` decoding for messages already in
+flight.
 
 ### Idempotent matcher result publication
 

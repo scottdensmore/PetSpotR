@@ -1,16 +1,21 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	"image/jpeg"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/delivery"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
@@ -18,6 +23,74 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
+
+func TestMatcherWorker_ReadsPrivateFoundPetImage(t *testing.T) {
+	ctx := context.Background()
+	st := store.NewMemoryStore()
+	ps := pubsub.NewMemoryPubSub()
+	if err := ps.Subscribe("matchFound", func(context.Context, []byte) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	images := blob.NewMemoryBlobStore("https://storage.petspotr.io")
+	grant, err := images.BeginImageUpload(ctx, blob.ImageUploadIntent{
+		Purpose: blob.ImagePurposeFoundPet, ContentType: "image/jpeg",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	imageBytes := encodedMatcherImage(t)
+	if _, err := images.UploadImage(ctx, grant.ObjectName, imageBytes); err != nil {
+		t.Fatal(err)
+	}
+	finalized, err := images.FinalizeImage(ctx, grant.ReportID, grant.ObjectName, grant.FinalizeToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var received ollama.GenerateRequest
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&received); err != nil {
+			t.Errorf("decode Ollama request: %v", err)
+		}
+		_ = json.NewEncoder(w).Encode(ollama.GenerateResponse{
+			Model: "gemma4:e2b", Done: true,
+			Response: `{"breed":"Golden Retriever","primaryColor":"Golden","secondaryColor":"Cream","distinctiveMarkings":[],"eyeColor":"Brown"}`,
+		})
+	}))
+	defer server.Close()
+
+	lost := domain.LostPetEvent{
+		PetID: "lost-101", ReporterEmail: "owner@example.com", Location: "Seattle, WA",
+	}
+	lostData, _ := lost.ToJSON()
+	if err := st.SaveState(ctx, store.LostPetsCollection, lost.PetID, lostData); err != nil {
+		t.Fatal(err)
+	}
+	worker := NewWorkerWithImageStore(
+		st,
+		ps,
+		ollama.NewClient(ollama.WithBaseURL(server.URL)),
+		images,
+	)
+	foundData, _ := (&domain.FoundPetEvent{
+		PetID: grant.ReportID, ImageObject: finalized.ObjectName, Location: "Seattle, WA",
+	}).ToJSON()
+	if err := worker.ProcessFoundPet(ctx, foundData); err != nil {
+		t.Fatalf("ProcessFoundPet() error = %v", err)
+	}
+	if len(received.Images) != 1 || received.Images[0] != base64.StdEncoding.EncodeToString(imageBytes) {
+		t.Fatalf("Ollama images = %#v, want base64-encoded private object", received.Images)
+	}
+}
+
+func encodedMatcherImage(t *testing.T) []byte {
+	t.Helper()
+	var output bytes.Buffer
+	if err := jpeg.Encode(&output, image.NewRGBA(image.Rect(0, 0, 2, 3)), nil); err != nil {
+		t.Fatalf("encode JPEG: %v", err)
+	}
+	return output.Bytes()
+}
 
 type failOncePublisher struct {
 	broker *pubsub.MemoryPubSub

@@ -9,6 +9,12 @@ variable "region" {
   default     = "us-central1"
 }
 
+variable "image_cors_allowed_origins" {
+  description = "Exact browser origins allowed to upload and read signed pet images"
+  type        = list(string)
+  default     = []
+}
+
 variable "web_frontend_image" {
   description = "Container image for web-frontend"
   type        = string
