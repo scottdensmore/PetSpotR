@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01KZQG4ER6VTJEDETT1MMVB553",
+  "session_id": "019fecdb-8602-7b43-932d-748498b06439",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-11T04:09:16.942922208Z",
+  "branch": "feat/idempotent-community-alerts",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [
+    "cmd/notification-service/broadcast.go",
+    "cmd/notification-service/idempotency_test.go",
+    "cmd/notification-service/worker.go",
+    "docs/DEVELOPMENT.md"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "80b8d654d4d9",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 172093,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 11216384,
+    "output_tokens": 46206,
+    "api_call_count": 748
+  },
+  "session_metrics": {
+    "turn_count": 9
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-11T04:09:14.860720948Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 240,
+    "human_modified": 28,
+    "human_removed": 0,
+    "total_committed": 240,
+    "total_lines_changed": 268,
+    "agent_percentage": 0,
+    "metric_version": 2
+  }
+}
