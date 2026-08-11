@@ -20,8 +20,9 @@ PetSpotR is an event-driven microservice system written in **Go 1.22+**:
   authenticated `foundPet` Pub/Sub push requests, performing visual feature
   extraction using **Ollama** and **Gemma 4** models (`gemma4:e2b`), scoring
   similarity against lost pets, and emitting `matchFound` events.
-- **`notification-service`** (`cmd/notification-service`): Background worker
-  subscribing to `matchFound` events, generating owner alert emails, SMS, and Web Push notifications.
+- **`notification-service`** (`cmd/notification-service`): Private HTTP service
+  receiving authenticated `matchFound` Pub/Sub push requests and generating
+  owner alert emails, SMS, and Web Push notifications.
 
 ---
 
@@ -62,9 +63,9 @@ Compose waits for Ollama to become healthy and downloads `gemma4:e2b` into a
 persistent volume before starting the pet matcher. Subsequent starts reuse the
 downloaded model. Ollama stays inside the Compose network to avoid conflicting
 with a host installation. To use another model, set `OLLAMA_MODEL` before
-starting the stack. Compose exposes the matcher health and push endpoint on
-port 8083. Its default static push token is development-only; set
-`PUBSUB_PUSH_DEV_TOKEN` to override it.
+starting the stack. Compose exposes matcher and notification health and push
+endpoints on ports 8083 and 8084. Their default static push token is
+development-only; set `PUBSUB_PUSH_DEV_TOKEN` to override it.
 
 The default Compose stack still uses process-local state and messaging. It is
 useful for UI and isolated-service development, but it is not a shared
@@ -126,20 +127,22 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
 
 ### Messaging Runtime and Pub/Sub Push
 
-The found-report publisher and pet matcher use the same runtime-mode selection
-as state:
+The found-report publisher, pet matcher, and notification service use the same
+runtime-mode selection as state:
 
 | Mode | Required configuration | Messaging backend |
 | --- | --- | --- |
-| `memory` | Matcher: `PUBSUB_FOUND_SUBSCRIPTION`, `PUBSUB_PUSH_DEV_TOKEN` | Process-local test broker and static push authentication |
-| `local-emulator` | `GOOGLE_CLOUD_PROJECT`, `PUBSUB_EMULATOR_HOST`; matcher push variables above | Google Pub/Sub emulator |
-| `gcp` | Application Default Credentials; matcher: `PUBSUB_FOUND_SUBSCRIPTION`, `PUBSUB_PUSH_SERVICE_ACCOUNT` | Managed Pub/Sub and verified Google OIDC push identity |
+| `memory` | Consumer: `PUBSUB_PUSH_SUBSCRIPTION`, `PUBSUB_PUSH_DEV_TOKEN` | Process-local test broker and static push authentication |
+| `local-emulator` | `GOOGLE_CLOUD_PROJECT`, `PUBSUB_EMULATOR_HOST`; consumer push variables above | Google Pub/Sub emulator |
+| `gcp` | Application Default Credentials; consumer: `PUBSUB_PUSH_SUBSCRIPTION`, `PUBSUB_PUSH_SERVICE_ACCOUNT` | Managed Pub/Sub and verified Google OIDC push identity |
 
-In GCP mode the matcher accepts only a valid Google-signed ID token whose
-verified email is the configured invocation service account. The subscription
-name in the wrapped push body must also match. A handler returns `204` only
-after processing succeeds; transient processing failures return `500` for
-redelivery, while malformed poison messages return `400`.
+In GCP mode each consumer accepts only a valid Google-signed ID token whose
+verified email is that consumer's configured invocation service account. The
+subscription name in the wrapped push body must also match. A handler returns
+`204` only after processing succeeds. Transient provider failures and invalid
+event payloads return `500` for redelivery and eventual DLQ routing; malformed
+Pub/Sub wrappers and mismatched delivery metadata return `400` and are also
+unacknowledged.
 
 Run the Pub/Sub emulator in Docker from one terminal:
 
@@ -159,11 +162,24 @@ PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
   -run TestPubSubEmulatorRedeliversWrappedMessageUntilHandlerSucceeds
 ```
 
+The notification-specific contract runs the real worker behind its HTTP push
+endpoint. It verifies a transient channel failure is retried without repeating
+completed channels, then confirms a poison event is redelivered:
+
+```bash
+PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
+  go test ./cmd/notification-service \
+  -run TestNotificationPubSubEmulatorDeliversRetriesAndRetainsPoison
+```
+
 The Pub/Sub emulator does not implement IAM, so this contract uses the static
 development token on the push URL. Unit tests independently enforce exact OIDC
 service-account identity, verified-email, audience, and invalid-signature
 handling. Never configure `PUBSUB_PUSH_DEV_TOKEN` in GCP mode.
 Cloud Run rejects both local runtime modes even when they are explicitly set.
+Managed `foundPet` and `matchFound` subscriptions own transport retry and DLQ
+routing; issue #91 retains the remaining `lostPet` and provider circuit-breaker
+work.
 
 ### Transactional report outbox
 
@@ -216,12 +232,12 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
   -run TestFirestoreConcurrentRelaysClaimOnePublication
 ```
 
-This slice wires the durable `foundPet` outbox to managed Pub/Sub and migrates
-the pet matcher to authenticated push delivery. The OpenTofu module retains
-unconsumed `matchFound` events in a backlog subscription until the notification
-consumer is migrated in the next issue #108 slice. Lost-pet publication and
-notification push delivery are not yet managed paths. Multi-instance outbox
-claiming is durable. GCS uploads remain in-memory until issue #109 is
+The durable `foundPet` outbox publishes to managed Pub/Sub and the pet matcher
+receives authenticated push delivery. Its durable `matchFound` output now uses
+the retained subscription as an authenticated notification push target with
+retry and DLQ policy. Lost-pet publication and community-broadcast delivery
+remain outside the managed path for the next issue #108 slice. Multi-instance
+outbox claiming is durable. GCS uploads remain in-memory until issue #109 is
 completed.
 
 ### Idempotent matcher result publication
@@ -285,8 +301,9 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
 
 Focused worker tests also cover current and legacy duplicate events, concurrent
 handlers, partial subscriber/channel failure, and provider success followed by
-completion-store failure. The notification worker is not yet an authenticated
-Cloud Run push service; that remains in issue #108.
+completion-store failure. The managed `matchFound` consumer is an authenticated
+private Cloud Run push service. The existing `lostPet` community-broadcast
+consumer remains process-local until the next issue #108 slice.
 
 ---
 
@@ -297,14 +314,14 @@ Cloud Run push service; that remains in issue #108.
 Infrastructure is defined as code under `infra/opentofu`:
 
 - GCS Bucket for image storage (`modules/storage`)
-- Cloud Pub/Sub topics, authenticated `foundPet` push subscription, retry and
-  dead-letter policies, dedicated matcher invocation identity, and retained
-  `matchFound` backlog (`modules/pubsub`)
+- Cloud Pub/Sub topics, authenticated `foundPet` and `matchFound` push
+  subscriptions, retry and dead-letter policies, and a dedicated invocation
+  identity for each consumer (`modules/pubsub`)
 - Cloud Firestore database and pending-outbox composite index
   (`modules/firestore`)
-- Cloud Run v2 services, including private matcher ingress, push identity
-  configuration, and the single always-CPU found-report relay instance
-  (`modules/cloudrun`)
+- Cloud Run v2 services, including private matcher and notification ingress,
+  push identity configuration, and the single always-CPU found-report relay
+  instance (`modules/cloudrun`)
 
 To apply infrastructure:
 
@@ -325,9 +342,10 @@ Knative-compatible service manifests are located under `deploy/cloudrun/`:
 - `notification-service.yaml`
 
 OpenTofu is the authoritative deployment path for the authenticated matcher
-subscription and its least-privilege IAM grants. The standalone manifests
-contain example project-qualified identity values and do not create Pub/Sub or
-IAM resources; replace those placeholders if applying a manifest directly.
+and notification subscriptions and their least-privilege IAM grants. The
+standalone manifests contain example project-qualified identity values and do
+not create Pub/Sub or IAM resources; replace those placeholders if applying a
+manifest directly.
 
 To deploy a service:
 

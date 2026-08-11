@@ -97,14 +97,47 @@ func TestDeploymentArtifactsExist(t *testing.T) {
 			t.Fatalf("read docker-compose.yml: %v", err)
 		}
 
-		for _, fragment := range []string{"timeoutSeconds: 600", "PUBSUB_FOUND_SUBSCRIPTION", "PUBSUB_PUSH_SERVICE_ACCOUNT"} {
+		for _, fragment := range []string{"timeoutSeconds: 600", "PUBSUB_PUSH_SUBSCRIPTION", "PUBSUB_PUSH_SERVICE_ACCOUNT"} {
 			if !strings.Contains(string(manifest), fragment) {
 				t.Errorf("pet-matcher manifest missing %q", fragment)
 			}
 		}
-		for _, fragment := range []string{"8083:8083", "PUBSUB_PUSH_DEV_TOKEN", "PUBSUB_FOUND_SUBSCRIPTION"} {
+		for _, fragment := range []string{"8083:8083", "PUBSUB_PUSH_DEV_TOKEN", "PUBSUB_PUSH_SUBSCRIPTION"} {
 			if !strings.Contains(string(compose), fragment) {
 				t.Errorf("docker-compose.yml missing pet-matcher push configuration %q", fragment)
+			}
+		}
+	})
+
+	t.Run("notification service is configured as an HTTP push target", func(t *testing.T) {
+		manifest, err := os.ReadFile(filepath.Join(root, "deploy", "cloudrun", "notification-service.yaml"))
+		if err != nil {
+			t.Fatalf("read notification-service manifest: %v", err)
+		}
+		compose, err := os.ReadFile(filepath.Join(root, "docker-compose.yml"))
+		if err != nil {
+			t.Fatalf("read docker-compose.yml: %v", err)
+		}
+
+		for _, fragment := range []string{
+			`run.googleapis.com/ingress: internal`,
+			"PUBSUB_PUSH_SUBSCRIPTION",
+			"match-found-notification-backlog",
+			"PUBSUB_PUSH_SERVICE_ACCOUNT",
+			"pubsub-notification-invoker",
+		} {
+			if !strings.Contains(string(manifest), fragment) {
+				t.Errorf("notification-service manifest missing %q", fragment)
+			}
+		}
+		for _, fragment := range []string{
+			"8084:8084",
+			"PORT=8084",
+			"PUBSUB_PUSH_DEV_TOKEN",
+			"PUBSUB_PUSH_SUBSCRIPTION=projects/petspotr-local/subscriptions/match-found-notification-backlog",
+		} {
+			if !strings.Contains(string(compose), fragment) {
+				t.Errorf("docker-compose.yml missing notification push configuration %q", fragment)
 			}
 		}
 	})

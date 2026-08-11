@@ -14,7 +14,7 @@ type PushConsumerConfig struct {
 	StaticToken            string
 }
 
-// LoadPushConsumerConfigFromEnv loads matcher push authentication settings.
+// LoadPushConsumerConfigFromEnv loads push authentication settings.
 func LoadPushConsumerConfigFromEnv() (PushConsumerConfig, error) {
 	return LoadPushConsumerConfig(os.Getenv)
 }
@@ -31,14 +31,26 @@ func LoadPushConsumerConfig(lookup func(string) string) (PushConsumerConfig, err
 			rawMode = string(ModeMemory)
 		}
 	}
+	pushSubscription := strings.TrimSpace(lookup("PUBSUB_PUSH_SUBSCRIPTION"))
+	legacyFoundSubscription := strings.TrimSpace(lookup("PUBSUB_FOUND_SUBSCRIPTION"))
+	if pushSubscription != "" && legacyFoundSubscription != "" && pushSubscription != legacyFoundSubscription {
+		return PushConsumerConfig{}, fmt.Errorf(
+			"PUBSUB_PUSH_SUBSCRIPTION and PUBSUB_FOUND_SUBSCRIPTION must match when both are set",
+		)
+	}
+	if pushSubscription == "" {
+		// Preserve the first matcher deployment's variable while callers migrate
+		// to the event-agnostic push consumer contract.
+		pushSubscription = legacyFoundSubscription
+	}
 	config := PushConsumerConfig{
 		Mode:                   Mode(rawMode),
-		ExpectedSubscription:   strings.TrimSpace(lookup("PUBSUB_FOUND_SUBSCRIPTION")),
+		ExpectedSubscription:   pushSubscription,
 		ExpectedServiceAccount: strings.TrimSpace(lookup("PUBSUB_PUSH_SERVICE_ACCOUNT")),
 		StaticToken:            strings.TrimSpace(lookup("PUBSUB_PUSH_DEV_TOKEN")),
 	}
 	if config.ExpectedSubscription == "" {
-		return PushConsumerConfig{}, fmt.Errorf("PUBSUB_FOUND_SUBSCRIPTION is required in %q mode", config.Mode)
+		return PushConsumerConfig{}, fmt.Errorf("PUBSUB_PUSH_SUBSCRIPTION is required in %q mode", config.Mode)
 	}
 	switch config.Mode {
 	case ModeMemory, ModeLocalEmulator:

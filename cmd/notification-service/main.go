@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
@@ -13,6 +16,10 @@ import (
 )
 
 func main() {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8084"
+	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
@@ -33,14 +40,40 @@ func main() {
 	if !ok {
 		log.Fatalf("Configured state runtime does not support delivery operations")
 	}
-
-	ps := pubsub.NewMemoryPubSub()
-	worker := NewWorkerWithStore(deliveryStore, ps)
-	if err := worker.Start(ctx); err != nil {
-		log.Fatalf("Failed to start Notification Worker: %v", err)
+	pushConfig, err := runtimeconfig.LoadPushConsumerConfigFromEnv()
+	if err != nil {
+		log.Fatalf("Invalid push consumer configuration: %v", err)
 	}
 
-	log.Println("Notification Service Worker running and listening for matchFound events...")
-	<-ctx.Done()
-	log.Println("Notification Service Worker shutting down gracefully.")
+	worker := NewWorkerWithStore(deliveryStore, nil)
+	var authorizer pubsub.PushAuthorizer
+	if pushConfig.Mode == runtimeconfig.ModeGCP {
+		authorizer = pubsub.NewOIDCPushAuthorizer(pushConfig.ExpectedServiceAccount, nil)
+	} else {
+		authorizer = pubsub.NewStaticPushAuthorizer(pushConfig.StaticToken)
+	}
+	httpServer := &http.Server{
+		Addr:              ":" + port,
+		Handler:           newNotificationHTTPHandler(worker, authorizer, pushConfig.ExpectedSubscription),
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	serverErr := make(chan error, 1)
+	go func() {
+		log.Printf("Notification Service push endpoint listening on port %s...", port)
+		serverErr <- httpServer.ListenAndServe()
+	}()
+
+	select {
+	case err := <-serverErr:
+		if !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("Server failed: %v", err)
+		}
+	case <-ctx.Done():
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+			log.Printf("Server shutdown failed: %v", err)
+		}
+	}
 }

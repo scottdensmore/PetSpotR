@@ -62,7 +62,7 @@ services:
       - PORT=8083
       - OLLAMA_HOST=http://ollama:11434
       - OLLAMA_MODEL=${OLLAMA_MODEL:-gemma4:e2b}
-      - PUBSUB_FOUND_SUBSCRIPTION=projects/petspotr-local/subscriptions/found-pet-matcher
+      - PUBSUB_PUSH_SUBSCRIPTION=projects/petspotr-local/subscriptions/found-pet-matcher
       - PUBSUB_PUSH_DEV_TOKEN=${PUBSUB_PUSH_DEV_TOKEN:-petspotr-local-push}
     depends_on:
       ollama-init:
@@ -75,6 +75,12 @@ services:
       args:
         SERVICE_NAME: notification-service
     container_name: petspotr-notification-service
+    ports:
+      - "8084:8084"
+    environment:
+      - PORT=8084
+      - PUBSUB_PUSH_SUBSCRIPTION=projects/petspotr-local/subscriptions/match-found-notification-backlog
+      - PUBSUB_PUSH_DEV_TOKEN=${PUBSUB_PUSH_DEV_TOKEN:-petspotr-local-push}
 
   web-frontend:
     build:

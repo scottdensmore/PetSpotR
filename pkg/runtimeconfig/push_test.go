@@ -17,6 +17,18 @@ func TestLoadPushConsumerConfig(t *testing.T) {
 		{
 			name: "memory uses static local token",
 			env: map[string]string{
+				"PUBSUB_PUSH_SUBSCRIPTION": "projects/local/subscriptions/match-found-notification",
+				"PUBSUB_PUSH_DEV_TOKEN":    "local-secret",
+			},
+			want: runtimeconfig.PushConsumerConfig{
+				Mode:                 runtimeconfig.ModeMemory,
+				ExpectedSubscription: "projects/local/subscriptions/match-found-notification",
+				StaticToken:          "local-secret",
+			},
+		},
+		{
+			name: "legacy matcher subscription remains supported",
+			env: map[string]string{
 				"PUBSUB_FOUND_SUBSCRIPTION": "projects/local/subscriptions/found-pet-matcher",
 				"PUBSUB_PUSH_DEV_TOKEN":     "local-secret",
 			},
@@ -30,7 +42,7 @@ func TestLoadPushConsumerConfig(t *testing.T) {
 			name: "GCP uses exact OIDC identity",
 			env: map[string]string{
 				"K_SERVICE":                   "pet-matcher",
-				"PUBSUB_FOUND_SUBSCRIPTION":   "projects/prod/subscriptions/found-pet-matcher",
+				"PUBSUB_PUSH_SUBSCRIPTION":    "projects/prod/subscriptions/found-pet-matcher",
 				"PUBSUB_PUSH_SERVICE_ACCOUNT": "pubsub-pet-matcher-invoker@prod.iam.gserviceaccount.com",
 			},
 			want: runtimeconfig.PushConsumerConfig{
@@ -40,10 +52,19 @@ func TestLoadPushConsumerConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "rejects conflicting generic and legacy subscriptions",
+			env: map[string]string{
+				"PUBSUB_PUSH_SUBSCRIPTION":  "projects/local/subscriptions/match-found-notification",
+				"PUBSUB_FOUND_SUBSCRIPTION": "projects/local/subscriptions/found-pet-matcher",
+				"PUBSUB_PUSH_DEV_TOKEN":     "local-secret",
+			},
+			wantErr: true,
+		},
+		{
 			name: "GCP rejects development token",
 			env: map[string]string{
 				"K_SERVICE":                   "pet-matcher",
-				"PUBSUB_FOUND_SUBSCRIPTION":   "projects/prod/subscriptions/found-pet-matcher",
+				"PUBSUB_PUSH_SUBSCRIPTION":    "projects/prod/subscriptions/found-pet-matcher",
 				"PUBSUB_PUSH_SERVICE_ACCOUNT": "pubsub-pet-matcher-invoker@prod.iam.gserviceaccount.com",
 				"PUBSUB_PUSH_DEV_TOKEN":       "unsafe",
 			},
@@ -52,10 +73,10 @@ func TestLoadPushConsumerConfig(t *testing.T) {
 		{
 			name: "Cloud Run rejects emulator static token",
 			env: map[string]string{
-				"K_SERVICE":                 "pet-matcher",
-				"PETSPOTR_RUNTIME_MODE":     "local-emulator",
-				"PUBSUB_FOUND_SUBSCRIPTION": "projects/local/subscriptions/found-pet-matcher",
-				"PUBSUB_PUSH_DEV_TOKEN":     "local-secret",
+				"K_SERVICE":                "pet-matcher",
+				"PETSPOTR_RUNTIME_MODE":    "local-emulator",
+				"PUBSUB_PUSH_SUBSCRIPTION": "projects/local/subscriptions/found-pet-matcher",
+				"PUBSUB_PUSH_DEV_TOKEN":    "local-secret",
 			},
 			wantErr: true,
 		},
