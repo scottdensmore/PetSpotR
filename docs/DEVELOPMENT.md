@@ -221,8 +221,37 @@ the pet matcher to authenticated push delivery. The OpenTofu module retains
 unconsumed `matchFound` events in a backlog subscription until the notification
 consumer is migrated in the next issue #108 slice. Lost-pet publication and
 notification push delivery are not yet managed paths. Multi-instance outbox
-claiming is durable; the remaining consumer paths stay in issue #116. GCS
-uploads remain in-memory until issue #109 is completed.
+claiming is durable. GCS uploads remain in-memory until issue #109 is
+completed.
+
+### Idempotent matcher result publication
+
+The pet matcher derives one durable processing operation from the verified
+`foundPet` envelope ID, or from a stable digest of an exact legacy payload. A
+ten-minute transactional lease admits only one concurrent model invocation.
+Completed inputs are no-ops, while failed and expired attempts can be reclaimed
+without allowing a stale attempt to record completion.
+
+When scoring produces a match, the additive `sourceEventId` field keeps ordered
+input versions distinct. The worker atomically creates a `matcherResults`
+record and the exact `matchFound` `eventOutbox` payload before broker I/O. A
+retry loads that winning result and publishes its existing outbox record rather
+than invoking Ollama again. Broker failure releases the outbox lease for an
+immediate retry. A crash after broker acceptance can publish the same stable
+event again after lease expiry; the notification delivery operations below
+deduplicate that expected at-least-once boundary. No-candidate and no-match
+outcomes complete the processing operation without creating an event.
+
+Focused worker tests cover duplicate inputs, concurrent handlers, broker
+failure after the atomic write, and consumer-completion failure after successful
+publication. Run the two-client recovery contract against a Firestore emulator
+with:
+
+```bash
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
+  go test ./cmd/pet-matcher \
+  -run TestFirestoreMatcherRecoversPersistedResultAcrossWorkers
+```
 
 ### Idempotent notification delivery
 
