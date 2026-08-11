@@ -171,3 +171,39 @@ func TestRelayIsolatesPoisonRecordsAndPublishesValidIDs(t *testing.T) {
 		t.Fatalf("valid record status = %q, want published", completed.Status)
 	}
 }
+
+func TestRelayPublishesBoundedPendingTopicBatch(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	for _, record := range []outbox.Record{
+		outbox.NewRecord("found-pending", "foundPet", []byte(`{"id":"found-pending"}`), time.Now().UTC()),
+		outbox.NewRecord("lost-pending", "lostPet", []byte(`{"id":"lost-pending"}`), time.Now().UTC()),
+	} {
+		if err := outbox.SaveRecord(ctx, stateStore, record); err != nil {
+			t.Fatal(err)
+		}
+	}
+	broker := pubsub.NewMemoryPubSub()
+	published := 0
+	if err := broker.Subscribe("foundPet", func(context.Context, []byte) error {
+		published++
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	relay := outbox.NewRelay(stateStore, broker)
+	count, err := relay.PublishPending(ctx, "foundPet")
+	if err != nil {
+		t.Fatalf("PublishPending() error = %v", err)
+	}
+	if count != 1 || published != 1 {
+		t.Fatalf("PublishPending() count = %d, published = %d; want 1, 1", count, published)
+	}
+	lost, err := outbox.GetRecord(ctx, stateStore, "lost-pending")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lost.Status != outbox.StatusPending {
+		t.Fatalf("unrelated record status = %q, want pending", lost.Status)
+	}
+}

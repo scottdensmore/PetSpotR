@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
@@ -53,6 +55,26 @@ func TestNotificationWorker_ProcessMatchFound(t *testing.T) {
 		_, err := worker.ProcessMatchFound(context.Background(), data)
 		if err == nil {
 			t.Error("expected error for invalid match result payload, got nil")
+		}
+	})
+
+	t.Run("versioned matchFound envelope remains consumable", func(t *testing.T) {
+		matchRes := domain.MatchResult{FoundPetID: "found-envelope", MatchedPetID: "lost-envelope", Score: 0.91, IsMatch: true}
+		payload, _ := matchRes.ToJSON()
+		envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+			Type:             domain.EventTypeMatchFound,
+			OccurredAt:       time.Now().UTC(),
+			AggregateID:      "found-envelope:lost-envelope",
+			AggregateVersion: 1,
+			PayloadVersion:   1,
+			Payload:          payload,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, _ := json.Marshal(envelope)
+		if _, err := worker.ProcessMatchFound(context.Background(), data); err != nil {
+			t.Fatalf("ProcessMatchFound(envelope) error = %v", err)
 		}
 	})
 }

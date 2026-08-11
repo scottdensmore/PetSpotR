@@ -48,7 +48,7 @@ go vet ./...
 go test -race -v -cover ./...
 ```
 
-To start the full local microservice stack and Ollama:
+To start the local service containers and Ollama:
 
 ```bash
 docker compose up --build
@@ -58,6 +58,9 @@ Compose waits for Ollama to become healthy and downloads `gemma4:e2b` into a
 persistent volume before starting the pet matcher. Subsequent starts reuse the
 downloaded model. Ollama stays inside the Compose network to avoid conflicting
 with a host installation. Set `OLLAMA_MODEL` to override the default model.
+The default stack uses process-local state and messaging; the development guide
+includes Dockerized Firestore and Pub/Sub emulator contracts for durable,
+cross-process integration testing.
 
 For complete development details and GCP deployment instructions, see
 [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md).

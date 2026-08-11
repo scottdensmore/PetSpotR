@@ -1,0 +1,80 @@
+package runtimeconfig_test
+
+import (
+	"testing"
+
+	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
+)
+
+func TestLoadPushConsumerConfig(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		env     map[string]string
+		want    runtimeconfig.PushConsumerConfig
+		wantErr bool
+	}{
+		{
+			name: "memory uses static local token",
+			env: map[string]string{
+				"PUBSUB_FOUND_SUBSCRIPTION": "projects/local/subscriptions/found-pet-matcher",
+				"PUBSUB_PUSH_DEV_TOKEN":     "local-secret",
+			},
+			want: runtimeconfig.PushConsumerConfig{
+				Mode:                 runtimeconfig.ModeMemory,
+				ExpectedSubscription: "projects/local/subscriptions/found-pet-matcher",
+				StaticToken:          "local-secret",
+			},
+		},
+		{
+			name: "GCP uses exact OIDC identity",
+			env: map[string]string{
+				"K_SERVICE":                   "pet-matcher",
+				"PUBSUB_FOUND_SUBSCRIPTION":   "projects/prod/subscriptions/found-pet-matcher",
+				"PUBSUB_PUSH_SERVICE_ACCOUNT": "pubsub-pet-matcher-invoker@prod.iam.gserviceaccount.com",
+			},
+			want: runtimeconfig.PushConsumerConfig{
+				Mode:                   runtimeconfig.ModeGCP,
+				ExpectedSubscription:   "projects/prod/subscriptions/found-pet-matcher",
+				ExpectedServiceAccount: "pubsub-pet-matcher-invoker@prod.iam.gserviceaccount.com",
+			},
+		},
+		{
+			name: "GCP rejects development token",
+			env: map[string]string{
+				"K_SERVICE":                   "pet-matcher",
+				"PUBSUB_FOUND_SUBSCRIPTION":   "projects/prod/subscriptions/found-pet-matcher",
+				"PUBSUB_PUSH_SERVICE_ACCOUNT": "pubsub-pet-matcher-invoker@prod.iam.gserviceaccount.com",
+				"PUBSUB_PUSH_DEV_TOKEN":       "unsafe",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Cloud Run rejects emulator static token",
+			env: map[string]string{
+				"K_SERVICE":                 "pet-matcher",
+				"PETSPOTR_RUNTIME_MODE":     "local-emulator",
+				"PUBSUB_FOUND_SUBSCRIPTION": "projects/local/subscriptions/found-pet-matcher",
+				"PUBSUB_PUSH_DEV_TOKEN":     "local-secret",
+			},
+			wantErr: true,
+		},
+		{name: "requires subscription and identity", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := runtimeconfig.LoadPushConsumerConfig(func(key string) string { return tt.env[key] })
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("LoadPushConsumerConfig() error = nil, want non-nil")
+				}
+				return
+			}
+			if err != nil || got != tt.want {
+				t.Fatalf("LoadPushConsumerConfig() = %#v, %v; want %#v, nil", got, err, tt.want)
+			}
+		})
+	}
+}

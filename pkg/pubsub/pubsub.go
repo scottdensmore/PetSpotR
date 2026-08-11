@@ -15,9 +15,14 @@ var ErrNoSubscribers = errors.New("pubsub: topic has no subscribers")
 // Handler handles an incoming pub/sub event message payload.
 type Handler func(ctx context.Context, data []byte) error
 
-// Broker defines publish/subscribe messaging operations.
-type Broker interface {
+// Publisher defines event publication.
+type Publisher interface {
 	Publish(ctx context.Context, topic string, data []byte) error
+}
+
+// Broker defines in-process publish/subscribe messaging operations.
+type Broker interface {
+	Publisher
 	Subscribe(topic string, handler Handler) error
 }
 

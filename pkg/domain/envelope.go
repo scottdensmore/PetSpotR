@@ -18,6 +18,7 @@ const CurrentEnvelopeVersion = 1
 const (
 	EventTypeLostPetReported  = "petspotr.lost-pet.reported"
 	EventTypeFoundPetReported = "petspotr.found-pet.reported"
+	EventTypeMatchFound       = "petspotr.match.found"
 )
 
 // EventEnvelope carries stable event identity and ordering metadata around a

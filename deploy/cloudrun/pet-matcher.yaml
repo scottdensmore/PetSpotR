@@ -10,8 +10,14 @@ spec:
       annotations:
         run.googleapis.com/cpu-throttling: "false"
     spec:
+      timeoutSeconds: 600
       containers:
         - image: gcr.io/petspotr/pet-matcher:latest
+          env:
+            - name: PUBSUB_FOUND_SUBSCRIPTION
+              value: projects/petspotr/subscriptions/found-pet-matcher
+            - name: PUBSUB_PUSH_SERVICE_ACCOUNT
+              value: pubsub-pet-matcher-invoker@petspotr.iam.gserviceaccount.com
           resources:
             limits:
               cpu: 2000m

@@ -23,7 +23,7 @@ type Service struct {
 }
 
 // NewService constructs a FoundPet Service instance.
-func NewService(st store.StateStore, br pubsub.Broker, bs blob.BlobStore) *Service {
+func NewService(st store.StateStore, br pubsub.Publisher, bs blob.BlobStore) *Service {
 	return &Service{
 		store:     st,
 		blobStore: bs,

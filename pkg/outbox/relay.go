@@ -93,13 +93,13 @@ func GetRecord(ctx context.Context, stateStore store.StateStore, id string) (Rec
 // managed multi-instance claiming belongs with the Pub/Sub consumer slice.
 type Relay struct {
 	store  store.StateStore
-	broker pubsub.Broker
+	broker pubsub.Publisher
 	mu     sync.Mutex
 	now    func() time.Time
 }
 
 // NewRelay constructs an outbox relay.
-func NewRelay(stateStore store.StateStore, broker pubsub.Broker) *Relay {
+func NewRelay(stateStore store.StateStore, broker pubsub.Publisher) *Relay {
 	return &Relay{store: stateStore, broker: broker, now: time.Now}
 }
 
@@ -160,4 +160,14 @@ func (r *Relay) PublishRecords(ctx context.Context, ids ...string) (int, error) 
 		published++
 	}
 	return published, errors.Join(publishErrors...)
+}
+
+// PublishPending publishes one bounded topic-specific recovery batch.
+func (r *Relay) PublishPending(ctx context.Context, topic string) (int, error) {
+	if !r.CanPublish(topic) {
+		return 0, nil
+	}
+	ids, listErr := r.store.ListPendingOutbox(ctx, topic, MaxPublishBatch)
+	published, publishErr := r.PublishRecords(ctx, ids...)
+	return published, errors.Join(listErr, publishErr)
 }

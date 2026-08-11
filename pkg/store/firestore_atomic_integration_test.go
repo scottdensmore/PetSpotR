@@ -2,6 +2,8 @@ package store_test
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -9,8 +11,107 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/firestore"
+	"github.com/scottdensmore/petspotr/pkg/outbox"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
+
+func TestFirestoreBackfillsLegacyOutboxIndexes(t *testing.T) {
+	host := os.Getenv("FIRESTORE_EMULATOR_HOST")
+	if host == "" {
+		t.Skip("FIRESTORE_EMULATOR_HOST is not set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	const projectID = "petspotr-outbox-backfill"
+	stateStore, err := store.NewFirestoreEmulatorStore(ctx, projectID, host)
+	if err != nil {
+		t.Fatalf("NewFirestoreEmulatorStore() error = %v", err)
+	}
+	t.Cleanup(func() { _ = stateStore.Close() })
+	rawClient, err := firestore.NewClient(ctx, projectID)
+	if err != nil {
+		t.Fatalf("firestore.NewClient() error = %v", err)
+	}
+	t.Cleanup(func() { _ = rawClient.Close() })
+
+	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
+	legacy := outbox.NewRecord("evt-legacy-index-"+suffix, "foundPet", []byte(`{"id":"legacy"}`), time.Now().UTC())
+	legacyData, err := outbox.MarshalRecord(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyDoc := rawClient.Collection(store.OutboxCollection).Doc(firestoreDocumentIDForTest(legacy.ID))
+	lateLegacy := outbox.NewRecord("aaa-late-legacy-index-"+suffix, "foundPet", []byte(`{"id":"late-legacy"}`), time.Now().UTC())
+	lateLegacyData, err := outbox.MarshalRecord(lateLegacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lateLegacyDoc := rawClient.Collection(store.OutboxCollection).Doc(firestoreDocumentIDForTest(lateLegacy.ID))
+	migrationDoc := rawClient.Collection("runtimeMigrations").Doc(firestoreDocumentIDForTest("outbox-index-v1"))
+	if _, err := legacyDoc.Set(ctx, map[string]any{"key": legacy.ID, "data": legacyData}); err != nil {
+		t.Fatalf("write legacy outbox: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cleanupCancel()
+		_, _ = legacyDoc.Delete(cleanupCtx)
+		_, _ = lateLegacyDoc.Delete(cleanupCtx)
+		_, _ = migrationDoc.Delete(cleanupCtx)
+	})
+
+	before, err := stateStore.ListPendingOutbox(ctx, "foundPet", 10)
+	if err != nil {
+		t.Fatalf("ListPendingOutbox() before backfill error = %v", err)
+	}
+	if len(before) != 0 {
+		t.Fatalf("ListPendingOutbox() before backfill = %#v, want empty", before)
+	}
+	migrated, _, err := stateStore.BackfillOutboxIndexes(ctx, 100)
+	if err != nil {
+		t.Fatalf("BackfillOutboxIndexes() error = %v", err)
+	}
+	if migrated != 1 {
+		t.Fatalf("BackfillOutboxIndexes() migrated = %d, want 1", migrated)
+	}
+	after, err := stateStore.ListPendingOutbox(ctx, "foundPet", 10)
+	if err != nil {
+		t.Fatalf("ListPendingOutbox() after backfill error = %v", err)
+	}
+	if len(after) != 1 || after[0] != legacy.ID {
+		t.Fatalf("ListPendingOutbox() after backfill = %#v, want [%s]", after, legacy.ID)
+	}
+
+	// Simulate an old Cloud Run revision completing a request after the new
+	// revision finished migration. Its key sorts behind the durable cursor.
+	if _, err := lateLegacyDoc.Set(ctx, map[string]any{"key": lateLegacy.ID, "data": lateLegacyData}); err != nil {
+		t.Fatalf("write late legacy outbox: %v", err)
+	}
+	migrated, _, err = stateStore.BackfillOutboxIndexes(ctx, 100)
+	if err != nil {
+		t.Fatalf("BackfillOutboxIndexes() late record error = %v", err)
+	}
+	if migrated != 1 {
+		t.Fatalf("BackfillOutboxIndexes() late migrated = %d, want 1", migrated)
+	}
+	afterLateWrite, err := stateStore.ListPendingOutbox(ctx, "foundPet", 10)
+	if err != nil {
+		t.Fatalf("ListPendingOutbox() after late write error = %v", err)
+	}
+	gotIDs := make(map[string]bool, len(afterLateWrite))
+	for _, id := range afterLateWrite {
+		gotIDs[id] = true
+	}
+	if len(afterLateWrite) != 2 || !gotIDs[lateLegacy.ID] || !gotIDs[legacy.ID] {
+		t.Fatalf("ListPendingOutbox() after late write = %#v, want both %s and %s", afterLateWrite, lateLegacy.ID, legacy.ID)
+	}
+}
+
+func firestoreDocumentIDForTest(key string) string {
+	digest := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(digest[:])
+}
 
 func TestFirestoreCreateStateAndOutboxTransaction(t *testing.T) {
 	host := os.Getenv("FIRESTORE_EMULATOR_HOST")
@@ -32,40 +133,58 @@ func TestFirestoreCreateStateAndOutboxTransaction(t *testing.T) {
 		Key:       "lost-atomic-" + suffix,
 		Data:      []byte(`{"petId":"lost-atomic"}`),
 	}
-	outbox := store.StateWrite{
+	outboxRecord := outbox.NewRecord("evt-atomic-"+suffix, "lostPet", []byte(`{"id":"evt-atomic"}`), time.Now().UTC())
+	outboxData, err := outbox.MarshalRecord(outboxRecord)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outboxWrite := store.StateWrite{
 		StoreName: store.OutboxCollection,
-		Key:       "evt-atomic-" + suffix,
-		Data:      []byte(`{"id":"evt-atomic","status":"pending"}`),
+		Key:       outboxRecord.ID,
+		Data:      outboxData,
 	}
 	t.Cleanup(func() {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cleanupCancel()
 		_ = stateStore.DeleteState(cleanupCtx, state.StoreName, state.Key)
-		_ = stateStore.DeleteState(cleanupCtx, outbox.StoreName, outbox.Key)
+		_ = stateStore.DeleteState(cleanupCtx, outboxWrite.StoreName, outboxWrite.Key)
 	})
 
-	created, err := stateStore.CreateStateAndOutbox(ctx, state, outbox)
+	created, err := stateStore.CreateStateAndOutbox(ctx, state, outboxWrite)
 	if err != nil || !created {
 		t.Fatalf("CreateStateAndOutbox() = %t, %v; want true, nil", created, err)
 	}
 
 	// A retry may carry different request metadata in the envelope, but the
 	// stable event ID must preserve the first outbox record rather than reset it.
-	retryOutbox := outbox
-	retryOutbox.Data = []byte(`{"id":"evt-atomic","status":"pending","correlationId":"retry"}`)
+	retryRecord := outboxRecord
+	retryRecord.LastError = "retry metadata"
+	retryData, err := outbox.MarshalRecord(retryRecord)
+	if err != nil {
+		t.Fatal(err)
+	}
+	retryOutbox := outboxWrite
+	retryOutbox.Data = retryData
 	created, err = stateStore.CreateStateAndOutbox(ctx, state, retryOutbox)
 	if err != nil || created {
 		t.Fatalf("retry CreateStateAndOutbox() = %t, %v; want false, nil", created, err)
 	}
-	storedOutbox, err := stateStore.GetState(ctx, outbox.StoreName, outbox.Key)
+	storedOutbox, err := stateStore.GetState(ctx, outboxWrite.StoreName, outboxWrite.Key)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(storedOutbox) != string(outbox.Data) {
-		t.Fatalf("retry replaced outbox = %s, want %s", storedOutbox, outbox.Data)
+	if string(storedOutbox) != string(outboxWrite.Data) {
+		t.Fatalf("retry replaced outbox = %s, want %s", storedOutbox, outboxWrite.Data)
+	}
+	pendingIDs, err := stateStore.ListPendingOutbox(ctx, "lostPet", 10)
+	if err != nil {
+		t.Fatalf("ListPendingOutbox() error = %v", err)
+	}
+	if len(pendingIDs) != 1 || pendingIDs[0] != outboxRecord.ID {
+		t.Fatalf("ListPendingOutbox() = %#v, want [%s]", pendingIDs, outboxRecord.ID)
 	}
 
-	competing := outbox
+	competing := outboxWrite
 	competing.Key = "evt-competing-" + suffix
 	t.Cleanup(func() {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -99,12 +218,12 @@ func TestFirestoreCreateStateAndOutboxConcurrentCreators(t *testing.T) {
 		for round := 0; round < 8; round++ {
 			suffix := fmt.Sprintf("%d-%d", time.Now().UnixNano(), round)
 			state := store.StateWrite{StoreName: store.LostPetsCollection, Key: "lost-identical-" + suffix, Data: []byte(`{"petId":"lost-identical"}`)}
-			outbox := store.StateWrite{StoreName: store.OutboxCollection, Key: "evt-identical-" + suffix, Data: []byte(`{"id":"evt-identical"}`)}
-			registerAtomicCleanup(t, stateStore, state, outbox)
+			outboxWrite := newAtomicOutboxWrite(t, "evt-identical-"+suffix)
+			registerAtomicCleanup(t, stateStore, state, outboxWrite)
 
 			results := runConcurrentCreates(ctx, stateStore,
-				createCall{state: state, outbox: outbox},
-				createCall{state: state, outbox: outbox},
+				createCall{state: state, outbox: outboxWrite},
+				createCall{state: state, outbox: outboxWrite},
 			)
 			createdCount := 0
 			for _, result := range results {
@@ -126,8 +245,8 @@ func TestFirestoreCreateStateAndOutboxConcurrentCreators(t *testing.T) {
 		firstState := store.StateWrite{StoreName: store.LostPetsCollection, Key: "lost-competing-" + suffix, Data: []byte(`{"petId":"lost-competing","location":"Seattle"}`)}
 		secondState := firstState
 		secondState.Data = []byte(`{"petId":"lost-competing","location":"Portland"}`)
-		firstOutbox := store.StateWrite{StoreName: store.OutboxCollection, Key: "evt-first-" + suffix, Data: []byte(`{"id":"evt-first"}`)}
-		secondOutbox := store.StateWrite{StoreName: store.OutboxCollection, Key: "evt-second-" + suffix, Data: []byte(`{"id":"evt-second"}`)}
+		firstOutbox := newAtomicOutboxWrite(t, "evt-first-"+suffix)
+		secondOutbox := newAtomicOutboxWrite(t, "evt-second-"+suffix)
 		registerAtomicCleanup(t, stateStore, firstState, firstOutbox, secondOutbox)
 
 		results := runConcurrentCreates(ctx, stateStore,
@@ -161,6 +280,16 @@ func TestFirestoreCreateStateAndOutboxConcurrentCreators(t *testing.T) {
 			t.Fatalf("persisted competing outboxes = %d, want 1", outboxCount)
 		}
 	})
+}
+
+func newAtomicOutboxWrite(t *testing.T, id string) store.StateWrite {
+	t.Helper()
+	record := outbox.NewRecord(id, "lostPet", []byte(`{"id":"atomic-event"}`), time.Now().UTC())
+	data, err := outbox.MarshalRecord(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return store.StateWrite{StoreName: store.OutboxCollection, Key: id, Data: data}
 }
 
 type createCall struct {

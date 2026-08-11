@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 
@@ -68,7 +67,7 @@ func (w *Worker) ProcessMatchFound(ctx context.Context, matchResultData []byte) 
 	}
 
 	var res domain.MatchResult
-	if err := json.Unmarshal(matchResultData, &res); err != nil {
+	if _, err := domain.DecodeEventPayload(matchResultData, domain.EventTypeMatchFound, &res); err != nil {
 		return nil, fmt.Errorf("notification-service: failed to unmarshal MatchResult: %w", err)
 	}
 
