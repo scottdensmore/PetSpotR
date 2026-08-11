@@ -1,0 +1,75 @@
+/codex:setup
+
+---
+
+/codex:setup --enable-review-gate
+
+---
+
+ok what is the review gate?
+
+---
+
+/codex:setup
+
+---
+
+/codex:setup --disable-review-gate
+
+---
+
+I want to update the code review sub agent to be doen by codex  Claude will run the gate using the following integrated plugin command:
+* **Command**: `/codex:adversarial-review --wait --scope working-tree`
+* **Focus Directives**: "Critique this change like an unmerciful, skeptical senior reviewer. Explicitly challenge security bugs, hidden state mutations, missing error handling, and performance degradation."
+
+## 4. Conflict Resolution
+* If Codex flags a issue labeled `[P0]` or `[P1]`, Claude must fix it immediately.
+* If Claude disagrees with a Codex design critique, Claude must output its technical justification to the terminal console and let the human operator make the final executive decision.
+
+---
+
+Ok so we should not use P0/P1 and go with what actually happens. And also we should add the claude settings file
+
+---
+
+Ok since this plugin only is in claude agent, lets add a fall back to the previous code review sub agent
+
+---
+
+How can we test this?
+
+---
+
+Ok lets commit the changes and create a pr
+
+---
+
+Before we move on lets get rid of @docs/docs_test.go ... we don't need this
+
+---
+
+yes
+
+---
+
+lets undo this... we should remove the codex as the code review sub agent. Just use the generic code review sub agent
+
+---
+
+So what does docs_test.go do?
+
+---
+
+Lets update docs_test.go to only things that make sense.
+
+---
+
+SO is there anything to commit?
+
+---
+
+yep do it
+
+---
+
+Ok lets confirm and merge when green
