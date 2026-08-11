@@ -76,7 +76,7 @@ Access the application in your browser at `http://localhost:8082`.
 
 ### State Runtime Modes
 
-The four stateful processes select their state backend with
+The five stateful processes select their state backend with
 `PETSPOTR_RUNTIME_MODE`:
 
 | Mode | Required configuration | State backend | Intended use |
@@ -187,8 +187,8 @@ late write from an old Cloud Run revision cannot remain behind the old cursor.
 
 The found-report Cloud Run service temporarily runs exactly one minimum
 instance with CPU available outside requests. This is required for the
-five-second relay and prevents unclaimed multi-instance publication until
-durable claiming lands in issue #116. Issue #122 owns later load/cost tuning. A
+five-second relay and prevents unclaimed multi-instance publication. Issue #122
+owns later load/cost tuning. A
 crash after broker publication but before the completion write can publish the
 record again, which is the expected at-least-once boundary.
 
@@ -205,9 +205,44 @@ the pet matcher to authenticated push delivery. The OpenTofu module retains
 unconsumed `matchFound` events in a backlog subscription until the notification
 consumer is migrated in the next issue #108 slice. Lost-pet publication and
 notification push delivery are not yet managed paths. Multi-instance outbox
-claiming, durable consumer deduplication, provider dispatch records, and
-retry/DLQ redelivery tests remain part of issue #116. GCS uploads remain
-in-memory until issue #109 is completed.
+claiming and the remaining consumer paths stay in issue #116. GCS uploads
+remain in-memory until issue #109 is completed.
+
+### Idempotent owner-notification delivery
+
+The `matchFound` owner-notification path derives one opaque delivery operation
+for each event, recipient, and channel. Current envelopes use their verified
+stable event ID. Legacy raw payloads receive a stable compatibility ID derived
+from their event type and exact payload bytes, so an in-flight message remains
+safe under redelivery.
+
+Each operation is claimed in a Firestore transaction with a one-minute lease
+and monotonically increasing attempt fence. A concurrent handler returns an
+error while the lease is active. An expired or failed operation can be
+reclaimed, but a stale worker cannot complete the newer attempt. Completed
+channels are durable no-ops, so a later channel failure retries only unfinished
+work.
+
+The operation ID is also passed to every channel provider as its idempotency
+key. This closes the crash window where provider delivery succeeds but writing
+the completed operation fails: after the lease expires, the retry uses the same
+provider key. Every production sender must preserve that contract when
+issue #65 replaces the current development senders.
+
+Run the live concurrent-claim and fencing contract against a Firestore emulator
+with:
+
+```bash
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
+  go test ./pkg/store \
+  -run TestFirestoreDeliveryOperationClaimAndFencing
+```
+
+Focused worker tests also cover duplicate envelopes, partial multi-channel
+failure, and provider success followed by completion-store failure. This slice
+does not yet make lost-pet community broadcasts idempotent or migrate the
+notification worker to authenticated Cloud Run push; those remain in
+issues #116 and #108 respectively.
 
 ---
 
