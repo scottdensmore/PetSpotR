@@ -2,7 +2,9 @@ package outbox_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -10,6 +12,38 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
+
+type firstPublishBlockingBroker struct {
+	mu      sync.Mutex
+	calls   int
+	entered chan struct{}
+	release chan struct{}
+	once    sync.Once
+}
+
+func newFirstPublishBlockingBroker() *firstPublishBlockingBroker {
+	return &firstPublishBlockingBroker{entered: make(chan struct{}), release: make(chan struct{})}
+}
+
+func (b *firstPublishBlockingBroker) Publish(context.Context, string, []byte) error {
+	b.mu.Lock()
+	b.calls++
+	call := b.calls
+	b.mu.Unlock()
+	if call == 1 {
+		close(b.entered)
+		<-b.release
+	}
+	return nil
+}
+
+func (b *firstPublishBlockingBroker) Calls() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.calls
+}
+
+func (b *firstPublishBlockingBroker) Release() { b.once.Do(func() { close(b.release) }) }
 
 type failingBroker struct {
 	err error
@@ -25,6 +59,33 @@ func (s *completionFailingStore) SaveState(ctx context.Context, storeName, key s
 		return errors.New("completion write interrupted")
 	}
 	return s.MemoryStore.SaveState(ctx, storeName, key, data)
+}
+
+func (s *completionFailingStore) UpdateState(
+	ctx context.Context,
+	storeName string,
+	key string,
+	update store.StateUpdater,
+) error {
+	if !s.failCompletion || storeName != store.OutboxCollection {
+		return s.MemoryStore.UpdateState(ctx, storeName, key, update)
+	}
+	current, err := s.GetState(ctx, storeName, key)
+	if err != nil {
+		return err
+	}
+	next, err := update(current)
+	if err != nil {
+		return err
+	}
+	var record outbox.Record
+	if err := json.Unmarshal(next, &record); err != nil {
+		return err
+	}
+	if record.Status == outbox.StatusPublished {
+		return errors.New("completion write interrupted")
+	}
+	return s.MemoryStore.SaveState(ctx, storeName, key, next)
 }
 
 func (b *failingBroker) Publish(context.Context, string, []byte) error { return b.err }
@@ -84,7 +145,8 @@ func TestRelayRetainsPendingRecordAcrossPublishFailureAndRecovery(t *testing.T) 
 func TestRelayRecoversWhenProcessCrashesAfterDispatchBeforeCompletion(t *testing.T) {
 	ctx := context.Background()
 	stateStore := &completionFailingStore{MemoryStore: store.NewMemoryStore()}
-	record := outbox.NewRecord("evt-crash", "lostPet", []byte(`{"id":"evt-crash"}`), time.Now().UTC())
+	now := time.Date(2026, time.August, 10, 18, 30, 0, 0, time.UTC)
+	record := outbox.NewRecord("evt-crash", "lostPet", []byte(`{"id":"evt-crash"}`), now)
 	if err := outbox.SaveRecord(ctx, stateStore, record); err != nil {
 		t.Fatal(err)
 	}
@@ -97,8 +159,16 @@ func TestRelayRecoversWhenProcessCrashesAfterDispatchBeforeCompletion(t *testing
 		t.Fatal(err)
 	}
 
+	newRelay := func() *outbox.Relay {
+		return outbox.NewRelay(
+			stateStore,
+			broker,
+			outbox.WithClock(func() time.Time { return now }),
+			outbox.WithPublishLease(time.Second),
+		)
+	}
 	stateStore.failCompletion = true
-	if _, err := outbox.NewRelay(stateStore, broker).PublishRecords(ctx, record.ID); err == nil {
+	if _, err := newRelay().PublishRecords(ctx, record.ID); err == nil {
 		t.Fatal("PublishRecords() error = nil, want completion write failure")
 	}
 	if dispatches != 1 {
@@ -108,12 +178,13 @@ func TestRelayRecoversWhenProcessCrashesAfterDispatchBeforeCompletion(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	if pending.Status != outbox.StatusPending {
+	if pending.Status != outbox.StatusPending || pending.LeaseUntil == nil {
 		t.Fatalf("record after interrupted completion = %#v", pending)
 	}
 
 	stateStore.failCompletion = false
-	if _, err := outbox.NewRelay(stateStore, broker).PublishRecords(ctx, record.ID); err != nil {
+	now = now.Add(2 * time.Second)
+	if _, err := newRelay().PublishRecords(ctx, record.ID); err != nil {
 		t.Fatalf("PublishRecords() after restart error = %v", err)
 	}
 	if dispatches != 2 {
@@ -205,5 +276,37 @@ func TestRelayPublishesBoundedPendingTopicBatch(t *testing.T) {
 	}
 	if lost.Status != outbox.StatusPending {
 		t.Fatalf("unrelated record status = %q, want pending", lost.Status)
+	}
+}
+
+func TestConcurrentRelaysClaimOneOutboxPublication(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	record := outbox.NewRecord("evt-concurrent-relay", "foundPet", []byte(`{"id":"evt-concurrent-relay"}`), time.Now().UTC())
+	if err := outbox.SaveRecord(ctx, stateStore, record); err != nil {
+		t.Fatal(err)
+	}
+	broker := newFirstPublishBlockingBroker()
+	firstResult := make(chan error, 1)
+	go func() {
+		_, err := outbox.NewRelay(stateStore, broker).PublishRecords(ctx, record.ID)
+		firstResult <- err
+	}()
+	<-broker.entered
+	defer broker.Release()
+
+	count, err := outbox.NewRelay(stateStore, broker).PublishRecords(ctx, record.ID)
+	if err != nil {
+		t.Fatalf("second PublishRecords() error = %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("second PublishRecords() count = %d, want 0 while claimed", count)
+	}
+	broker.Release()
+	if err := <-firstResult; err != nil {
+		t.Fatalf("first PublishRecords() error = %v", err)
+	}
+	if broker.Calls() != 1 {
+		t.Fatalf("broker calls = %d, want 1", broker.Calls())
 	}
 }

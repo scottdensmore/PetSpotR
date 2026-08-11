@@ -34,9 +34,14 @@ type StateWrite struct {
 	Data      []byte
 }
 
+// StateUpdater computes the next value from an isolated copy of current state.
+// Managed stores may invoke it more than once when a transaction is retried.
+type StateUpdater func(current []byte) (next []byte, err error)
+
 // StateStore defines key-value state store persistence operations.
 type StateStore interface {
 	SaveState(ctx context.Context, storeName, key string, data []byte) error
+	UpdateState(ctx context.Context, storeName, key string, update StateUpdater) error
 	CreateStateAndOutbox(ctx context.Context, state, outbox StateWrite) (bool, error)
 	GetState(ctx context.Context, storeName, key string) ([]byte, error)
 	DeleteState(ctx context.Context, storeName, key string) error
@@ -119,6 +124,33 @@ func (m *MemoryStore) SaveState(ctx context.Context, storeName, key string, data
 		m.items[storeName] = make(map[string][]byte)
 	}
 	m.items[storeName][key] = bytes.Clone(data)
+	return nil
+}
+
+// UpdateState atomically replaces one existing value using the caller's
+// retry-safe update function.
+func (m *MemoryStore) UpdateState(ctx context.Context, storeName, key string, update StateUpdater) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if update == nil {
+		return errors.New("store: state updater is required")
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	storeMap, exists := m.items[storeName]
+	if !exists {
+		return fmt.Errorf("%w: %s", ErrStoreNotFound, storeName)
+	}
+	current, exists := storeMap[key]
+	if !exists {
+		return fmt.Errorf("%w: %s in store %s", ErrNotFound, key, storeName)
+	}
+	next, err := update(bytes.Clone(current))
+	if err != nil {
+		return err
+	}
+	storeMap[key] = bytes.Clone(next)
 	return nil
 }
 

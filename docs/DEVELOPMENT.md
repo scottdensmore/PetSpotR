@@ -187,10 +187,18 @@ late write from an old Cloud Run revision cannot remain behind the old cursor.
 
 The found-report Cloud Run service temporarily runs exactly one minimum
 instance with CPU available outside requests. This is required for the
-five-second relay and prevents unclaimed multi-instance publication. Issue #122
-owns later load/cost tuning. A
+five-second relay. Issue #122 owns later load/cost tuning. A
 crash after broker publication but before the completion write can publish the
 record again, which is the expected at-least-once boundary.
+
+Before broker I/O, every relay instance transactionally leases the pending
+outbox record for ten minutes and increments its fenced attempt. An active lease
+is a successful no-op for a competing relay. Provider failure releases the
+lease immediately; a process crash leaves it recoverable after expiry. Only the
+winning attempt can persist completion or failure, so a stale process cannot
+overwrite a newer retry. The stable event envelope lets consumers deduplicate
+the unavoidable crash window after broker acceptance but before the completion
+transaction.
 
 Run the live atomic-write contract against a Firestore emulator with:
 
@@ -200,13 +208,21 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
   -run TestFirestoreCreateStateAndOutboxTransaction
 ```
 
+Run the two-client relay claim contract against the same emulator with:
+
+```bash
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
+  go test ./pkg/outbox \
+  -run TestFirestoreConcurrentRelaysClaimOnePublication
+```
+
 This slice wires the durable `foundPet` outbox to managed Pub/Sub and migrates
 the pet matcher to authenticated push delivery. The OpenTofu module retains
 unconsumed `matchFound` events in a backlog subscription until the notification
 consumer is migrated in the next issue #108 slice. Lost-pet publication and
 notification push delivery are not yet managed paths. Multi-instance outbox
-claiming and the remaining consumer paths stay in issue #116. GCS uploads
-remain in-memory until issue #109 is completed.
+claiming is durable; the remaining consumer paths stay in issue #116. GCS
+uploads remain in-memory until issue #109 is completed.
 
 ### Idempotent notification delivery
 
@@ -240,9 +256,8 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
 
 Focused worker tests also cover current and legacy duplicate events, concurrent
 handlers, partial subscriber/channel failure, and provider success followed by
-completion-store failure. Multi-instance outbox claiming remains in issue #116.
-The notification worker is not yet an authenticated Cloud Run push service;
-that remains in issue #108.
+completion-store failure. The notification worker is not yet an authenticated
+Cloud Run push service; that remains in issue #108.
 
 ---
 
