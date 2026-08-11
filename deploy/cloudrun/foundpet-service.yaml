@@ -12,8 +12,12 @@ spec:
         autoscaling.knative.dev/minScale: "1"
         autoscaling.knative.dev/maxScale: "1"
     spec:
+      serviceAccountName: foundpet-runtime@petspotr.iam.gserviceaccount.com
       containers:
         - image: gcr.io/petspotr/foundpet-service:latest
+          env:
+            - name: PETSPOTR_IMAGE_BUCKET
+              value: petspotr-pet-images
           ports:
             - containerPort: 8081
           resources:

@@ -49,6 +49,19 @@ func main() {
 			log.Printf("Failed to close messaging runtime: %v", err)
 		}
 	}()
+	storageConfig, err := runtimeconfig.LoadStorageConfigFromEnv()
+	if err != nil {
+		log.Fatalf("Invalid storage configuration: %v", err)
+	}
+	storageRuntime, err := runtimeconfig.NewStorageRuntime(ctx, storageConfig)
+	if err != nil {
+		log.Fatalf("Failed to initialize storage runtime: %v", err)
+	}
+	defer func() {
+		if err := storageRuntime.Close(); err != nil {
+			log.Printf("Failed to close storage runtime: %v", err)
+		}
+	}()
 	pushConfig, err := runtimeconfig.LoadPushConsumerConfigFromEnv()
 	if err != nil {
 		log.Fatalf("Invalid push consumer configuration: %v", err)
@@ -59,7 +72,7 @@ func main() {
 	if !ok {
 		log.Fatal("State runtime does not support durable matcher operations")
 	}
-	worker := NewWorker(matcherStateStore, messagingRuntime.Publisher, oc)
+	worker := NewWorkerWithImageStore(matcherStateStore, messagingRuntime.Publisher, oc, storageRuntime.Images)
 
 	var authorizer pubsub.PushAuthorizer
 	if pushConfig.Mode == runtimeconfig.ModeGCP {

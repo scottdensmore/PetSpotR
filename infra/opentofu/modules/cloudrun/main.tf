@@ -8,6 +8,12 @@ resource "google_service_account" "foundpet_runtime" {
   display_name = "Found-pet Cloud Run runtime"
 }
 
+resource "google_service_account_iam_member" "foundpet_runtime_signer" {
+  service_account_id = google_service_account.foundpet_runtime.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${google_service_account.foundpet_runtime.email}"
+}
+
 resource "google_project_iam_member" "lostpet_datastore" {
   project = var.project_id
   role    = "roles/datastore.user"
@@ -90,6 +96,11 @@ resource "google_cloud_run_v2_service" "foundpet_service" {
     containers {
       image = var.foundpet_image
 
+      env {
+        name  = "PETSPOTR_IMAGE_BUCKET"
+        value = var.image_bucket_name
+      }
+
       resources {
         cpu_idle = false
       }
@@ -108,6 +119,11 @@ resource "google_cloud_run_v2_service" "pet_matcher" {
 
     containers {
       image = var.pet_matcher_image
+
+      env {
+        name  = "PETSPOTR_IMAGE_BUCKET"
+        value = var.image_bucket_name
+      }
 
       env {
         name  = "PUBSUB_PUSH_SUBSCRIPTION"
@@ -158,6 +174,7 @@ variable "lostpet_image" { type = string }
 variable "foundpet_image" { type = string }
 variable "pet_matcher_image" { type = string }
 variable "notification_service_image" { type = string }
+variable "image_bucket_name" { type = string }
 
 output "web_frontend_url" {
   value = google_cloud_run_v2_service.web_frontend.uri

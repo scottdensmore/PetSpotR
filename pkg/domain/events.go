@@ -43,10 +43,11 @@ func (e *LostPetEvent) FromJSON(data []byte) error {
 
 // FoundPetEvent represents a report of a found pet.
 type FoundPetEvent struct {
-	PetID    string    `json:"petId"`
-	ImageURL string    `json:"imageUrl"`
-	FoundAt  time.Time `json:"foundAt"`
-	Location string    `json:"location"`
+	PetID       string    `json:"petId"`
+	ImageURL    string    `json:"imageUrl,omitempty"`
+	ImageObject string    `json:"imageObject,omitempty"`
+	FoundAt     time.Time `json:"foundAt"`
+	Location    string    `json:"location"`
 }
 
 // Validate checks that mandatory fields on FoundPetEvent are non-empty.
@@ -54,8 +55,8 @@ func (e *FoundPetEvent) Validate() error {
 	if strings.TrimSpace(e.PetID) == "" {
 		return errors.New("domain: petId is required")
 	}
-	if strings.TrimSpace(e.ImageURL) == "" {
-		return errors.New("domain: imageUrl is required")
+	if strings.TrimSpace(e.ImageURL) == "" && strings.TrimSpace(e.ImageObject) == "" {
+		return errors.New("domain: imageUrl or imageObject is required")
 	}
 	return nil
 }

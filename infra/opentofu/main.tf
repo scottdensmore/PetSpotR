@@ -13,10 +13,24 @@ provider "google" {
   region  = var.region
 }
 
+resource "google_project_service" "storage" {
+  project            = var.project_id
+  service            = "storage.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "iam_credentials" {
+  project            = var.project_id
+  service            = "iamcredentials.googleapis.com"
+  disable_on_destroy = false
+}
+
 module "storage" {
-  source     = "./modules/storage"
-  project_id = var.project_id
-  region     = var.region
+  source          = "./modules/storage"
+  project_id      = var.project_id
+  region          = var.region
+  allowed_origins = var.image_cors_allowed_origins
+  depends_on      = [google_project_service.storage]
 }
 
 module "firestore" {
@@ -33,6 +47,8 @@ module "cloudrun" {
   foundpet_image             = var.foundpet_image
   pet_matcher_image          = var.pet_matcher_image
   notification_service_image = var.notification_service_image
+  image_bucket_name          = module.storage.bucket_name
+  depends_on                 = [google_project_service.iam_credentials]
 }
 
 module "pubsub" {
@@ -46,4 +62,16 @@ module "pubsub" {
   lostpet_runtime_service_account     = module.cloudrun.lostpet_runtime_service_account
   foundpet_runtime_service_account    = module.cloudrun.foundpet_runtime_service_account
   pet_matcher_runtime_service_account = module.cloudrun.pet_matcher_runtime_service_account
+}
+
+resource "google_storage_bucket_iam_member" "foundpet_objects" {
+  bucket = module.storage.bucket_name
+  role   = "roles/storage.objectUser"
+  member = "serviceAccount:${module.cloudrun.foundpet_runtime_service_account}"
+}
+
+resource "google_storage_bucket_iam_member" "pet_matcher_reader" {
+  bucket = module.storage.bucket_name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${module.cloudrun.pet_matcher_runtime_service_account}"
 }

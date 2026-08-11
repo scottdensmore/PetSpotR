@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/delivery"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
@@ -42,10 +44,16 @@ type Worker struct {
 	relay        *outbox.Relay
 	now          func() time.Time
 	lease        time.Duration
+	images       blob.ImageStore
 }
 
 // NewWorker constructs a Worker instance.
 func NewWorker(st matcherStore, br pubsub.Publisher, oc *ollama.Client) *Worker {
+	return NewWorkerWithImageStore(st, br, oc, nil)
+}
+
+// NewWorkerWithImageStore constructs a worker that can read private finalized images.
+func NewWorkerWithImageStore(st matcherStore, br pubsub.Publisher, oc *ollama.Client, images blob.ImageStore) *Worker {
 	model := os.Getenv("OLLAMA_MODEL")
 	if model == "" {
 		model = "gemma4:e2b"
@@ -58,6 +66,7 @@ func NewWorker(st matcherStore, br pubsub.Publisher, oc *ollama.Client) *Worker 
 		relay:        outbox.NewRelay(st, br),
 		now:          time.Now,
 		lease:        defaultMatcherLease,
+		images:       images,
 	}
 }
 
@@ -147,10 +156,21 @@ func (w *Worker) processClaimedFoundPet(
 
 	// 1. Analyze found pet image with Ollama + Gemma 4
 	prompt := scoring.BuildGemmaPrompt("Pet", "")
+	imageInput := foundEvt.ImageURL
+	if foundEvt.ImageObject != "" {
+		if w.images == nil {
+			return errors.New("pet-matcher: private image store is not configured")
+		}
+		imageBytes, err := w.images.ReadFinalizedImage(ctx, foundEvt.ImageObject)
+		if err != nil {
+			return fmt.Errorf("pet-matcher: read private found-pet image: %w", err)
+		}
+		imageInput = base64.StdEncoding.EncodeToString(imageBytes)
+	}
 	genReq := &ollama.GenerateRequest{
 		Model:  w.modelName,
 		Prompt: prompt,
-		Images: []string{foundEvt.ImageURL},
+		Images: []string{imageInput},
 	}
 
 	genResp, err := w.ollamaClient.Generate(ctx, genReq)

@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/outbox"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
 	"github.com/scottdensmore/petspotr/pkg/store"
@@ -51,12 +50,45 @@ func main() {
 			log.Printf("Failed to close messaging runtime: %v", err)
 		}
 	}()
+	storageConfig, err := runtimeconfig.LoadStorageConfigFromEnv()
+	if err != nil {
+		log.Fatalf("Invalid storage configuration: %v", err)
+	}
+	if storageConfig.Mode == runtimeconfig.ModeMemory && storageConfig.MemoryBaseURL == "" {
+		storageConfig.MemoryBaseURL = "http://localhost:" + port + "/images"
+	}
+	storageRuntime, err := runtimeconfig.NewStorageRuntime(ctx, storageConfig)
+	if err != nil {
+		log.Fatalf("Failed to initialize storage runtime: %v", err)
+	}
+	defer func() {
+		if err := storageRuntime.Close(); err != nil {
+			log.Printf("Failed to close storage runtime: %v", err)
+		}
+	}()
 
-	bs := blob.NewMemoryBlobStore("http://localhost:" + port + "/images")
-	svc := NewService(stateRuntime.Store, messagingRuntime.Publisher, bs)
+	svc := NewServiceWithOptions(
+		stateRuntime.Store,
+		messagingRuntime.Publisher,
+		storageRuntime.Images,
+		ServiceOptions{RequireFinalizedImage: storageConfig.Mode != runtimeconfig.ModeMemory},
+	)
 	nextBackfillAt := time.Time{}
+	nextImageCleanupAt := time.Time{}
 	recoverOutbox := func() {
 		now := time.Now().UTC()
+		if !now.Before(nextImageCleanupAt) {
+			deleted, err := svc.CleanupOrphanedImages(ctx, now)
+			if err != nil && ctx.Err() == nil {
+				log.Printf("FoundPet finalized-image cleanup deferred: %v", err)
+				nextImageCleanupAt = now.Add(5 * time.Minute)
+			} else {
+				nextImageCleanupAt = now.Add(time.Hour)
+			}
+			if deleted > 0 {
+				log.Printf("FoundPet finalized-image cleanup removed %d orphaned objects", deleted)
+			}
+		}
 		if backfiller, ok := stateRuntime.Store.(store.OutboxIndexBackfiller); ok && !now.Before(nextBackfillAt) {
 			migrated, complete, err := backfiller.BackfillOutboxIndexes(ctx, outbox.MaxPublishBatch)
 			if err != nil && ctx.Err() == nil {
@@ -88,6 +120,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/foundPet", svc.HandleFoundPet)
+	mux.HandleFunc("/foundPet/uploads", svc.HandleBeginImageUpload)
 	httpServer := &http.Server{
 		Addr:              ":" + port,
 		Handler:           mux,
