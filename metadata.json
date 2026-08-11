@@ -1,0 +1,50 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01KZS5SMB3XG06AQB06HFMWJB6",
+  "strategy": "manual-commit",
+  "branch": "feat/secure-foundpet-upload",
+  "checkpoints_count": 6,
+  "files_touched": [
+    "cmd/foundpet-service/main.go",
+    "cmd/foundpet-service/service.go",
+    "cmd/foundpet-service/service_test.go",
+    "cmd/pet-matcher/main.go",
+    "cmd/pet-matcher/worker.go",
+    "cmd/pet-matcher/worker_test.go",
+    "cmd/web-frontend/server.go",
+    "cmd/web-frontend/server_test.go",
+    "deploy/cloudrun/foundpet-service.yaml",
+    "deploy/cloudrun/pet-matcher.yaml",
+    "docs/DEVELOPMENT.md",
+    "go.mod",
+    "infra/opentofu/main.tf",
+    "infra/opentofu/modules/cloudrun/main.tf",
+    "infra/opentofu/modules/storage/main.tf",
+    "infra/opentofu/variables.tf",
+    "pkg/blob/blob.go",
+    "pkg/blob/blob_test.go",
+    "pkg/blob/gcs.go",
+    "pkg/blob/gcs_integration_test.go",
+    "pkg/blob/gcs_test.go",
+    "pkg/domain/events.go",
+    "pkg/domain/events_test.go",
+    "pkg/runtimeconfig/storage.go",
+    "pkg/runtimeconfig/storage_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1100829,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 42576384,
+    "output_tokens": 126645,
+    "api_call_count": 336
+  }
+}

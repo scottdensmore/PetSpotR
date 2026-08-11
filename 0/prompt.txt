@@ -1,0 +1,29 @@
+Ok finish 108
+
+---
+
+Why did the hook time out
+
+---
+
+Are doing these changes supported methods so we don't break things later?
+
+---
+
+Ok lets try 1password again
+
+---
+
+try that harmless test
+
+---
+
+Ok I reattached
+
+---
+
+Ok well lets just move on
+
+---
+
+Ok lets do 109
