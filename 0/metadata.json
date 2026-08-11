@@ -1,0 +1,45 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01KZQHA1RQER472Z8AV4NWCREK",
+  "session_id": "019fecdb-8602-7b43-932d-748498b06439",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-11T04:29:51.436635026Z",
+  "branch": "feat/claim-outbox-publications",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "pkg/outbox/firestore_integration_test.go",
+    "pkg/outbox/relay.go",
+    "pkg/outbox/relay_test.go",
+    "pkg/store/firestore.go",
+    "pkg/store/store.go",
+    "pkg/store/store_test.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "80b8d654d4d9",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 316844,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 20927744,
+    "output_tokens": 65905,
+    "api_call_count": 802
+  },
+  "session_metrics": {
+    "turn_count": 9
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-11T04:29:49.286407566Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 443,
+    "human_modified": 43,
+    "human_removed": 0,
+    "total_committed": 443,
+    "total_lines_changed": 486,
+    "agent_percentage": 0,
+    "metric_version": 2
+  }
+}
