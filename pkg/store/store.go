@@ -9,6 +9,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/scottdensmore/petspotr/pkg/delivery"
 )
 
 type outboxIndexRecord struct {
@@ -40,6 +42,15 @@ type StateStore interface {
 	DeleteState(ctx context.Context, storeName, key string) error
 	ListState(ctx context.Context, storeName string) (map[string][]byte, error)
 	ListPendingOutbox(ctx context.Context, topic string, limit int) ([]string, error)
+}
+
+// DeliveryOperationStore provides transactional leases and fenced results for
+// side effects performed by at-least-once event consumers.
+type DeliveryOperationStore interface {
+	ClaimDeliveryOperation(ctx context.Context, operation delivery.Operation, now time.Time, leaseDuration time.Duration) (delivery.Claim, error)
+	CompleteDeliveryOperation(ctx context.Context, id string, attempt int, completedAt time.Time) error
+	FailDeliveryOperation(ctx context.Context, id string, attempt int, failedAt time.Time, failure string) error
+	GetDeliveryOperation(ctx context.Context, id string) (delivery.Operation, error)
 }
 
 // OutboxIndexBackfiller upgrades legacy Firestore outbox documents in bounded

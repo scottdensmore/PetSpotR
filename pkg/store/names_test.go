@@ -21,4 +21,7 @@ func TestCanonicalCollectionNames(t *testing.T) {
 	if store.PushSubscriptionsCollection != "pushSubscriptions" {
 		t.Fatalf("PushSubscriptionsCollection = %q, want pushSubscriptions", store.PushSubscriptionsCollection)
 	}
+	if store.NotificationDeliveriesCollection != "notificationDeliveries" {
+		t.Fatalf("NotificationDeliveriesCollection = %q, want notificationDeliveries", store.NotificationDeliveriesCollection)
+	}
 }

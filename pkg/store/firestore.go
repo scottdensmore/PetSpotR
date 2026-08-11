@@ -18,6 +18,8 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/scottdensmore/petspotr/pkg/delivery"
 )
 
 // DetectFirestoreProjectID asks the Firestore client to obtain the project ID
@@ -105,6 +107,191 @@ func (s *FirestoreStore) SaveState(ctx context.Context, storeName, key string, d
 		return fmt.Errorf("store: save %s/%s: %w", storeName, key, err)
 	}
 	return nil
+}
+
+// ClaimDeliveryOperation transactionally creates, reclaims, or observes one
+// provider-delivery lease. Firestore transaction retries preserve one winner.
+func (s *FirestoreStore) ClaimDeliveryOperation(
+	ctx context.Context,
+	operation delivery.Operation,
+	now time.Time,
+	leaseDuration time.Duration,
+) (delivery.Claim, error) {
+	if err := validateDeliveryClaim(operation, now, leaseDuration); err != nil {
+		return delivery.Claim{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		return delivery.Claim{}, err
+	}
+	doc, err := s.document(NotificationDeliveriesCollection, operation.ID)
+	if err != nil {
+		return delivery.Claim{}, err
+	}
+
+	var claim delivery.Claim
+	err = s.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		claim = delivery.Claim{}
+		stored := operation
+		snapshot, getErr := tx.Get(doc)
+		if getErr == nil {
+			stored, getErr = deliveryOperationFromSnapshot(snapshot, operation.ID)
+			if getErr != nil {
+				return getErr
+			}
+			if !sameDeliveryIdentity(stored, operation) {
+				return fmt.Errorf("%w: delivery operation %s", ErrConflict, operation.ID)
+			}
+			if stored.Status == delivery.StatusCompleted {
+				claim = delivery.Claim{State: delivery.ClaimCompleted, Attempt: stored.Attempt}
+				return nil
+			}
+			if stored.Status == delivery.StatusProcessing && stored.LeaseUntil != nil && stored.LeaseUntil.After(now) {
+				claim = delivery.Claim{State: delivery.ClaimInProgress, Attempt: stored.Attempt}
+				return nil
+			}
+		} else if status.Code(getErr) != codes.NotFound {
+			return getErr
+		}
+
+		claimOperation(&stored, now, leaseDuration)
+		record, recordErr := firestoreDeliveryRecord(stored)
+		if recordErr != nil {
+			return recordErr
+		}
+		if err := tx.Set(doc, record); err != nil {
+			return err
+		}
+		claim = delivery.Claim{State: delivery.ClaimAcquired, Attempt: stored.Attempt}
+		return nil
+	})
+	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return delivery.Claim{}, ctxErr
+		}
+		return delivery.Claim{}, fmt.Errorf("store: claim delivery operation %s: %w", operation.ID, err)
+	}
+	return claim, nil
+}
+
+// CompleteDeliveryOperation records provider success for the fenced attempt.
+func (s *FirestoreStore) CompleteDeliveryOperation(ctx context.Context, id string, attempt int, completedAt time.Time) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if strings.TrimSpace(id) == "" || attempt < 1 || completedAt.IsZero() {
+		return errors.New("store: delivery ID, positive attempt, and completion time are required")
+	}
+	return s.updateDeliveryOperation(ctx, id, func(operation *delivery.Operation) error {
+		if operation.Status == delivery.StatusCompleted {
+			return nil
+		}
+		if operation.Status != delivery.StatusProcessing || operation.Attempt != attempt {
+			return fmt.Errorf("%w: delivery operation %s attempt %d", ErrConflict, id, attempt)
+		}
+		completeOperation(operation, completedAt)
+		return nil
+	})
+}
+
+// FailDeliveryOperation records provider failure and releases the fenced lease.
+func (s *FirestoreStore) FailDeliveryOperation(ctx context.Context, id string, attempt int, failedAt time.Time, failure string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if strings.TrimSpace(id) == "" || attempt < 1 || failedAt.IsZero() || strings.TrimSpace(failure) == "" {
+		return errors.New("store: delivery ID, positive attempt, failure time, and failure are required")
+	}
+	return s.updateDeliveryOperation(ctx, id, func(operation *delivery.Operation) error {
+		if operation.Status == delivery.StatusCompleted {
+			return nil
+		}
+		if operation.Status != delivery.StatusProcessing || operation.Attempt != attempt {
+			return fmt.Errorf("%w: delivery operation %s attempt %d", ErrConflict, id, attempt)
+		}
+		failOperation(operation, failedAt, failure)
+		return nil
+	})
+}
+
+// GetDeliveryOperation returns one durable provider-delivery result.
+func (s *FirestoreStore) GetDeliveryOperation(ctx context.Context, id string) (delivery.Operation, error) {
+	data, err := s.GetState(ctx, NotificationDeliveriesCollection, id)
+	if err != nil {
+		return delivery.Operation{}, err
+	}
+	operation, err := delivery.UnmarshalOperation(data)
+	if err != nil {
+		return delivery.Operation{}, fmt.Errorf("store: decode delivery operation %s: %w", id, err)
+	}
+	if operation.ID != id {
+		return delivery.Operation{}, fmt.Errorf("store: delivery operation ID %q does not match key %q", operation.ID, id)
+	}
+	return operation, nil
+}
+
+func (s *FirestoreStore) updateDeliveryOperation(
+	ctx context.Context,
+	id string,
+	update func(*delivery.Operation) error,
+) error {
+	doc, err := s.document(NotificationDeliveriesCollection, id)
+	if err != nil {
+		return err
+	}
+	err = s.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		snapshot, err := tx.Get(doc)
+		if status.Code(err) == codes.NotFound {
+			return fmt.Errorf("%w: %s in store %s", ErrNotFound, id, NotificationDeliveriesCollection)
+		}
+		if err != nil {
+			return err
+		}
+		operation, err := deliveryOperationFromSnapshot(snapshot, id)
+		if err != nil {
+			return err
+		}
+		if err := update(&operation); err != nil {
+			return err
+		}
+		record, err := firestoreDeliveryRecord(operation)
+		if err != nil {
+			return err
+		}
+		return tx.Set(doc, record)
+	})
+	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
+		return fmt.Errorf("store: update delivery operation %s: %w", id, err)
+	}
+	return nil
+}
+
+func deliveryOperationFromSnapshot(snapshot *firestore.DocumentSnapshot, id string) (delivery.Operation, error) {
+	var record firestoreRecord
+	if err := snapshot.DataTo(&record); err != nil {
+		return delivery.Operation{}, err
+	}
+	if record.Key != id {
+		return delivery.Operation{}, fmt.Errorf("store: delivery operation key %q does not match %q", record.Key, id)
+	}
+	operation, err := delivery.UnmarshalOperation(record.Data)
+	if err != nil {
+		return delivery.Operation{}, err
+	}
+	if operation.ID != id {
+		return delivery.Operation{}, fmt.Errorf("store: delivery operation ID %q does not match key %q", operation.ID, id)
+	}
+	return operation, nil
+}
+
+func firestoreDeliveryRecord(operation delivery.Operation) (firestoreRecord, error) {
+	data, err := delivery.MarshalOperation(operation)
+	if err != nil {
+		return firestoreRecord{}, err
+	}
+	return newFirestoreRecord(NotificationDeliveriesCollection, operation.ID, data)
 }
 
 // CreateStateAndOutbox creates aggregate state and an outbox record in one

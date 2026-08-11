@@ -68,4 +68,25 @@ func TestMultiChannelDispatcher(t *testing.T) {
 			t.Errorf("expected default Email channel dispatch, got %v", results)
 		}
 	})
+
+	t.Run("provider retry with the same idempotency key has one side effect", func(t *testing.T) {
+		emailSender.Reset()
+		msg := &NotificationMessage{
+			RecipientID:    "user-idempotent",
+			Email:          "owner@example.com",
+			Subject:        "Match Found",
+			Body:           "Pet match found",
+			Channels:       []Channel{ChannelEmail},
+			IdempotencyKey: "delivery-stable-key",
+		}
+		for range 2 {
+			results, err := dispatcher.Dispatch(context.Background(), msg)
+			if err != nil || len(results) != 1 || !results[0].Success {
+				t.Fatalf("Dispatch(idempotent retry) = %#v, %v", results, err)
+			}
+		}
+		if len(emailSender.SentMessages) != 1 {
+			t.Fatalf("provider side effects = %d, want 1", len(emailSender.SentMessages))
+		}
+	})
 }

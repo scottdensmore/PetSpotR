@@ -2,42 +2,64 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/scottdensmore/petspotr/pkg/delivery"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
+	"github.com/scottdensmore/petspotr/pkg/store"
 )
+
+const defaultDeliveryLease = time.Minute
 
 // Worker subscribes to matchFound and lostPet events, dispatching multi-channel owner and community broadcast alerts.
 type Worker struct {
-	broker     pubsub.Broker
-	dispatcher *MultiChannelDispatcher
-	geoEngine  *GeoBroadcastEngine
+	broker        pubsub.Broker
+	deliveryStore store.DeliveryOperationStore
+	dispatcher    *MultiChannelDispatcher
+	geoEngine     *GeoBroadcastEngine
+	now           func() time.Time
+	deliveryLease time.Duration
 }
 
 // NewWorker constructs a Worker instance with default multi-channel senders and geo broadcast engine.
 func NewWorker(br pubsub.Broker) *Worker {
+	return NewWorkerWithStore(store.NewMemoryStore(), br)
+}
+
+// NewWorkerWithStore constructs a Worker with durable delivery operations.
+func NewWorkerWithStore(stateStore store.DeliveryOperationStore, br pubsub.Broker) *Worker {
 	dispatcher := NewMultiChannelDispatcher(
 		NewMockEmailSender(),
 		NewMockSMSSender(),
 		NewMockWebPushSender(),
 	)
-	geoEngine := NewGeoBroadcastEngine(DefaultSubscribers(), dispatcher)
-	return &Worker{
-		broker:     br,
-		dispatcher: dispatcher,
-		geoEngine:  geoEngine,
-	}
+	return NewWorkerWithStoreAndDispatcher(stateStore, br, dispatcher)
 }
 
 // NewWorkerWithDispatcher constructs a Worker with a custom MultiChannelDispatcher.
 func NewWorkerWithDispatcher(br pubsub.Broker, dispatcher *MultiChannelDispatcher) *Worker {
+	return NewWorkerWithStoreAndDispatcher(store.NewMemoryStore(), br, dispatcher)
+}
+
+// NewWorkerWithStoreAndDispatcher constructs a Worker with custom durable
+// state and provider dispatch dependencies.
+func NewWorkerWithStoreAndDispatcher(
+	stateStore store.DeliveryOperationStore,
+	br pubsub.Broker,
+	dispatcher *MultiChannelDispatcher,
+) *Worker {
 	geoEngine := NewGeoBroadcastEngine(DefaultSubscribers(), dispatcher)
 	return &Worker{
-		broker:     br,
-		dispatcher: dispatcher,
-		geoEngine:  geoEngine,
+		broker:        br,
+		deliveryStore: stateStore,
+		dispatcher:    dispatcher,
+		geoEngine:     geoEngine,
+		now:           time.Now,
+		deliveryLease: defaultDeliveryLease,
 	}
 }
 
@@ -67,7 +89,8 @@ func (w *Worker) ProcessMatchFound(ctx context.Context, matchResultData []byte) 
 	}
 
 	var res domain.MatchResult
-	if _, err := domain.DecodeEventPayload(matchResultData, domain.EventTypeMatchFound, &res); err != nil {
+	envelope, err := domain.DecodeEventPayload(matchResultData, domain.EventTypeMatchFound, &res)
+	if err != nil {
 		return nil, fmt.Errorf("notification-service: failed to unmarshal MatchResult: %w", err)
 	}
 
@@ -92,27 +115,89 @@ func (w *Worker) ProcessMatchFound(ctx context.Context, matchResultData []byte) 
 	log.Printf("[Notification Service] DISPATCHING NOTIFICATION to %s: %s (Score: %.2f)",
 		notif.ToEmail, notif.Subject, notif.MatchScore)
 
-	// Multi-Channel Dispatch Execution
-	if w.dispatcher != nil {
-		msg := &NotificationMessage{
-			RecipientID: res.MatchedPetID,
-			Email:       notif.ToEmail,
-			Phone:       "+12065550199",
-			PushToken:   "push-token-default",
-			Subject:     notif.Subject,
-			Body:        notif.Body,
-			Channels:    []Channel{ChannelEmail, ChannelSMS, ChannelPush},
-		}
-
-		results, err := w.dispatcher.Dispatch(ctx, msg)
-		if err != nil {
-			log.Printf("[Notification Service] Dispatch error: %v", err)
-		} else {
-			log.Printf("[Notification Service] Dispatched across %d channels successfully", len(results))
-		}
+	if w.dispatcher == nil || w.deliveryStore == nil {
+		return nil, errors.New("notification-service: delivery dependencies are not configured")
+	}
+	envelopeID := ""
+	if envelope != nil {
+		envelopeID = envelope.ID
+	}
+	eventID, err := delivery.ResolveEventID(envelopeID, domain.EventTypeMatchFound, matchResultData)
+	if err != nil {
+		return nil, fmt.Errorf("notification-service: resolve matchFound identity: %w", err)
+	}
+	msg := &NotificationMessage{
+		RecipientID: res.MatchedPetID,
+		Email:       notif.ToEmail,
+		Phone:       "+12065550199",
+		PushToken:   "push-token-default",
+		Subject:     notif.Subject,
+		Body:        notif.Body,
+		Channels:    []Channel{ChannelEmail, ChannelSMS, ChannelPush},
+	}
+	if err := w.dispatchOwnerNotification(ctx, eventID, msg); err != nil {
+		return nil, err
 	}
 
 	return notif, nil
+}
+
+func (w *Worker) dispatchOwnerNotification(ctx context.Context, eventID string, message *NotificationMessage) error {
+	for _, channel := range message.Channels {
+		now := w.now().UTC()
+		operation, err := delivery.NewOperation(eventID, message.RecipientID, string(channel), now)
+		if err != nil {
+			return fmt.Errorf("notification-service: create %s delivery operation: %w", channel, err)
+		}
+		claim, err := w.deliveryStore.ClaimDeliveryOperation(ctx, operation, now, w.deliveryLease)
+		if err != nil {
+			return fmt.Errorf("notification-service: claim %s delivery: %w", channel, err)
+		}
+		switch claim.State {
+		case delivery.ClaimCompleted:
+			continue
+		case delivery.ClaimInProgress:
+			return fmt.Errorf("notification-service: %s delivery: %w", channel, delivery.ErrOperationInProgress)
+		case delivery.ClaimAcquired:
+		default:
+			return fmt.Errorf("notification-service: unexpected %s delivery claim %q", channel, claim.State)
+		}
+
+		channelMessage := *message
+		channelMessage.Channels = []Channel{channel}
+		channelMessage.IdempotencyKey = operation.IdempotencyKey
+		results, dispatchErr := w.dispatcher.Dispatch(ctx, &channelMessage)
+		if dispatchErr == nil {
+			if len(results) != 1 || results[0].Channel != channel || !results[0].Success {
+				if len(results) == 1 && results[0].Error != "" {
+					dispatchErr = errors.New(results[0].Error)
+				} else {
+					dispatchErr = fmt.Errorf("unexpected dispatch result %#v", results)
+				}
+			}
+		}
+		if dispatchErr != nil {
+			failureAt := w.now().UTC()
+			persistErr := w.deliveryStore.FailDeliveryOperation(
+				ctx,
+				operation.ID,
+				claim.Attempt,
+				failureAt,
+				dispatchErr.Error(),
+			)
+			return fmt.Errorf("notification-service: dispatch %s delivery: %w", channel, errors.Join(dispatchErr, persistErr))
+		}
+		if err := w.deliveryStore.CompleteDeliveryOperation(
+			ctx,
+			operation.ID,
+			claim.Attempt,
+			w.now().UTC(),
+		); err != nil {
+			return fmt.Errorf("notification-service: complete %s delivery: %w", channel, err)
+		}
+	}
+	log.Printf("[Notification Service] Dispatched %d owner-notification channels successfully", len(message.Channels))
+	return nil
 }
 
 // ProcessLostPetBroadcast processes a lostPet event payload and dispatches radius-based community broadcast alerts.
