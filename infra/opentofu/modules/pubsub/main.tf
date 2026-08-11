@@ -26,6 +26,16 @@ resource "google_pubsub_topic" "match_found_dead_letter" {
   name = "matchFound-dead-letter"
 }
 
+resource "google_pubsub_topic" "lost_pet_dead_letter" {
+  name = "lostPet-dead-letter"
+}
+
+resource "google_pubsub_topic_iam_member" "lost_pet_publisher" {
+  topic  = google_pubsub_topic.lost_pet.name
+  role   = "roles/pubsub.publisher"
+  member = "serviceAccount:${var.lostpet_runtime_service_account}"
+}
+
 resource "google_pubsub_topic_iam_member" "found_pet_publisher" {
   topic  = google_pubsub_topic.found_pet.name
   role   = "roles/pubsub.publisher"
@@ -194,12 +204,72 @@ resource "google_pubsub_subscription" "match_found_dead_letter_retention" {
   }
 }
 
+resource "google_pubsub_subscription" "lost_pet_notification" {
+  name  = "lost-pet-notification"
+  topic = google_pubsub_topic.lost_pet.id
+
+  ack_deadline_seconds       = 60
+  message_retention_duration = "2678400s"
+
+  expiration_policy {
+    ttl = ""
+  }
+
+  retry_policy {
+    minimum_backoff = "10s"
+    maximum_backoff = "600s"
+  }
+
+  dead_letter_policy {
+    dead_letter_topic     = google_pubsub_topic.lost_pet_dead_letter.id
+    max_delivery_attempts = 10
+  }
+
+  push_config {
+    push_endpoint = "${trimsuffix(var.notification_service_url, "/")}/pubsub/lost-pet"
+
+    oidc_token {
+      service_account_email = google_service_account.notification_invoker.email
+      audience              = var.notification_service_url
+    }
+  }
+
+  depends_on = [
+    google_cloud_run_v2_service_iam_member.notification_invoker,
+    google_pubsub_topic_iam_member.lost_pet_dead_letter_publisher,
+    google_service_account_iam_member.pubsub_notification_token_creator,
+  ]
+}
+
+resource "google_pubsub_topic_iam_member" "lost_pet_dead_letter_publisher" {
+  topic  = google_pubsub_topic.lost_pet_dead_letter.name
+  role   = "roles/pubsub.publisher"
+  member = "serviceAccount:${local.pubsub_service_agent}"
+}
+
+resource "google_pubsub_subscription_iam_member" "lost_pet_subscriber" {
+  subscription = google_pubsub_subscription.lost_pet_notification.name
+  role         = "roles/pubsub.subscriber"
+  member       = "serviceAccount:${local.pubsub_service_agent}"
+}
+
+resource "google_pubsub_subscription" "lost_pet_dead_letter_retention" {
+  name                       = "lost-pet-dead-letter-retention"
+  topic                      = google_pubsub_topic.lost_pet_dead_letter.id
+  message_retention_duration = "2678400s"
+
+  expiration_policy {
+    ttl = ""
+  }
+}
+
 variable "project_id" { type = string }
 variable "region" { type = string }
 variable "pet_matcher_name" { type = string }
 variable "pet_matcher_url" { type = string }
 variable "notification_service_name" { type = string }
 variable "notification_service_url" { type = string }
+variable "lostpet_runtime_service_account" { type = string }
 variable "foundpet_runtime_service_account" { type = string }
 variable "pet_matcher_runtime_service_account" { type = string }
 

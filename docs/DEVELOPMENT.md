@@ -104,8 +104,13 @@ For example, after starting a Firestore emulator on port 8085:
 export PETSPOTR_RUNTIME_MODE=local-emulator
 export GOOGLE_CLOUD_PROJECT=petspotr-local
 export FIRESTORE_EMULATOR_HOST=127.0.0.1:8085
+export PUBSUB_EMULATOR_HOST=127.0.0.1:8086
 go run ./cmd/lostpet-service
 ```
+
+The lost- and found-report binaries initialize both managed adapters, so their
+`local-emulator` processes require both emulator endpoints. State-package tests
+that instantiate only `StateRuntime` still require Firestore alone.
 
 Run the cross-client persistence contract against that emulator with:
 
@@ -121,20 +126,25 @@ verifies retention:
 
 ```bash
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
+PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
   go test ./e2e \
   -run TestFirestoreStateCrossesServiceProcessesAndSurvivesRestart
 ```
 
 ### Messaging Runtime and Pub/Sub Push
 
-The found-report publisher, pet matcher, and notification service use the same
-runtime-mode selection as state:
+The lost- and found-report publishers, pet matcher, and notification service
+use the same runtime-mode selection as state:
 
 | Mode | Required configuration | Messaging backend |
 | --- | --- | --- |
 | `memory` | Consumer: `PUBSUB_PUSH_SUBSCRIPTION`, `PUBSUB_PUSH_DEV_TOKEN` | Process-local test broker and static push authentication |
 | `local-emulator` | `GOOGLE_CLOUD_PROJECT`, `PUBSUB_EMULATOR_HOST`; consumer push variables above | Google Pub/Sub emulator |
 | `gcp` | Application Default Credentials; consumer: `PUBSUB_PUSH_SUBSCRIPTION`, `PUBSUB_PUSH_SERVICE_ACCOUNT` | Managed Pub/Sub and verified Google OIDC push identity |
+
+The notification service also requires `PUBSUB_LOST_SUBSCRIPTION`; it must be
+different from `PUBSUB_PUSH_SUBSCRIPTION` so each route is bound to exactly one
+managed subscription.
 
 In GCP mode each consumer accepts only a valid Google-signed ID token whose
 verified email is that consumer's configured invocation service account. The
@@ -172,14 +182,21 @@ PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
   -run TestNotificationPubSubEmulatorDeliversRetriesAndRetainsPoison
 ```
 
+Run the equivalent `lostPet` community-broadcast contract with:
+
+```bash
+PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
+  go test ./cmd/notification-service \
+  -run TestNotificationLostPetPubSubEmulatorDeliversRetriesAndRetainsPoison
+```
+
 The Pub/Sub emulator does not implement IAM, so this contract uses the static
 development token on the push URL. Unit tests independently enforce exact OIDC
 service-account identity, verified-email, audience, and invalid-signature
 handling. Never configure `PUBSUB_PUSH_DEV_TOKEN` in GCP mode.
 Cloud Run rejects both local runtime modes even when they are explicitly set.
-Managed `foundPet` and `matchFound` subscriptions own transport retry and DLQ
-routing; issue #91 retains the remaining `lostPet` and provider circuit-breaker
-work.
+Managed `lostPet`, `foundPet`, and `matchFound` subscriptions own transport
+retry and DLQ routing; issue #91 retains provider circuit-breaker work.
 
 ### Transactional report outbox
 
@@ -192,20 +209,21 @@ readable.
 
 An exact retry is a successful no-op and cannot reset a completed outbox
 record. A competing create with the same pet ID returns `409 Conflict`; report
-creation is aggregate version 1 and does not use last-write-wins ordering. The
-relay serializes publication within one process. The found-report service also
-polls a bounded, indexed set of pending `foundPet` records every five seconds,
-so failed publication stays pending across a restart and is recovered. Before
-polling, a cursor-backed bounded compatibility sweep adds the query fields
-missing from legacy key/data-only Firestore outbox documents. Incomplete sweeps
-advance from the durable cursor. Completed sweeps restart after one minute so a
-late write from an old Cloud Run revision cannot remain behind the old cursor.
+creation is aggregate version 1 and does not use last-write-wins ordering. Each
+relay serializes publication within one process. The lost- and found-report
+services poll a bounded, indexed set of their pending records every five
+seconds, so failed publication stays pending across a restart and is recovered.
+Before polling, a cursor-backed bounded compatibility sweep adds the query
+fields missing from legacy key/data-only Firestore outbox documents. Incomplete
+sweeps advance from the durable cursor. Completed sweeps restart after one
+minute so a late write from an old Cloud Run revision cannot remain behind the
+old cursor.
 
-The found-report Cloud Run service temporarily runs exactly one minimum
-instance with CPU available outside requests. This is required for the
-five-second relay. Issue #122 owns later load/cost tuning. A
-crash after broker publication but before the completion write can publish the
-record again, which is the expected at-least-once boundary.
+The lost- and found-report Cloud Run services temporarily run exactly one
+minimum instance each with CPU available outside requests. This is required for
+their five-second relays. Issue #122 owns later load/cost tuning. A crash after
+broker publication but before the completion write can publish the record
+again, which is the expected at-least-once boundary.
 
 Before broker I/O, every relay instance transactionally leases the pending
 outbox record for ten minutes and increments its fenced attempt. An active lease
@@ -232,13 +250,13 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
   -run TestFirestoreConcurrentRelaysClaimOnePublication
 ```
 
-The durable `foundPet` outbox publishes to managed Pub/Sub and the pet matcher
-receives authenticated push delivery. Its durable `matchFound` output now uses
-the retained subscription as an authenticated notification push target with
-retry and DLQ policy. Lost-pet publication and community-broadcast delivery
-remain outside the managed path for the next issue #108 slice. Multi-instance
-outbox claiming is durable. GCS uploads remain in-memory until issue #109 is
-completed.
+The durable `lostPet` and `foundPet` outboxes publish to managed Pub/Sub. The
+pet matcher receives authenticated `foundPet` push delivery and its durable
+`matchFound` output reaches the notification service through a separate
+authenticated subscription. The notification service also receives `lostPet`
+pushes on its community-broadcast route. All three subscriptions have retry,
+retention, expiration, and DLQ policy. Multi-instance outbox claiming is
+durable. GCS uploads remain in-memory until issue #109 is completed.
 
 ### Idempotent matcher result publication
 
@@ -301,9 +319,8 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
 
 Focused worker tests also cover current and legacy duplicate events, concurrent
 handlers, partial subscriber/channel failure, and provider success followed by
-completion-store failure. The managed `matchFound` consumer is an authenticated
-private Cloud Run push service. The existing `lostPet` community-broadcast
-consumer remains process-local until the next issue #108 slice.
+completion-store failure. Both managed notification routes are authenticated
+private Cloud Run push endpoints with exact subscription binding.
 
 ---
 
@@ -314,14 +331,14 @@ consumer remains process-local until the next issue #108 slice.
 Infrastructure is defined as code under `infra/opentofu`:
 
 - GCS Bucket for image storage (`modules/storage`)
-- Cloud Pub/Sub topics, authenticated `foundPet` and `matchFound` push
-  subscriptions, retry and dead-letter policies, and a dedicated invocation
-  identity for each consumer (`modules/pubsub`)
+- Cloud Pub/Sub topics, authenticated `lostPet`, `foundPet`, and `matchFound`
+  push subscriptions, retry and dead-letter policies, and a dedicated
+  invocation identity for each consumer (`modules/pubsub`)
 - Cloud Firestore database and pending-outbox composite index
   (`modules/firestore`)
 - Cloud Run v2 services, including private matcher and notification ingress,
-  push identity configuration, and the single always-CPU found-report relay
-  instance (`modules/cloudrun`)
+  push identity configuration, and always-CPU lost- and found-report relay
+  instances (`modules/cloudrun`)
 
 To apply infrastructure:
 

@@ -18,15 +18,18 @@ import (
 	"testing"
 	"time"
 
+	gcppubsub "cloud.google.com/go/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/outbox"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
 func TestFirestoreStateCrossesServiceProcessesAndSurvivesRestart(t *testing.T) {
-	host := os.Getenv("FIRESTORE_EMULATOR_HOST")
-	if host == "" {
-		t.Skip("FIRESTORE_EMULATOR_HOST is not set")
+	firestoreHost := os.Getenv("FIRESTORE_EMULATOR_HOST")
+	pubsubHost := os.Getenv("PUBSUB_EMULATOR_HOST")
+	if firestoreHost == "" || pubsubHost == "" {
+		t.Skip("FIRESTORE_EMULATOR_HOST and PUBSUB_EMULATOR_HOST are not both set")
 	}
 	if runtime.GOOS == "windows" {
 		t.Skip("process signal assertions require POSIX signals")
@@ -43,11 +46,21 @@ func TestFirestoreStateCrossesServiceProcessesAndSurvivesRestart(t *testing.T) {
 	buildTestBinary(t, ctx, repositoryRoot, webBinary, "./cmd/web-frontend")
 
 	projectID := "petspotr-process-contract"
+	pubsubClient, err := gcppubsub.NewClient(ctx, projectID)
+	if err != nil {
+		t.Fatalf("create Pub/Sub emulator client: %v", err)
+	}
+	t.Cleanup(func() { _ = pubsubClient.Close() })
+	lostTopic, err := pubsubClient.CreateTopic(ctx, "lostPet")
+	if err != nil {
+		t.Fatalf("create lostPet emulator topic: %v", err)
+	}
+	t.Cleanup(func() { _ = lostTopic.Delete(context.Background()) })
 	petID := fmt.Sprintf("lost-process-%d", time.Now().UnixNano())
 	stateRuntime, err := runtimeconfig.NewStateRuntime(ctx, runtimeconfig.StateConfig{
 		Mode:                  runtimeconfig.ModeLocalEmulator,
 		ProjectID:             projectID,
-		FirestoreEmulatorHost: host,
+		FirestoreEmulatorHost: firestoreHost,
 	})
 	if err != nil {
 		t.Fatalf("create cleanup runtime: %v", err)
@@ -64,7 +77,7 @@ func TestFirestoreStateCrossesServiceProcessesAndSurvivesRestart(t *testing.T) {
 	})
 
 	lostPort := reserveLocalPort(t)
-	lostProcess := startTestService(t, lostBinary, lostPort, projectID, host)
+	lostProcess := startTestService(t, lostBinary, lostPort, projectID, firestoreHost, pubsubHost)
 	t.Cleanup(func() { stopTestService(t, lostProcess) })
 	waitForHTTP(t, ctx, "http://127.0.0.1:"+lostPort+"/lostPet")
 
@@ -99,15 +112,22 @@ func TestFirestoreStateCrossesServiceProcessesAndSurvivesRestart(t *testing.T) {
 	if eventID == "" {
 		t.Fatal("lost service response did not contain eventId")
 	}
+	outboxRecord, err := outbox.GetRecord(ctx, stateRuntime.Store, eventID)
+	if err != nil {
+		t.Fatalf("read lost service outbox record: %v", err)
+	}
+	if outboxRecord.Status != outbox.StatusPublished {
+		t.Fatalf("lost service outbox status = %q, want %q", outboxRecord.Status, outbox.StatusPublished)
+	}
 
 	webPort := reserveLocalPort(t)
-	webProcess := startTestService(t, webBinary, webPort, projectID, host)
+	webProcess := startTestService(t, webBinary, webPort, projectID, firestoreHost, pubsubHost)
 	t.Cleanup(func() { stopTestService(t, webProcess) })
 	waitForHTTP(t, ctx, "http://127.0.0.1:"+webPort+"/healthz")
 	assertWebProcessHasPet(t, webPort, petID, webProcess)
 
 	stopTestService(t, webProcess)
-	restartedWebProcess := startTestService(t, webBinary, webPort, projectID, host)
+	restartedWebProcess := startTestService(t, webBinary, webPort, projectID, firestoreHost, pubsubHost)
 	t.Cleanup(func() { stopTestService(t, restartedWebProcess) })
 	waitForHTTP(t, ctx, "http://127.0.0.1:"+webPort+"/healthz")
 	assertWebProcessHasPet(t, webPort, petID, restartedWebProcess)
@@ -146,7 +166,7 @@ func buildTestBinary(t *testing.T, ctx context.Context, root, output, packagePat
 	}
 }
 
-func startTestService(t *testing.T, binary, port, projectID, emulatorHost string) *testServiceProcess {
+func startTestService(t *testing.T, binary, port, projectID, firestoreHost, pubsubHost string) *testServiceProcess {
 	t.Helper()
 	process := &testServiceProcess{}
 	process.command = exec.Command(binary)
@@ -155,7 +175,8 @@ func startTestService(t *testing.T, binary, port, projectID, emulatorHost string
 		"K_SERVICE":               "",
 		"PETSPOTR_RUNTIME_MODE":   string(runtimeconfig.ModeLocalEmulator),
 		"GOOGLE_CLOUD_PROJECT":    projectID,
-		"FIRESTORE_EMULATOR_HOST": emulatorHost,
+		"FIRESTORE_EMULATOR_HOST": firestoreHost,
+		"PUBSUB_EMULATOR_HOST":    pubsubHost,
 	})
 	process.command.Stdout = &process.logs
 	process.command.Stderr = &process.logs

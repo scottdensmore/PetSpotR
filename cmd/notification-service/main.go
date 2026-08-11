@@ -40,7 +40,7 @@ func main() {
 	if !ok {
 		log.Fatalf("Configured state runtime does not support delivery operations")
 	}
-	pushConfig, err := runtimeconfig.LoadPushConsumerConfigFromEnv()
+	pushConfig, err := runtimeconfig.LoadNotificationPushConfigFromEnv()
 	if err != nil {
 		log.Fatalf("Invalid push consumer configuration: %v", err)
 	}
@@ -53,8 +53,13 @@ func main() {
 		authorizer = pubsub.NewStaticPushAuthorizer(pushConfig.StaticToken)
 	}
 	httpServer := &http.Server{
-		Addr:              ":" + port,
-		Handler:           newNotificationHTTPHandler(worker, authorizer, pushConfig.ExpectedSubscription),
+		Addr: ":" + port,
+		Handler: newNotificationHTTPHandler(
+			worker,
+			authorizer,
+			pushConfig.ExpectedSubscription,
+			pushConfig.ExpectedLostPetSubscription,
+		),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

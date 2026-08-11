@@ -127,6 +127,44 @@ func TestOpenTofuInfrastructureModules(t *testing.T) {
 		}
 	})
 
+	t.Run("lost pet events use managed publication and authenticated notification push", func(t *testing.T) {
+		pubsubPath := filepath.Join(root, "infra", "opentofu", "modules", "pubsub", "main.tf")
+		pubsubContent, err := os.ReadFile(pubsubPath)
+		if err != nil {
+			t.Fatalf("read Pub/Sub module: %v", err)
+		}
+		for _, fragment := range []string{
+			`resource "google_pubsub_topic_iam_member" "lost_pet_publisher"`,
+			`member = "serviceAccount:${var.lostpet_runtime_service_account}"`,
+			`resource "google_pubsub_topic" "lost_pet_dead_letter"`,
+			`resource "google_pubsub_subscription" "lost_pet_notification"`,
+			`push_endpoint = "${trimsuffix(var.notification_service_url, "/")}/pubsub/lost-pet"`,
+			"dead_letter_policy",
+			"retry_policy",
+		} {
+			if !strings.Contains(string(pubsubContent), fragment) {
+				t.Errorf("Pub/Sub module missing %q", fragment)
+			}
+		}
+
+		cloudRunPath := filepath.Join(root, "infra", "opentofu", "modules", "cloudrun", "main.tf")
+		cloudRunContent, err := os.ReadFile(cloudRunPath)
+		if err != nil {
+			t.Fatalf("read Cloud Run module: %v", err)
+		}
+		for _, fragment := range []string{
+			`resource "google_service_account" "lostpet_runtime"`,
+			`resource "google_project_iam_member" "lostpet_datastore"`,
+			`service_account = google_service_account.lostpet_runtime.email`,
+			`name  = "PUBSUB_LOST_SUBSCRIPTION"`,
+			`value = "projects/${var.project_id}/subscriptions/lost-pet-notification"`,
+		} {
+			if !strings.Contains(string(cloudRunContent), fragment) {
+				t.Errorf("Cloud Run module missing %q", fragment)
+			}
+		}
+	})
+
 	t.Run("Firestore indexes pending outbox scans", func(t *testing.T) {
 		path := filepath.Join(root, "infra", "opentofu", "modules", "firestore", "main.tf")
 		content, err := os.ReadFile(path)

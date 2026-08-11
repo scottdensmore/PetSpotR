@@ -99,3 +99,63 @@ func TestLoadPushConsumerConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadNotificationPushConfig(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		env     map[string]string
+		want    runtimeconfig.NotificationPushConfig
+		wantErr bool
+	}{
+		{
+			name: "binds distinct match and lost pet subscriptions",
+			env: map[string]string{
+				"PUBSUB_PUSH_SUBSCRIPTION": "projects/local/subscriptions/match-found-notification",
+				"PUBSUB_LOST_SUBSCRIPTION": "projects/local/subscriptions/lost-pet-notification",
+				"PUBSUB_PUSH_DEV_TOKEN":    "local-secret",
+			},
+			want: runtimeconfig.NotificationPushConfig{
+				PushConsumerConfig: runtimeconfig.PushConsumerConfig{
+					Mode:                 runtimeconfig.ModeMemory,
+					ExpectedSubscription: "projects/local/subscriptions/match-found-notification",
+					StaticToken:          "local-secret",
+				},
+				ExpectedLostPetSubscription: "projects/local/subscriptions/lost-pet-notification",
+			},
+		},
+		{
+			name: "requires lost pet subscription",
+			env: map[string]string{
+				"PUBSUB_PUSH_SUBSCRIPTION": "projects/local/subscriptions/match-found-notification",
+				"PUBSUB_PUSH_DEV_TOKEN":    "local-secret",
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects one subscription bound to two handlers",
+			env: map[string]string{
+				"PUBSUB_PUSH_SUBSCRIPTION": "projects/local/subscriptions/shared-notification",
+				"PUBSUB_LOST_SUBSCRIPTION": "projects/local/subscriptions/shared-notification",
+				"PUBSUB_PUSH_DEV_TOKEN":    "local-secret",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := runtimeconfig.LoadNotificationPushConfig(func(key string) string { return tt.env[key] })
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("LoadNotificationPushConfig() error = nil, want non-nil")
+				}
+				return
+			}
+			if err != nil || got != tt.want {
+				t.Fatalf("LoadNotificationPushConfig() = %#v, %v; want %#v, nil", got, err, tt.want)
+			}
+		})
+	}
+}
