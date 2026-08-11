@@ -72,6 +72,32 @@ func TestMemoryStateStore(t *testing.T) {
 		}
 	})
 
+	t.Run("atomic update replaces existing state without exposing storage bytes", func(t *testing.T) {
+		if err := s.SaveState(ctx, "updates", "key", []byte("before")); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.UpdateState(ctx, "updates", "key", func(current []byte) ([]byte, error) {
+			current[0] = 'X'
+			return []byte("after"), nil
+		}); err != nil {
+			t.Fatalf("UpdateState() error = %v", err)
+		}
+		got, err := s.GetState(ctx, "updates", "key")
+		if err != nil || string(got) != "after" {
+			t.Fatalf("updated state = %q, %v; want after", got, err)
+		}
+		updateErr := errors.New("update rejected")
+		if err := s.UpdateState(ctx, "updates", "key", func([]byte) ([]byte, error) {
+			return []byte("discarded"), updateErr
+		}); !errors.Is(err, updateErr) {
+			t.Fatalf("UpdateState(rejected) error = %v, want update error", err)
+		}
+		got, err = s.GetState(ctx, "updates", "key")
+		if err != nil || string(got) != "after" {
+			t.Fatalf("state after rejected update = %q, %v; want after", got, err)
+		}
+	})
+
 	t.Run("concurrent reads and writes", func(t *testing.T) {
 		var wg sync.WaitGroup
 		for i := 0; i < 20; i++ {
@@ -103,6 +129,13 @@ func TestMemoryStateStore(t *testing.T) {
 		err = s.DeleteState(canceledCtx, "pets", "key")
 		if !errors.Is(err, context.Canceled) {
 			t.Errorf("DeleteState: got %v, want %v", err, context.Canceled)
+		}
+
+		err = s.UpdateState(canceledCtx, "pets", "key", func(current []byte) ([]byte, error) {
+			return current, nil
+		})
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("UpdateState: got %v, want %v", err, context.Canceled)
 		}
 	})
 

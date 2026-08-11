@@ -109,6 +109,53 @@ func (s *FirestoreStore) SaveState(ctx context.Context, storeName, key string, d
 	return nil
 }
 
+// UpdateState atomically replaces one existing value. Firestore can retry the
+// callback, so callers must keep their StateUpdater free of external effects.
+func (s *FirestoreStore) UpdateState(ctx context.Context, storeName, key string, update StateUpdater) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if update == nil {
+		return errors.New("store: state updater is required")
+	}
+	doc, err := s.document(storeName, key)
+	if err != nil {
+		return err
+	}
+	err = s.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		snapshot, err := tx.Get(doc)
+		if status.Code(err) == codes.NotFound {
+			return fmt.Errorf("%w: %s in store %s", ErrNotFound, key, storeName)
+		}
+		if err != nil {
+			return err
+		}
+		var current firestoreRecord
+		if err := snapshot.DataTo(&current); err != nil {
+			return err
+		}
+		if current.Key != key {
+			return fmt.Errorf("store: state key %q does not match %q", current.Key, key)
+		}
+		next, err := update(bytes.Clone(current.Data))
+		if err != nil {
+			return err
+		}
+		record, err := newFirestoreRecord(storeName, key, next)
+		if err != nil {
+			return err
+		}
+		return tx.Set(doc, record)
+	})
+	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
+		return fmt.Errorf("store: update %s/%s: %w", storeName, key, err)
+	}
+	return nil
+}
+
 // ClaimDeliveryOperation transactionally creates, reclaims, or observes one
 // provider-delivery lease. Firestore transaction retries preserve one winner.
 func (s *FirestoreStore) ClaimDeliveryOperation(
