@@ -55,7 +55,11 @@ func main() {
 	}
 
 	oc := ollama.NewClient()
-	worker := NewWorker(stateRuntime.Store, messagingRuntime.Publisher, oc)
+	matcherStateStore, ok := stateRuntime.Store.(matcherStore)
+	if !ok {
+		log.Fatal("State runtime does not support durable matcher operations")
+	}
+	worker := NewWorker(matcherStateStore, messagingRuntime.Publisher, oc)
 
 	var authorizer pubsub.PushAuthorizer
 	if pushConfig.Mode == runtimeconfig.ModeGCP {

@@ -128,10 +128,11 @@ func TestEvents_JSONSerialization(t *testing.T) {
 
 	t.Run("MatchResult roundtrip", func(t *testing.T) {
 		res := domain.MatchResult{
-			FoundPetID:   "found-1",
-			MatchedPetID: "lost-1",
-			Score:        0.91,
-			IsMatch:      true,
+			FoundPetID:    "found-1",
+			MatchedPetID:  "lost-1",
+			Score:         0.91,
+			IsMatch:       true,
+			SourceEventID: "evt_found-1",
 		}
 		data, err := res.ToJSON()
 		if err != nil {
@@ -141,7 +142,7 @@ func TestEvents_JSONSerialization(t *testing.T) {
 		if err := out.FromJSON(data); err != nil {
 			t.Fatalf("failed to deserialize: %v", err)
 		}
-		if out.FoundPetID != res.FoundPetID || out.Score != res.Score {
+		if out.FoundPetID != res.FoundPetID || out.Score != res.Score || out.SourceEventID != res.SourceEventID {
 			t.Errorf("mismatch: got %+v, want %+v", out, res)
 		}
 	})

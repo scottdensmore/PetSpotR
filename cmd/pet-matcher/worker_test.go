@@ -4,19 +4,52 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/scottdensmore/petspotr/pkg/delivery"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
+	"github.com/scottdensmore/petspotr/pkg/outbox"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
+type failOncePublisher struct {
+	broker *pubsub.MemoryPubSub
+	calls  atomic.Int32
+}
+
+func (p *failOncePublisher) Publish(ctx context.Context, topic string, data []byte) error {
+	if p.calls.Add(1) == 1 {
+		return errors.New("temporary publish failure")
+	}
+	return p.broker.Publish(ctx, topic, data)
+}
+
+type failCompleteOnceStore struct {
+	matcherStore
+	calls atomic.Int32
+}
+
+func (s *failCompleteOnceStore) CompleteDeliveryOperation(
+	ctx context.Context,
+	id string,
+	attempt int,
+	completedAt time.Time,
+) error {
+	if s.calls.Add(1) == 1 {
+		return errors.New("temporary completion failure")
+	}
+	return s.matcherStore.CompleteDeliveryOperation(ctx, id, attempt, completedAt)
+}
+
 type getStateFailingStore struct {
-	store.StateStore
+	matcherStore
 	err error
 }
 
@@ -27,9 +60,12 @@ func (s *getStateFailingStore) GetState(context.Context, string, string) ([]byte
 func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 	st := store.NewMemoryStore()
 	ps := pubsub.NewMemoryPubSub()
+	var ollamaCalls atomic.Int32
+	var matchPublications atomic.Int32
 
 	// Mock Ollama server
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ollamaCalls.Add(1)
 		resp := ollama.GenerateResponse{
 			Model: "gemma2:2b",
 			Response: "{\n" +
@@ -63,6 +99,7 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 	var matchFoundEnvelope *domain.EventEnvelope
 	var matchPublished bool
 	_ = ps.Subscribe("matchFound", func(ctx context.Context, data []byte) error {
+		matchPublications.Add(1)
 		matchPublished = true
 		var err error
 		matchFoundEnvelope, err = domain.DecodeEventPayload(data, domain.EventTypeMatchFound, &matchFoundEvent)
@@ -103,6 +140,12 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 		}
 		if matchFoundEnvelope.ID != firstEventID {
 			t.Fatalf("duplicate match event ID = %q, want stable %q", matchFoundEnvelope.ID, firstEventID)
+		}
+		if got := ollamaCalls.Load(); got != 1 {
+			t.Fatalf("Ollama calls after duplicate = %d, want 1", got)
+		}
+		if got := matchPublications.Load(); got != 1 {
+			t.Fatalf("matchFound publications after duplicate = %d, want 1", got)
 		}
 	})
 
@@ -173,7 +216,7 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 
 	t.Run("transient candidate store failure requests redelivery", func(t *testing.T) {
 		transientErr := errors.New("firestore unavailable")
-		failingStore := &getStateFailingStore{StateStore: st, err: transientErr}
+		failingStore := &getStateFailingStore{matcherStore: st, err: transientErr}
 		failingWorker := NewWorker(failingStore, ps, ollamaClient)
 		foundEvt := domain.FoundPetEvent{
 			PetID:    "found-store-error",
@@ -239,4 +282,308 @@ func TestMatcherWorker_Start(t *testing.T) {
 			t.Error("expected error on cancelled context, got nil")
 		}
 	})
+}
+
+func TestMatcherWorker_RetryPublishesPersistedResultWithoutRerunningOllama(t *testing.T) {
+	st := store.NewMemoryStore()
+	ps := pubsub.NewMemoryPubSub()
+	publisher := &failOncePublisher{broker: ps}
+	var ollamaCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		ollamaCalls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprint(w, `{"model":"gemma4:e2b","response":"{\"breed\":\"Golden Retriever\",\"primaryColor\":\"Golden\",\"secondaryColor\":\"Cream\",\"distinctiveMarkings\":[\"White chest patch\"],\"eyeColor\":\"Brown\"}","done":true}`)
+	}))
+	t.Cleanup(server.Close)
+
+	lostEvent := domain.LostPetEvent{
+		PetID:         "lost-101",
+		ReporterEmail: "owner@example.com",
+		ReportedAt:    time.Now().UTC(),
+		Location:      "Seattle, WA",
+	}
+	lostData, err := lostEvent.ToJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SaveState(context.Background(), store.LostPetsCollection, lostEvent.PetID, lostData); err != nil {
+		t.Fatal(err)
+	}
+
+	var published atomic.Int32
+	if err := ps.Subscribe("matchFound", func(context.Context, []byte) error {
+		published.Add(1)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	worker := NewWorker(st, publisher, ollama.NewClient(ollama.WithBaseURL(server.URL)))
+	foundEvent := domain.FoundPetEvent{
+		PetID:    "found-publish-retry",
+		ImageURL: "https://storage.petspotr.io/found-publish-retry.jpg",
+		FoundAt:  time.Now().UTC(),
+		Location: "Seattle, WA",
+	}
+	foundData, err := foundEvent.ToJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := worker.ProcessFoundPet(context.Background(), foundData); err == nil {
+		t.Fatal("first ProcessFoundPet() error = nil, want publish failure")
+	}
+	if err := worker.ProcessFoundPet(context.Background(), foundData); err != nil {
+		t.Fatalf("second ProcessFoundPet() error = %v", err)
+	}
+	if got := ollamaCalls.Load(); got != 1 {
+		t.Fatalf("Ollama calls = %d, want 1", got)
+	}
+	if got := published.Load(); got != 1 {
+		t.Fatalf("matchFound publications = %d, want 1", got)
+	}
+	assertCompletedMatcherOperation(t, st, foundData, foundEvent.PetID)
+	assertPublishedMatcherResult(t, st)
+}
+
+func TestMatcherWorker_CompletionRetryDoesNotRepeatPublishedMatch(t *testing.T) {
+	baseStore := store.NewMemoryStore()
+	st := &failCompleteOnceStore{matcherStore: baseStore}
+	ps := pubsub.NewMemoryPubSub()
+	var ollamaCalls atomic.Int32
+	server := newMatcherOllamaServer(t, &ollamaCalls, nil, nil)
+	seedMatcherLostPet(t, baseStore)
+
+	var published atomic.Int32
+	if err := ps.Subscribe("matchFound", func(context.Context, []byte) error {
+		published.Add(1)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	worker := NewWorker(st, ps, ollama.NewClient(ollama.WithBaseURL(server.URL)))
+	foundEvent := domain.FoundPetEvent{
+		PetID:    "found-completion-retry",
+		ImageURL: "https://storage.petspotr.io/found-completion-retry.jpg",
+		FoundAt:  time.Now().UTC(),
+		Location: "Seattle, WA",
+	}
+	foundData, err := foundEvent.ToJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := worker.ProcessFoundPet(context.Background(), foundData); err == nil {
+		t.Fatal("first ProcessFoundPet() error = nil, want completion failure")
+	}
+	if err := worker.ProcessFoundPet(context.Background(), foundData); err != nil {
+		t.Fatalf("second ProcessFoundPet() error = %v", err)
+	}
+	if got := ollamaCalls.Load(); got != 1 {
+		t.Fatalf("Ollama calls = %d, want 1", got)
+	}
+	if got := published.Load(); got != 1 {
+		t.Fatalf("matchFound publications = %d, want 1", got)
+	}
+	assertCompletedMatcherOperation(t, baseStore, foundData, foundEvent.PetID)
+	assertPublishedMatcherResult(t, baseStore)
+}
+
+func TestMatcherWorker_ConcurrentDuplicateHasOneModelCallAndWinner(t *testing.T) {
+	st := store.NewMemoryStore()
+	ps := pubsub.NewMemoryPubSub()
+	var ollamaCalls atomic.Int32
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	server := newMatcherOllamaServer(t, &ollamaCalls, entered, release)
+	seedMatcherLostPet(t, st)
+
+	var published atomic.Int32
+	if err := ps.Subscribe("matchFound", func(context.Context, []byte) error {
+		published.Add(1)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	worker := NewWorker(st, ps, ollama.NewClient(ollama.WithBaseURL(server.URL)))
+	foundEvent := domain.FoundPetEvent{
+		PetID:    "found-concurrent",
+		ImageURL: "https://storage.petspotr.io/found-concurrent.jpg",
+		FoundAt:  time.Now().UTC(),
+		Location: "Seattle, WA",
+	}
+	foundData, err := foundEvent.ToJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	firstResult := make(chan error, 1)
+	go func() {
+		firstResult <- worker.ProcessFoundPet(context.Background(), foundData)
+	}()
+	select {
+	case <-entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("first matcher call did not reach Ollama")
+	}
+	if err := worker.ProcessFoundPet(context.Background(), foundData); !errors.Is(err, delivery.ErrOperationInProgress) {
+		t.Fatalf("concurrent ProcessFoundPet() error = %v, want operation in progress", err)
+	}
+	close(release)
+	if err := <-firstResult; err != nil {
+		t.Fatalf("first ProcessFoundPet() error = %v", err)
+	}
+	if got := ollamaCalls.Load(); got != 1 {
+		t.Fatalf("Ollama calls = %d, want 1", got)
+	}
+	if got := published.Load(); got != 1 {
+		t.Fatalf("matchFound publications = %d, want 1", got)
+	}
+}
+
+func TestMatcherWorker_DistinctInputsWithSameScoreHaveDistinctResults(t *testing.T) {
+	st := store.NewMemoryStore()
+	ps := pubsub.NewMemoryPubSub()
+	var ollamaCalls atomic.Int32
+	server := newMatcherOllamaServer(t, &ollamaCalls, nil, nil)
+	seedMatcherLostPet(t, st)
+
+	var publishedIDs []string
+	if err := ps.Subscribe("matchFound", func(_ context.Context, data []byte) error {
+		var result domain.MatchResult
+		envelope, err := domain.DecodeEventPayload(data, domain.EventTypeMatchFound, &result)
+		if err != nil {
+			return err
+		}
+		publishedIDs = append(publishedIDs, envelope.ID)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	worker := NewWorker(st, ps, ollama.NewClient(ollama.WithBaseURL(server.URL)))
+	baseTime := time.Now().UTC()
+	for index := range 2 {
+		foundEvent := domain.FoundPetEvent{
+			PetID:    "found-same-score",
+			ImageURL: "https://storage.petspotr.io/found-same-score.jpg",
+			FoundAt:  baseTime.Add(time.Duration(index) * time.Second),
+			Location: "Seattle, WA",
+		}
+		payload, err := foundEvent.ToJSON()
+		if err != nil {
+			t.Fatal(err)
+		}
+		envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+			Type:             domain.EventTypeFoundPetReported,
+			OccurredAt:       foundEvent.FoundAt,
+			AggregateID:      foundEvent.PetID,
+			AggregateVersion: int64(index + 1),
+			PayloadVersion:   1,
+			Payload:          payload,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := json.Marshal(envelope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := worker.ProcessFoundPet(context.Background(), data); err != nil {
+			t.Fatalf("ProcessFoundPet(input %d) error = %v", index+1, err)
+		}
+	}
+	if got := ollamaCalls.Load(); got != 2 {
+		t.Fatalf("Ollama calls = %d, want 2 distinct inputs", got)
+	}
+	if len(publishedIDs) != 2 || publishedIDs[0] == publishedIDs[1] {
+		t.Fatalf("published event IDs = %v, want two distinct results", publishedIDs)
+	}
+	results, err := st.ListState(context.Background(), store.MatcherResultsCollection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 2 {
+		t.Fatalf("matcher result count = %d, want 2", len(results))
+	}
+}
+
+func newMatcherOllamaServer(
+	t *testing.T,
+	calls *atomic.Int32,
+	entered chan<- struct{},
+	release <-chan struct{},
+) *httptest.Server {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		if entered != nil {
+			entered <- struct{}{}
+		}
+		if release != nil {
+			<-release
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprint(w, `{"model":"gemma4:e2b","response":"{\"breed\":\"Golden Retriever\",\"primaryColor\":\"Golden\",\"secondaryColor\":\"Cream\",\"distinctiveMarkings\":[\"White chest patch\"],\"eyeColor\":\"Brown\"}","done":true}`)
+	}))
+	t.Cleanup(server.Close)
+	return server
+}
+
+func seedMatcherLostPet(t *testing.T, st store.StateStore) {
+	t.Helper()
+	lostEvent := domain.LostPetEvent{
+		PetID:         "lost-101",
+		ReporterEmail: "owner@example.com",
+		ReportedAt:    time.Now().UTC(),
+		Location:      "Seattle, WA",
+	}
+	data, err := lostEvent.ToJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SaveState(context.Background(), store.LostPetsCollection, lostEvent.PetID, data); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func assertCompletedMatcherOperation(t *testing.T, st store.DeliveryOperationStore, input []byte, petID string) {
+	t.Helper()
+	eventID, err := delivery.ResolveEventID("", domain.EventTypeFoundPetReported, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	operation, err := delivery.NewOperation(eventID, petID, matcherDeliveryChannel, time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, err := st.GetDeliveryOperation(context.Background(), operation.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Status != delivery.StatusCompleted {
+		t.Fatalf("matcher operation status = %q, want completed", stored.Status)
+	}
+}
+
+func assertPublishedMatcherResult(t *testing.T, st store.StateStore) {
+	t.Helper()
+	results, err := st.ListState(context.Background(), store.MatcherResultsCollection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("matcher result count = %d, want 1", len(results))
+	}
+	for _, data := range results {
+		var result matcherResultRecord
+		if err := json.Unmarshal(data, &result); err != nil {
+			t.Fatal(err)
+		}
+		record, err := outbox.GetRecord(context.Background(), st, result.OutboxID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if record.Status != outbox.StatusPublished {
+			t.Fatalf("matcher outbox status = %q, want published", record.Status)
+		}
+	}
 }

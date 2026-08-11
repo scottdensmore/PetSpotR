@@ -9,23 +9,43 @@ import (
 	"os"
 	"time"
 
+	"github.com/scottdensmore/petspotr/pkg/delivery"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
+	"github.com/scottdensmore/petspotr/pkg/outbox"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
+const (
+	matcherDeliveryChannel = "matchFound"
+	defaultMatcherLease    = 10 * time.Minute
+)
+
+type matcherStore interface {
+	store.StateStore
+	store.DeliveryOperationStore
+}
+
+type matcherResultRecord struct {
+	InputEventID string `json:"inputEventId"`
+	OutboxID     string `json:"outboxId"`
+}
+
 // Worker consumes foundPet events, extracts visual traits via Ollama, and matches against stored lost pets.
 type Worker struct {
-	store        store.StateStore
+	store        matcherStore
 	broker       pubsub.Publisher
 	ollamaClient *ollama.Client
 	modelName    string
+	relay        *outbox.Relay
+	now          func() time.Time
+	lease        time.Duration
 }
 
 // NewWorker constructs a Worker instance.
-func NewWorker(st store.StateStore, br pubsub.Publisher, oc *ollama.Client) *Worker {
+func NewWorker(st matcherStore, br pubsub.Publisher, oc *ollama.Client) *Worker {
 	model := os.Getenv("OLLAMA_MODEL")
 	if model == "" {
 		model = "gemma4:e2b"
@@ -35,6 +55,9 @@ func NewWorker(st store.StateStore, br pubsub.Publisher, oc *ollama.Client) *Wor
 		broker:       br,
 		ollamaClient: oc,
 		modelName:    model,
+		relay:        outbox.NewRelay(st, br),
+		now:          time.Now,
+		lease:        defaultMatcherLease,
 	}
 }
 
@@ -54,6 +77,9 @@ func (w *Worker) Start(ctx context.Context) error {
 
 // ProcessFoundPet processes a foundPet event payload.
 func (w *Worker) ProcessFoundPet(ctx context.Context, foundPetData []byte) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	var foundEvt domain.FoundPetEvent
 	inputEnvelope, err := domain.DecodeEventPayload(foundPetData, domain.EventTypeFoundPetReported, &foundEvt)
 	if err != nil {
@@ -62,6 +88,61 @@ func (w *Worker) ProcessFoundPet(ctx context.Context, foundPetData []byte) error
 
 	if err := foundEvt.Validate(); err != nil {
 		return fmt.Errorf("pet-matcher: invalid foundPet event: %w", err)
+	}
+	envelopeID := ""
+	if inputEnvelope != nil {
+		envelopeID = inputEnvelope.ID
+	}
+	inputEventID, err := delivery.ResolveEventID(envelopeID, domain.EventTypeFoundPetReported, foundPetData)
+	if err != nil {
+		return fmt.Errorf("pet-matcher: resolve foundPet identity: %w", err)
+	}
+	now := w.now().UTC()
+	operation, err := delivery.NewOperation(inputEventID, foundEvt.PetID, matcherDeliveryChannel, now)
+	if err != nil {
+		return fmt.Errorf("pet-matcher: create processing operation: %w", err)
+	}
+	claim, err := w.store.ClaimDeliveryOperation(ctx, operation, now, w.lease)
+	if err != nil {
+		return fmt.Errorf("pet-matcher: claim foundPet processing: %w", err)
+	}
+	switch claim.State {
+	case delivery.ClaimCompleted:
+		return nil
+	case delivery.ClaimInProgress:
+		return fmt.Errorf("pet-matcher: foundPet processing: %w", delivery.ErrOperationInProgress)
+	case delivery.ClaimAcquired:
+	default:
+		return fmt.Errorf("pet-matcher: unexpected processing claim %q", claim.State)
+	}
+
+	processErr := w.processClaimedFoundPet(ctx, inputEventID, inputEnvelope, foundEvt)
+	if processErr == nil {
+		processErr = w.store.CompleteDeliveryOperation(ctx, operation.ID, claim.Attempt, w.now().UTC())
+	}
+	if processErr == nil {
+		return nil
+	}
+	failErr := w.store.FailDeliveryOperation(
+		ctx,
+		operation.ID,
+		claim.Attempt,
+		w.now().UTC(),
+		processErr.Error(),
+	)
+	return errors.Join(processErr, failErr)
+}
+
+func (w *Worker) processClaimedFoundPet(
+	ctx context.Context,
+	inputEventID string,
+	inputEnvelope *domain.EventEnvelope,
+	foundEvt domain.FoundPetEvent,
+) error {
+	if result, exists, err := w.loadMatcherResult(ctx, inputEventID); err != nil {
+		return err
+	} else if exists {
+		return w.publishMatcherResult(ctx, result)
 	}
 
 	// 1. Analyze found pet image with Ollama + Gemma 4
@@ -116,6 +197,7 @@ func (w *Worker) ProcessFoundPet(ctx context.Context, foundPetData []byte) error
 	// 3. Compute distance-weighted combined similarity score
 	matchResult := scoring.ComparePetsGeo(lostPetID, foundEvt.PetID, lostLocation, foundEvt.Location, lostTraits, foundTraits)
 	if matchResult != nil && matchResult.IsMatch {
+		matchResult.SourceEventID = inputEventID
 		resultBytes, err := matchResult.ToJSON()
 		if err != nil {
 			return fmt.Errorf("pet-matcher: failed to marshal MatchResult: %w", err)
@@ -129,7 +211,7 @@ func (w *Worker) ProcessFoundPet(ctx context.Context, foundPetData []byte) error
 		}
 		matchEnvelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
 			Type:             domain.EventTypeMatchFound,
-			OccurredAt:       time.Now().UTC(),
+			OccurredAt:       w.now().UTC(),
 			CorrelationID:    correlationID,
 			TraceID:          traceID,
 			AggregateID:      matchResult.FoundPetID + ":" + matchResult.MatchedPetID,
@@ -144,13 +226,86 @@ func (w *Worker) ProcessFoundPet(ctx context.Context, foundPetData []byte) error
 		if err != nil {
 			return fmt.Errorf("pet-matcher: failed to marshal matchFound envelope: %w", err)
 		}
-		if err := w.broker.Publish(ctx, "matchFound", envelopeBytes); err != nil {
-			return fmt.Errorf("pet-matcher: failed to publish matchFound event: %w", err)
+		resultRecord, err := w.persistMatcherResult(ctx, inputEventID, matchEnvelope.ID, envelopeBytes)
+		if err != nil {
+			return err
+		}
+		if err := w.publishMatcherResult(ctx, resultRecord); err != nil {
+			return err
 		}
 
 		log.Printf("[Pet Matcher] MATCH FOUND! FoundPet: %s <-> LostPet: %s (Score: %.2f)",
 			matchResult.FoundPetID, matchResult.MatchedPetID, matchResult.Score)
 	}
 
+	return nil
+}
+
+func (w *Worker) persistMatcherResult(
+	ctx context.Context,
+	inputEventID string,
+	outboxID string,
+	payload []byte,
+) (matcherResultRecord, error) {
+	record := matcherResultRecord{InputEventID: inputEventID, OutboxID: outboxID}
+	stateData, err := json.Marshal(record)
+	if err != nil {
+		return matcherResultRecord{}, fmt.Errorf("pet-matcher: marshal matcher result: %w", err)
+	}
+	outboxRecord := outbox.NewRecord(outboxID, matcherDeliveryChannel, payload, w.now().UTC())
+	outboxData, err := outbox.MarshalRecord(outboxRecord)
+	if err != nil {
+		return matcherResultRecord{}, fmt.Errorf("pet-matcher: marshal matchFound outbox: %w", err)
+	}
+	_, err = w.store.CreateStateAndOutbox(
+		ctx,
+		store.StateWrite{StoreName: store.MatcherResultsCollection, Key: inputEventID, Data: stateData},
+		store.StateWrite{StoreName: store.OutboxCollection, Key: outboxID, Data: outboxData},
+	)
+	if err == nil {
+		return record, nil
+	}
+	if !errors.Is(err, store.ErrConflict) {
+		return matcherResultRecord{}, fmt.Errorf("pet-matcher: persist matchFound result and outbox: %w", err)
+	}
+	winner, exists, loadErr := w.loadMatcherResult(ctx, inputEventID)
+	if loadErr != nil {
+		return matcherResultRecord{}, loadErr
+	}
+	if !exists {
+		return matcherResultRecord{}, fmt.Errorf("pet-matcher: conflicting result has no durable winner: %w", err)
+	}
+	return winner, nil
+}
+
+func (w *Worker) loadMatcherResult(ctx context.Context, inputEventID string) (matcherResultRecord, bool, error) {
+	data, err := w.store.GetState(ctx, store.MatcherResultsCollection, inputEventID)
+	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+		return matcherResultRecord{}, false, nil
+	}
+	if err != nil {
+		return matcherResultRecord{}, false, fmt.Errorf("pet-matcher: load durable matcher result: %w", err)
+	}
+	var record matcherResultRecord
+	if err := json.Unmarshal(data, &record); err != nil {
+		return matcherResultRecord{}, false, fmt.Errorf("pet-matcher: decode durable matcher result: %w", err)
+	}
+	if record.InputEventID != inputEventID || record.OutboxID == "" {
+		return matcherResultRecord{}, false, errors.New("pet-matcher: durable matcher result identity is invalid")
+	}
+	return record, true, nil
+}
+
+func (w *Worker) publishMatcherResult(ctx context.Context, result matcherResultRecord) error {
+	if _, err := w.relay.PublishRecords(ctx, result.OutboxID); err != nil {
+		return fmt.Errorf("pet-matcher: publish durable matchFound result: %w", err)
+	}
+	record, err := outbox.GetRecord(ctx, w.store, result.OutboxID)
+	if err != nil {
+		return fmt.Errorf("pet-matcher: load matchFound outbox result: %w", err)
+	}
+	if record.Status != outbox.StatusPublished {
+		return fmt.Errorf("pet-matcher: matchFound publication: %w", delivery.ErrOperationInProgress)
+	}
 	return nil
 }

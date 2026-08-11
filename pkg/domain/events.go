@@ -72,11 +72,12 @@ func (e *FoundPetEvent) FromJSON(data []byte) error {
 
 // MatchResult represents the visual scoring outcome between a found pet and a lost pet.
 type MatchResult struct {
-	FoundPetID   string  `json:"foundPetId"`
-	MatchedPetID string  `json:"matchedPetId"`
-	Score        float64 `json:"score"`
-	IsMatch      bool    `json:"isMatch"`
-	Details      string  `json:"details,omitempty"`
+	FoundPetID    string  `json:"foundPetId"`
+	MatchedPetID  string  `json:"matchedPetId"`
+	Score         float64 `json:"score"`
+	IsMatch       bool    `json:"isMatch"`
+	Details       string  `json:"details,omitempty"`
+	SourceEventID string  `json:"sourceEventId,omitempty"`
 }
 
 // Validate checks that mandatory fields on MatchResult are non-empty.
