@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01KZQNTD48GX7S0MQHPAG133QZ",
+  "strategy": "manual-commit",
+  "branch": "feat/notification-push-delivery",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "cmd/notification-service/main.go",
+    "cmd/notification-service/pubsub_integration_test.go",
+    "cmd/notification-service/server.go",
+    "cmd/notification-service/server_test.go",
+    "deploy/cloudrun/notification-service.yaml",
+    "deploy/cloudrun/pet-matcher.yaml",
+    "deploy/deploy_test.go",
+    "docker-compose.yml",
+    "docs/DEVELOPMENT.md",
+    "infra/infra_test.go",
+    "infra/opentofu/main.tf",
+    "infra/opentofu/modules/cloudrun/main.tf",
+    "infra/opentofu/modules/pubsub/main.tf",
+    "infra/opentofu/outputs.tf",
+    "pkg/runtimeconfig/push.go",
+    "pkg/runtimeconfig/push_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 788561,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 47364608,
+    "output_tokens": 149585,
+    "api_call_count": 1038
+  }
+}
