@@ -92,6 +92,9 @@ These apply at every step, not just at the gate where they are mentioned.
    - Implement the smallest appropriate change.
    - Run focused tests while iterating.
    - Refactor only while the relevant tests remain green.
+   - Follow [Test execution ownership](#test-execution-ownership) so the main
+     agent retains only focused Go test output and the verifier owns noisy or
+     repository-wide execution.
 
 5. **Inspect the complete diff and track out-of-scope discoveries.** Review the
    branch diff plus all staged, unstaged, and untracked files. Remove
@@ -119,7 +122,9 @@ These apply at every step, not just at the gate where they are mentioned.
    and why (for example, the local HTTP services required by Playwright could
    not be started). Fix or explicitly resolve every actionable finding before
    starting code review. If a verifier finding requires a code change, rerun
-   the verifier after addressing it.
+   the verifier after addressing it. A focused-support verifier run during TDD
+   does not satisfy this gate; invoke the verifier fresh against the settled
+   worktree for the complete applicable battery.
 
 8. **Run the local `code-review` before every commit.** Invoke the
     `code-review` sub-agent against the current branch diff and every staged,
@@ -175,6 +180,30 @@ forever. It is bounded by these rules.
 - **Never self-certify a gate.** If a sub-agent is unavailable, say so
   explicitly and state what you checked manually instead. Do not report a gate
   as passed when it did not run.
+
+## Test execution ownership
+
+Keep the main agent's context focused on design and implementation. Split test
+execution by phase and weight:
+
+| Phase | Main agent | `verifier` sub-agent |
+| --- | --- | --- |
+| Go TDD red/green | Writes the test and runs only the exact focused Go test, scoped by package and `-run` | Not required |
+| Integration or journey TDD red/green | Writes the focused contract and interprets the concise result | Runs only the named emulator, Docker, or Playwright test in focused-support mode |
+| Settled implementation gate | Does not duplicate the full battery | Starts fresh and runs every applicable command in [Verification scope](#verification-scope) |
+
+The main agent may rerun a tightly related set of named Go tests while
+refactoring, but it does not run repository-wide tests, race/coverage, lint,
+Compose rebuilds, emulator batteries, infrastructure validation, or
+Playwright. A focused Go test already compiles its package; do not add a broad
+build merely to prove compilation during the TDD loop.
+
+All automated Playwright execution belongs to the verifier, including a single
+spec or test selected for journey TDD. In focused-support mode, the verifier
+reports the command, the red or green result, and the decisive failure evidence
+without claiming the formal gate. After the implementation settles, use a
+fresh verifier invocation for the full applicable suite. Manual viewport and
+accessibility inspection remains the separate `ui-review` responsibility.
 
 ## Applicability
 
@@ -323,7 +352,12 @@ inline and say that you did so.
 
 - **Role**: Build, static check, test, and journey coverage verifier.
 - **Responsibilities**:
+  - Supports TDD by running an explicitly named integration, emulator, Docker,
+    or Playwright test when requested, returning a concise result without
+    treating it as the formal gate.
   - Executes the commands in [Verification scope](#verification-scope).
+  - Runs the formal gate fresh against the settled worktree even when it ran
+    focused-support checks earlier in the slice.
   - Reports failures, flakes, missing coverage, and environment configuration
     issues, and names every suite it could not run.
   - Validates code fixes before code review begins.
