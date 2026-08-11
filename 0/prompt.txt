@@ -1,0 +1,29 @@
+yep and if you get an actional feedback you should do it
+
+---
+
+Yes go ahead and merge and clean up. In fact you don't need to ask for that. Just let me know when you are done and what you think they right next item to pick up is
+
+---
+
+Ok lets do 116
+
+---
+
+Are you testing these locally in docker?
+
+---
+
+Ok lets pickup 108
+
+---
+
+Ok I authorize
+
+---
+
+Ok lets do 116
+
+---
+
+Make sure that you are only running the unit tests in the main agent because you are doing tdd. Only run the entire battery including e2e in the verifier agent

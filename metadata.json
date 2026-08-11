@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01KZQJR5MMBP6M3VX5RJKMDWT0",
+  "strategy": "manual-commit",
+  "branch": "feat/idempotent-matcher-events",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/pet-matcher/firestore_integration_test.go",
+    "cmd/pet-matcher/main.go",
+    "cmd/pet-matcher/worker.go",
+    "cmd/pet-matcher/worker_test.go",
+    "docs/DEVELOPMENT.md",
+    "pkg/domain/events.go",
+    "pkg/domain/events_test.go",
+    "pkg/store/names.go",
+    "pkg/store/names_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 490836,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 30654208,
+    "output_tokens": 96377,
+    "api_call_count": 894
+  }
+}
