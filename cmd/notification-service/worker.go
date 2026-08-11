@@ -135,32 +135,44 @@ func (w *Worker) ProcessMatchFound(ctx context.Context, matchResultData []byte) 
 		Body:        notif.Body,
 		Channels:    []Channel{ChannelEmail, ChannelSMS, ChannelPush},
 	}
-	if err := w.dispatchOwnerNotification(ctx, eventID, msg); err != nil {
+	results, err := w.dispatchNotification(ctx, eventID, msg)
+	if err != nil {
 		return nil, err
 	}
+	log.Printf("[Notification Service] Dispatched %d owner-notification channels successfully", len(results))
 
 	return notif, nil
 }
 
-func (w *Worker) dispatchOwnerNotification(ctx context.Context, eventID string, message *NotificationMessage) error {
-	for _, channel := range message.Channels {
+func (w *Worker) dispatchNotification(
+	ctx context.Context,
+	eventID string,
+	message *NotificationMessage,
+) ([]DispatchResult, error) {
+	channels := message.Channels
+	if len(channels) == 0 {
+		channels = []Channel{ChannelEmail}
+	}
+	allResults := make([]DispatchResult, 0, len(channels))
+	for _, channel := range channels {
 		now := w.now().UTC()
 		operation, err := delivery.NewOperation(eventID, message.RecipientID, string(channel), now)
 		if err != nil {
-			return fmt.Errorf("notification-service: create %s delivery operation: %w", channel, err)
+			return allResults, fmt.Errorf("notification-service: create %s delivery operation: %w", channel, err)
 		}
 		claim, err := w.deliveryStore.ClaimDeliveryOperation(ctx, operation, now, w.deliveryLease)
 		if err != nil {
-			return fmt.Errorf("notification-service: claim %s delivery: %w", channel, err)
+			return allResults, fmt.Errorf("notification-service: claim %s delivery: %w", channel, err)
 		}
 		switch claim.State {
 		case delivery.ClaimCompleted:
+			allResults = append(allResults, DispatchResult{Channel: channel, Success: true})
 			continue
 		case delivery.ClaimInProgress:
-			return fmt.Errorf("notification-service: %s delivery: %w", channel, delivery.ErrOperationInProgress)
+			return allResults, fmt.Errorf("notification-service: %s delivery: %w", channel, delivery.ErrOperationInProgress)
 		case delivery.ClaimAcquired:
 		default:
-			return fmt.Errorf("notification-service: unexpected %s delivery claim %q", channel, claim.State)
+			return allResults, fmt.Errorf("notification-service: unexpected %s delivery claim %q", channel, claim.State)
 		}
 
 		channelMessage := *message
@@ -185,7 +197,7 @@ func (w *Worker) dispatchOwnerNotification(ctx context.Context, eventID string, 
 				failureAt,
 				dispatchErr.Error(),
 			)
-			return fmt.Errorf("notification-service: dispatch %s delivery: %w", channel, errors.Join(dispatchErr, persistErr))
+			return allResults, fmt.Errorf("notification-service: dispatch %s delivery: %w", channel, errors.Join(dispatchErr, persistErr))
 		}
 		if err := w.deliveryStore.CompleteDeliveryOperation(
 			ctx,
@@ -193,11 +205,11 @@ func (w *Worker) dispatchOwnerNotification(ctx context.Context, eventID string, 
 			claim.Attempt,
 			w.now().UTC(),
 		); err != nil {
-			return fmt.Errorf("notification-service: complete %s delivery: %w", channel, err)
+			return allResults, fmt.Errorf("notification-service: complete %s delivery: %w", channel, err)
 		}
+		allResults = append(allResults, results[0])
 	}
-	log.Printf("[Notification Service] Dispatched %d owner-notification channels successfully", len(message.Channels))
-	return nil
+	return allResults, nil
 }
 
 // ProcessLostPetBroadcast processes a lostPet event payload and dispatches radius-based community broadcast alerts.
@@ -207,7 +219,8 @@ func (w *Worker) ProcessLostPetBroadcast(ctx context.Context, lostPetData []byte
 	}
 
 	var evt domain.LostPetEvent
-	if _, err := domain.DecodeEventPayload(lostPetData, domain.EventTypeLostPetReported, &evt); err != nil {
+	envelope, err := domain.DecodeEventPayload(lostPetData, domain.EventTypeLostPetReported, &evt)
+	if err != nil {
 		return nil, fmt.Errorf("notification-service: failed to unmarshal LostPetEvent: %w", err)
 	}
 
@@ -218,6 +231,24 @@ func (w *Worker) ProcessLostPetBroadcast(ctx context.Context, lostPetData []byte
 	if w.geoEngine == nil {
 		return nil, fmt.Errorf("notification-service: geoEngine not configured")
 	}
+	if w.deliveryStore == nil {
+		return nil, fmt.Errorf("notification-service: delivery store not configured")
+	}
+	envelopeID := ""
+	if envelope != nil {
+		envelopeID = envelope.ID
+	}
+	eventID, err := delivery.ResolveEventID(envelopeID, domain.EventTypeLostPetReported, lostPetData)
+	if err != nil {
+		return nil, fmt.Errorf("notification-service: resolve lostPet identity: %w", err)
+	}
 
-	return w.geoEngine.BroadcastLostPetAlert(ctx, &evt, 5.0)
+	return w.geoEngine.broadcastLostPetAlert(
+		ctx,
+		&evt,
+		5.0,
+		func(dispatchCtx context.Context, message *NotificationMessage) ([]DispatchResult, error) {
+			return w.dispatchNotification(dispatchCtx, eventID, message)
+		},
+	)
 }
