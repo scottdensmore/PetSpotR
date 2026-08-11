@@ -86,4 +86,42 @@ func TestDeploymentArtifactsExist(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("pet-matcher is configured as an HTTP push target", func(t *testing.T) {
+		manifest, err := os.ReadFile(filepath.Join(root, "deploy", "cloudrun", "pet-matcher.yaml"))
+		if err != nil {
+			t.Fatalf("read pet-matcher manifest: %v", err)
+		}
+		compose, err := os.ReadFile(filepath.Join(root, "docker-compose.yml"))
+		if err != nil {
+			t.Fatalf("read docker-compose.yml: %v", err)
+		}
+
+		for _, fragment := range []string{"timeoutSeconds: 600", "PUBSUB_FOUND_SUBSCRIPTION", "PUBSUB_PUSH_SERVICE_ACCOUNT"} {
+			if !strings.Contains(string(manifest), fragment) {
+				t.Errorf("pet-matcher manifest missing %q", fragment)
+			}
+		}
+		for _, fragment := range []string{"8083:8083", "PUBSUB_PUSH_DEV_TOKEN", "PUBSUB_FOUND_SUBSCRIPTION"} {
+			if !strings.Contains(string(compose), fragment) {
+				t.Errorf("docker-compose.yml missing pet-matcher push configuration %q", fragment)
+			}
+		}
+	})
+
+	t.Run("foundpet outbox relay retains background CPU", func(t *testing.T) {
+		manifest, err := os.ReadFile(filepath.Join(root, "deploy", "cloudrun", "foundpet-service.yaml"))
+		if err != nil {
+			t.Fatalf("read foundpet-service manifest: %v", err)
+		}
+		for _, fragment := range []string{
+			`run.googleapis.com/cpu-throttling: "false"`,
+			`autoscaling.knative.dev/minScale: "1"`,
+			`autoscaling.knative.dev/maxScale: "1"`,
+		} {
+			if !strings.Contains(string(manifest), fragment) {
+				t.Errorf("foundpet-service manifest missing %q", fragment)
+			}
+		}
+	})
 }

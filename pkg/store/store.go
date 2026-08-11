@@ -3,10 +3,20 @@ package store
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"sync"
+	"time"
 )
+
+type outboxIndexRecord struct {
+	ID        string    `json:"id"`
+	Topic     string    `json:"topic"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+}
 
 // Sentinel errors for StateStore operations.
 var (
@@ -29,6 +39,13 @@ type StateStore interface {
 	GetState(ctx context.Context, storeName, key string) ([]byte, error)
 	DeleteState(ctx context.Context, storeName, key string) error
 	ListState(ctx context.Context, storeName string) (map[string][]byte, error)
+	ListPendingOutbox(ctx context.Context, topic string, limit int) ([]string, error)
+}
+
+// OutboxIndexBackfiller upgrades legacy Firestore outbox documents in bounded
+// batches before indexed recovery. Memory stores do not need this migration.
+type OutboxIndexBackfiller interface {
+	BackfillOutboxIndexes(ctx context.Context, limit int) (migrated int, complete bool, err error)
 }
 
 // CreateStateAndOutbox atomically creates aggregate state and its outbox
@@ -150,6 +167,49 @@ func (m *MemoryStore) ListState(ctx context.Context, storeName string) (map[stri
 		res[k] = bytes.Clone(v)
 	}
 	return res, nil
+}
+
+// ListPendingOutbox returns a bounded, deterministic set of pending event IDs
+// for one topic without including published history.
+func (m *MemoryStore) ListPendingOutbox(ctx context.Context, topic string, limit int) ([]string, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if topic == "" || limit < 1 {
+		return nil, errors.New("store: pending outbox topic and positive limit are required")
+	}
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	records := make([]outboxIndexRecord, 0)
+	var decodeErrors []error
+	for key, data := range m.items[OutboxCollection] {
+		var record outboxIndexRecord
+		if err := json.Unmarshal(data, &record); err != nil {
+			decodeErrors = append(decodeErrors, fmt.Errorf("store: decode outbox %s: %w", key, err))
+			continue
+		}
+		if record.ID != key {
+			decodeErrors = append(decodeErrors, fmt.Errorf("store: outbox ID %q does not match key %q", record.ID, key))
+			continue
+		}
+		if record.Topic == topic && record.Status == "pending" {
+			records = append(records, record)
+		}
+	}
+	sort.Slice(records, func(i, j int) bool {
+		if records[i].CreatedAt.Equal(records[j].CreatedAt) {
+			return records[i].ID < records[j].ID
+		}
+		return records[i].CreatedAt.Before(records[j].CreatedAt)
+	})
+	if len(records) > limit {
+		records = records[:limit]
+	}
+	ids := make([]string, len(records))
+	for index := range records {
+		ids[index] = records[index].ID
+	}
+	return ids, errors.Join(decodeErrors...)
 }
 
 func validateAtomicWrites(state, outbox StateWrite) error {

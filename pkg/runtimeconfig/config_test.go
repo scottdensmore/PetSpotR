@@ -60,6 +60,16 @@ func TestLoadStateConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "rejects emulator mode on Cloud Run",
+			env: map[string]string{
+				"K_SERVICE":               "lostpet-service",
+				"PETSPOTR_RUNTIME_MODE":   "local-emulator",
+				"GOOGLE_CLOUD_PROJECT":    "petspotr-local",
+				"FIRESTORE_EMULATOR_HOST": "127.0.0.1:8085",
+			},
+			wantErr: true,
+		},
+		{
 			name: "requires emulator host in emulator mode",
 			env: map[string]string{
 				"PETSPOTR_RUNTIME_MODE": "local-emulator",

@@ -6,6 +6,11 @@ metadata:
     cloud.googleapis.com/location: us-central1
 spec:
   template:
+    metadata:
+      annotations:
+        run.googleapis.com/cpu-throttling: "false"
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "1"
     spec:
       containers:
         - image: gcr.io/petspotr/foundpet-service:latest

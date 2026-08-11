@@ -21,7 +21,7 @@ type Service struct {
 }
 
 // NewService constructs a LostPet Service instance.
-func NewService(st store.StateStore, br pubsub.Broker) *Service {
+func NewService(st store.StateStore, br pubsub.Publisher) *Service {
 	return &Service{
 		store: st,
 		relay: outbox.NewRelay(st, br),

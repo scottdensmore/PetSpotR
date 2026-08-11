@@ -11,8 +11,9 @@ import (
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/blob"
-	"github.com/scottdensmore/petspotr/pkg/pubsub"
+	"github.com/scottdensmore/petspotr/pkg/outbox"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
+	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
 func main() {
@@ -24,11 +25,11 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	config, err := runtimeconfig.LoadStateConfigFromEnv()
+	stateConfig, err := runtimeconfig.LoadStateConfigFromEnv()
 	if err != nil {
 		log.Fatalf("Invalid runtime configuration: %v", err)
 	}
-	stateRuntime, err := runtimeconfig.NewStateRuntime(ctx, config)
+	stateRuntime, err := runtimeconfig.NewStateRuntime(ctx, stateConfig)
 	if err != nil {
 		log.Fatalf("Failed to initialize state runtime: %v", err)
 	}
@@ -37,10 +38,53 @@ func main() {
 			log.Printf("Failed to close state runtime: %v", err)
 		}
 	}()
+	messagingConfig, err := runtimeconfig.LoadMessagingConfigFromEnv()
+	if err != nil {
+		log.Fatalf("Invalid messaging configuration: %v", err)
+	}
+	messagingRuntime, err := runtimeconfig.NewMessagingRuntime(ctx, messagingConfig)
+	if err != nil {
+		log.Fatalf("Failed to initialize messaging runtime: %v", err)
+	}
+	defer func() {
+		if err := messagingRuntime.Close(); err != nil {
+			log.Printf("Failed to close messaging runtime: %v", err)
+		}
+	}()
 
-	ps := pubsub.NewMemoryPubSub()
 	bs := blob.NewMemoryBlobStore("http://localhost:" + port + "/images")
-	svc := NewService(stateRuntime.Store, ps, bs)
+	svc := NewService(stateRuntime.Store, messagingRuntime.Publisher, bs)
+	nextBackfillAt := time.Time{}
+	recoverOutbox := func() {
+		now := time.Now().UTC()
+		if backfiller, ok := stateRuntime.Store.(store.OutboxIndexBackfiller); ok && !now.Before(nextBackfillAt) {
+			migrated, complete, err := backfiller.BackfillOutboxIndexes(ctx, outbox.MaxPublishBatch)
+			if err != nil && ctx.Err() == nil {
+				log.Printf("FoundPet legacy outbox index backfill deferred: %v", err)
+			} else if complete {
+				nextBackfillAt = now.Add(time.Minute)
+			}
+			if migrated > 0 {
+				log.Printf("FoundPet legacy outbox index backfill migrated %d records (complete=%t)", migrated, complete)
+			}
+		}
+		if _, err := svc.relay.PublishPending(ctx, "foundPet"); err != nil && ctx.Err() == nil {
+			log.Printf("FoundPet outbox recovery deferred: %v", err)
+		}
+	}
+	go func() {
+		recoverOutbox()
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				recoverOutbox()
+			}
+		}
+	}()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/foundPet", svc.HandleFoundPet)

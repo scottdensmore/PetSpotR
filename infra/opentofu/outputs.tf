@@ -15,7 +15,7 @@ output "foundpet_service_url" {
 
 output "pet_matcher_url" {
   value       = module.cloudrun.pet_matcher_url
-  description = "Public URL of pet-matcher Cloud Run service"
+  description = "Authenticated internal URL of pet-matcher Cloud Run service"
 }
 
 output "notification_service_url" {

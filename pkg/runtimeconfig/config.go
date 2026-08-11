@@ -59,6 +59,9 @@ func LoadStateConfig(lookup func(string) string) (StateConfig, error) {
 		}
 		return StateConfig{Mode: ModeMemory}, nil
 	case ModeLocalEmulator:
+		if cloudRunService != "" {
+			return StateConfig{}, fmt.Errorf("runtime mode %q is not allowed on Cloud Run", config.Mode)
+		}
 		if config.ProjectID == "" {
 			return StateConfig{}, fmt.Errorf("GOOGLE_CLOUD_PROJECT is required in %q mode", config.Mode)
 		}

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -13,6 +14,15 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
+
+type getStateFailingStore struct {
+	store.StateStore
+	err error
+}
+
+func (s *getStateFailingStore) GetState(context.Context, string, string) ([]byte, error) {
+	return nil, s.err
+}
 
 func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 	st := store.NewMemoryStore()
@@ -50,10 +60,13 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 	_ = st.SaveState(context.Background(), store.LostPetsCollection, "lost-101", lostData)
 
 	var matchFoundEvent domain.MatchResult
+	var matchFoundEnvelope *domain.EventEnvelope
 	var matchPublished bool
 	_ = ps.Subscribe("matchFound", func(ctx context.Context, data []byte) error {
 		matchPublished = true
-		return json.Unmarshal(data, &matchFoundEvent)
+		var err error
+		matchFoundEnvelope, err = domain.DecodeEventPayload(data, domain.EventTypeMatchFound, &matchFoundEvent)
+		return err
 	})
 
 	t.Run("found pet matching lost pet publishes matchFound event", func(t *testing.T) {
@@ -80,6 +93,16 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 
 		if !matchFoundEvent.IsMatch {
 			t.Errorf("expected IsMatch true, got false")
+		}
+		if matchFoundEnvelope == nil || matchFoundEnvelope.AggregateID != "found-202:lost-101" {
+			t.Fatalf("match envelope = %#v", matchFoundEnvelope)
+		}
+		firstEventID := matchFoundEnvelope.ID
+		if err := worker.ProcessFoundPet(context.Background(), foundData); err != nil {
+			t.Fatalf("duplicate ProcessFoundPet failed: %v", err)
+		}
+		if matchFoundEnvelope.ID != firstEventID {
+			t.Fatalf("duplicate match event ID = %q, want stable %q", matchFoundEnvelope.ID, firstEventID)
 		}
 	})
 
@@ -129,6 +152,12 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 
 	t.Run("no candidate in lost pet store returns nil without error", func(t *testing.T) {
 		emptyStore := store.NewMemoryStore()
+		if err := emptyStore.SaveState(context.Background(), store.LostPetsCollection, "placeholder", []byte(`{}`)); err != nil {
+			t.Fatal(err)
+		}
+		if err := emptyStore.DeleteState(context.Background(), store.LostPetsCollection, "placeholder"); err != nil {
+			t.Fatal(err)
+		}
 		emptyWorker := NewWorker(emptyStore, ps, ollamaClient)
 
 		foundEvt := domain.FoundPetEvent{
@@ -139,6 +168,38 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 		err := emptyWorker.ProcessFoundPet(context.Background(), data)
 		if err != nil {
 			t.Errorf("expected nil error when no candidate available, got %v", err)
+		}
+	})
+
+	t.Run("transient candidate store failure requests redelivery", func(t *testing.T) {
+		transientErr := errors.New("firestore unavailable")
+		failingStore := &getStateFailingStore{StateStore: st, err: transientErr}
+		failingWorker := NewWorker(failingStore, ps, ollamaClient)
+		foundEvt := domain.FoundPetEvent{
+			PetID:    "found-store-error",
+			ImageURL: "https://storage.petspotr.io/found-store-error.jpg",
+			FoundAt:  time.Now().UTC(),
+		}
+		data, _ := foundEvt.ToJSON()
+		if err := failingWorker.ProcessFoundPet(context.Background(), data); !errors.Is(err, transientErr) {
+			t.Fatalf("ProcessFoundPet() error = %v, want transient store error", err)
+		}
+	})
+
+	t.Run("invalid candidate state requests redelivery", func(t *testing.T) {
+		invalidStore := store.NewMemoryStore()
+		if err := invalidStore.SaveState(context.Background(), store.LostPetsCollection, "lost-101", []byte(`{invalid`)); err != nil {
+			t.Fatal(err)
+		}
+		invalidWorker := NewWorker(invalidStore, ps, ollamaClient)
+		foundEvt := domain.FoundPetEvent{
+			PetID:    "found-invalid-candidate",
+			ImageURL: "https://storage.petspotr.io/found-invalid-candidate.jpg",
+			FoundAt:  time.Now().UTC(),
+		}
+		data, _ := foundEvt.ToJSON()
+		if err := invalidWorker.ProcessFoundPet(context.Background(), data); err == nil {
+			t.Fatal("ProcessFoundPet() error = nil, want invalid stored candidate error")
 		}
 	})
 

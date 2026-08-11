@@ -19,10 +19,6 @@ module "storage" {
   region     = var.region
 }
 
-module "pubsub" {
-  source = "./modules/pubsub"
-}
-
 module "firestore" {
   source = "./modules/firestore"
   region = var.region
@@ -30,10 +26,21 @@ module "firestore" {
 
 module "cloudrun" {
   source                     = "./modules/cloudrun"
+  project_id                 = var.project_id
   region                     = var.region
   web_frontend_image         = var.web_frontend_image
   lostpet_image              = var.lostpet_image
   foundpet_image             = var.foundpet_image
   pet_matcher_image          = var.pet_matcher_image
   notification_service_image = var.notification_service_image
+}
+
+module "pubsub" {
+  source                              = "./modules/pubsub"
+  project_id                          = var.project_id
+  region                              = var.region
+  pet_matcher_name                    = module.cloudrun.pet_matcher_name
+  pet_matcher_url                     = module.cloudrun.pet_matcher_url
+  foundpet_runtime_service_account    = module.cloudrun.foundpet_runtime_service_account
+  pet_matcher_runtime_service_account = module.cloudrun.pet_matcher_runtime_service_account
 }

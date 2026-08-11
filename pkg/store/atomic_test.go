@@ -2,11 +2,20 @@ package store_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
+
+type pendingRecord struct {
+	ID        string    `json:"id"`
+	Topic     string    `json:"topic"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+}
 
 func TestMemoryStoreCreateStateAndOutboxIsAtomicAndIdempotent(t *testing.T) {
 	ctx := context.Background()
@@ -44,5 +53,33 @@ func TestMemoryStoreCreateStateAndOutboxIsAtomicAndIdempotent(t *testing.T) {
 	}
 	if _, err := stateStore.GetState(ctx, store.OutboxCollection, "evt-103"); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("outbox from canceled transaction error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestMemoryStoreListsBoundedPendingOutboxByTopic(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	now := time.Now().UTC()
+	for _, record := range []pendingRecord{
+		{ID: "found-later", Topic: "foundPet", Status: "pending", CreatedAt: now.Add(time.Minute)},
+		{ID: "found-first", Topic: "foundPet", Status: "pending", CreatedAt: now},
+		{ID: "lost-first", Topic: "lostPet", Status: "pending", CreatedAt: now.Add(-time.Minute)},
+		{ID: "found-published", Topic: "foundPet", Status: "published", CreatedAt: now.Add(-time.Hour)},
+	} {
+		data, _ := json.Marshal(record)
+		if err := stateStore.SaveState(ctx, store.OutboxCollection, record.ID, data); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	ids, err := stateStore.ListPendingOutbox(ctx, "foundPet", 1)
+	if err != nil {
+		t.Fatalf("ListPendingOutbox() error = %v", err)
+	}
+	if len(ids) != 1 || ids[0] != "found-first" {
+		t.Fatalf("ListPendingOutbox() = %#v, want [found-first]", ids)
+	}
+	if _, err := stateStore.ListPendingOutbox(ctx, "foundPet", 0); err == nil {
+		t.Fatal("ListPendingOutbox(limit=0) error = nil, want non-nil")
 	}
 }
