@@ -72,7 +72,7 @@ func TestOpenTofuInfrastructureModules(t *testing.T) {
 		}
 
 		for _, name := range []string{
-			"PUBSUB_FOUND_SUBSCRIPTION",
+			"PUBSUB_PUSH_SUBSCRIPTION",
 			"PUBSUB_PUSH_SERVICE_ACCOUNT",
 			`resource "google_service_account" "foundpet_runtime"`,
 			`resource "google_service_account" "pet_matcher_runtime"`,
@@ -83,6 +83,46 @@ func TestOpenTofuInfrastructureModules(t *testing.T) {
 		} {
 			if !strings.Contains(string(content), name) {
 				t.Errorf("Cloud Run module missing %s", name)
+			}
+		}
+	})
+
+	t.Run("match found events use an authenticated private notification push subscription", func(t *testing.T) {
+		pubsubPath := filepath.Join(root, "infra", "opentofu", "modules", "pubsub", "main.tf")
+		pubsubContent, err := os.ReadFile(pubsubPath)
+		if err != nil {
+			t.Fatalf("read Pub/Sub module: %v", err)
+		}
+		for _, fragment := range []string{
+			`resource "google_pubsub_subscription" "match_found_backlog"`,
+			`resource "google_pubsub_topic" "match_found_dead_letter"`,
+			`resource "google_service_account" "notification_invoker"`,
+			`resource "google_cloud_run_v2_service_iam_member" "notification_invoker"`,
+			`push_endpoint = "${trimsuffix(var.notification_service_url, "/")}/pubsub/match-found"`,
+			"dead_letter_policy",
+			"retry_policy",
+		} {
+			if !strings.Contains(string(pubsubContent), fragment) {
+				t.Errorf("Pub/Sub module missing %q", fragment)
+			}
+		}
+
+		cloudRunPath := filepath.Join(root, "infra", "opentofu", "modules", "cloudrun", "main.tf")
+		cloudRunContent, err := os.ReadFile(cloudRunPath)
+		if err != nil {
+			t.Fatalf("read Cloud Run module: %v", err)
+		}
+		for _, fragment := range []string{
+			`resource "google_service_account" "notification_runtime"`,
+			`resource "google_project_iam_member" "notification_datastore"`,
+			`resource "google_cloud_run_v2_service" "notification_service"`,
+			`ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"`,
+			`name  = "PUBSUB_PUSH_SUBSCRIPTION"`,
+			`value = "projects/${var.project_id}/subscriptions/match-found-notification-backlog"`,
+			`value = "pubsub-notification-invoker@${var.project_id}.iam.gserviceaccount.com"`,
+		} {
+			if !strings.Contains(string(cloudRunContent), fragment) {
+				t.Errorf("Cloud Run module missing %q", fragment)
 			}
 		}
 	})

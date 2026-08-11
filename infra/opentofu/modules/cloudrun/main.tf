@@ -8,6 +8,11 @@ resource "google_service_account" "pet_matcher_runtime" {
   display_name = "Pet matcher Cloud Run runtime"
 }
 
+resource "google_service_account" "notification_runtime" {
+  account_id   = "notification-runtime"
+  display_name = "Notification Cloud Run runtime"
+}
+
 resource "google_project_iam_member" "foundpet_datastore" {
   project = var.project_id
   role    = "roles/datastore.user"
@@ -18,6 +23,12 @@ resource "google_project_iam_member" "pet_matcher_datastore" {
   project = var.project_id
   role    = "roles/datastore.user"
   member  = "serviceAccount:${google_service_account.pet_matcher_runtime.email}"
+}
+
+resource "google_project_iam_member" "notification_datastore" {
+  project = var.project_id
+  role    = "roles/datastore.user"
+  member  = "serviceAccount:${google_service_account.notification_runtime.email}"
 }
 
 resource "google_cloud_run_v2_service" "web_frontend" {
@@ -77,7 +88,7 @@ resource "google_cloud_run_v2_service" "pet_matcher" {
       image = var.pet_matcher_image
 
       env {
-        name  = "PUBSUB_FOUND_SUBSCRIPTION"
+        name  = "PUBSUB_PUSH_SUBSCRIPTION"
         value = "projects/${var.project_id}/subscriptions/found-pet-matcher"
       }
 
@@ -92,10 +103,23 @@ resource "google_cloud_run_v2_service" "pet_matcher" {
 resource "google_cloud_run_v2_service" "notification_service" {
   name     = "notification-service"
   location = var.region
+  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   template {
+    service_account = google_service_account.notification_runtime.email
+
     containers {
       image = var.notification_service_image
+
+      env {
+        name  = "PUBSUB_PUSH_SUBSCRIPTION"
+        value = "projects/${var.project_id}/subscriptions/match-found-notification-backlog"
+      }
+
+      env {
+        name  = "PUBSUB_PUSH_SERVICE_ACCOUNT"
+        value = "pubsub-notification-invoker@${var.project_id}.iam.gserviceaccount.com"
+      }
     }
   }
 }
@@ -138,4 +162,12 @@ output "pet_matcher_runtime_service_account" {
 
 output "notification_service_url" {
   value = google_cloud_run_v2_service.notification_service.uri
+}
+
+output "notification_service_name" {
+  value = google_cloud_run_v2_service.notification_service.name
+}
+
+output "notification_runtime_service_account" {
+  value = google_service_account.notification_runtime.email
 }
