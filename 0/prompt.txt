@@ -1,0 +1,57 @@
+yep and if you get an actional feedback you should do it
+
+---
+
+Yes go ahead and merge and clean up. In fact you don't need to ask for that. Just let me know when you are done and what you think they right next item to pick up is
+
+---
+
+Ok lets do 116
+
+---
+
+Are you testing these locally in docker?
+
+---
+
+Ok lets pickup 108
+
+---
+
+Ok I authorize
+
+---
+
+Ok lets do 116
+
+---
+
+Make sure that you are only running the unit tests in the main agent because you are doing tdd. Only run the entire battery including e2e in the verifier agent
+
+---
+
+Ok what happend with the hook? Also why did we not exercise ollama
+
+---
+
+Thinking through our main agent vs sub agent verifier. I want to keep the main agent context as clean as possible. We are doing tdd so we have to build and run tests. We also are doing user journey testing. How should we handle this? have the main agent run the one and the verifier run the entire suite?
+
+---
+
+Ok lets do that
+
+---
+
+sorry hit the wrong key... continue
+
+---
+
+What should we pick up next?
+
+---
+
+ok lets do 108
+
+---
+
+Ok finish 108

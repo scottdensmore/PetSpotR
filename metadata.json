@@ -1,0 +1,44 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01KZRPS5EYNRVDXP2V81TR97J2",
+  "strategy": "manual-commit",
+  "branch": "feat/lostpet-notification-push",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "cmd/lostpet-service/main.go",
+    "cmd/lostpet-service/service.go",
+    "cmd/lostpet-service/service_test.go",
+    "cmd/notification-service/main.go",
+    "cmd/notification-service/pubsub_integration_test.go",
+    "cmd/notification-service/server.go",
+    "cmd/notification-service/server_test.go",
+    "deploy/cloudrun/lostpet-service.yaml",
+    "deploy/cloudrun/notification-service.yaml",
+    "deploy/deploy_test.go",
+    "docker-compose.yml",
+    "docs/DEVELOPMENT.md",
+    "e2e/firestore_process_test.go",
+    "infra/infra_test.go",
+    "infra/opentofu/main.tf",
+    "infra/opentofu/modules/cloudrun/main.tf",
+    "infra/opentofu/modules/pubsub/main.tf",
+    "pkg/runtimeconfig/push.go",
+    "pkg/runtimeconfig/push_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 297004,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 11750144,
+    "output_tokens": 29177,
+    "api_call_count": 1152
+  }
+}
