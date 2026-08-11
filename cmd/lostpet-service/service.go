@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,6 +31,11 @@ func NewService(st store.StateStore, br pubsub.Publisher) *Service {
 
 type ErrorResponse struct {
 	Error string `json:"error"`
+}
+
+// recoverOutbox publishes one bounded batch of durable lostPet events.
+func (s *Service) recoverOutbox(ctx context.Context) (int, error) {
+	return s.relay.PublishPending(ctx, "lostPet")
 }
 
 func respondWithError(w http.ResponseWriter, code int, message string) {

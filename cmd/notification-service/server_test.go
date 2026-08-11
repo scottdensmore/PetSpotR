@@ -8,11 +8,15 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
-const notificationTestSubscription = "projects/local/subscriptions/match-found-notification"
+const (
+	notificationTestSubscription     = "projects/local/subscriptions/match-found-notification"
+	notificationTestLostSubscription = "projects/local/subscriptions/lost-pet-notification"
+)
 
 func TestNotificationHTTPHandlerAcknowledgesDurableIdempotentDelivery(t *testing.T) {
 	email := newIdempotentTestSender(ChannelEmail, 0)
@@ -27,6 +31,7 @@ func TestNotificationHTTPHandlerAcknowledgesDurableIdempotentDelivery(t *testing
 		worker,
 		pubsub.NewStaticPushAuthorizer("local-secret"),
 		notificationTestSubscription,
+		notificationTestLostSubscription,
 	)
 	body := notificationPushBody(t, notificationTestSubscription, "message-1", matchFoundEnvelope(t, "found-push", "lost-push"))
 
@@ -71,6 +76,7 @@ func TestNotificationHTTPHandlerRequestsRedeliveryAfterTransientFailure(t *testi
 		worker,
 		pubsub.NewStaticPushAuthorizer("local-secret"),
 		notificationTestSubscription,
+		notificationTestLostSubscription,
 	)
 	body := notificationPushBody(t, notificationTestSubscription, "message-redelivery", matchFoundEnvelope(t, "found-retry", "lost-retry"))
 
@@ -100,6 +106,7 @@ func TestNotificationHTTPHandlerRejectsWrongSubscription(t *testing.T) {
 		NewWorkerWithStore(store.NewMemoryStore(), nil),
 		pubsub.NewStaticPushAuthorizer("local-secret"),
 		notificationTestSubscription,
+		notificationTestLostSubscription,
 	)
 	body := notificationPushBody(t, "projects/local/subscriptions/other", "message-wrong-subscription", []byte(`{}`))
 	request := httptest.NewRequest(http.MethodPost, "/pubsub/match-found", bytes.NewReader(body))
@@ -118,6 +125,7 @@ func TestNotificationHTTPHandlerRequestsRedeliveryForPoisonPayload(t *testing.T)
 		NewWorkerWithStore(store.NewMemoryStore(), nil),
 		pubsub.NewStaticPushAuthorizer("local-secret"),
 		notificationTestSubscription,
+		notificationTestLostSubscription,
 	)
 	body := notificationPushBody(t, notificationTestSubscription, "message-poison", []byte(`{"not":"a match"}`))
 	request := httptest.NewRequest(http.MethodPost, "/pubsub/match-found", bytes.NewReader(body))
@@ -131,8 +139,58 @@ func TestNotificationHTTPHandlerRequestsRedeliveryForPoisonPayload(t *testing.T)
 	}
 }
 
+func TestNotificationHTTPHandlerAcknowledgesDurableCommunityBroadcast(t *testing.T) {
+	email := newIdempotentTestSender(ChannelEmail, 0)
+	sms := newIdempotentTestSender(ChannelSMS, 1)
+	push := newIdempotentTestSender(ChannelPush, 0)
+	dispatcher := NewMultiChannelDispatcher(email, sms, push)
+	worker := NewWorkerWithStoreAndDispatcher(store.NewMemoryStore(), nil, dispatcher)
+	worker.geoEngine = NewGeoBroadcastEngine([]CommunitySubscriber{
+		{
+			ID:          "subscriber-nearby",
+			Email:       "neighbor@example.com",
+			Phone:       "+12065550123",
+			Coordinates: domain.LocationPoint{Latitude: 47.6800, Longitude: -122.3290},
+			RadiusMiles: 5,
+			Channels:    []Channel{ChannelEmail, ChannelSMS, ChannelPush},
+		},
+	}, dispatcher)
+	handler := newNotificationHTTPHandler(
+		worker,
+		pubsub.NewStaticPushAuthorizer("local-secret"),
+		notificationTestSubscription,
+		notificationTestLostSubscription,
+	)
+	body := notificationPushBody(t, notificationTestLostSubscription, "message-lost", lostPetEnvelope(t, "lost-push"))
+
+	for attempt, wantStatus := range []int{http.StatusInternalServerError, http.StatusNoContent, http.StatusNoContent} {
+		request := httptest.NewRequest(http.MethodPost, "/pubsub/lost-pet", bytes.NewReader(body))
+		request.Header.Set("Authorization", "Bearer local-secret")
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, request)
+		if recorder.Code != wantStatus {
+			t.Fatalf("attempt %d status = %d, want %d; body=%q", attempt+1, recorder.Code, wantStatus, recorder.Body.String())
+		}
+	}
+
+	for channel, wantCalls := range map[Channel]int{ChannelEmail: 1, ChannelSMS: 2, ChannelPush: 1} {
+		sender := map[Channel]*idempotentTestSender{ChannelEmail: email, ChannelSMS: sms, ChannelPush: push}[channel]
+		if calls, effects := sender.snapshot(); calls != wantCalls || effects != 1 {
+			t.Errorf("%s calls/effects = %d/%d, want %d/1", channel, calls, effects, wantCalls)
+		}
+	}
+
+	wrongEndpoint := httptest.NewRequest(http.MethodPost, "/pubsub/match-found", bytes.NewReader(body))
+	wrongEndpoint.Header.Set("Authorization", "Bearer local-secret")
+	wrongRecorder := httptest.NewRecorder()
+	handler.ServeHTTP(wrongRecorder, wrongEndpoint)
+	if wrongRecorder.Code != http.StatusBadRequest {
+		t.Fatalf("lostPet delivery to matchFound endpoint status = %d, want %d", wrongRecorder.Code, http.StatusBadRequest)
+	}
+}
+
 func TestNotificationHTTPHandlerHealth(t *testing.T) {
-	handler := newNotificationHTTPHandler(nil, nil, "")
+	handler := newNotificationHTTPHandler(nil, nil, "", "")
 	request := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	recorder := httptest.NewRecorder()
 

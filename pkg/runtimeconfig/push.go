@@ -14,9 +14,41 @@ type PushConsumerConfig struct {
 	StaticToken            string
 }
 
+// NotificationPushConfig protects the notification service's independent
+// matchFound and lostPet push subscriptions with one invocation identity.
+type NotificationPushConfig struct {
+	PushConsumerConfig
+	ExpectedLostPetSubscription string
+}
+
 // LoadPushConsumerConfigFromEnv loads push authentication settings.
 func LoadPushConsumerConfigFromEnv() (PushConsumerConfig, error) {
 	return LoadPushConsumerConfig(os.Getenv)
+}
+
+// LoadNotificationPushConfigFromEnv loads notification push settings.
+func LoadNotificationPushConfigFromEnv() (NotificationPushConfig, error) {
+	return LoadNotificationPushConfig(os.Getenv)
+}
+
+// LoadNotificationPushConfig requires a distinct subscription for each
+// notification route so one delivery cannot be accepted by the wrong handler.
+func LoadNotificationPushConfig(lookup func(string) string) (NotificationPushConfig, error) {
+	base, err := LoadPushConsumerConfig(lookup)
+	if err != nil {
+		return NotificationPushConfig{}, err
+	}
+	lostPetSubscription := strings.TrimSpace(lookup("PUBSUB_LOST_SUBSCRIPTION"))
+	if lostPetSubscription == "" {
+		return NotificationPushConfig{}, fmt.Errorf("PUBSUB_LOST_SUBSCRIPTION is required in %q mode", base.Mode)
+	}
+	if lostPetSubscription == base.ExpectedSubscription {
+		return NotificationPushConfig{}, fmt.Errorf("notification push subscriptions must be distinct")
+	}
+	return NotificationPushConfig{
+		PushConsumerConfig:          base,
+		ExpectedLostPetSubscription: lostPetSubscription,
+	}, nil
 }
 
 // LoadPushConsumerConfig requires OIDC identity in GCP and an explicit static

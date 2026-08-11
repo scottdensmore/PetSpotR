@@ -1,6 +1,17 @@
+resource "google_service_account" "lostpet_runtime" {
+  account_id   = "lostpet-runtime"
+  display_name = "Lost-pet Cloud Run runtime"
+}
+
 resource "google_service_account" "foundpet_runtime" {
   account_id   = "foundpet-runtime"
   display_name = "Found-pet Cloud Run runtime"
+}
+
+resource "google_project_iam_member" "lostpet_datastore" {
+  project = var.project_id
+  role    = "roles/datastore.user"
+  member  = "serviceAccount:${google_service_account.lostpet_runtime.email}"
 }
 
 resource "google_service_account" "pet_matcher_runtime" {
@@ -47,8 +58,19 @@ resource "google_cloud_run_v2_service" "lostpet_service" {
   location = var.region
 
   template {
+    service_account = google_service_account.lostpet_runtime.email
+
+    scaling {
+      min_instance_count = 1
+      max_instance_count = 1
+    }
+
     containers {
       image = var.lostpet_image
+
+      resources {
+        cpu_idle = false
+      }
     }
   }
 }
@@ -120,6 +142,11 @@ resource "google_cloud_run_v2_service" "notification_service" {
         name  = "PUBSUB_PUSH_SERVICE_ACCOUNT"
         value = "pubsub-notification-invoker@${var.project_id}.iam.gserviceaccount.com"
       }
+
+      env {
+        name  = "PUBSUB_LOST_SUBSCRIPTION"
+        value = "projects/${var.project_id}/subscriptions/lost-pet-notification"
+      }
     }
   }
 }
@@ -154,6 +181,10 @@ output "pet_matcher_name" {
 
 output "foundpet_runtime_service_account" {
   value = google_service_account.foundpet_runtime.email
+}
+
+output "lostpet_runtime_service_account" {
+  value = google_service_account.lostpet_runtime.email
 }
 
 output "pet_matcher_runtime_service_account" {

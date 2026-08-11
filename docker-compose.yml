@@ -80,6 +80,7 @@ services:
     environment:
       - PORT=8084
       - PUBSUB_PUSH_SUBSCRIPTION=projects/petspotr-local/subscriptions/match-found-notification-backlog
+      - PUBSUB_LOST_SUBSCRIPTION=projects/petspotr-local/subscriptions/lost-pet-notification
       - PUBSUB_PUSH_DEV_TOKEN=${PUBSUB_PUSH_DEV_TOKEN:-petspotr-local-push}
 
   web-frontend:

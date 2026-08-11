@@ -125,6 +125,8 @@ func TestDeploymentArtifactsExist(t *testing.T) {
 			"match-found-notification-backlog",
 			"PUBSUB_PUSH_SERVICE_ACCOUNT",
 			"pubsub-notification-invoker",
+			"PUBSUB_LOST_SUBSCRIPTION",
+			"lost-pet-notification",
 		} {
 			if !strings.Contains(string(manifest), fragment) {
 				t.Errorf("notification-service manifest missing %q", fragment)
@@ -135,9 +137,27 @@ func TestDeploymentArtifactsExist(t *testing.T) {
 			"PORT=8084",
 			"PUBSUB_PUSH_DEV_TOKEN",
 			"PUBSUB_PUSH_SUBSCRIPTION=projects/petspotr-local/subscriptions/match-found-notification-backlog",
+			"PUBSUB_LOST_SUBSCRIPTION=projects/petspotr-local/subscriptions/lost-pet-notification",
 		} {
 			if !strings.Contains(string(compose), fragment) {
 				t.Errorf("docker-compose.yml missing notification push configuration %q", fragment)
+			}
+		}
+	})
+
+	t.Run("lostpet service runs a durable managed publisher", func(t *testing.T) {
+		manifest, err := os.ReadFile(filepath.Join(root, "deploy", "cloudrun", "lostpet-service.yaml"))
+		if err != nil {
+			t.Fatalf("read lostpet-service manifest: %v", err)
+		}
+		for _, fragment := range []string{
+			`serviceAccountName: lostpet-runtime@petspotr.iam.gserviceaccount.com`,
+			`run.googleapis.com/cpu-throttling: "false"`,
+			`autoscaling.knative.dev/minScale: "1"`,
+			`autoscaling.knative.dev/maxScale: "1"`,
+		} {
+			if !strings.Contains(string(manifest), fragment) {
+				t.Errorf("lostpet-service manifest missing %q", fragment)
 			}
 		}
 	})

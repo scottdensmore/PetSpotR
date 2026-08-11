@@ -43,6 +43,7 @@ module "pubsub" {
   pet_matcher_url                     = module.cloudrun.pet_matcher_url
   notification_service_name           = module.cloudrun.notification_service_name
   notification_service_url            = module.cloudrun.notification_service_url
+  lostpet_runtime_service_account     = module.cloudrun.lostpet_runtime_service_account
   foundpet_runtime_service_account    = module.cloudrun.foundpet_runtime_service_account
   pet_matcher_runtime_service_account = module.cloudrun.pet_matcher_runtime_service_account
 }

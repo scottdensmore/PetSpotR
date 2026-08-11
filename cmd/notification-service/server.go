@@ -11,15 +11,27 @@ import (
 func newNotificationHTTPHandler(
 	worker *Worker,
 	authorizer pubsub.PushAuthorizer,
-	expectedSubscription string,
+	expectedMatchSubscription string,
+	expectedLostPetSubscription string,
 ) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/pubsub/match-found", pubsub.NewPushHandler(
 		authorizer,
-		expectedSubscription,
+		expectedMatchSubscription,
 		func(ctx context.Context, data []byte) error {
 			if _, err := worker.ProcessMatchFound(ctx, data); err != nil {
 				log.Printf("Notification Service matchFound processing failed: %v", err)
+				return err
+			}
+			return nil
+		},
+	))
+	mux.Handle("/pubsub/lost-pet", pubsub.NewPushHandler(
+		authorizer,
+		expectedLostPetSubscription,
+		func(ctx context.Context, data []byte) error {
+			if _, err := worker.ProcessLostPetBroadcast(ctx, data); err != nil {
+				log.Printf("Notification Service lostPet processing failed: %v", err)
 				return err
 			}
 			return nil
