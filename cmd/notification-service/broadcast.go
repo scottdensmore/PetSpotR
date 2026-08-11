@@ -24,6 +24,8 @@ type GeoBroadcastEngine struct {
 	dispatcher  *MultiChannelDispatcher
 }
 
+type notificationDispatch func(context.Context, *NotificationMessage) ([]DispatchResult, error)
+
 // NewGeoBroadcastEngine constructs a GeoBroadcastEngine instance.
 func NewGeoBroadcastEngine(subscribers []CommunitySubscriber, dispatcher *MultiChannelDispatcher) *GeoBroadcastEngine {
 	return &GeoBroadcastEngine{
@@ -56,8 +58,20 @@ func DefaultSubscribers() []CommunitySubscriber {
 
 // BroadcastLostPetAlert computes distance between lost pet location and subscribers, broadcasting urgent alerts to nearby residents.
 func (g *GeoBroadcastEngine) BroadcastLostPetAlert(ctx context.Context, evt *domain.LostPetEvent, maxRadiusMiles float64) ([]DispatchResult, error) {
+	return g.broadcastLostPetAlert(ctx, evt, maxRadiusMiles, g.dispatcher.Dispatch)
+}
+
+func (g *GeoBroadcastEngine) broadcastLostPetAlert(
+	ctx context.Context,
+	evt *domain.LostPetEvent,
+	maxRadiusMiles float64,
+	dispatch notificationDispatch,
+) ([]DispatchResult, error) {
 	if evt == nil {
 		return nil, fmt.Errorf("evt cannot be nil")
+	}
+	if dispatch == nil {
+		return nil, fmt.Errorf("notification dispatch cannot be nil")
 	}
 
 	petPoint := domain.ParseLocationCoordinates(evt.Location)
@@ -89,12 +103,11 @@ func (g *GeoBroadcastEngine) BroadcastLostPetAlert(ctx context.Context, evt *dom
 				Channels:    sub.Channels,
 			}
 
-			results, err := g.dispatcher.Dispatch(ctx, msg)
+			results, err := dispatch(ctx, msg)
 			if err != nil {
-				log.Printf("[GEO BROADCAST] Error sending to subscriber %s: %v", sub.ID, err)
-			} else {
-				allResults = append(allResults, results...)
+				return allResults, fmt.Errorf("broadcast to subscriber %s: %w", sub.ID, err)
 			}
+			allResults = append(allResults, results...)
 		} else {
 			log.Printf("[GEO BROADCAST] Subscriber %s is %.2f miles away (Outside radius %.2f mi). Skipping.",
 				sub.ID, distMiles, effectiveRadius)

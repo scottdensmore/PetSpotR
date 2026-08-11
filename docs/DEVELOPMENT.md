@@ -208,13 +208,13 @@ notification push delivery are not yet managed paths. Multi-instance outbox
 claiming and the remaining consumer paths stay in issue #116. GCS uploads
 remain in-memory until issue #109 is completed.
 
-### Idempotent owner-notification delivery
+### Idempotent notification delivery
 
-The `matchFound` owner-notification path derives one opaque delivery operation
-for each event, recipient, and channel. Current envelopes use their verified
-stable event ID. Legacy raw payloads receive a stable compatibility ID derived
-from their event type and exact payload bytes, so an in-flight message remains
-safe under redelivery.
+The `matchFound` owner-notification and `lostPet` community-broadcast paths
+derive one opaque delivery operation for each event, recipient, and channel.
+Current envelopes use their verified stable event ID. Legacy raw payloads
+receive a stable compatibility ID derived from their event type and exact
+payload bytes, so an in-flight message remains safe under redelivery.
 
 Each operation is claimed in a Firestore transaction with a one-minute lease
 and monotonically increasing attempt fence. A concurrent handler returns an
@@ -238,11 +238,11 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
   -run TestFirestoreDeliveryOperationClaimAndFencing
 ```
 
-Focused worker tests also cover duplicate envelopes, partial multi-channel
-failure, and provider success followed by completion-store failure. This slice
-does not yet make lost-pet community broadcasts idempotent or migrate the
-notification worker to authenticated Cloud Run push; those remain in
-issues #116 and #108 respectively.
+Focused worker tests also cover current and legacy duplicate events, concurrent
+handlers, partial subscriber/channel failure, and provider success followed by
+completion-store failure. Multi-instance outbox claiming remains in issue #116.
+The notification worker is not yet an authenticated Cloud Run push service;
+that remains in issue #108.
 
 ---
 

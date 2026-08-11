@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scottdensmore/petspotr/pkg/delivery"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/store"
@@ -57,6 +58,33 @@ type completionFailingDeliveryStore struct {
 	store.DeliveryOperationStore
 	mu        sync.Mutex
 	remaining int
+}
+
+type blockingTestSender struct {
+	delegate *idempotentTestSender
+	entered  chan struct{}
+	release  chan struct{}
+	once     sync.Once
+}
+
+func newBlockingTestSender(channel Channel) *blockingTestSender {
+	return &blockingTestSender{
+		delegate: newIdempotentTestSender(channel, 0),
+		entered:  make(chan struct{}),
+		release:  make(chan struct{}),
+	}
+}
+
+func (s *blockingTestSender) Channel() Channel { return s.delegate.Channel() }
+
+func (s *blockingTestSender) Send(ctx context.Context, message *NotificationMessage) error {
+	s.once.Do(func() { close(s.entered) })
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-s.release:
+		return s.delegate.Send(ctx, message)
+	}
 }
 
 func (s *completionFailingDeliveryStore) CompleteDeliveryOperation(
@@ -140,6 +168,144 @@ func TestMatchFoundCompletionCrashRetriesWithSameProviderKey(t *testing.T) {
 	}
 }
 
+func TestLostPetBroadcastRedeliverySkipsCompletedSubscriberChannels(t *testing.T) {
+	stateStore := store.NewMemoryStore()
+	email := newIdempotentTestSender(ChannelEmail, 0)
+	sms := newIdempotentTestSender(ChannelSMS, 1)
+	push := newIdempotentTestSender(ChannelPush, 0)
+	dispatcher := NewMultiChannelDispatcher(email, sms, push)
+	worker := NewWorkerWithStoreAndDispatcher(stateStore, pubsub.NewMemoryPubSub(), dispatcher)
+	worker.geoEngine = NewGeoBroadcastEngine([]CommunitySubscriber{
+		{
+			ID:          "subscriber-nearby",
+			Email:       "neighbor@example.com",
+			Phone:       "+12065550123",
+			Coordinates: domain.LocationPoint{Latitude: 47.6800, Longitude: -122.3290},
+			RadiusMiles: 5,
+			Channels:    []Channel{ChannelEmail, ChannelSMS, ChannelPush},
+		},
+	}, dispatcher)
+	data := lostPetEnvelope(t, "lost-community")
+
+	if _, err := worker.ProcessLostPetBroadcast(context.Background(), data); err == nil {
+		t.Fatal("first ProcessLostPetBroadcast() error = nil, want SMS provider failure")
+	}
+	if _, err := worker.ProcessLostPetBroadcast(context.Background(), data); err != nil {
+		t.Fatalf("redelivered ProcessLostPetBroadcast() error = %v", err)
+	}
+	if _, err := worker.ProcessLostPetBroadcast(context.Background(), data); err != nil {
+		t.Fatalf("completed replay ProcessLostPetBroadcast() error = %v", err)
+	}
+
+	if calls, effects := email.snapshot(); calls != 1 || effects != 1 {
+		t.Fatalf("email calls/effects = %d/%d, want 1/1", calls, effects)
+	}
+	if calls, effects := sms.snapshot(); calls != 2 || effects != 1 {
+		t.Fatalf("SMS calls/effects = %d/%d, want 2/1", calls, effects)
+	}
+	if calls, effects := push.snapshot(); calls != 1 || effects != 1 {
+		t.Fatalf("push calls/effects = %d/%d, want 1/1", calls, effects)
+	}
+}
+
+func TestLegacyLostPetBroadcastRedeliveryIsIdempotent(t *testing.T) {
+	stateStore := store.NewMemoryStore()
+	email := newIdempotentTestSender(ChannelEmail, 0)
+	dispatcher := NewMultiChannelDispatcher(email)
+	worker := NewWorkerWithStoreAndDispatcher(stateStore, pubsub.NewMemoryPubSub(), dispatcher)
+	worker.geoEngine = NewGeoBroadcastEngine([]CommunitySubscriber{
+		{
+			ID:          "subscriber-legacy",
+			Email:       "legacy-neighbor@example.com",
+			Coordinates: domain.LocationPoint{Latitude: 47.6800, Longitude: -122.3290},
+			RadiusMiles: 5,
+			Channels:    []Channel{ChannelEmail},
+		},
+	}, dispatcher)
+	event := domain.LostPetEvent{
+		PetID:         "lost-legacy-community",
+		ReporterEmail: "owner@example.com",
+		ReportedAt:    time.Date(2026, time.August, 10, 12, 0, 0, 0, time.UTC),
+		Location:      "Green Lake Park, Seattle, WA",
+	}
+	data, err := event.ToJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if _, err := worker.ProcessLostPetBroadcast(context.Background(), data); err != nil {
+			t.Fatalf("ProcessLostPetBroadcast(legacy) error = %v", err)
+		}
+	}
+	if calls, effects := email.snapshot(); calls != 1 || effects != 1 {
+		t.Fatalf("legacy email calls/effects = %d/%d, want 1/1", calls, effects)
+	}
+}
+
+func TestLostPetBroadcastDefaultsEmptyChannelsToIdempotentEmail(t *testing.T) {
+	stateStore := store.NewMemoryStore()
+	email := newIdempotentTestSender(ChannelEmail, 0)
+	dispatcher := NewMultiChannelDispatcher(email)
+	worker := NewWorkerWithStoreAndDispatcher(stateStore, pubsub.NewMemoryPubSub(), dispatcher)
+	worker.geoEngine = NewGeoBroadcastEngine([]CommunitySubscriber{
+		{
+			ID:          "subscriber-default-email",
+			Email:       "default-neighbor@example.com",
+			Coordinates: domain.LocationPoint{Latitude: 47.6800, Longitude: -122.3290},
+			RadiusMiles: 5,
+			Channels:    nil,
+		},
+	}, dispatcher)
+	data := lostPetEnvelope(t, "lost-default-email")
+
+	for range 2 {
+		results, err := worker.ProcessLostPetBroadcast(context.Background(), data)
+		if err != nil {
+			t.Fatalf("ProcessLostPetBroadcast(default email) error = %v", err)
+		}
+		if len(results) != 1 || results[0].Channel != ChannelEmail || !results[0].Success {
+			t.Fatalf("default email results = %#v, want one successful email", results)
+		}
+	}
+	if calls, effects := email.snapshot(); calls != 1 || effects != 1 {
+		t.Fatalf("default email calls/effects = %d/%d, want 1/1", calls, effects)
+	}
+}
+
+func TestConcurrentLostPetBroadcastRequestsRedeliveryForActiveLease(t *testing.T) {
+	stateStore := store.NewMemoryStore()
+	email := newBlockingTestSender(ChannelEmail)
+	dispatcher := NewMultiChannelDispatcher(email)
+	worker := NewWorkerWithStoreAndDispatcher(stateStore, pubsub.NewMemoryPubSub(), dispatcher)
+	worker.geoEngine = NewGeoBroadcastEngine([]CommunitySubscriber{
+		{
+			ID:          "subscriber-concurrent",
+			Email:       "concurrent-neighbor@example.com",
+			Coordinates: domain.LocationPoint{Latitude: 47.6800, Longitude: -122.3290},
+			RadiusMiles: 5,
+			Channels:    []Channel{ChannelEmail},
+		},
+	}, dispatcher)
+	data := lostPetEnvelope(t, "lost-concurrent-community")
+	firstResult := make(chan error, 1)
+	go func() {
+		_, err := worker.ProcessLostPetBroadcast(context.Background(), data)
+		firstResult <- err
+	}()
+	<-email.entered
+
+	if _, err := worker.ProcessLostPetBroadcast(context.Background(), data); !errors.Is(err, delivery.ErrOperationInProgress) {
+		t.Fatalf("concurrent ProcessLostPetBroadcast() error = %v, want ErrOperationInProgress", err)
+	}
+	close(email.release)
+	if err := <-firstResult; err != nil {
+		t.Fatalf("first ProcessLostPetBroadcast() error = %v", err)
+	}
+	if calls, effects := email.delegate.snapshot(); calls != 1 || effects != 1 {
+		t.Fatalf("concurrent email calls/effects = %d/%d, want 1/1", calls, effects)
+	}
+}
+
 func matchFoundEnvelope(t *testing.T, foundPetID, lostPetID string) []byte {
 	t.Helper()
 	result := domain.MatchResult{
@@ -156,6 +322,36 @@ func matchFoundEnvelope(t *testing.T, foundPetID, lostPetID string) []byte {
 		Type:             domain.EventTypeMatchFound,
 		OccurredAt:       time.Date(2026, time.August, 10, 12, 0, 0, 0, time.UTC),
 		AggregateID:      foundPetID + ":" + lostPetID,
+		AggregateVersion: 1,
+		PayloadVersion:   1,
+		Payload:          payload,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := json.Marshal(envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func lostPetEnvelope(t *testing.T, petID string) []byte {
+	t.Helper()
+	event := domain.LostPetEvent{
+		PetID:         petID,
+		ReporterEmail: "owner@example.com",
+		ReportedAt:    time.Date(2026, time.August, 10, 12, 0, 0, 0, time.UTC),
+		Location:      "Green Lake Park, Seattle, WA",
+	}
+	payload, err := event.ToJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+		Type:             domain.EventTypeLostPetReported,
+		OccurredAt:       event.ReportedAt,
+		AggregateID:      event.PetID,
 		AggregateVersion: 1,
 		PayloadVersion:   1,
 		Payload:          payload,
