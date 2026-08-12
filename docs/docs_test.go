@@ -1,7 +1,15 @@
-// Package docs_test compares machine-readable values that AGENTS.md and the CI
-// workflow both encode: version pins, the Compose service list, and the
-// markdownlint file list. Each is duplicated verbatim across two files and
-// drifts silently, producing a green local run against a red CI.
+// Package docs_test guards AGENTS.md against two classes of drift.
+//
+// The first is a value duplicated verbatim across two files: version pins, the
+// Compose service list, and the markdownlint file list, each encoded by both
+// AGENTS.md and the CI workflow. These drift silently, producing a green local
+// run against a red CI.
+//
+// The second has no second copy to diff — the project table describes the tree,
+// and the tree is the only other record of itself. That class went unguarded
+// long enough for four pkg/ packages and a doc to land unlisted while every
+// test here stayed green, so the table is compared against the filesystem in
+// both directions.
 //
 // Prose assertions were removed deliberately. Matching English could not tell a
 // rule from its negation — a guard on "must remain idempotent under redelivery"
@@ -245,8 +253,12 @@ func TestMarkdownlintFileListMatchesCI(t *testing.T) {
 func TestListedDocsExist(t *testing.T) {
 	// Non-glob entries from the markdownlint list, plus the docs AGENTS.md's
 	// project table names. Globs are skipped: they match zero files silently.
+	// The table names are read from the table rather than restated here — a
+	// hardcoded mirror is the drift this file exists to prevent.
 	required := markdownlintFiles(t, readCI(t), ciPath)
-	required = append(required, "docs/DEVELOPMENT.md", "docs/MIGRATION_PLAN.md", "docs/ROADMAP.md")
+	for _, name := range backtickedNames(projectTableRow(t, readFile(t, agentsPath), "docs/")) {
+		required = append(required, "docs/"+name)
+	}
 
 	for _, name := range required {
 		if strings.ContainsAny(name, "*?[") {
@@ -263,6 +275,113 @@ func TestListedDocsExist(t *testing.T) {
 			}
 			if len(content) == 0 {
 				t.Errorf("%s is referenced by CI or AGENTS.md but is empty", name)
+			}
+		})
+	}
+}
+
+// projectTableRow returns the Contents cell of the project-table row whose Path
+// cell is exactly path. Like ciStep it fails closed on both counts, missing and
+// ambiguous: a renamed or reformatted row stops the guard rather than leaving it
+// silently watching nothing, and a second row for the same path would otherwise
+// bind the guard to whichever came first.
+func projectTableRow(t *testing.T, agents, path string) string {
+	t.Helper()
+
+	row := regexp.MustCompile("(?m)^\\| `" + regexp.QuoteMeta(path) + "` \\| (.*) \\|$")
+
+	matched := row.FindAllStringSubmatch(agents, -1)
+	switch len(matched) {
+	case 1:
+		return matched[0][1]
+	case 0:
+		t.Fatalf("no project-table row for %q in AGENTS.md; the table was renamed or reformatted, so this guard is no longer watching anything", path)
+	default:
+		t.Fatalf("%d project-table rows in AGENTS.md claim the path %q; the guard would bind to the first and ignore the rest", len(matched), path)
+	}
+	return ""
+}
+
+// backtickedName extracts one `quoted` name from a table cell. Hoisted beside
+// quotedArg, its direct analogue, rather than compiled per call.
+var backtickedName = regexp.MustCompile("`([^`]+)`")
+
+// backtickedNames returns the sorted `quoted` names in a table cell. Sorting is
+// what lets the table stay in whatever order reads best — pkg/ is grouped by
+// role, not alphabetically — while still comparing as a set. Duplicates are
+// kept rather than collapsed, so a name listed twice fails against the tree
+// instead of passing as a set that happens to match.
+//
+// Every backticked token in a guarded cell is read as a name, so those cells
+// must carry no other inline code — a parenthetical like `main` package would
+// be compared against the tree and fail.
+func backtickedNames(cell string) []string {
+	var names []string
+	for _, m := range backtickedName.FindAllStringSubmatch(cell, -1) {
+		names = append(names, m[1])
+	}
+
+	sort.Strings(names)
+	return names
+}
+
+// treeEntries returns the sorted names in dir that satisfy keep. It does not
+// recurse: the project table names top-level entries, so a nested doc is linted
+// by the `docs/**/*.md` glob without being required in the table. That holds
+// while docs/ stays flat; a subdirectory needs this to walk instead.
+func treeEntries(t *testing.T, dir string, keep func(os.DirEntry) bool) []string {
+	t.Helper()
+
+	entries, err := os.ReadDir(filepath.Join("..", dir))
+	if err != nil {
+		t.Fatalf("failed to read %s: %v", dir, err)
+	}
+
+	var names []string
+	for _, entry := range entries {
+		if keep(entry) {
+			names = append(names, entry.Name())
+		}
+	}
+
+	sort.Strings(names)
+	return names
+}
+
+// TestProjectTableMatchesTree closes the direction TestListedDocsExist leaves
+// open. That guard asks whether everything named exists; this one asks whether
+// everything that exists is named. The second question is the one that went
+// unanswered: four pkg/ packages and a doc landed without reaching the table,
+// and every guard in this file stayed green through all of it, because a table
+// describing the tree has no second copy to diff against.
+func TestProjectTableMatchesTree(t *testing.T) {
+	agents := readFile(t, agentsPath)
+
+	isDir := func(e os.DirEntry) bool { return e.IsDir() }
+	isMarkdown := func(e os.DirEntry) bool {
+		return !e.IsDir() && strings.HasSuffix(e.Name(), ".md")
+	}
+
+	rows := []struct {
+		path string
+		dir  string
+		keep func(os.DirEntry) bool
+		what string
+	}{
+		{"cmd/", "cmd", isDir, "service entrypoint"},
+		{"pkg/", "pkg", isDir, "shared package"},
+		{"docs/", "docs", isMarkdown, "document"},
+	}
+
+	for _, row := range rows {
+		t.Run(row.path, func(t *testing.T) {
+			listed := backtickedNames(projectTableRow(t, agents, row.path))
+			actual := treeEntries(t, row.dir, row.keep)
+
+			if !slices.Equal(listed, actual) {
+				t.Errorf("the %s row of AGENTS.md's project table disagrees with the tree:\n  listed: %v\n  actual: %v\n"+
+					"every %s must be named in the table — an unlisted one is invisible to an agent scoping work, and a listed one that no longer exists sends it looking for nothing",
+					row.path, listed, actual, row.what)
 			}
 		})
 	}
