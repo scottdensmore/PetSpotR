@@ -250,10 +250,13 @@ This file is machine-asserted. `docs/docs_test.go` runs inside the required
 `go-checks` job and compares AGENTS.md against `ci.yml`: the Go toolchain,
 golangci-lint, markdownlint-cli, and OpenTofu pins in their exact stated
 wording, the Compose stack command verbatim, and the markdownlint file list as
-a set. It also requires every non-glob doc named in that list or in the project
-table to exist and be non-empty, and requires the three registered subagent
-files to reference this file while containing no version literals or pinned
-commands. Rewording those sentences — not just changing their values — can
+a set. It also requires the `cmd/`, `pkg/`, and `docs/` rows of the project
+table to name exactly what is in the tree — in both directions, so a new
+top-level package or document fails CI until the table lists it — requires every
+non-glob doc named in that table or the markdownlint list to exist and be
+non-empty, and requires the three registered subagent files to reference this
+file while containing no version literals or pinned commands. Rewording those
+sentences or reformatting that table — not just changing their values — can
 therefore fail CI on what looks like a documentation-only change. Restore the
 wording rather than loosening a guard. The Node pin below is not guarded; keep
 it in sync with `ci.yml` by hand.
@@ -354,12 +357,13 @@ required before merge:
 The `go-checks` job runs the in-memory portion of the `e2e/` package as part of
 `go test -race -cover ./...`. It starts no emulator, so the emulator-gated files
 in `e2e/` skip and the job reports green without them; see
-[Verification scope](#verification-scope). The Playwright job needs only `lostpet-service`,
-`foundpet-service`, and `web-frontend`, so it deliberately avoids downloading a
-model. Neither CI nor the documented verifier commands exercise a live Ollama,
-real Pub/Sub, or deployed GCP cascade; do not claim that coverage unless a task
-defines and runs an explicit integration command for it. CI results also do not
-replace the independent verifier report required by step 7.
+[Verification scope](#verification-scope). The Playwright job needs only
+`lostpet-service`, `foundpet-service`, and `web-frontend`, so it deliberately
+avoids downloading a model. Neither CI nor the documented verifier commands
+exercise a live Ollama, real Pub/Sub, or deployed GCP cascade; do not claim that
+coverage unless a task defines and runs an explicit integration command for it.
+CI results also do not replace the independent verifier report required by
+step 7.
 
 ## Branch protection
 
