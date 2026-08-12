@@ -18,7 +18,6 @@ It runs natively on **Google Cloud Platform (GCP)** and **Locally** using
   ([`infra/opentofu/`](./infra/opentofu)).
 - **Documentation**:
   - Setup & Deployment Guide: [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md)
-  - Full Architecture & Migration Plan: [`docs/MIGRATION_PLAN.md`](./docs/MIGRATION_PLAN.md)
   - Coding Agent Guidelines: [`AGENTS.md`](./AGENTS.md)
 
 ---
