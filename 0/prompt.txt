@@ -1,0 +1,83 @@
+If all the checks have passed go ahead and squash merge
+
+---
+
+Ok lets fix those 3 things
+
+---
+
+<task-notification>
+<task-id>ada59eaf23a1f9011</task-id>
+<tool-use-id>toolu_016h82EbKtwG7o3tbYSMP3ex</tool-use-id>
+<output-file>/tmp/claude-1000/-home-scottdensmore-Developer-scottdensmore-petspotr/030b6b3d-461f-4949-85db-52a42c195bbf/tasks/ada59eaf23a1f9011.output</output-file>
+<status>completed</status>
+<summary>Agent "Formal verification gate" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>GATE: PASS (re-run after the six code-review fixes)
+
+The Go source changed materially, so I reran the full applicable battery rather than a subset, and re-derived every red state myself.
+
+## Commands
+
+| Command | Status | Result |
+| --- | --- | --- |
+| `go version` | PASS | `go1.26.5` — matches the CI pin |
+| `gofmt -l .` | PASS | No files listed |
+| `go vet ./...` | PASS | Clean, exit 0 |
+| `go test -race -cover -count=1 ./...` | PASS | All 20 packages `ok`, uncached |
+| `go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run` | PASS | `0 issues.` — notably clean despite the unreachable `return ""` after the `switch`, which some linters flag |
+| `npx --yes markdownlint-cli@0.49.1 --config .markdownlint.json "AGENTS.md" "CLAUDE.md" "README.md" "docs/**/*.md"` | PASS | No findings on the rewrapped prose |
+| OpenTofu `fmt -check` / `validate` | NOT RUN | Not applicable — `infra/` unchanged |
+| Playwright suite | NOT RUN | Not applicable — no HTTP service, rendered page, or contract change |
+| Emulator-gated contracts | NOT RUN | `FIRESTORE_EMULATOR_HOST` / `PUBSUB_EMULATOR_HOST` unset; skipped silently inside the green run. Not applicable — no durable state, outbox, delivery, or idempotency change |
+
+No flakes: the `docs` package ran four times across this pass (verbose, plain, and twice inside `./...`), identical every time. Worktree is still exactly `M AGENTS.md` and `M docs/docs_test.go`, `HEAD` unchanged at `81d8efa`, no stash, no probe artifacts. All perturbation work happened in a scratchpad `rsync` copy that I have since deleted.
+
+## Independent re-verification of the binding
+
+Fourteen perturbations against an isolated copy of the current worktree, each applied, run, and reverted:
+
+| Perturbation | Expected | Observed |
+| --- | --- | --- |
+| Baseline | PASS | PASS |
+| Unlisted new `pkg/probefakepkg/` | FAIL | FAIL `.../pkg/` |
+| Unlisted new `docs/PROBE_NEW.md` | FAIL | FAIL `.../docs/` |
+| Unlisted new `cmd/probe-fake-svc/` | FAIL | FAIL `.../cmd/` |
+| `cmd/` row renamed | fail closed | FAIL, "no longer watching anything" |
+| `docs/` row renamed | fail closed, both tests | FAIL in `TestListedDocsExist` **and** `TestProjectTableMatchesTree` |
+| `telemetry` dropped from `pkg/` row | FAIL | FAIL (reverse direction) |
+| `GHOST.md` added to `docs/` row | FAIL | FAIL in both tests |
+| `docs/` row reordered | PASS | PASS (set comparison holds) |
+| `pkg/` row cell whitespace reformatted | fail closed | FAIL |
+| **Duplicate `docs/` row, identical content** | fail ambiguous | FAIL: `2 project-table rows ... claim the path "docs/"` in both tests |
+| **Duplicate `docs/` row, divergent content** | fail ambiguous, not bind-to-first | FAIL with the same ambiguity message — confirms it does *not* silently take the first row |
+| **Duplicate `pkg/` row** | fail ambiguous | FAIL |
+| **`DEVELOPMENT.md` listed twice in the `docs/` row** | FAIL | FAIL: `listed: [DEVELOPMENT.md DEVELOPMENT.md ...]` vs `actual: [DEVELOPMENT.md ...]` |
+
+The `FindAllStringSubmatch` rewrite is confirmed on all three counts the review asked for: missing row still fails closed, ambiguous row now fails closed, and the single-row happy path still binds in both directions. The duplicate-name case also behaves as the new comment claims — duplicates are kept, not collapsed, so a doubled name is caught rather than passing as an equal set.
+
+I additionally probed the newly documented caveat that guarded cells must carry no other inline code. Adding a parenthetical to the `pkg/` cell produces:
+
+```
+listed: [blob delivery domain main ollama outbox pubsub runtimeconfig scoring store telemetry]
+actual: [blob delivery domain ollama outbox pubsub runtimeconfig scoring store telemetry]
+```
+
+The caveat is real and now correctly documented. It is a genuine constraint on future edits to those three rows, not a defect.
+
+One correction to my own method, for the record: my first attempt at the duplicate-name probe used a `sed` pattern that never matched the file, so it reported a green that meant nothing. I caught it by echoing the row back, and re-ran it correctly — the row is `, \`ROADMAP.md\``, not `| \`ROADMAP.md\``. The result above is from the corrected run.
+
+## Remaining coverage gaps (non-blocking, now documented in code)
+
+- **Nested docs are still not covered**, but this is no longer an undocumented gap: `treeEntries` states it does not recurse, and AGENTS.md now says "a new **top-level** package or document". The behavior and the prose agree. It becomes a live gap only if `docs/` gains a subdirectory, and the code comment tells the next reader exactly what to change.
+- **Any directory under `pkg/` must be listed**, not just Go packages — a future `pkg/testdata/` would force a table entry or a filter change. Unchanged from my last report, still a strictness tradeoff rather than a bug.
+- No new exported functions, error paths, or Pub/Sub handlers; the helpers are unexported and all exercised.
+
+## Still worth filing (`agent-found`, out of scope)
+
+- **`chore(ci): pin local Node to 20 to match actions/setup-node`** — this machine runs Node `v26.5.0` against the documented pin of `20`. markdownlint passed, but `npx` can resolve different transitive dependencies on a different major, and AGENTS.md itself notes the Node pin is unguarded by `docs_test.go`.
+- **`test(docs): decide whether nested docs must appear in the project table`** — lower priority than before, since the assumption is now recorded in both the code comment and AGENTS.md; file it as a tracked decision rather than a defect.
+
+Nothing tied to this change blocks progress. The changed files are `/home/scottdensmore/Developer/scottdensmore/petspotr/docs/docs_test.go` and `/home/scottdensmore/Developer/scottdensmore/petspotr/AGENTS.md`.</result>
+<usage><subagent_tokens>51654</subagent_tokens><tool_uses>11</tool_uses><duration_ms>132703</duration_ms></usage>
+</task-notification>

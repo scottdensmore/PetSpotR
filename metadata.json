@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01KZSY614H09GBEPASC4M66NEP",
+  "strategy": "manual-commit",
+  "branch": "test/project-table-guards",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "AGENTS.md",
+    "docs/docs_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 95,
+    "cache_creation_tokens": 43065,
+    "cache_read_tokens": 6751606,
+    "output_tokens": 26272,
+    "api_call_count": 51
+  }
+}
