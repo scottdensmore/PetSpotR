@@ -28,7 +28,7 @@ and browser-driven page coverage.
 | `tests/playwright/` | API and browser journeys using three local HTTP services |
 | `infra/opentofu/` | GCP infrastructure modules |
 | `deploy/cloudrun/` | Cloud Run manifests |
-| `docs/` | `DEVELOPMENT.md`, `MIGRATION_PLAN.md`, `ROADMAP.md` |
+| `docs/` | `DEVELOPMENT.md` |
 
 ## Code Review Rules
 
@@ -245,23 +245,6 @@ The `verifier` owns these commands.
 pinned version, never `@latest` — a floating linter once produced a green local
 run and a red CI on the same commit. If you change a version here, change it in
 `.github/workflows/ci.yml` in the same commit.
-
-This file is machine-asserted. `docs/docs_test.go` runs inside the required
-`go-checks` job and compares AGENTS.md against `ci.yml`: the Go toolchain,
-golangci-lint, markdownlint-cli, OpenTofu, and Node pins in their exact stated
-wording, the Compose stack command verbatim, and the markdownlint file list as
-a set. The Node check also requires both `setup-node` steps to agree with each
-other, and requires every one of them to state a readable version, so switching
-a step to `node-version-file` or `lts/*` fails rather than going unwatched. It
-also requires the `cmd/`, `pkg/`, and `docs/` rows of the project table to name
-exactly what is in the tree — in both directions, so a new top-level package or
-document fails CI until the table lists it — requires every non-glob doc named
-in that table or the markdownlint list to exist and be non-empty, and requires
-the three registered subagent files to reference this file while containing no
-version literals or pinned commands. Rewording those sentences or reformatting
-that table — not just changing their values — can therefore fail CI on what
-looks like a documentation-only change. Restore the wording rather than
-loosening a guard.
 
 Go toolchain — `1.26.5`, matching `actions/setup-go` in CI. The Go version is
 pinned for the same reason the linters are: `go vet`'s analyzer set and stdlib

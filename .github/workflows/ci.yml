@@ -41,8 +41,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          # Active LTS. Keep in sync with AGENTS.md; docs_test.go asserts both
-          # setup-node steps agree with each other and with the doc.
+          # Active LTS. Keep both setup-node steps and AGENTS.md in sync.
           node-version: 24
 
       - name: Install & Run Markdown Linter
@@ -96,8 +95,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          # Active LTS. Keep in sync with AGENTS.md; docs_test.go asserts both
-          # setup-node steps agree with each other and with the doc.
+          # Active LTS. Keep both setup-node steps and AGENTS.md in sync.
           node-version: 24
           cache: npm
           cache-dependency-path: tests/playwright/package-lock.json
