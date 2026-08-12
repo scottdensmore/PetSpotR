@@ -113,6 +113,10 @@ func TestPinnedVersionsMatchCI(t *testing.T) {
 			docs: []*regexp.Regexp{
 				regexp.MustCompile("Go toolchain — `(\\d+\\.\\d+\\.\\d+)`"),
 				regexp.MustCompile(`must report go(\d+\.\d+\.\d+)`),
+				// The recovery instruction restates the pin a third time. Left
+				// unwatched, a bump updates the two above and leaves agents
+				// with a stale GOTOOLCHAIN to paste.
+				regexp.MustCompile(`GOTOOLCHAIN=go(\d+\.\d+\.\d+)`),
 			},
 		},
 		{
@@ -242,7 +246,7 @@ func TestListedDocsExist(t *testing.T) {
 	// Non-glob entries from the markdownlint list, plus the docs AGENTS.md's
 	// project table names. Globs are skipped: they match zero files silently.
 	required := markdownlintFiles(t, readCI(t), ciPath)
-	required = append(required, "docs/DEVELOPMENT.md", "docs/MIGRATION_PLAN.md")
+	required = append(required, "docs/DEVELOPMENT.md", "docs/MIGRATION_PLAN.md", "docs/ROADMAP.md")
 
 	for _, name := range required {
 		if strings.ContainsAny(name, "*?[") {
