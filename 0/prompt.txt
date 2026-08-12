@@ -1,5 +1,1 @@
-remove docs/MIGRATION_PLAN.md and docs/ROADMAP.md. Don't need them. Also we only need tests for the code.. we can also delete docs/docs_test.go.
-
----
-
-Which sub agents are you using?
+Ok lets create a pr and squash merge after checks pass
