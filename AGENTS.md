@@ -23,12 +23,12 @@ and browser-driven page coverage.
 | Path | Contents |
 | --- | --- |
 | `cmd/` | Service entrypoints: `lostpet-service`, `foundpet-service`, `pet-matcher`, `notification-service`, `web-frontend` |
-| `pkg/` | Shared packages: `domain`, `store`, `pubsub`, `blob`, `ollama`, `scoring` |
-| `e2e/` | Self-contained Go event-cascade tests using in-memory and test servers |
+| `pkg/` | Shared packages: `domain`, `store`, `pubsub`, `outbox`, `delivery`, `blob`, `ollama`, `scoring`, `runtimeconfig`, `telemetry` |
+| `e2e/` | Event-cascade tests: in-memory/test-server cascades plus emulator-gated Firestore and Pub/Sub contracts |
 | `tests/playwright/` | API and browser journeys using three local HTTP services |
 | `infra/opentofu/` | GCP infrastructure modules |
 | `deploy/cloudrun/` | Cloud Run manifests |
-| `docs/` | `DEVELOPMENT.md`, `MIGRATION_PLAN.md` |
+| `docs/` | `DEVELOPMENT.md`, `MIGRATION_PLAN.md`, `ROADMAP.md` |
 
 ## Code Review Rules
 
@@ -115,6 +115,16 @@ These apply at every step, not just at the gate where they are mentioned.
    before running the `verifier`. When the change has no UI impact, record one
    line stating that and move on — do not fabricate a review.
 
+   Bring the rendered app up with `docker compose up --build -d web-frontend`
+   (port 8082; it needs neither Ollama nor the other services), then stop only
+   what you started with `docker compose rm -sf web-frontend` — a project-wide
+   `down` would tear down a stack the user or an earlier step is using. The `-d`
+   spelling is deliberate: it keeps this line from colliding with the guarded
+   `--detach` stack command in [Verification scope](#verification-scope).
+   Starting the app so the gate can run is not test execution, so the Compose
+   restriction in [Test execution ownership](#test-execution-ownership) does not
+   apply to it.
+
 7. **Run `verifier` before code review.** Invoke the `verifier` sub-agent to run
    the builds, static checks, tests, and journey coverage appropriate for the
    change. The verifier must report failures, flakes, missing coverage, and
@@ -153,6 +163,11 @@ These apply at every step, not just at the gate where they are mentioned.
     - Title the pull request as a Conventional Commit. CI enforces this, and
       because short-lived branches are squash-merged, the pull request title
       becomes the commit subject on `main`.
+    - Link the tracked issue in the pull request body: `Closes #<n>` only when
+      this slice completes the issue, `Part of #<n>` for every earlier slice of
+      an ordered split. The squash merge carries the body onto `main`, so
+      `Closes` on an intermediate slice closes the issue while later slices are
+      still outstanding.
     - Push and open a normal, ready-for-review pull request. Do not open draft
       pull requests unless the user explicitly asks for a draft.
 
@@ -195,8 +210,10 @@ execution by phase and weight:
 The main agent may rerun a tightly related set of named Go tests while
 refactoring, but it does not run repository-wide tests, race/coverage, lint,
 Compose rebuilds, emulator batteries, infrastructure validation, or
-Playwright. A focused Go test already compiles its package; do not add a broad
-build merely to prove compilation during the TDD loop.
+Playwright — the one exception being the single-service `ui-review` bring-up in
+step 6, which starts the app rather than running tests. A focused Go test
+already compiles its package; do not add a broad build merely to prove
+compilation during the TDD loop.
 
 All automated Playwright execution belongs to the verifier, including a single
 spec or test selected for journey TDD. In focused-support mode, the verifier
@@ -211,7 +228,7 @@ Not every gate applies to every change. Record the reason when one does not.
 
 | Gate | Applies when | Status in this repo |
 | --- | --- | --- |
-| `ui-review` | The change affects rendered UI — templates, static assets, styling, or a client app | **Live.** Active for `cmd/web-frontend` templates and CSS. |
+| `ui-review` | The change affects rendered UI — templates, static assets, styling, or a client app | **Live.** Active for `cmd/web-frontend` templates, CSS, and client-side JavaScript (`static/js/`, `static/sw.js`). |
 | `verifier` | Always | Live |
 | `code-review` | Always | Live |
 
@@ -229,6 +246,18 @@ pinned version, never `@latest` — a floating linter once produced a green loca
 run and a red CI on the same commit. If you change a version here, change it in
 `.github/workflows/ci.yml` in the same commit.
 
+This file is machine-asserted. `docs/docs_test.go` runs inside the required
+`go-checks` job and compares AGENTS.md against `ci.yml`: the Go toolchain,
+golangci-lint, markdownlint-cli, and OpenTofu pins in their exact stated
+wording, the Compose stack command verbatim, and the markdownlint file list as
+a set. It also requires every non-glob doc named in that list or in the project
+table to exist and be non-empty, and requires the three registered subagent
+files to reference this file while containing no version literals or pinned
+commands. Rewording those sentences — not just changing their values — can
+therefore fail CI on what looks like a documentation-only change. Restore the
+wording rather than loosening a guard. The Node pin below is not guarded; keep
+it in sync with `ci.yml` by hand.
+
 Go toolchain — `1.26.5`, matching `actions/setup-go` in CI. The Go version is
 pinned for the same reason the linters are: `go vet`'s analyzer set and stdlib
 behavior shift between releases, so a newer local toolchain can pass checks that
@@ -238,6 +267,15 @@ separate thing and does not pin the toolchain. Check yours before verifying:
 ```bash
 go version   # must report go1.26.5
 ```
+
+If it reports anything else, prefix the Go commands with
+`GOTOOLCHAIN=go1.26.5` — Go fetches the pinned toolchain automatically, and the
+language version in `go.mod` stops `GOTOOLCHAIN=auto` from doing it for you.
+Never report a Go gate as passed on a different toolchain.
+
+Node — `20`, matching `actions/setup-node` in CI. Check with `node -v` before
+the markdownlint or Playwright commands; a newer local major can resolve
+different transitive dependencies than CI.
 
 Static checks and unit tests — always:
 
@@ -269,9 +307,18 @@ tofu fmt -check -recursive
 tofu init -backend=false && tofu validate
 ```
 
-The always-on `go test -race -cover ./...` command includes `e2e/`, which is
-self-contained in-process cascade coverage backed by in-memory components and
-test HTTP servers. It does not require Compose, Ollama, or GCP credentials.
+The always-on `go test -race -cover ./...` command includes `e2e/`. Its
+in-memory cascade tests need no Compose, Ollama, or GCP credentials.
+
+Emulator-gated contracts across `pkg/store`, `pkg/outbox`, `pkg/runtimeconfig`,
+`cmd/pet-matcher`, `cmd/notification-service`, and `e2e/` **skip silently**
+unless the emulator host variable for that area — `FIRESTORE_EMULATOR_HOST`,
+`PUBSUB_EMULATOR_HOST`, or both — is set. The package still reports `ok`, so a
+green run is not evidence that those contracts ran, and they are what covers the
+redelivery idempotency rule in [Code Review Rules](#code-review-rules). When
+durable state, the outbox, Pub/Sub delivery, or idempotency changes, start the
+emulators and run the contracts named for that area in `docs/DEVELOPMENT.md`;
+otherwise report them `NOT RUN` with the reason.
 
 Playwright journey coverage — when HTTP service behavior, rendered pages, or
 contracts change. It needs only the three HTTP services exercised by the suite;
@@ -304,8 +351,10 @@ required before merge:
   uploads its report, traces, and service logs on failure. This job is not a
   required check until the repository ruleset is updated separately.
 
-The `go-checks` job runs the self-contained `e2e/` package as part of
-`go test -race -cover ./...`. The Playwright job needs only `lostpet-service`,
+The `go-checks` job runs the in-memory portion of the `e2e/` package as part of
+`go test -race -cover ./...`. It starts no emulator, so the emulator-gated files
+in `e2e/` skip and the job reports green without them; see
+[Verification scope](#verification-scope). The Playwright job needs only `lostpet-service`,
 `foundpet-service`, and `web-frontend`, so it deliberately avoids downloading a
 model. Neither CI nor the documented verifier commands exercise a live Ollama,
 real Pub/Sub, or deployed GCP cascade; do not claim that coverage unless a task
@@ -324,7 +373,8 @@ Required status checks are **strict**: a branch must also be up to date with
 green, the branch is behind — update it from `main`, let CI rerun, and confirm
 a clean state again. Merging `main` in changes the reviewed state, so step 10's
 rerun rule applies: a conflict resolution needs a fresh `code-review`, while a
-clean fast-forward update does not.
+conflict-free update does not — the incoming commits were already reviewed on
+`main`.
 
 The required check contexts must match the job `name:` values in `ci.yml`
 exactly. Renaming a job without updating the ruleset leaves a required check
