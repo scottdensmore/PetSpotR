@@ -1,0 +1,129 @@
+What do we need node for? 20 is to low. We should be using the latest lts
+
+---
+
+Ok lets merge and then do the node bump
+
+---
+
+<task-notification>
+<task-id>ace2dadc8779cd056</task-id>
+<tool-use-id>toolu_01Ld1PnYUquyCWLqS5L4PgaR</tool-use-id>
+<output-file>/tmp/claude-1000/-home-scottdensmore-Developer-scottdensmore-petspotr/030b6b3d-461f-4949-85db-52a42c195bbf/tasks/ace2dadc8779cd056.output</output-file>
+<status>completed</status>
+<summary>Agent "Formal verification gate" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>## GATE: PASS (re-verified)
+
+Reran only what the Go and prose changes invalidated. `ci.yml` is byte-identical to the state I gated — still exactly the two `20` → `24` lines — so the Node 24 Playwright and Compose results carry forward unchanged.
+
+### Reran
+
+| Command | Status | Result |
+| --- | --- | --- |
+| `go vet ./...` | PASS | Clean |
+| `go test -race -cover ./...` | PASS | All 20 packages `ok` |
+| `go test -count=1 -race -v -run '...' ./docs/...` | PASS | Forced non-cached; `TestNodeVersionMatchesCI` and the three sibling guards all execute and pass |
+| `golangci-lint@v2.12.2 run` | PASS | `0 issues.` |
+| `markdownlint-cli@0.49.1` under `mise x node@24` | PASS | Clean, Node v24.18.1 — reran because AGENTS.md prose changed |
+
+### Not rerun, with justification
+
+| Suite | Why not |
+| --- | --- |
+| Playwright (25 tests, Node 24) | `ci.yml` unchanged since the gate; no service behavior, rendered page, or contract change. Result stands. |
+| `docker compose up --build --detach ...` | No service source changed; the three containers are still up from the gate run. Not rebuilt. |
+| `tofu fmt` / `validate` | `infra/` still unchanged — not applicable |
+| Emulator-gated contracts | Still no durable-state, outbox, Pub/Sub, or idempotency change — not applicable |
+
+### Second pattern is not vacuous — independently confirmed
+
+I did not rely on your local check. I ran the guard's exact logic against the real `/home/scottdensmore/Developer/scottdensmore/petspotr/AGENTS.md` and `ci.yml`, perturbing copies in memory only:
+
+- `node@24` → `node@22`: **RED**. Your result reproduces.
+- Bump `ci.yml` and the pin to 26 but forget the recovery command: **RED**. This is the precise failure mode the second pattern exists for, and it fires.
+- Recovery command sentence deleted: **RED** (`pattern node@(\d+) matched nothing`) — fails closed rather than going quietly unguarded.
+- Pin sentence reworded away: **RED**.
+- Two `setup-node` steps disagreeing: **RED**.
+
+**The per-pattern change is load-bearing, not cosmetic.** On identical input — the `Node — \`24\`` sentence reworded while `node@24` survives — the old aggregate shape returns **GREEN** and the new per-pattern shape returns **RED**. Aggregate matching let a surviving mention mask a lost one; per-pattern does not. That is a genuine strengthening, and it matches how `TestPinnedVersionsMatchCI` already behaves.
+
+Each pattern matches exactly once in AGENTS.md (line 280 for the pin, line 287 for the recovery command), so neither is over- or under-matching.
+
+### Historical prose
+
+Still correct, now for a second reason. `Node 20 was pinned here until it reached end-of-life` is present and matched by **neither** pattern, so a future bump cannot drag it forward. The behavior I verified last round holds, and the code comment now states the intent — which means a future editor who reformats that sentence into either pinned form will get a red instead of a silent semantic change.
+
+I also confirmed the three subagent files under `/home/scottdensmore/Developer/scottdensmore/petspotr/.claude/agents/` contain no `node@`, `node-version`, or `mise x` literal, so the new recovery command in AGENTS.md did not leak a version literal into files the subagent guard forbids them in.
+
+### Standing notes
+
+- The minor-version blind spot (`24.1` vs `24.2` both read as `24`) is unaddressed by design this slice, as you stated. Recorded, not blocking.
+- Worktree remains the same three modified files, no untracked artifacts. My verification touched nothing; all perturbation was in-memory in the scratchpad.
+- Compose stack left running as found, including the `ollama`, `pet-matcher`, and `notification-service` containers I never touched.
+
+No findings tied to this change block progress. Clear to proceed to `code-review`.</result>
+<usage><subagent_tokens>48154</subagent_tokens><tool_uses>9</tool_uses><duration_ms>115569</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>ace2dadc8779cd056</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/tmp/claude-1000/-home-scottdensmore-Developer-scottdensmore-petspotr/030b6b3d-461f-4949-85db-52a42c195bbf/tasks/ace2dadc8779cd056.output</output-file>
+<status>completed</status>
+<summary>Agent "Formal verification gate" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>## GATE: PASS
+
+Full battery rerun against the settled worktree, including Playwright, since `ci.yml` is no longer byte-identical to the state I previously gated.
+
+### Commands
+
+| Command | Status | Result |
+| --- | --- | --- |
+| `go vet ./...` | PASS | Clean |
+| `go test -count=1 -race -cover ./...` | PASS | All 20 packages `ok`, forced non-cached — every package ran fresh |
+| `golangci-lint@v2.12.2 run` (pinned) | PASS | `0 issues.` |
+| `markdownlint-cli@0.49.1` under `mise x node@24` | PASS | Clean, Node v24.18.1 |
+| `docker compose up --build --detach lostpet-service foundpet-service web-frontend` | PASS | Rebuilt and recreated; all three reachable |
+| `npm ci` + `npx playwright install chromium` under `mise x node@24` | PASS | Fresh install, 0 vulnerabilities |
+| `npx playwright test` under `mise x node@24` | PASS | **25/25 passed (2.9s)** |
+| ci.yml YAML parse check | PASS | Parses; both `setup-node` steps resolve to integer `24` |
+| `tofu fmt` / `validate` | NOT RUN | `infra/` unchanged — not applicable |
+| Emulator-gated contracts | NOT RUN | No durable-state, outbox, Pub/Sub, or idempotency change — not applicable |
+
+### The comment change is safe
+
+Your specific concern checks out on all three counts. `ci.yml` still parses, and both steps resolve to integer `24` rather than a string or `null` — the comments sit inside the `with:` block above the key and do not disturb it. The Playwright suite passes under Node 24 with the new workflow in place.
+
+There is a subtler interaction I checked because these two changes landed together: the new comments contain the literal text `setup-node steps`, and the new guard counts occurrences of `actions/setup-node`. Had the comment used the fully-qualified action name, an unstripped read would have inflated the step count and produced a spurious FATAL. It does not — the comment says `setup-node`, not `actions/setup-node`, and `readCI` strips comments before counting anyway. I verified the belt-and-braces case explicitly: injecting `# uses: actions/setup-node@v4` as a comment leaves the guard **GREEN**, so a future editor who writes the full action name in a comment will not trip a false failure.
+
+### Blocking finding independently confirmed fixed
+
+I reproduced the reviewer's three mutations myself against the real `ci.yml` and `AGENTS.md`, perturbed in memory only, running both the fixed guard and the pre-fix guard on identical input:
+
+| Scenario | Fixed guard | Pre-fix guard |
+| --- | --- | --- |
+| Unperturbed worktree | GREEN | GREEN |
+| Second pin commented out | **RED** — `2 setup-node steps but 1 readable pins` | GREEN |
+| Step switched to `node-version-file` | **RED** — same fatal | GREEN |
+| Step set to `lts/*` | **RED** — same fatal | GREEN |
+| Third step at a different major | RED | RED |
+
+All three reviewer mutations were green before and fail closed now, each with a message naming the cause. The commented-out case — the one you flagged as worst, since `readCI` strips comments precisely to prevent it — is among them. The fix is load-bearing, not defensive decoration.
+
+The `strings.Count` approach does mean the count is of the literal action reference rather than parsed YAML steps, so a step written as `uses: actions/setup-node@v4.0.0` still counts correctly, but a hypothetical fork or alias would not. That is not a realistic drift path here and I am not raising it as a finding.
+
+### Remaining notes
+
+- Majors-only granularity is now recorded in `nodeVersionCI`'s comment, as agreed. Still deliberately unaddressed this slice.
+- AGENTS.md reflow measures 81 columns maximum across the changed region, matching the stated 71–81 target, and markdownlint is clean.
+- Job `name:` values are untouched, so the required check contexts named in the branch-protection ruleset still resolve.
+- Worktree remains exactly the three modified files with no untracked artifacts. All perturbation was in-memory in the scratchpad; I modified nothing in the repo and touched no git state.
+- Compose stack left running as found, including the `ollama`, `pet-matcher`, and `notification-service` containers I never started or stopped.
+
+Nothing worth a `gh issue create` with `agent-found`. No findings tied to this change block progress — clear to return to `code-review` for the re-review of the fixed state.</result>
+<usage><subagent_tokens>65479</subagent_tokens><tool_uses>14</tool_uses><duration_ms>151506</duration_ms></usage>
+</task-notification>

@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.9.0",
+  "checkpoint_id": "01KZT0TJCD7DXECR9WS6X55GF4",
+  "strategy": "manual-commit",
+  "branch": "chore/node-24-lts",
+  "checkpoints_count": 5,
+  "files_touched": [
+    ".github/workflows/ci.yml",
+    "AGENTS.md",
+    "docs/docs_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 91,
+    "cache_creation_tokens": 47956,
+    "cache_read_tokens": 8976593,
+    "output_tokens": 28431,
+    "api_call_count": 49
+  }
+}
