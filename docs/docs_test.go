@@ -187,6 +187,84 @@ func TestPinnedVersionsMatchCI(t *testing.T) {
 	}
 }
 
+var (
+	// nodeVersionCI matches every node-version key in ci.yml. Deliberately
+	// unscoped, unlike the pins above: two jobs set up Node, and them drifting
+	// apart is itself the bug this catches. Majors only — a step pinned to
+	// 24.11.0 and another to 24 compare equal, which is the intended
+	// granularity while the repo pins bare majors.
+	nodeVersionCI = regexp.MustCompile(`node-version:\s*['"]?(\d+)['"]?`)
+
+	// nodeVersionDocs matches the pin everywhere AGENTS.md states it: the pin
+	// itself, and the recovery command that restates it. Node is pinned to a
+	// major only, so it cannot reuse the three-part pin machinery. Each pattern
+	// must match at least once and every match must agree, so a bump that
+	// updates the pin and forgets the recovery command fails here.
+	//
+	// The prose about Node 20 reaching end-of-life is deliberately in neither
+	// form: it is history, not a pin, and must not be dragged forward on a bump.
+	nodeVersionDocs = []*regexp.Regexp{
+		regexp.MustCompile("Node — `(\\d+)`"),
+		regexp.MustCompile(`node@(\d+)`),
+	}
+)
+
+// TestNodeVersionMatchesCI guards the one pin TestPinnedVersionsMatchCI cannot.
+// That test scopes each lookup to a single CI step, and `actions/setup-node`
+// appears in two, so its ambiguity check fails closed rather than picking one.
+// Left unguarded, the Node pin drifts exactly like the others: markdownlint and
+// Playwright both run under whatever major CI installs, and npx resolves
+// different transitive dependencies across majors.
+func TestNodeVersionMatchesCI(t *testing.T) {
+	ci := readCI(t)
+
+	// Counting the steps, not just the matches, is what keeps this closed. A
+	// step that stops spelling its version as a bare integer — commented out,
+	// switched to node-version-file, or set to lts/* — would otherwise leave
+	// the guard silently watching whichever step still matched. readCI strips
+	// comments for the same reason, and aggregating alone defeats it.
+	setupSteps := strings.Count(ci, "actions/setup-node")
+	if setupSteps == 0 {
+		t.Fatalf("no actions/setup-node step in %s; the Node setup was removed or renamed, so this guard is no longer watching anything", ciPath)
+	}
+
+	ciMatches := nodeVersionCI.FindAllStringSubmatch(ci, -1)
+	if len(ciMatches) != setupSteps {
+		t.Fatalf("%s has %d actions/setup-node steps but %d readable node-version pins; a step using node-version-file, lts/*, or a commented-out key would go unwatched",
+			ciPath, setupSteps, len(ciMatches))
+	}
+
+	want := ciMatches[0][1]
+	for i, match := range ciMatches {
+		if match[1] != want {
+			t.Errorf("node-version %d of %d in %s is %s, but the first is %s; the jobs would run different majors",
+				i+1, len(ciMatches), ciPath, match[1], want)
+		}
+	}
+
+	agents := readFile(t, agentsPath)
+
+	// Per-pattern, not aggregate, matching TestPinnedVersionsMatchCI: a
+	// rewritten sentence must fail loudly instead of leaving that mention
+	// unguarded while the others keep the test green.
+	for _, pattern := range nodeVersionDocs {
+		docMatches := pattern.FindAllStringSubmatch(agents, -1)
+		if len(docMatches) == 0 {
+			t.Errorf("Node is pinned to %s in %s, but AGENTS.md no longer states it in the form %s.\n"+
+				"Either restore that wording or update this pattern — as written, that mention is unguarded.",
+				want, ciPath, pattern)
+			continue
+		}
+
+		for i, match := range docMatches {
+			if match[1] != want {
+				t.Errorf("Node mention %d of %d matching %s is %s, but %s pins %s; bump every mention in the same commit",
+					i+1, len(docMatches), pattern, match[1], ciPath, want)
+			}
+		}
+	}
+}
+
 // TestLocalStackCommandMatchesCI compares every occurrence on both sides.
 // Exact equality, not containment: a truncated service list is a prefix of the
 // full one and would otherwise pass.

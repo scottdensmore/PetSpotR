@@ -248,18 +248,20 @@ run and a red CI on the same commit. If you change a version here, change it in
 
 This file is machine-asserted. `docs/docs_test.go` runs inside the required
 `go-checks` job and compares AGENTS.md against `ci.yml`: the Go toolchain,
-golangci-lint, markdownlint-cli, and OpenTofu pins in their exact stated
+golangci-lint, markdownlint-cli, OpenTofu, and Node pins in their exact stated
 wording, the Compose stack command verbatim, and the markdownlint file list as
-a set. It also requires the `cmd/`, `pkg/`, and `docs/` rows of the project
-table to name exactly what is in the tree — in both directions, so a new
-top-level package or document fails CI until the table lists it — requires every
-non-glob doc named in that table or the markdownlint list to exist and be
-non-empty, and requires the three registered subagent files to reference this
-file while containing no version literals or pinned commands. Rewording those
-sentences or reformatting that table — not just changing their values — can
-therefore fail CI on what looks like a documentation-only change. Restore the
-wording rather than loosening a guard. The Node pin below is not guarded; keep
-it in sync with `ci.yml` by hand.
+a set. The Node check also requires both `setup-node` steps to agree with each
+other, and requires every one of them to state a readable version, so switching
+a step to `node-version-file` or `lts/*` fails rather than going unwatched. It
+also requires the `cmd/`, `pkg/`, and `docs/` rows of the project table to name
+exactly what is in the tree — in both directions, so a new top-level package or
+document fails CI until the table lists it — requires every non-glob doc named
+in that table or the markdownlint list to exist and be non-empty, and requires
+the three registered subagent files to reference this file while containing no
+version literals or pinned commands. Rewording those sentences or reformatting
+that table — not just changing their values — can therefore fail CI on what
+looks like a documentation-only change. Restore the wording rather than
+loosening a guard.
 
 Go toolchain — `1.26.5`, matching `actions/setup-go` in CI. The Go version is
 pinned for the same reason the linters are: `go vet`'s analyzer set and stdlib
@@ -276,9 +278,20 @@ If it reports anything else, prefix the Go commands with
 language version in `go.mod` stops `GOTOOLCHAIN=auto` from doing it for you.
 Never report a Go gate as passed on a different toolchain.
 
-Node — `20`, matching `actions/setup-node` in CI. Check with `node -v` before
-the markdownlint or Playwright commands; a newer local major can resolve
-different transitive dependencies than CI.
+Node — `24`, the active LTS, matching both `actions/setup-node` steps in CI.
+Node is dev tooling only here — it runs markdownlint and Playwright, and no
+service or rendered page depends on it. Check with `node -v` before those
+commands; a different local major can resolve different transitive dependencies
+than CI.
+
+If it reports a different major, run them under the pinned one rather than the
+default — `mise x node@24 -- npx ...` or your version manager's equivalent.
+This matters more than it looks: `node -v` reports the system default, so the
+commands below run under whatever that happens to be unless you route them.
+
+Track the LTS line. Node 20 was pinned here until it reached end-of-life, which
+is how a supported runtime becomes an unsupported one without anyone deciding
+to.
 
 Static checks and unit tests — always:
 
