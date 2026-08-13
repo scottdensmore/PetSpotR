@@ -49,6 +49,11 @@ and test checks in the verifier and CI.
   ownership or equivalent authorization before exposing contact data or
   mutating pet and match state. Existing pre-authentication demo behavior is
   roadmap debt, not precedent for expanding the exposed boundary.
+- Automated tests must exercise product code or product behavior. Do not add
+  tests that inspect repository files such as documentation, agent guidance,
+  CI workflows, dependency metadata, Docker or deployment manifests, or
+  OpenTofu source. Validate those artifacts with their native lint, build,
+  configuration, or validation commands instead.
 
 ## Ground rules
 
