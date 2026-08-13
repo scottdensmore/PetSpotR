@@ -1,0 +1,17 @@
+Ok lets create a pr and squash merge after checks pass
+
+---
+
+adding a .agentignore file with all the agent directories. That way those directories are ignored by you and other agents
+
+---
+
+actually don't do that
+
+---
+
+tests should only go through product code nothing else in the repo
+
+---
+
+Ok lets create the pr and squash merge when all checks pass
