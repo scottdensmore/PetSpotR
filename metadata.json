@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M012E2PXRMK64TM0J2J9FSRP",
+  "strategy": "manual-commit",
+  "branch": "fix/frontend-match-dom-injection",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/web-frontend/static/js/match-dashboard.js",
+    "tests/playwright/e2e/match-dashboard-security.spec.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2777,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 554240,
+    "output_tokens": 507,
+    "api_call_count": 3
+  }
+}
