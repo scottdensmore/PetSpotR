@@ -1,0 +1,48 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M012CZQ6JQ3XBBDV00X3S5V5",
+  "session_id": "01a001af-b3bc-79c1-828f-504b40d7da08",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-14T21:21:21.372201497Z",
+  "branch": "fix/frontend-match-dom-injection",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/web-frontend/static/js/match-dashboard.js",
+    "tests/playwright/e2e/match-dashboard-security.spec.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "767fdc399d04",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 387958,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 19316736,
+    "output_tokens": 44952,
+    "api_call_count": 135
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-14T21:21:20.838750135Z",
+    "agent_lines": 429,
+    "agent_removed": 94,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 429,
+    "total_lines_changed": 523,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
