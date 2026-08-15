@@ -1,0 +1,51 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M01QV2W1R1TSA1ZT5TDYA6BD",
+  "session_id": "01a001af-b3bc-79c1-828f-504b40d7da08",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-15T03:36:11.803093361Z",
+  "branch": "fix/home-mobile-navigation",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "cmd/web-frontend/static/css/styles.css",
+    "cmd/web-frontend/templates/layout.html",
+    "tests/playwright/e2e/web-frontend-api.spec.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "f320733266a5",
+  "checkpoint_transcript_start": 1927,
+  "transcript_lines_at_start": 1927,
+  "compact_transcript_start": 284,
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": -30173184,
+    "output_tokens": -91543,
+    "api_call_count": 51
+  },
+  "session_metrics": {
+    "turn_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-15T03:36:10.83560851Z",
+    "agent_lines": 59,
+    "agent_removed": 2,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 59,
+    "total_lines_changed": 61,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}

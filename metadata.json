@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M01QV2W1R1TSA1ZT5TDYA6BD",
+  "strategy": "manual-commit",
+  "branch": "fix/home-mobile-navigation",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "cmd/web-frontend/static/css/styles.css",
+    "cmd/web-frontend/templates/layout.html",
+    "tests/playwright/e2e/web-frontend-api.spec.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": -30173184,
+    "output_tokens": -91543,
+    "api_call_count": 51
+  }
+}
