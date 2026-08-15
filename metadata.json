@@ -1,0 +1,54 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M03WDJYJBRH6HEEX7V8X4Z41",
+  "strategy": "manual-commit",
+  "branch": "refactor/webfrontend-internal-service",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "AGENTS.md",
+    "cmd/web-frontend/main.go",
+    "cmd/web-frontend/server.go",
+    "cmd/web-frontend/server_test.go",
+    "cmd/web-frontend/static/css/styles.css",
+    "cmd/web-frontend/static/js/found-report.js",
+    "cmd/web-frontend/static/js/lost-wizard.js",
+    "cmd/web-frontend/static/js/match-dashboard.js",
+    "cmd/web-frontend/static/js/push-notifier.js",
+    "cmd/web-frontend/static/js/theme.js",
+    "cmd/web-frontend/static/sw.js",
+    "cmd/web-frontend/templates/layout.html",
+    "cmd/web-frontend/templates/matches.html",
+    "cmd/web-frontend/templates/report-found.html",
+    "cmd/web-frontend/templates/report-lost.html",
+    "e2e/web_frontend_cascade_test.go",
+    "internal/app/webfrontend/server.go",
+    "internal/app/webfrontend/server_test.go",
+    "internal/app/webfrontend/static/css/styles.css",
+    "internal/app/webfrontend/static/js/found-report.js",
+    "internal/app/webfrontend/static/js/lost-wizard.js",
+    "internal/app/webfrontend/static/js/match-dashboard.js",
+    "internal/app/webfrontend/static/js/push-notifier.js",
+    "internal/app/webfrontend/static/js/theme.js",
+    "internal/app/webfrontend/static/sw.js",
+    "internal/app/webfrontend/templates/layout.html",
+    "internal/app/webfrontend/templates/matches.html",
+    "internal/app/webfrontend/templates/report-found.html",
+    "internal/app/webfrontend/templates/report-lost.html"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 126989,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 5186304,
+    "output_tokens": 15740,
+    "api_call_count": 62
+  }
+}
