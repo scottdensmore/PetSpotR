@@ -1,4 +1,4 @@
-package main
+package lostpet
 
 import (
 	"bytes"
@@ -264,9 +264,9 @@ func TestLostPetService_RecoverPendingOutbox(t *testing.T) {
 	}
 	svc := NewService(stateStore, broker)
 
-	count, err := svc.recoverOutbox(ctx)
+	count, err := svc.RecoverOutbox(ctx)
 	if err != nil || count != 1 {
-		t.Fatalf("recoverOutbox() = %d, %v; want 1, nil", count, err)
+		t.Fatalf("RecoverOutbox() = %d, %v; want 1, nil", count, err)
 	}
 	select {
 	case got := <-published:
@@ -274,7 +274,7 @@ func TestLostPetService_RecoverPendingOutbox(t *testing.T) {
 			t.Fatalf("published payload = %s, want %s", got, record.Payload)
 		}
 	default:
-		t.Fatal("recoverOutbox() did not publish the pending lostPet event")
+		t.Fatal("RecoverOutbox() did not publish the pending lostPet event")
 	}
 	got, err := outbox.GetRecord(ctx, stateStore, record.ID)
 	if err != nil {
