@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scottdensmore/petspotr/internal/app/foundpet"
 	"github.com/scottdensmore/petspotr/internal/app/lostpet"
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
@@ -18,39 +19,6 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
-
-type foundPetService struct {
-	store     store.StateStore
-	broker    pubsub.Broker
-	blobStore blob.BlobStore
-}
-
-func (s *foundPetService) HandleFoundPet(w http.ResponseWriter, r *http.Request) {
-	var evt domain.FoundPetEvent
-	if err := json.NewDecoder(r.Body).Decode(&evt); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	if err := evt.Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	data, err := evt.ToJSON()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if err := s.store.SaveState(r.Context(), store.FoundPetsCollection, evt.PetID, data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if err := s.broker.Publish(r.Context(), "foundPet", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "success", "petId": evt.PetID})
-}
 
 func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 	st := store.NewMemoryStore()
@@ -81,7 +49,7 @@ func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 
 	// 2. Setup Services
 	lostSvc := lostpet.NewService(st, ps)
-	foundSvc := &foundPetService{store: st, broker: ps, blobStore: bs}
+	foundSvc := foundpet.NewService(st, ps, bs)
 
 	// 3. Thread-safe channel for receiving dispatched notifications
 	notifChan := make(chan *domain.OwnerNotification, 1)
@@ -116,7 +84,7 @@ func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 	// 5. Register Pet Matcher Worker Subscriber using real scoring pipeline & store lookup
 	err = ps.Subscribe("foundPet", func(ctx context.Context, data []byte) error {
 		var foundEvt domain.FoundPetEvent
-		if err := json.Unmarshal(data, &foundEvt); err != nil {
+		if _, err := domain.DecodeEventPayload(data, domain.EventTypeFoundPetReported, &foundEvt); err != nil {
 			return err
 		}
 

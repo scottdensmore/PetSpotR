@@ -1,4 +1,5 @@
-package main
+// Package foundpet implements the found-pet reporting application service.
+package foundpet
 
 import (
 	"context"
@@ -51,6 +52,11 @@ func NewServiceWithOptions(st store.StateStore, br pubsub.Publisher, images blob
 		relay:                  outbox.NewRelay(st, br),
 		reportOperationTimeout: options.ReportOperationTimeout,
 	}
+}
+
+// RecoverOutbox publishes one bounded batch of durable foundPet events.
+func (s *Service) RecoverOutbox(ctx context.Context) (int, error) {
+	return s.relay.PublishPending(ctx, "foundPet")
 }
 
 type ErrorResponse struct {

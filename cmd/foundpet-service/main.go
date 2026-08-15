@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/scottdensmore/petspotr/internal/app/foundpet"
 	"github.com/scottdensmore/petspotr/pkg/outbox"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
 	"github.com/scottdensmore/petspotr/pkg/store"
@@ -67,11 +68,11 @@ func main() {
 		}
 	}()
 
-	svc := NewServiceWithOptions(
+	svc := foundpet.NewServiceWithOptions(
 		stateRuntime.Store,
 		messagingRuntime.Publisher,
 		storageRuntime.Images,
-		ServiceOptions{RequireFinalizedImage: storageConfig.Mode != runtimeconfig.ModeMemory},
+		foundpet.ServiceOptions{RequireFinalizedImage: storageConfig.Mode != runtimeconfig.ModeMemory},
 	)
 	nextBackfillAt := time.Time{}
 	nextImageCleanupAt := time.Time{}
@@ -100,7 +101,7 @@ func main() {
 				log.Printf("FoundPet legacy outbox index backfill migrated %d records (complete=%t)", migrated, complete)
 			}
 		}
-		if _, err := svc.relay.PublishPending(ctx, "foundPet"); err != nil && ctx.Err() == nil {
+		if _, err := svc.RecoverOutbox(ctx); err != nil && ctx.Err() == nil {
 			log.Printf("FoundPet outbox recovery deferred: %v", err)
 		}
 	}
