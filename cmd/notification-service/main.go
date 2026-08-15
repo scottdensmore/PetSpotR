@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/scottdensmore/petspotr/internal/app/notification"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
 	"github.com/scottdensmore/petspotr/pkg/store"
@@ -45,7 +46,7 @@ func main() {
 		log.Fatalf("Invalid push consumer configuration: %v", err)
 	}
 
-	worker := NewWorkerWithStore(deliveryStore, nil)
+	worker := notification.NewWorkerWithStore(deliveryStore, nil)
 	var authorizer pubsub.PushAuthorizer
 	if pushConfig.Mode == runtimeconfig.ModeGCP {
 		authorizer = pubsub.NewOIDCPushAuthorizer(pushConfig.ExpectedServiceAccount, nil)
@@ -54,7 +55,7 @@ func main() {
 	}
 	httpServer := &http.Server{
 		Addr: ":" + port,
-		Handler: newNotificationHTTPHandler(
+		Handler: notification.NewHTTPHandler(
 			worker,
 			authorizer,
 			pushConfig.ExpectedSubscription,

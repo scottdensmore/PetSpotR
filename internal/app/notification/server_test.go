@@ -1,4 +1,4 @@
-package main
+package notification
 
 import (
 	"bytes"
@@ -27,7 +27,7 @@ func TestNotificationHTTPHandlerAcknowledgesDurableIdempotentDelivery(t *testing
 		nil,
 		NewMultiChannelDispatcher(email, sms, push),
 	)
-	handler := newNotificationHTTPHandler(
+	handler := NewHTTPHandler(
 		worker,
 		pubsub.NewStaticPushAuthorizer("local-secret"),
 		notificationTestSubscription,
@@ -72,7 +72,7 @@ func TestNotificationHTTPHandlerRequestsRedeliveryAfterTransientFailure(t *testi
 		nil,
 		NewMultiChannelDispatcher(email, sms, push),
 	)
-	handler := newNotificationHTTPHandler(
+	handler := NewHTTPHandler(
 		worker,
 		pubsub.NewStaticPushAuthorizer("local-secret"),
 		notificationTestSubscription,
@@ -102,7 +102,7 @@ func TestNotificationHTTPHandlerRequestsRedeliveryAfterTransientFailure(t *testi
 }
 
 func TestNotificationHTTPHandlerRejectsWrongSubscription(t *testing.T) {
-	handler := newNotificationHTTPHandler(
+	handler := NewHTTPHandler(
 		NewWorkerWithStore(store.NewMemoryStore(), nil),
 		pubsub.NewStaticPushAuthorizer("local-secret"),
 		notificationTestSubscription,
@@ -121,7 +121,7 @@ func TestNotificationHTTPHandlerRejectsWrongSubscription(t *testing.T) {
 }
 
 func TestNotificationHTTPHandlerRequestsRedeliveryForPoisonPayload(t *testing.T) {
-	handler := newNotificationHTTPHandler(
+	handler := NewHTTPHandler(
 		NewWorkerWithStore(store.NewMemoryStore(), nil),
 		pubsub.NewStaticPushAuthorizer("local-secret"),
 		notificationTestSubscription,
@@ -155,7 +155,7 @@ func TestNotificationHTTPHandlerAcknowledgesDurableCommunityBroadcast(t *testing
 			Channels:    []Channel{ChannelEmail, ChannelSMS, ChannelPush},
 		},
 	}, dispatcher)
-	handler := newNotificationHTTPHandler(
+	handler := NewHTTPHandler(
 		worker,
 		pubsub.NewStaticPushAuthorizer("local-secret"),
 		notificationTestSubscription,
@@ -190,7 +190,7 @@ func TestNotificationHTTPHandlerAcknowledgesDurableCommunityBroadcast(t *testing
 }
 
 func TestNotificationHTTPHandlerHealth(t *testing.T) {
-	handler := newNotificationHTTPHandler(nil, nil, "", "")
+	handler := NewHTTPHandler(nil, nil, "", "")
 	request := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	recorder := httptest.NewRecorder()
 

@@ -1,4 +1,4 @@
-package main
+package notification
 
 import (
 	"context"
@@ -42,7 +42,7 @@ func TestNotificationPubSubEmulatorDeliversRetriesAndRetainsPoison(t *testing.T)
 		nil,
 		NewMultiChannelDispatcher(email, sms, push),
 	)
-	handler := newNotificationHTTPHandler(
+	handler := NewHTTPHandler(
 		worker,
 		petpubsub.NewStaticPushAuthorizer("emulator-secret"),
 		expectedSubscription,
@@ -136,7 +136,7 @@ func TestNotificationLostPetPubSubEmulatorDeliversRetriesAndRetainsPoison(t *tes
 			Channels:    []Channel{ChannelEmail, ChannelSMS, ChannelPush},
 		},
 	}, dispatcher)
-	handler := newNotificationHTTPHandler(
+	handler := NewHTTPHandler(
 		worker,
 		petpubsub.NewStaticPushAuthorizer("emulator-secret"),
 		"projects/"+projectID+"/subscriptions/match-found-notification-unused",

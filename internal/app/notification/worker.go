@@ -1,4 +1,5 @@
-package main
+// Package notification implements notification delivery and push transport.
+package notification
 
 import (
 	"context"
