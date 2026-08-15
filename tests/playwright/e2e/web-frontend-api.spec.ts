@@ -165,6 +165,51 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     }
   });
 
+  test('should keep the complete home header visible through the desktop boundary', async ({ page, context }) => {
+    await context.clearPermissions();
+
+    const headerIds = [
+      'brand-link',
+      'nav-home',
+      'nav-directory',
+      'nav-matches',
+      'theme-toggle',
+      'btn-enable-push',
+      'btn-report-lost',
+      'btn-report-found',
+    ];
+
+    for (const width of [769, 900, 1100, 1101, 1119, 1120, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${WEB_FRONTEND_URL}/`);
+
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      const headerBox = await page.locator('.glass-nav').boundingBox();
+      expect(headerBox).not.toBeNull();
+
+      for (const id of headerIds) {
+        const item = page.locator(`#${id}`);
+        await expect(item).toBeVisible();
+        const box = await item.boundingBox();
+        expect(box).not.toBeNull();
+        expect(box!.x).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+        expect(box!.y).toBeGreaterThanOrEqual(headerBox!.y);
+        expect(box!.y + box!.height).toBeLessThanOrEqual(headerBox!.y + headerBox!.height);
+      }
+    }
+
+    await page.setViewportSize({ width: 769, height: 900 });
+    await page.goto(`${WEB_FRONTEND_URL}/`);
+    await page.locator('#brand-link').focus();
+
+    for (const id of headerIds.slice(1)) {
+      if (await page.locator(`#${id}`).isDisabled()) continue;
+      await page.keyboard.press('Tab');
+      await expect(page.locator(`#${id}`)).toBeFocused();
+    }
+  });
+
   test('should enforce the browser security policy without breaking frontend journeys', async ({ page }) => {
     const expectedCSP = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://storage.petspotr.io; connect-src 'self'; worker-src 'self'";
     const cspViolations: string[] = [];
