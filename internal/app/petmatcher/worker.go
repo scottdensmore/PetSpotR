@@ -1,4 +1,5 @@
-package main
+// Package petmatcher implements the found-pet matching application worker.
+package petmatcher
 
 import (
 	"context"
@@ -25,7 +26,8 @@ const (
 	defaultMatcherLease    = 10 * time.Minute
 )
 
-type matcherStore interface {
+// Store provides the durable state and delivery operations required by Worker.
+type Store interface {
 	store.StateStore
 	store.DeliveryOperationStore
 }
@@ -37,7 +39,7 @@ type matcherResultRecord struct {
 
 // Worker consumes foundPet events, extracts visual traits via Ollama, and matches against stored lost pets.
 type Worker struct {
-	store        matcherStore
+	store        Store
 	broker       pubsub.Publisher
 	ollamaClient *ollama.Client
 	modelName    string
@@ -48,12 +50,12 @@ type Worker struct {
 }
 
 // NewWorker constructs a Worker instance.
-func NewWorker(st matcherStore, br pubsub.Publisher, oc *ollama.Client) *Worker {
+func NewWorker(st Store, br pubsub.Publisher, oc *ollama.Client) *Worker {
 	return NewWorkerWithImageStore(st, br, oc, nil)
 }
 
 // NewWorkerWithImageStore constructs a worker that can read private finalized images.
-func NewWorkerWithImageStore(st matcherStore, br pubsub.Publisher, oc *ollama.Client, images blob.ImageStore) *Worker {
+func NewWorkerWithImageStore(st Store, br pubsub.Publisher, oc *ollama.Client, images blob.ImageStore) *Worker {
 	model := os.Getenv("OLLAMA_MODEL")
 	if model == "" {
 		model = "gemma4:e2b"

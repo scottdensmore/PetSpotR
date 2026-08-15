@@ -353,7 +353,7 @@ with:
 
 ```bash
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
-  go test ./cmd/pet-matcher \
+  go test ./internal/app/petmatcher \
   -run TestFirestoreMatcherRecoversPersistedResultAcrossWorkers
 ```
 

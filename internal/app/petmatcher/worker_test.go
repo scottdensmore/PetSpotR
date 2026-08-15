@@ -1,4 +1,4 @@
-package main
+package petmatcher
 
 import (
 	"bytes"
@@ -105,7 +105,7 @@ func (p *failOncePublisher) Publish(ctx context.Context, topic string, data []by
 }
 
 type failCompleteOnceStore struct {
-	matcherStore
+	Store
 	calls atomic.Int32
 }
 
@@ -118,11 +118,11 @@ func (s *failCompleteOnceStore) CompleteDeliveryOperation(
 	if s.calls.Add(1) == 1 {
 		return errors.New("temporary completion failure")
 	}
-	return s.matcherStore.CompleteDeliveryOperation(ctx, id, attempt, completedAt)
+	return s.Store.CompleteDeliveryOperation(ctx, id, attempt, completedAt)
 }
 
 type getStateFailingStore struct {
-	matcherStore
+	Store
 	err error
 }
 
@@ -289,7 +289,7 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 
 	t.Run("transient candidate store failure requests redelivery", func(t *testing.T) {
 		transientErr := errors.New("firestore unavailable")
-		failingStore := &getStateFailingStore{matcherStore: st, err: transientErr}
+		failingStore := &getStateFailingStore{Store: st, err: transientErr}
 		failingWorker := NewWorker(failingStore, ps, ollamaClient)
 		foundEvt := domain.FoundPetEvent{
 			PetID:    "found-store-error",
@@ -420,7 +420,7 @@ func TestMatcherWorker_RetryPublishesPersistedResultWithoutRerunningOllama(t *te
 
 func TestMatcherWorker_CompletionRetryDoesNotRepeatPublishedMatch(t *testing.T) {
 	baseStore := store.NewMemoryStore()
-	st := &failCompleteOnceStore{matcherStore: baseStore}
+	st := &failCompleteOnceStore{Store: baseStore}
 	ps := pubsub.NewMemoryPubSub()
 	var ollamaCalls atomic.Int32
 	server := newMatcherOllamaServer(t, &ollamaCalls, nil, nil)
