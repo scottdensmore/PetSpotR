@@ -1,4 +1,4 @@
-package main
+package notification
 
 import (
 	"context"
@@ -8,7 +8,8 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 )
 
-func newNotificationHTTPHandler(
+// NewHTTPHandler constructs the notification push and health HTTP handler.
+func NewHTTPHandler(
 	worker *Worker,
 	authorizer pubsub.PushAuthorizer,
 	expectedMatchSubscription string,

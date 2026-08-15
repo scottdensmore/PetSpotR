@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/scottdensmore/petspotr/internal/app/foundpet"
 	"github.com/scottdensmore/petspotr/internal/app/lostpet"
+	"github.com/scottdensmore/petspotr/internal/app/notification"
 	"github.com/scottdensmore/petspotr/internal/app/petmatcher"
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
@@ -51,37 +52,22 @@ func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 	lostSvc := lostpet.NewService(st, ps)
 	foundSvc := foundpet.NewService(st, ps, bs)
 
-	// 3. Thread-safe channel for receiving dispatched notifications
-	notifChan := make(chan *domain.OwnerNotification, 1)
-
-	// 4. Register Notification Worker Subscriber
-	err := ps.Subscribe("matchFound", func(_ context.Context, data []byte) error {
-		var matchRes domain.MatchResult
-		if _, err := domain.DecodeEventPayload(data, domain.EventTypeMatchFound, &matchRes); err != nil {
-			return err
-		}
-		if err := matchRes.Validate(); err != nil {
-			return err
-		}
-		notif := &domain.OwnerNotification{
-			FromEmail:  "alerts@petspotr.io",
-			ToEmail:    "owner@example.com",
-			Subject:    fmt.Sprintf("Match Found for Your Pet (%s)", matchRes.MatchedPetID),
-			PetName:    matchRes.MatchedPetID,
-			MatchScore: matchRes.Score,
-		}
-		notif.Body = notif.RenderEmailBody()
-		notifChan <- notif
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("failed to subscribe to matchFound: %v", err)
-	}
-	if err := ps.Subscribe("lostPet", func(context.Context, []byte) error { return nil }); err != nil {
-		t.Fatalf("failed to subscribe to lostPet: %v", err)
+	// 3. Register the production Notification worker with an observable dev sender.
+	emailSender := notification.NewMockEmailSender()
+	notificationWorker := notification.NewWorkerWithStoreAndDispatcher(
+		st,
+		ps,
+		notification.NewMultiChannelDispatcher(
+			emailSender,
+			notification.NewMockSMSSender(),
+			notification.NewMockWebPushSender(),
+		),
+	)
+	if err := notificationWorker.Start(context.Background()); err != nil {
+		t.Fatalf("failed to start notification worker: %v", err)
 	}
 
-	// 5. Register the production Pet Matcher worker.
+	// 4. Register the production Pet Matcher worker.
 	matcherWorker := petmatcher.NewWorker(st, ps, ollamaClient)
 	if err := matcherWorker.Start(context.Background()); err != nil {
 		t.Fatalf("failed to start pet matcher: %v", err)
@@ -125,21 +111,21 @@ func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 		t.Fatalf("FoundPet request failed with status %d (body: %s)", recFound.Code, recFound.Body.String())
 	}
 
-	// --- Step C: Assert End-to-End Event Cascade & Notification Generation ---
-	select {
-	case dispatchedNotif := <-notifChan:
-		if dispatchedNotif.ToEmail != "owner@example.com" {
-			t.Errorf("notification recipient email mismatch: got %s, want owner@example.com", dispatchedNotif.ToEmail)
+	// --- Step C: Assert End-to-End Event Cascade & Notification Dispatch ---
+	var ownerMessage *notification.NotificationMessage
+	for _, message := range emailSender.SentMessages {
+		if message.Email == "owner@example.com" {
+			ownerMessage = message
+			break
 		}
-
-		if dispatchedNotif.MatchScore != 1.0 {
-			t.Errorf("notification match score mismatch: got %f, want 1.0", dispatchedNotif.MatchScore)
-		}
-
-		if dispatchedNotif.Body == "" {
-			t.Errorf("expected rendered HTML email body")
-		}
-	case <-time.After(2 * time.Second):
-		t.Fatal("timed out waiting for dispatched OwnerNotification")
+	}
+	if ownerMessage == nil {
+		t.Fatal("expected owner notification to be dispatched")
+	}
+	if ownerMessage.Subject != "Match Found for Your Pet (lost-101)" {
+		t.Errorf("notification subject mismatch: got %q", ownerMessage.Subject)
+	}
+	if !strings.Contains(ownerMessage.Body, "<strong>100%</strong>") {
+		t.Errorf("expected rendered 100%% match confidence, got %q", ownerMessage.Body)
 	}
 }

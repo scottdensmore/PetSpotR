@@ -178,7 +178,7 @@ completed channels, then confirms a poison event is redelivered:
 
 ```bash
 PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
-  go test ./cmd/notification-service \
+  go test ./internal/app/notification \
   -run TestNotificationPubSubEmulatorDeliversRetriesAndRetainsPoison
 ```
 
@@ -186,7 +186,7 @@ Run the equivalent `lostPet` community-broadcast contract with:
 
 ```bash
 PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
-  go test ./cmd/notification-service \
+  go test ./internal/app/notification \
   -run TestNotificationLostPetPubSubEmulatorDeliversRetriesAndRetainsPoison
 ```
 
