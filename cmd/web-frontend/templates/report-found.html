@@ -11,7 +11,7 @@
   <header class="glass-nav">
     <div class="container navbar">
       <a href="/" class="brand-logo" id="brand-link">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #6366f1;">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
           <path d="M12 8v8"></path>
           <path d="M8 12h8"></path>
@@ -33,43 +33,43 @@
     </div>
   </header>
 
-  <main class="container" style="padding: 3rem 1.5rem;" id="main-content">
-    <div class="found-report glass-card" style="max-width: 800px; margin: 0 auto;">
-      <div style="margin-bottom: 2rem; text-align: center;">
-        <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Report Found Pet</h1>
-        <p style="color: var(--text-secondary);">Upload a photo and Gemma 4 AI will instantly extract pet attributes to find matching owners.</p>
+  <main class="container page-main" id="main-content">
+    <div class="found-report glass-card form-shell">
+      <div class="page-heading">
+        <h1>Report Found Pet</h1>
+        <p class="text-secondary">Upload a photo and Gemma 4 AI will instantly extract pet attributes to find matching owners.</p>
       </div>
 
-      <form id="found-pet-form" onsubmit="return false;">
+      <form id="found-pet-form">
         <!-- Step A: Instant Photo Upload & AI Tag Extraction -->
-        <div style="margin-bottom: 2rem;">
-          <h2 style="font-size: 1.25rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+        <div class="form-section">
+          <h2 class="section-title section-title-inline">
             <span>1. Upload Pet Photo</span>
-            <span style="font-size: 0.8rem; background: var(--brand-gradient); color: #fff; padding: 0.2rem 0.6rem; border-radius: var(--radius-full); font-weight: 600;">AI Vision Auto-Extract</span>
+            <span class="ai-badge">AI Vision Auto-Extract</span>
           </h2>
 
-          <div id="found-dropzone" style="border: 2px dashed var(--brand-primary); border-radius: var(--radius-lg); padding: 2.5rem; text-align: center; cursor: pointer; background: rgba(99, 102, 241, 0.05); transition: background var(--transition-fast);">
-            <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--brand-primary); margin-bottom: 1rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H3a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-            <p style="font-weight: 600; margin-bottom: 0.5rem;">Click or drag photo here to scan with Gemma 4 Vision AI</p>
-            <input type="file" id="foundPhotoInput" accept="image/*" style="display: none;">
+          <div id="found-dropzone" class="dropzone">
+            <svg class="upload-icon" width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H3a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <p class="dropzone-title">Click or drag photo here to scan with Gemma 4 Vision AI</p>
+            <input type="file" id="foundPhotoInput" accept="image/*" hidden>
           </div>
 
           <!-- AI Extraction Spinner Indicator -->
-          <div id="ai-spinner" style="display: none; margin-top: 1.5rem; text-align: center; padding: 1.5rem; background: rgba(99, 102, 241, 0.1); border-radius: var(--radius-md); border: 1px solid var(--brand-primary);">
-            <div style="display: inline-block; width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: var(--brand-primary); animation: spin 1s linear infinite;"></div>
-            <p style="font-weight: 600; margin-top: 0.75rem; color: var(--brand-primary);">Analyzing image with Gemma 4 AI Vision Model...</p>
+          <div id="ai-spinner" class="ai-spinner-panel" hidden>
+            <div class="spinner"></div>
+            <p>Analyzing image with Gemma 4 AI Vision Model...</p>
           </div>
 
           <!-- Photo Preview & Detected AI Badges -->
-          <div id="found-preview-container" style="display: none; margin-top: 1.5rem;">
-            <div style="display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap;">
-              <img id="foundImagePreview" src="" alt="Found Pet Preview" style="max-height: 200px; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--glass-shadow);">
-              <div style="flex: 1; min-width: 260px;">
-                <h3 style="font-size: 1.1rem; color: var(--status-reunited); margin-bottom: 0.75rem;">✨ Gemma 4 AI Detected Traits</h3>
-                <div id="ai-detected-chips" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
-                  <span class="chip" id="chip-species" style="background: var(--bg-surface-hover); border: 1px solid var(--border-color); padding: 0.35rem 0.75rem; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600;">Species: Detecting...</span>
-                  <span class="chip" id="chip-breed" style="background: var(--bg-surface-hover); border: 1px solid var(--border-color); padding: 0.35rem 0.75rem; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600;">Breed: Detecting...</span>
-                  <span class="chip" id="chip-color" style="background: var(--bg-surface-hover); border: 1px solid var(--border-color); padding: 0.35rem 0.75rem; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600;">Colors: Detecting...</span>
+          <div id="found-preview-container" class="found-preview" hidden>
+            <div class="found-preview-content">
+              <img id="foundImagePreview" src="" alt="Found Pet Preview" class="found-preview-image">
+              <div class="found-preview-details">
+                <h3 class="detected-traits-title">✨ Gemma 4 AI Detected Traits</h3>
+                <div id="ai-detected-chips" class="chip-list">
+                  <span class="chip" id="chip-species">Species: Detecting...</span>
+                  <span class="chip" id="chip-breed">Breed: Detecting...</span>
+                  <span class="chip" id="chip-color">Colors: Detecting...</span>
                 </div>
               </div>
             </div>
@@ -77,12 +77,12 @@
         </div>
 
         <!-- Step B: Editable Pet Traits -->
-        <div style="margin-bottom: 2rem;">
-          <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">2. Verify & Edit Pet Attributes</h2>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+        <div class="form-section">
+          <h2 class="section-title">2. Verify & Edit Pet Attributes</h2>
+          <div class="form-grid">
             <div>
-              <label for="foundSpecies" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Species *</label>
-              <select id="foundSpecies" name="species" required style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+              <label for="foundSpecies" class="form-label">Species *</label>
+              <select class="form-control" id="foundSpecies" name="species" required>
                 <option value="Dog">Dog</option>
                 <option value="Cat">Cat</option>
                 <option value="Bird">Bird</option>
@@ -90,33 +90,33 @@
               </select>
             </div>
             <div>
-              <label for="foundBreed" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Detected Breed</label>
-              <input type="text" id="foundBreed" name="breed" placeholder="Auto-detected breed" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+              <label for="foundBreed" class="form-label">Detected Breed</label>
+              <input class="form-control" type="text" id="foundBreed" name="breed" placeholder="Auto-detected breed">
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+          <div class="form-grid">
             <div>
-              <label for="foundPrimaryColor" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Primary Color</label>
-              <input type="text" id="foundPrimaryColor" name="primaryColor" placeholder="Auto-detected primary color" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+              <label for="foundPrimaryColor" class="form-label">Primary Color</label>
+              <input class="form-control" type="text" id="foundPrimaryColor" name="primaryColor" placeholder="Auto-detected primary color">
             </div>
             <div>
-              <label for="foundSecondaryColor" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Secondary Color</label>
-              <input type="text" id="foundSecondaryColor" name="secondaryColor" placeholder="Secondary color" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+              <label for="foundSecondaryColor" class="form-label">Secondary Color</label>
+              <input class="form-control" type="text" id="foundSecondaryColor" name="secondaryColor" placeholder="Secondary color">
             </div>
           </div>
         </div>
 
         <!-- Step C: Found Location & Custody Details -->
-        <div style="margin-bottom: 2rem;">
-          <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">3. Location & Custody Status</h2>
-          <div style="margin-bottom: 1.25rem;">
-            <label for="foundLocation" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Found Location / Neighborhood *</label>
-            <input type="text" id="foundLocation" name="location" required placeholder="e.g. Green Lake Park, Seattle, WA" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+        <div class="form-section">
+          <h2 class="section-title">3. Location & Custody Status</h2>
+          <div class="form-field">
+            <label for="foundLocation" class="form-label">Found Location / Neighborhood *</label>
+            <input class="form-control" type="text" id="foundLocation" name="location" required placeholder="e.g. Green Lake Park, Seattle, WA">
           </div>
           <div>
-            <label for="custodyStatus" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Current Pet Custody</label>
-            <select id="custodyStatus" name="custodyStatus" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+            <label for="custodyStatus" class="form-label">Current Pet Custody</label>
+            <select class="form-control" id="custodyStatus" name="custodyStatus">
               <option value="Finder Home">Safely at Finder's Home</option>
               <option value="Local Shelter">Transferred to Local Animal Shelter</option>
               <option value="Animal Control">Animal Control Officer</option>
@@ -126,16 +126,16 @@
         </div>
 
         <!-- Step D: Finder Contact Info -->
-        <div style="margin-bottom: 2rem;">
-          <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">4. Finder Contact Info</h2>
-          <div style="margin-bottom: 1.25rem;">
-            <label for="finderEmail" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Finder Email *</label>
-            <input type="email" id="finderEmail" name="finderEmail" required placeholder="finder@example.com" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+        <div class="form-section">
+          <h2 class="section-title">4. Finder Contact Info</h2>
+          <div class="form-field">
+            <label for="finderEmail" class="form-label">Finder Email *</label>
+            <input class="form-control" type="email" id="finderEmail" name="finderEmail" required placeholder="finder@example.com">
           </div>
         </div>
 
         <!-- Submit Button -->
-        <button type="submit" class="btn btn-primary" id="btn-submit-found" style="width: 100%; padding: 1rem; font-size: 1.05rem;">
+        <button type="submit" class="btn btn-primary btn-full btn-submit" id="btn-submit-found">
           <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
           Submit Found Pet & Trigger AI Match Cascade
         </button>
@@ -143,14 +143,14 @@
     </div>
 
     <!-- Success Confirmation Modal -->
-    <div id="found-success-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 200; align-items: center; justify-content: center;">
-      <div class="glass-card" style="max-width: 480px; text-align: center; padding: 2.5rem;">
-        <div style="width: 64px; height: 64px; background: rgba(59, 130, 246, 0.15); color: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+    <div id="found-success-modal" class="modal-overlay" hidden>
+      <div class="glass-card modal-panel modal-panel-compact">
+        <div class="modal-icon modal-icon-found">
           <svg width="36" height="36" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
         </div>
-        <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">Found Pet Report Registered!</h2>
-        <p style="color: var(--text-secondary); margin-bottom: 1.75rem;">PetSpotR matcher worker is calculating visual trait similarity scores against all active lost pet reports.</p>
-        <a href="/" class="btn btn-primary" style="width: 100%;">Return to Home</a>
+        <h2 class="modal-title">Found Pet Report Registered!</h2>
+        <p class="modal-description">PetSpotR matcher worker is calculating visual trait similarity scores against all active lost pet reports.</p>
+        <a href="/" class="btn btn-primary btn-full">Return to Home</a>
       </div>
     </div>
   </main>
@@ -160,13 +160,6 @@
       <p>&copy; 2026 PetSpotR. Event-driven Go & GCP AI Microservices.</p>
     </div>
   </footer>
-
-  <style>
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  </style>
 
   <script src="/static/js/theme.js"></script>
   <script src="/static/js/found-report.js"></script>

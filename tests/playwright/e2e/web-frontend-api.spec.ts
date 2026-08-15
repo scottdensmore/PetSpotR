@@ -137,6 +137,37 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     }
   });
 
+  test('should enforce the browser security policy without breaking frontend journeys', async ({ page }) => {
+    const expectedCSP = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://storage.petspotr.io; connect-src 'self'; worker-src 'self'";
+    const cspViolations: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error' && message.text().includes('Content Security Policy')) {
+        cspViolations.push(message.text());
+      }
+    });
+
+    for (const pagePath of ['/', '/report-lost', '/report-found', '/matches']) {
+      const response = await page.goto(`${WEB_FRONTEND_URL}${pagePath}`);
+      expect(response?.headers()['content-security-policy']).toBe(expectedCSP);
+      expect(response?.headers()['x-content-type-options']).toBe('nosniff');
+      expect(response?.headers()['referrer-policy']).toBe('no-referrer');
+      expect(response?.headers()['permissions-policy']).toBe('camera=(), geolocation=(), microphone=()');
+      expect(response?.headers()['x-frame-options']).toBe('DENY');
+      await expect(page.locator('body')).toBeVisible();
+      await expect(page.locator('[style], [onclick], [onsubmit]')).toHaveCount(0);
+    }
+
+    await page.evaluate(() => {
+      const script = document.createElement('script');
+      script.textContent = "document.body.dataset.inlineScript = 'executed'";
+      document.body.append(script);
+    });
+    await expect(page.locator('body')).not.toHaveAttribute('data-inline-script', 'executed');
+
+    expect(cspViolations).toHaveLength(1);
+    expect(cspViolations[0]).toContain('script-src');
+  });
+
   test('should reject lost pet report with missing email via POST /api/v1/lost-pets', async ({ request }) => {
     const payload = { petName: 'NoEmail', location: 'Seattle, WA' };
     const response = await request.post(`${WEB_FRONTEND_URL}/api/v1/lost-pets`, { data: payload });

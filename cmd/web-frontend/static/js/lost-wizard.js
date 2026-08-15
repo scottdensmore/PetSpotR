@@ -18,25 +18,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const stepEl = document.getElementById(`wizard-step-${i}`);
       const badgeEl = document.getElementById(`step-badge-${i}`);
       if (stepEl) {
-        stepEl.style.display = i === step ? 'block' : 'none';
+        stepEl.hidden = i !== step;
       }
       if (badgeEl) {
-        if (i === step) {
-          badgeEl.style.borderColor = 'var(--brand-primary)';
-          badgeEl.style.color = 'var(--brand-primary)';
-        } else if (i < step) {
-          badgeEl.style.borderColor = 'var(--status-reunited)';
-          badgeEl.style.color = 'var(--status-reunited)';
-        } else {
-          badgeEl.style.borderColor = 'var(--border-color)';
-          badgeEl.style.color = 'var(--text-muted)';
-        }
+        badgeEl.classList.toggle('active', i === step);
+        badgeEl.classList.toggle('complete', i < step);
       }
     }
 
-    if (btnPrev) btnPrev.style.visibility = step === 1 ? 'hidden' : 'visible';
-    if (btnNext) btnNext.style.display = step === totalSteps ? 'none' : 'inline-flex';
-    if (btnSubmit) btnSubmit.style.display = step === totalSteps ? 'inline-flex' : 'none';
+    if (btnPrev) btnPrev.classList.toggle('is-invisible', step === 1);
+    if (btnNext) btnNext.hidden = step === totalSteps;
+    if (btnSubmit) btnSubmit.hidden = step !== totalSteps;
   }
 
   if (btnNext) {
@@ -78,16 +70,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dropzone.addEventListener('dragover', (e) => {
       e.preventDefault();
-      dropzone.style.background = 'rgba(99, 102, 241, 0.15)';
+      dropzone.classList.add('is-dragging');
     });
 
     dropzone.addEventListener('dragleave', () => {
-      dropzone.style.background = 'rgba(99, 102, 241, 0.05)';
+      dropzone.classList.remove('is-dragging');
     });
 
     dropzone.addEventListener('drop', (e) => {
       e.preventDefault();
-      dropzone.style.background = 'rgba(99, 102, 241, 0.05)';
+      dropzone.classList.remove('is-dragging');
       if (e.dataTransfer.files && e.dataTransfer.files[0]) {
         handleFile(e.dataTransfer.files[0]);
       }
@@ -109,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     reader.onload = (e) => {
       if (imagePreview && previewContainer) {
         imagePreview.src = e.target.result;
-        previewContainer.style.display = 'block';
+        previewContainer.hidden = false;
       }
     };
     reader.readAsDataURL(file);
@@ -145,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (resp.ok) {
           const modal = document.getElementById('success-modal');
-          if (modal) modal.style.display = 'flex';
+          if (modal) modal.hidden = false;
         } else {
           alert('Failed to submit report. Please check input fields.');
         }

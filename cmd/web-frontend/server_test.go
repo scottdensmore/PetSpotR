@@ -469,6 +469,47 @@ func TestNewServer_Routes(t *testing.T) {
 	})
 }
 
+func TestSecurityHeaders(t *testing.T) {
+	t.Parallel()
+
+	srv := NewServer()
+	wantCSP := "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://storage.petspotr.io; connect-src 'self'; worker-src 'self'"
+	tests := []struct {
+		name string
+		path string
+	}{
+		{name: "HTML page", path: "/matches"},
+		{name: "static asset", path: "/static/js/match-dashboard.js"},
+		{name: "API response", path: "/api/v1/matches"},
+		{name: "not found response", path: "/missing"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			rec := httptest.NewRecorder()
+
+			srv.ServeHTTP(rec, req)
+
+			if got := rec.Header().Get("Content-Security-Policy"); got != wantCSP {
+				t.Errorf("Content-Security-Policy = %q, want %q", got, wantCSP)
+			}
+			if got := rec.Header().Get("X-Content-Type-Options"); got != "nosniff" {
+				t.Errorf("X-Content-Type-Options = %q, want nosniff", got)
+			}
+			if got := rec.Header().Get("Referrer-Policy"); got != "no-referrer" {
+				t.Errorf("Referrer-Policy = %q, want no-referrer", got)
+			}
+			if got := rec.Header().Get("Permissions-Policy"); got != "camera=(), geolocation=(), microphone=()" {
+				t.Errorf("Permissions-Policy = %q, want camera=(), geolocation=(), microphone=()", got)
+			}
+			if got := rec.Header().Get("X-Frame-Options"); got != "DENY" {
+				t.Errorf("X-Frame-Options = %q, want DENY", got)
+			}
+		})
+	}
+}
+
 func TestDurableStateFailuresAreNotReportedAsSuccess(t *testing.T) {
 	t.Parallel()
 

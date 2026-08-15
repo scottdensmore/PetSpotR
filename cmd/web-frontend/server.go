@@ -23,6 +23,8 @@ import (
 //go:embed static/* templates/*
 var embeddedFiles embed.FS
 
+const contentSecurityPolicy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://storage.petspotr.io; connect-src 'self'; worker-src 'self'"
+
 // Server encapsulates HTTP routes and handlers for the PetSpotR Web Frontend.
 type Server struct {
 	mux                      *http.ServeMux
@@ -910,5 +912,10 @@ func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
 
 // ServeHTTP satisfies the http.Handler interface.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Security-Policy", contentSecurityPolicy)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(), microphone=()")
+	w.Header().Set("X-Frame-Options", "DENY")
 	s.mux.ServeHTTP(w, r)
 }
