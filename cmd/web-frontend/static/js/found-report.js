@@ -23,16 +23,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dropzone.addEventListener('dragover', (e) => {
       e.preventDefault();
-      dropzone.style.background = 'rgba(99, 102, 241, 0.15)';
+      dropzone.classList.add('is-dragging');
     });
 
     dropzone.addEventListener('dragleave', () => {
-      dropzone.style.background = 'rgba(99, 102, 241, 0.05)';
+      dropzone.classList.remove('is-dragging');
     });
 
     dropzone.addEventListener('drop', (e) => {
       e.preventDefault();
-      dropzone.style.background = 'rgba(99, 102, 241, 0.05)';
+      dropzone.classList.remove('is-dragging');
       if (e.dataTransfer.files && e.dataTransfer.files[0]) {
         handleFile(e.dataTransfer.files[0]);
       }
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
       currentImageUrl = e.target.result;
       if (imagePreview && previewContainer) {
         imagePreview.src = currentImageUrl;
-        previewContainer.style.display = 'block';
+        previewContainer.hidden = false;
       }
 
       // Trigger AI Feature Auto-Extraction
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function extractAIFeatures(imageUrl) {
-    if (spinner) spinner.style.display = 'block';
+    if (spinner) spinner.hidden = false;
 
     try {
       const resp = await fetch('/api/v1/found-pets/extract-features', {
@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       console.error('AI extraction error:', err);
     } finally {
-      if (spinner) spinner.style.display = 'none';
+      if (spinner) spinner.hidden = true;
     }
   }
 
@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (resp.ok) {
           const modal = document.getElementById('found-success-modal');
-          if (modal) modal.style.display = 'flex';
+          if (modal) modal.hidden = false;
         } else {
           alert('Failed to submit found pet report.');
         }

@@ -9,11 +9,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const matchStatuses = new Set(['PENDING_REVIEW', 'CONFIRMED', 'REJECTED', 'REUNITED']);
   const allowedImageHosts = new Set(['storage.petspotr.io']);
 
+  function openModal(modal) {
+    if (modal) modal.hidden = false;
+  }
+
+  function closeModal(modal) {
+    if (modal) modal.hidden = true;
+  }
+
   function createElement(tagName, options = {}) {
     const element = document.createElement(tagName);
     if (options.className) element.className = options.className;
     if (options.text !== undefined) element.textContent = options.text;
-    if (options.style) element.style.cssText = options.style;
     return element;
   }
 
@@ -118,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (container) {
         container.replaceChildren(createElement('p', {
           text: 'Failed to load match records.',
-          style: 'text-align: center; color: var(--status-lost);',
+          className: 'match-load-error',
         }));
       }
     }
@@ -131,23 +138,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (filtered.length === 0) {
       const emptyCard = createElement('div', {
-        className: 'glass-card',
-        style: 'text-align: center; padding: 3rem;',
+        className: 'glass-card match-empty',
       });
       const emptyIcon = createElement('div', {
         text: '⌕',
-        style: 'color: var(--text-muted); font-size: 3rem; line-height: 1; margin-bottom: 1rem;',
+        className: 'match-empty-icon',
       });
       emptyIcon.setAttribute('aria-hidden', 'true');
       emptyCard.append(
         emptyIcon,
         createElement('h3', {
           text: `No Candidate Matches Above ${Math.round(minScore * 100)}% Threshold`,
-          style: 'font-size: 1.25rem; margin-bottom: 0.5rem;',
         }),
         createElement('p', {
           text: 'Try lowering the score filter threshold to see additional match candidates.',
-          style: 'color: var(--text-secondary);',
+          className: 'text-secondary',
         }),
       );
       container.replaceChildren(emptyCard);
@@ -158,22 +163,21 @@ document.addEventListener('DOMContentLoaded', () => {
     bindCardEvents();
   }
 
-  function createImagePanel(label, pet, accentColor, includeName) {
+  function createImagePanel(label, pet, accentClass, includeName) {
     const panel = createElement('div', {
-      style: 'background: var(--bg-primary); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); text-align: center;',
+      className: 'image-panel',
     });
     const header = createElement('div', {
-      style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;',
+      className: 'image-panel-header',
     });
     header.append(createElement('span', {
       text: label,
-      style: `font-size: 0.85rem; font-weight: 700; color: ${accentColor}; text-transform: uppercase;`,
+      className: `image-panel-label ${accentClass}`,
     }));
 
     const zoomButton = createElement('button', {
       className: 'zoom-btn btn btn-secondary',
       text: pet.imageUrl ? '🔍 Zoom' : 'Image unavailable',
-      style: 'min-width: 44px; min-height: 44px; padding: 0.25rem 0.5rem; font-size: 0.75rem;',
     });
     zoomButton.type = 'button';
     if (pet.imageUrl) {
@@ -186,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (pet.imageUrl) {
       const image = createElement('img', {
-        style: 'width: 100%; height: 220px; object-fit: cover; border-radius: var(--radius-sm); margin-bottom: 0.75rem;',
+        className: 'match-pet-image',
       });
       image.src = pet.imageUrl;
       image.alt = includeName ? `${pet.petName} photo` : 'Found pet photo';
@@ -194,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       const placeholder = createElement('div', {
         text: 'Image unavailable',
-        style: 'width: 100%; height: 220px; display: grid; place-items: center; background: var(--bg-secondary); color: var(--text-secondary); border-radius: var(--radius-sm); margin-bottom: 0.75rem;',
+        className: 'image-unavailable',
       });
       placeholder.setAttribute('role', 'img');
       placeholder.setAttribute('aria-label', includeName ? `${pet.petName} image unavailable` : 'Found pet image unavailable');
@@ -204,34 +208,32 @@ document.addEventListener('DOMContentLoaded', () => {
     panel.append(
       createElement('h4', {
         text: includeName ? `${pet.petName} (${pet.breed})` : `Found Pet (${pet.breed})`,
-        style: 'font-size: 1.1rem;',
+        className: 'pet-name',
       }),
       createElement('p', {
         text: `${includeName ? 'Last Seen' : 'Found At'}: ${pet.location}`,
-        style: 'font-size: 0.85rem; color: var(--text-secondary);',
+        className: 'pet-location',
       }),
     );
     return panel;
   }
 
-  function createScore(scoreGrid, label, value, color) {
+  function createScore(scoreGrid, label, value, className) {
     const score = createElement('div');
     const row = createElement('div', {
-      style: 'display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.35rem;',
+      className: 'score-row',
     });
     row.append(
       createElement('span', { text: label }),
-      createElement('span', { text: `${Math.round(value * 100)}%`, style: 'font-weight: 700;' }),
+      createElement('span', { text: `${Math.round(value * 100)}%`, className: 'score-value' }),
     );
-    const track = createElement('div', {
-      style: 'height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;',
+    const progress = createElement('progress', {
+      className: `score-progress ${className}`,
     });
-    const bar = createElement('div', {
-      style: `height: 100%; background: ${color};`,
-    });
-    bar.style.width = `${Math.round(value * 100)}%`;
-    track.append(bar);
-    score.append(row, track);
+    progress.max = 100;
+    progress.value = Math.round(value * 100);
+    progress.setAttribute('aria-label', label);
+    score.append(row, progress);
     scoreGrid.append(score);
   }
 
@@ -245,65 +247,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function createMatchCard(m) {
     const scorePct = Math.round(m.score * 100);
-    const badgeColor = scorePct >= 90 ? 'var(--status-reunited)' : scorePct >= 80 ? 'var(--brand-primary-hover)' : 'var(--status-matched)';
-    const badgeTextColor = scorePct >= 90 ? '#052e16' : scorePct >= 80 ? '#ffffff' : '#451a03';
+    const badgeClass = scorePct >= 90 ? 'match-badge-high' : scorePct >= 80 ? 'match-badge-medium' : 'match-badge-low';
     const statusBadgeText = m.status === 'CONFIRMED' ? 'CONFIRMED REUNION' :
       m.status === 'REJECTED' ? 'REJECTED MATCH' :
         m.status === 'REUNITED' ? 'REUNITED' : `${scorePct}% HIGH CONFIDENCE MATCH`;
 
-    const card = createElement('article', { className: 'glass-card' });
+    const card = createElement('article', { className: 'glass-card match-card' });
     card.dataset.matchId = m.matchId;
-    card.style.overflowWrap = 'anywhere';
 
     const summary = createElement('div', {
-      style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;',
+      className: 'match-summary',
     });
     const identity = createElement('div', {
-      style: 'display: flex; align-items: center; gap: 0.75rem;',
+      className: 'match-identity',
     });
     identity.append(
       createElement('span', {
         text: statusBadgeText,
-        style: `background: ${badgeColor}; color: ${badgeTextColor}; padding: 0.35rem 0.85rem; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 700; text-transform: uppercase;`,
+        className: `match-badge ${badgeClass}`,
       }),
       createElement('span', {
         text: `Match ID: ${m.matchId}`,
-        style: 'font-size: 0.9rem; color: var(--text-secondary);',
+        className: 'match-id',
       }),
     );
     summary.append(
       identity,
       createElement('span', {
         text: `Calculated: ${m.matchedAt.toLocaleString()}`,
-        style: 'font-size: 0.85rem; color: var(--text-muted);',
+        className: 'match-date',
       }),
     );
 
     const comparison = createElement('div', {
-      style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 1.75rem;',
+      className: 'match-comparison',
     });
     comparison.append(
-      createImagePanel('Reported Lost Pet', m.lostPet, 'var(--status-lost)', true),
-      createImagePanel('Found Pet Candidate', m.foundPet, 'var(--status-found)', false),
+      createImagePanel('Reported Lost Pet', m.lostPet, 'image-panel-label-lost', true),
+      createImagePanel('Found Pet Candidate', m.foundPet, 'image-panel-label-found', false),
     );
 
     const scores = createElement('div', {
-      style: 'background: var(--bg-secondary); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 1.75rem;',
+      className: 'match-scores',
     });
     scores.append(createElement('h4', {
       text: '✨ Gemma 4 AI Similarity Scoring Breakdown',
-      style: 'font-size: 1rem; margin-bottom: 1rem; color: var(--brand-primary);',
+      className: 'match-scores-title',
     }));
     const scoreGrid = createElement('div', {
-      style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem;',
+      className: 'score-grid',
     });
-    createScore(scoreGrid, 'Visual Feature Match:', m.scores.visual, 'var(--brand-primary)');
-    createScore(scoreGrid, 'Color Alignment:', m.scores.color, 'var(--brand-secondary)');
-    createScore(scoreGrid, `Geospatial Proximity (${m.scores.distanceMiles} mi):`, m.scores.spatial, 'var(--status-reunited)');
+    createScore(scoreGrid, 'Visual Feature Match:', m.scores.visual, 'score-visual');
+    createScore(scoreGrid, 'Color Alignment:', m.scores.color, 'score-color');
+    createScore(scoreGrid, `Geospatial Proximity (${m.scores.distanceMiles} mi):`, m.scores.spatial, 'score-spatial');
     scores.append(scoreGrid);
 
     const controls = createElement('div', {
-      style: 'display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;',
+      className: 'match-controls',
     });
     controls.append(
       createActionButton('💬 Contact Finder / Owner', 'btn btn-secondary contact-btn', m.matchId),
@@ -312,7 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
     );
     const reunionButton = createActionButton('🎉 Mark as Reunited', 'btn btn-primary reunion-btn', m.matchId);
     reunionButton.dataset.petId = m.lostPet.petId;
-    reunionButton.style.background = 'var(--status-reunited)';
     controls.append(reunionButton);
 
     card.append(summary, comparison, scores, controls);
@@ -326,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const src = e.currentTarget.getAttribute('data-src');
         if (zoomedImage && zoomModal && src) {
           zoomedImage.src = src;
-          zoomModal.style.display = 'flex';
+          openModal(zoomModal);
         }
       });
     });
@@ -339,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const contactModal = document.getElementById('contact-modal');
         if (contactMatchIdInput && contactModal) {
           contactMatchIdInput.value = matchId;
-          contactModal.style.display = 'flex';
+          openModal(contactModal);
         }
       });
     });
@@ -355,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (reunionModal && reunionMatchIdInput && reunionPetIdInput) {
           reunionMatchIdInput.value = matchId;
           reunionPetIdInput.value = petId;
-          reunionModal.style.display = 'flex';
+          openModal(reunionModal);
         }
       });
     });
@@ -402,7 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (resp.ok) {
-          document.getElementById('contact-modal').style.display = 'none';
+          closeModal(document.getElementById('contact-modal'));
           showActionModal('CONFIRMED', 'contact');
         }
       } catch (err) {
@@ -429,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (resp.ok) {
-          document.getElementById('reunion-modal').style.display = 'none';
+          closeModal(document.getElementById('reunion-modal'));
           showActionModal('REUNITED', 'resolve');
           fetchMatches();
         }
@@ -452,13 +451,23 @@ document.addEventListener('DOMContentLoaded', () => {
         title.textContent = 'Match Rejected';
         desc.textContent = 'Match candidate removed from active list and feedback logged.';
       }
-      modal.style.display = 'flex';
+      openModal(modal);
     }
   }
 
   if (scoreFilter) {
     scoreFilter.addEventListener('change', () => renderMatches());
   }
+
+  if (zoomModal) {
+    zoomModal.addEventListener('click', () => closeModal(zoomModal));
+  }
+
+  document.querySelectorAll('.modal-close').forEach(button => {
+    button.addEventListener('click', (event) => {
+      closeModal(event.currentTarget.closest('.modal-overlay'));
+    });
+  });
 
   fetchMatches();
 });
