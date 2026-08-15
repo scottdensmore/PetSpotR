@@ -1,0 +1,54 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M01YRVZZMR6K7PRS6FCX3R7Q",
+  "session_id": "01a001af-b3bc-79c1-828f-504b40d7da08",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-15T05:37:29.116109457Z",
+  "branch": "refactor/foundpet-internal-service",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/foundpet-service/main.go",
+    "cmd/foundpet-service/service.go",
+    "cmd/foundpet-service/service_test.go",
+    "e2e/e2e_test.go",
+    "internal/app/foundpet/service.go",
+    "internal/app/foundpet/service_test.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "ef3a8924305f",
+  "checkpoint_transcript_start": 3407,
+  "transcript_lines_at_start": 3407,
+  "compact_transcript_start": 485,
+  "token_usage": {
+    "input_tokens": 79481,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3599104,
+    "output_tokens": 13144,
+    "api_call_count": 50
+  },
+  "session_metrics": {
+    "turn_count": 12
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-15T05:37:27.314662701Z",
+    "agent_lines": 662,
+    "agent_removed": 639,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 662,
+    "total_lines_changed": 1301,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}

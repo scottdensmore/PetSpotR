@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M01YRVZZMR6K7PRS6FCX3R7Q",
+  "strategy": "manual-commit",
+  "branch": "refactor/foundpet-internal-service",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/foundpet-service/main.go",
+    "cmd/foundpet-service/service.go",
+    "cmd/foundpet-service/service_test.go",
+    "e2e/e2e_test.go",
+    "internal/app/foundpet/service.go",
+    "internal/app/foundpet/service_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 79481,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3599104,
+    "output_tokens": 13144,
+    "api_call_count": 50
+  }
+}
