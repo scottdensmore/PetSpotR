@@ -1,0 +1,49 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M03ESJMNE690Q4G8NDDQ6ECP",
+  "strategy": "manual-commit",
+  "branch": "refactor/notification-internal-service",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "AGENTS.md",
+    "cmd/notification-service/broadcast.go",
+    "cmd/notification-service/broadcast_test.go",
+    "cmd/notification-service/dispatcher.go",
+    "cmd/notification-service/dispatcher_test.go",
+    "cmd/notification-service/idempotency_test.go",
+    "cmd/notification-service/main.go",
+    "cmd/notification-service/pubsub_integration_test.go",
+    "cmd/notification-service/server.go",
+    "cmd/notification-service/server_test.go",
+    "cmd/notification-service/worker.go",
+    "cmd/notification-service/worker_test.go",
+    "docs/DEVELOPMENT.md",
+    "e2e/e2e_test.go",
+    "internal/app/notification/broadcast.go",
+    "internal/app/notification/broadcast_test.go",
+    "internal/app/notification/dispatcher.go",
+    "internal/app/notification/dispatcher_test.go",
+    "internal/app/notification/idempotency_test.go",
+    "internal/app/notification/pubsub_integration_test.go",
+    "internal/app/notification/server.go",
+    "internal/app/notification/server_test.go",
+    "internal/app/notification/worker.go",
+    "internal/app/notification/worker_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 220872,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 5591808,
+    "output_tokens": 10359,
+    "api_call_count": 29
+  }
+}

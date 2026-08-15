@@ -1,0 +1,72 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M03ESJMNE690Q4G8NDDQ6ECP",
+  "session_id": "01a001af-b3bc-79c1-828f-504b40d7da08",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-15T19:36:46.136150465Z",
+  "branch": "refactor/notification-internal-service",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "AGENTS.md",
+    "cmd/notification-service/broadcast.go",
+    "cmd/notification-service/broadcast_test.go",
+    "cmd/notification-service/dispatcher.go",
+    "cmd/notification-service/dispatcher_test.go",
+    "cmd/notification-service/idempotency_test.go",
+    "cmd/notification-service/main.go",
+    "cmd/notification-service/pubsub_integration_test.go",
+    "cmd/notification-service/server.go",
+    "cmd/notification-service/server_test.go",
+    "cmd/notification-service/worker.go",
+    "cmd/notification-service/worker_test.go",
+    "docs/DEVELOPMENT.md",
+    "e2e/e2e_test.go",
+    "internal/app/notification/broadcast.go",
+    "internal/app/notification/broadcast_test.go",
+    "internal/app/notification/dispatcher.go",
+    "internal/app/notification/dispatcher_test.go",
+    "internal/app/notification/idempotency_test.go",
+    "internal/app/notification/pubsub_integration_test.go",
+    "internal/app/notification/server.go",
+    "internal/app/notification/server_test.go",
+    "internal/app/notification/worker.go",
+    "internal/app/notification/worker_test.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "152c39428e1d",
+  "checkpoint_transcript_start": 4159,
+  "transcript_lines_at_start": 4159,
+  "compact_transcript_start": 592,
+  "token_usage": {
+    "input_tokens": 220872,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 5591808,
+    "output_tokens": 10359,
+    "api_call_count": 29
+  },
+  "session_metrics": {
+    "turn_count": 13
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-15T19:36:44.293292255Z",
+    "agent_lines": 1773,
+    "agent_removed": 1784,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1773,
+    "total_lines_changed": 3557,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
