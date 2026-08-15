@@ -137,6 +137,34 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     }
   });
 
+  test('should keep home navigation actions visible and keyboard accessible on phones', async ({ page, context }) => {
+    await context.clearPermissions();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${WEB_FRONTEND_URL}/`);
+
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+    const actionIds = ['theme-toggle', 'btn-enable-push', 'btn-report-lost', 'btn-report-found'];
+    for (const id of actionIds) {
+      const action = page.locator(`#${id}`);
+      await expect(action).toBeVisible();
+      const box = await action.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+    }
+
+    await page.locator('#brand-link').focus();
+    const keyboardActionIds: string[] = [];
+    for (const id of actionIds) {
+      if (!(await page.locator(`#${id}`).isDisabled())) keyboardActionIds.push(id);
+    }
+    for (const id of keyboardActionIds) {
+      await page.keyboard.press('Tab');
+      await expect(page.locator(`#${id}`)).toBeFocused();
+    }
+  });
+
   test('should enforce the browser security policy without breaking frontend journeys', async ({ page }) => {
     const expectedCSP = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://storage.petspotr.io; connect-src 'self'; worker-src 'self'";
     const cspViolations: string[] = [];
