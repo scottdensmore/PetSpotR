@@ -1,4 +1,4 @@
-package main
+package foundpet
 
 import (
 	"bytes"
@@ -15,6 +15,7 @@ import (
 
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/outbox"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
@@ -370,5 +371,52 @@ func TestFoundPetService_ReconcilesFinalizedImageReferences(t *testing.T) {
 	deleted, err := svc.CleanupOrphanedImages(ctx, time.Now().UTC())
 	if err != nil || deleted != 1 || !images.checked {
 		t.Fatalf("CleanupOrphanedImages() = (%d, %v), checked=%t", deleted, err, images.checked)
+	}
+}
+
+func TestFoundPetService_RecoversPendingOutbox(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	broker := pubsub.NewMemoryPubSub()
+	published := make(chan []byte, 1)
+	if err := broker.Subscribe("foundPet", func(_ context.Context, data []byte) error {
+		published <- append([]byte(nil), data...)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	record := outbox.NewRecord(
+		"evt-found-recovery",
+		"foundPet",
+		[]byte(`{"petId":"found-recovery"}`),
+		time.Now().UTC(),
+	)
+	if err := outbox.SaveRecord(ctx, stateStore, record); err != nil {
+		t.Fatal(err)
+	}
+	svc := NewService(
+		stateStore,
+		broker,
+		blob.NewMemoryBlobStore("https://storage.petspotr.io/images"),
+	)
+
+	count, err := svc.RecoverOutbox(ctx)
+	if err != nil || count != 1 {
+		t.Fatalf("RecoverOutbox() = %d, %v; want 1, nil", count, err)
+	}
+	select {
+	case got := <-published:
+		if string(got) != string(record.Payload) {
+			t.Fatalf("published payload = %s, want %s", got, record.Payload)
+		}
+	default:
+		t.Fatal("RecoverOutbox() did not publish the pending foundPet event")
+	}
+	got, err := outbox.GetRecord(ctx, stateStore, record.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != outbox.StatusPublished {
+		t.Fatalf("recovered status = %q, want %q", got.Status, outbox.StatusPublished)
 	}
 }
