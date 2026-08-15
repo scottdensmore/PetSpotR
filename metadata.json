@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M039RQG2JHFWZQFMND77WRQ5",
+  "strategy": "manual-commit",
+  "branch": "refactor/petmatcher-internal-worker",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "AGENTS.md",
+    "cmd/pet-matcher/firestore_integration_test.go",
+    "cmd/pet-matcher/main.go",
+    "cmd/pet-matcher/worker.go",
+    "cmd/pet-matcher/worker_test.go",
+    "docs/DEVELOPMENT.md",
+    "e2e/e2e_test.go",
+    "internal/app/petmatcher/firestore_integration_test.go",
+    "internal/app/petmatcher/worker.go",
+    "internal/app/petmatcher/worker_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": -22673920,
+    "output_tokens": -57869,
+    "api_call_count": 44
+  }
+}
