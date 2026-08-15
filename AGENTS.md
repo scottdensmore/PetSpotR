@@ -315,7 +315,7 @@ The always-on `go test -race -cover ./...` command includes `e2e/`. Its
 in-memory cascade tests need no Compose, Ollama, or GCP credentials.
 
 Emulator-gated contracts across `pkg/store`, `pkg/outbox`, `pkg/runtimeconfig`,
-`cmd/pet-matcher`, `cmd/notification-service`, and `e2e/` **skip silently**
+`internal/app/petmatcher`, `cmd/notification-service`, and `e2e/` **skip silently**
 unless the emulator host variable for that area — `FIRESTORE_EMULATOR_HOST`,
 `PUBSUB_EMULATOR_HOST`, or both — is set. The package still reports `ok`, so a
 green run is not evidence that those contracts ran, and they are what covers the

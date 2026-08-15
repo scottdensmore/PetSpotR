@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/scottdensmore/petspotr/internal/app/petmatcher"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
@@ -68,11 +69,11 @@ func main() {
 	}
 
 	oc := ollama.NewClient()
-	matcherStateStore, ok := stateRuntime.Store.(matcherStore)
+	matcherStateStore, ok := stateRuntime.Store.(petmatcher.Store)
 	if !ok {
 		log.Fatal("State runtime does not support durable matcher operations")
 	}
-	worker := NewWorkerWithImageStore(matcherStateStore, messagingRuntime.Publisher, oc, storageRuntime.Images)
+	worker := petmatcher.NewWorkerWithImageStore(matcherStateStore, messagingRuntime.Publisher, oc, storageRuntime.Images)
 
 	var authorizer pubsub.PushAuthorizer
 	if pushConfig.Mode == runtimeconfig.ModeGCP {

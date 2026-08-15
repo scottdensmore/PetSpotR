@@ -12,11 +12,11 @@ import (
 
 	"github.com/scottdensmore/petspotr/internal/app/foundpet"
 	"github.com/scottdensmore/petspotr/internal/app/lostpet"
+	"github.com/scottdensmore/petspotr/internal/app/petmatcher"
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
-	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
@@ -55,9 +55,9 @@ func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 	notifChan := make(chan *domain.OwnerNotification, 1)
 
 	// 4. Register Notification Worker Subscriber
-	err := ps.Subscribe("matchFound", func(ctx context.Context, data []byte) error {
+	err := ps.Subscribe("matchFound", func(_ context.Context, data []byte) error {
 		var matchRes domain.MatchResult
-		if err := json.Unmarshal(data, &matchRes); err != nil {
+		if _, err := domain.DecodeEventPayload(data, domain.EventTypeMatchFound, &matchRes); err != nil {
 			return err
 		}
 		if err := matchRes.Validate(); err != nil {
@@ -81,67 +81,15 @@ func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 		t.Fatalf("failed to subscribe to lostPet: %v", err)
 	}
 
-	// 5. Register Pet Matcher Worker Subscriber using real scoring pipeline & store lookup
-	err = ps.Subscribe("foundPet", func(ctx context.Context, data []byte) error {
-		var foundEvt domain.FoundPetEvent
-		if _, err := domain.DecodeEventPayload(data, domain.EventTypeFoundPetReported, &foundEvt); err != nil {
-			return err
-		}
-
-		// Ollama trait extraction
-		prompt := scoring.BuildGemmaPrompt("Pet", "")
-		genReq := &ollama.GenerateRequest{
-			Model:  "gemma2:2b",
-			Prompt: prompt,
-			Images: []string{foundEvt.ImageURL},
-		}
-		genResp, err := ollamaClient.Generate(ctx, genReq)
-		if err != nil {
-			return err
-		}
-
-		foundTraits, err := scoring.ParseGemmaResponse(genResp.Response)
-		if err != nil {
-			return err
-		}
-
-		// State lookup for lost pet candidate
-		lostStateBytes, err := st.GetState(ctx, store.LostPetsCollection, "lost-777")
-		if err != nil {
-			return err
-		}
-
-		var lostEvt domain.LostPetEvent
-		if err := json.Unmarshal(lostStateBytes, &lostEvt); err != nil {
-			return err
-		}
-
-		lostTraits := &scoring.PetTraits{
-			Breed:               "Golden Retriever",
-			PrimaryColor:        "Golden",
-			SecondaryColor:      "Cream",
-			DistinctiveMarkings: []string{"White chest patch"},
-			EyeColor:            "Brown",
-		}
-
-		// Compute similarity using actual domain scoring engine
-		matchResult := scoring.ComparePets(lostEvt.PetID, foundEvt.PetID, lostTraits, foundTraits)
-		if matchResult != nil && matchResult.IsMatch {
-			resBytes, err := matchResult.ToJSON()
-			if err != nil {
-				return err
-			}
-			return ps.Publish(ctx, "matchFound", resBytes)
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("failed to subscribe to foundPet: %v", err)
+	// 5. Register the production Pet Matcher worker.
+	matcherWorker := petmatcher.NewWorker(st, ps, ollamaClient)
+	if err := matcherWorker.Start(context.Background()); err != nil {
+		t.Fatalf("failed to start pet matcher: %v", err)
 	}
 
 	// --- Step A: Report Lost Pet ---
 	lostEvt := domain.LostPetEvent{
-		PetID:         "lost-777",
+		PetID:         "lost-101",
 		ReporterEmail: "owner@example.com",
 		ReportedAt:    time.Now().UTC(),
 		Location:      "Seattle, WA",
