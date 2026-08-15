@@ -1,0 +1,9 @@
+ok lets do 155
+
+---
+
+Look through the code and make sure the directories and code is laid out using best practices and makes sense.
+
+---
+
+Ok lets start there
