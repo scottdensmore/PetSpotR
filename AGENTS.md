@@ -233,7 +233,7 @@ Not every gate applies to every change. Record the reason when one does not.
 
 | Gate | Applies when | Status in this repo |
 | --- | --- | --- |
-| `ui-review` | The change affects rendered UI — templates, static assets, styling, or a client app | **Live.** Active for `cmd/web-frontend` templates, CSS, and client-side JavaScript (`static/js/`, `static/sw.js`). |
+| `ui-review` | The change affects rendered UI — templates, static assets, styling, or a client app | **Live.** Active for `internal/app/webfrontend` templates, CSS, and client-side JavaScript (`static/js/`, `static/sw.js`). |
 | `verifier` | Always | Live |
 | `code-review` | Always | Live |
 

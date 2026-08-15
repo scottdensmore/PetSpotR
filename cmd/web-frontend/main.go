@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/scottdensmore/petspotr/internal/app/webfrontend"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
 )
 
@@ -36,7 +37,7 @@ func main() {
 		}
 	}()
 
-	srv := NewServerWithOptions(stateRuntime.Store, ServerOptions{
+	srv := webfrontend.NewServerWithOptions(stateRuntime.Store, webfrontend.ServerOptions{
 		AllowPrivilegedMutations: config.Mode == runtimeconfig.ModeMemory,
 	})
 	httpSrv := &http.Server{

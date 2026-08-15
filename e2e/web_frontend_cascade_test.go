@@ -1,28 +1,33 @@
 package e2e_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/scottdensmore/petspotr/internal/app/foundpet"
+	"github.com/scottdensmore/petspotr/internal/app/lostpet"
+	"github.com/scottdensmore/petspotr/internal/app/petmatcher"
+	"github.com/scottdensmore/petspotr/internal/app/webfrontend"
+	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
-	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
 func TestWebFrontendFullEventCascadeJourney(t *testing.T) {
+	ctx := context.Background()
 	st := store.NewMemoryStore()
 	ps := pubsub.NewMemoryPubSub()
+	bs := blob.NewMemoryBlobStore("https://storage.petspotr.io/images")
 
-	// 1. Setup Mock Ollama Server returning Gemma 4 response
-	mockOllamaServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockOllamaServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		resp := ollama.GenerateResponse{
 			Model: "gemma4:2b",
 			Response: "{\n" +
@@ -35,141 +40,124 @@ func TestWebFrontendFullEventCascadeJourney(t *testing.T) {
 			Done: true,
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(resp)
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			t.Errorf("failed to encode mock response: %v", err)
+		}
 	}))
 	defer mockOllamaServer.Close()
 
-	ollamaClient := ollama.NewClient(ollama.WithBaseURL(mockOllamaServer.URL))
-
-	// Notification capture channel
-	notifChan := make(chan *domain.MatchResult, 1)
-
-	// Register Pub/Sub Subscribers
-	err := ps.Subscribe("matchFound", func(ctx context.Context, data []byte) error {
-		var matchRes domain.MatchResult
-		if err := json.Unmarshal(data, &matchRes); err == nil {
-			notifChan <- &matchRes
+	matchResults := make(chan domain.MatchResult, 1)
+	if err := ps.Subscribe("matchFound", func(_ context.Context, data []byte) error {
+		var result domain.MatchResult
+		if _, err := domain.DecodeEventPayload(data, domain.EventTypeMatchFound, &result); err != nil {
+			return err
 		}
+		matchResults <- result
 		return nil
-	})
-	if err != nil {
-		t.Fatalf("failed to subscribe to matchFound: %v", err)
+	}); err != nil {
+		t.Fatalf("subscribe to matchFound: %v", err)
 	}
 
-	err = ps.Subscribe("foundPet", func(ctx context.Context, data []byte) error {
-		var foundEvt domain.FoundPetEvent
-		if err := json.Unmarshal(data, &foundEvt); err != nil {
-			return err
-		}
-
-		genReq := &ollama.GenerateRequest{
-			Model:  "gemma4:2b",
-			Prompt: scoring.BuildGemmaPrompt("Pet", ""),
-			Images: []string{foundEvt.ImageURL},
-		}
-		genResp, err := ollamaClient.Generate(ctx, genReq)
-		if err != nil {
-			return err
-		}
-
-		foundTraits, err := scoring.ParseGemmaResponse(genResp.Response)
-		if err != nil {
-			return err
-		}
-
-		lostStateBytes, err := st.GetState(ctx, store.LostPetsCollection, "lost-999")
-		if err != nil {
-			return err
-		}
-
-		var lostEvt domain.LostPetEvent
-		_ = json.Unmarshal(lostStateBytes, &lostEvt)
-
-		lostTraits := &scoring.PetTraits{
-			Breed:               "Golden Retriever",
-			PrimaryColor:        "Golden",
-			SecondaryColor:      "Cream",
-			DistinctiveMarkings: []string{"White chest patch"},
-			EyeColor:            "Brown",
-		}
-
-		matchResult := scoring.ComparePetsGeo(lostEvt.PetID, foundEvt.PetID, lostEvt.Location, foundEvt.Location, lostTraits, foundTraits)
-		if matchResult != nil && matchResult.IsMatch {
-			resBytes, _ := matchResult.ToJSON()
-			_ = ps.Publish(ctx, "matchFound", resBytes)
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("failed to subscribe to foundPet: %v", err)
+	matcher := petmatcher.NewWorker(st, ps, ollama.NewClient(ollama.WithBaseURL(mockOllamaServer.URL)))
+	if err := matcher.Start(ctx); err != nil {
+		t.Fatalf("start matcher: %v", err)
 	}
+	lostReports := lostpet.NewService(st, ps)
+	foundReports := foundpet.NewService(st, ps, bs)
 
-	// Step 1: Submit Lost Pet via API
-	lostEvt := domain.LostPetEvent{
-		PetID:         "lost-999",
+	lostEvent := domain.LostPetEvent{
+		PetID:         "lost-101",
 		ReporterEmail: "owner@example.com",
 		ReportedAt:    time.Now().UTC(),
 		Location:      "Capitol Hill, Seattle, WA",
 	}
-	lostBytes, _ := lostEvt.ToJSON()
-	_ = st.SaveState(context.Background(), store.LostPetsCollection, "lost-999", lostBytes)
-	_ = ps.Publish(context.Background(), "lostPet", lostBytes)
-
-	// Step 2: Extract visual features from photo
-	genReq := &ollama.GenerateRequest{
-		Model:  "gemma4:2b",
-		Prompt: scoring.BuildGemmaPrompt("Pet", ""),
-		Images: []string{"https://storage.petspotr.io/images/found-999.jpg"},
-	}
-	genResp, err := ollamaClient.Generate(context.Background(), genReq)
+	lostBody, err := lostEvent.ToJSON()
 	if err != nil {
-		t.Fatalf("Ollama generation failed: %v", err)
+		t.Fatalf("encode lost-pet event: %v", err)
 	}
-	traits, err := scoring.ParseGemmaResponse(genResp.Response)
-	if err != nil {
-		t.Fatalf("failed to parse traits: %v", err)
-	}
-	if traits.Breed != "Golden Retriever" {
-		t.Errorf("expected breed Golden Retriever, got %s", traits.Breed)
+	lostRequest := httptest.NewRequest(http.MethodPost, "/lostPet", bytes.NewReader(lostBody))
+	lostRecorder := httptest.NewRecorder()
+	lostReports.HandleLostPet(lostRecorder, lostRequest)
+	if lostRecorder.Code != http.StatusCreated {
+		t.Fatalf("lost-pet report status = %d, want %d; body = %s", lostRecorder.Code, http.StatusCreated, lostRecorder.Body.String())
 	}
 
-	// Step 3: Submit Found Pet Report
-	foundEvt := domain.FoundPetEvent{
+	foundEvent := domain.FoundPetEvent{
 		PetID:    "found-999",
 		ImageURL: "https://storage.petspotr.io/images/found-999.jpg",
 		FoundAt:  time.Now().UTC(),
 		Location: "Capitol Hill, Seattle, WA",
 	}
-	foundBytes, _ := foundEvt.ToJSON()
-	_ = st.SaveState(context.Background(), store.FoundPetsCollection, "found-999", foundBytes)
-	_ = ps.Publish(context.Background(), "foundPet", foundBytes)
+	foundBody, err := foundEvent.ToJSON()
+	if err != nil {
+		t.Fatalf("encode found-pet event: %v", err)
+	}
+	foundRequest := httptest.NewRequest(http.MethodPost, "/foundPet", bytes.NewReader(foundBody))
+	foundRecorder := httptest.NewRecorder()
+	foundReports.HandleFoundPet(foundRecorder, foundRequest)
+	if foundRecorder.Code != http.StatusCreated {
+		t.Fatalf("found-pet report status = %d, want %d; body = %s", foundRecorder.Code, http.StatusCreated, foundRecorder.Body.String())
+	}
 
-	// Step 4: Verify Event Cascade & Match Result
 	select {
-	case match := <-notifChan:
-		if match.MatchedPetID != "lost-999" || match.FoundPetID != "found-999" {
-			t.Errorf("match pet ID mismatch: got matched %s, found %s", match.MatchedPetID, match.FoundPetID)
+	case match := <-matchResults:
+		if match.MatchedPetID != lostEvent.PetID || match.FoundPetID != foundEvent.PetID {
+			t.Fatalf("match pet IDs = %s/%s, want %s/%s", match.MatchedPetID, match.FoundPetID, lostEvent.PetID, foundEvent.PetID)
 		}
 		if match.Score < 0.70 {
-			t.Errorf("expected match score >= 0.70, got %f", match.Score)
+			t.Fatalf("match score = %f, want at least 0.70", match.Score)
 		}
 	case <-time.After(2 * time.Second):
-		t.Fatal("timed out waiting for matchFound notification cascade")
+		t.Fatal("timed out waiting for matchFound event")
 	}
 
-	// Step 5: Execute Match Action (Confirm Match)
-	actionPayload := `{"matchId":"match-001","action":"confirm"}`
-	reqAction := httptest.NewRequest(http.MethodPost, "/api/v1/matches/action", strings.NewReader(actionPayload))
-	recAction := httptest.NewRecorder()
-	if reqAction.Body == nil {
-		t.Fatal("nil body")
+	frontend := webfrontend.NewServer()
+	actionRequest := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/matches/action",
+		strings.NewReader(`{"matchId":"match-101","action":"confirm"}`),
+	)
+	actionRecorder := httptest.NewRecorder()
+	frontend.ServeHTTP(actionRecorder, actionRequest)
+	if actionRecorder.Code != http.StatusOK {
+		t.Fatalf("match action status = %d, want %d; body = %s", actionRecorder.Code, http.StatusOK, actionRecorder.Body.String())
 	}
-	_ = recAction
+	assertFrontendMatchStatus(t, frontend, "match-101", "CONFIRMED")
 
-	// Step 6: Mark Reunion Resolved with Rating
-	resolvePayload := fmt.Sprintf(`{"matchId":"match-001","petId":"%s","rating":5,"feedback":"Reunited via Gemma 4 AI!"}`, lostEvt.PetID)
-	reqResolve := httptest.NewRequest(http.MethodPost, "/api/v1/reunions/resolve", strings.NewReader(resolvePayload))
-	recResolve := httptest.NewRecorder()
-	_ = reqResolve.Body
-	_ = recResolve
+	resolveRequest := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/reunions/resolve",
+		strings.NewReader(`{"matchId":"match-101","petId":"lost-101","rating":5,"feedback":"Reunited via Gemma 4 AI!"}`),
+	)
+	resolveRecorder := httptest.NewRecorder()
+	frontend.ServeHTTP(resolveRecorder, resolveRequest)
+	if resolveRecorder.Code != http.StatusOK {
+		t.Fatalf("reunion resolution status = %d, want %d; body = %s", resolveRecorder.Code, http.StatusOK, resolveRecorder.Body.String())
+	}
+	assertFrontendMatchStatus(t, frontend, "match-101", "REUNITED")
+}
+
+func assertFrontendMatchStatus(t *testing.T, frontend http.Handler, matchID, wantStatus string) {
+	t.Helper()
+
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/matches", nil)
+	recorder := httptest.NewRecorder()
+	frontend.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("match list status = %d, want %d; body = %s", recorder.Code, http.StatusOK, recorder.Body.String())
+	}
+
+	var matches []webfrontend.MatchRecord
+	if err := json.NewDecoder(recorder.Body).Decode(&matches); err != nil {
+		t.Fatalf("decode match list: %v", err)
+	}
+	for _, match := range matches {
+		if match.MatchID == matchID {
+			if match.Status != wantStatus {
+				t.Fatalf("match %s status = %q, want %q", matchID, match.Status, wantStatus)
+			}
+			return
+		}
+	}
+	t.Fatalf("match %s not found", matchID)
 }

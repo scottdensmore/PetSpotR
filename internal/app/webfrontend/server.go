@@ -1,4 +1,5 @@
-package main
+// Package webfrontend implements the PetSpotR browser application server.
+package webfrontend
 
 import (
 	"context"
