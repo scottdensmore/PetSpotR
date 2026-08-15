@@ -1,4 +1,5 @@
-package main
+// Package lostpet implements the lost-pet reporting application service.
+package lostpet
 
 import (
 	"context"
@@ -33,8 +34,8 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-// recoverOutbox publishes one bounded batch of durable lostPet events.
-func (s *Service) recoverOutbox(ctx context.Context) (int, error) {
+// RecoverOutbox publishes one bounded batch of durable lostPet events.
+func (s *Service) RecoverOutbox(ctx context.Context) (int, error) {
 	return s.relay.PublishPending(ctx, "lostPet")
 }
 

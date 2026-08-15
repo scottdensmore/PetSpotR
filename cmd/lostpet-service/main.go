@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/scottdensmore/petspotr/internal/app/lostpet"
 	"github.com/scottdensmore/petspotr/pkg/outbox"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
 	"github.com/scottdensmore/petspotr/pkg/store"
@@ -51,7 +52,7 @@ func main() {
 		}
 	}()
 
-	svc := NewService(stateRuntime.Store, messagingRuntime.Publisher)
+	svc := lostpet.NewService(stateRuntime.Store, messagingRuntime.Publisher)
 	nextBackfillAt := time.Time{}
 	recoverOutbox := func() {
 		now := time.Now().UTC()
@@ -66,7 +67,7 @@ func main() {
 				log.Printf("LostPet legacy outbox index backfill migrated %d records (complete=%t)", migrated, complete)
 			}
 		}
-		if _, err := svc.recoverOutbox(ctx); err != nil && ctx.Err() == nil {
+		if _, err := svc.RecoverOutbox(ctx); err != nil && ctx.Err() == nil {
 			log.Printf("LostPet outbox recovery deferred: %v", err)
 		}
 	}

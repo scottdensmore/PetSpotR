@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scottdensmore/petspotr/internal/app/lostpet"
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
@@ -17,39 +18,6 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
-
-// Mock handlers matching service logic for E2E integration test
-type lostPetService struct {
-	store  store.StateStore
-	broker pubsub.Broker
-}
-
-func (s *lostPetService) HandleLostPet(w http.ResponseWriter, r *http.Request) {
-	var evt domain.LostPetEvent
-	if err := json.NewDecoder(r.Body).Decode(&evt); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	if err := evt.Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	data, err := evt.ToJSON()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if err := s.store.SaveState(r.Context(), store.LostPetsCollection, evt.PetID, data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if err := s.broker.Publish(r.Context(), "lostPet", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "success", "petId": evt.PetID})
-}
 
 type foundPetService struct {
 	store     store.StateStore
@@ -112,7 +80,7 @@ func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 	ollamaClient := ollama.NewClient(ollama.WithBaseURL(mockOllamaServer.URL))
 
 	// 2. Setup Services
-	lostSvc := &lostPetService{store: st, broker: ps}
+	lostSvc := lostpet.NewService(st, ps)
 	foundSvc := &foundPetService{store: st, broker: ps, blobStore: bs}
 
 	// 3. Thread-safe channel for receiving dispatched notifications
