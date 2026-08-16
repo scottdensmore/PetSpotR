@@ -91,14 +91,9 @@ func (w *Worker) ProcessFoundPet(ctx context.Context, foundPetData []byte) error
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	var foundEvt domain.FoundPetEvent
-	inputEnvelope, err := domain.DecodeEventPayload(foundPetData, domain.EventTypeFoundPetReported, &foundEvt)
+	foundEvt, inputEnvelope, err := domain.DecodeFoundPetReported(foundPetData)
 	if err != nil {
-		return fmt.Errorf("pet-matcher: failed to unmarshal foundPet event: %w", err)
-	}
-
-	if err := foundEvt.Validate(); err != nil {
-		return fmt.Errorf("pet-matcher: invalid foundPet event: %w", err)
+		return fmt.Errorf("pet-matcher: decode found-pet report: %w", err)
 	}
 	envelopeID := ""
 	if inputEnvelope != nil {
@@ -148,7 +143,7 @@ func (w *Worker) processClaimedFoundPet(
 	ctx context.Context,
 	inputEventID string,
 	inputEnvelope *domain.EventEnvelope,
-	foundEvt domain.FoundPetEvent,
+	foundEvt domain.FoundPetReportedV2,
 ) error {
 	if result, exists, err := w.loadMatcherResult(ctx, inputEventID); err != nil {
 		return err

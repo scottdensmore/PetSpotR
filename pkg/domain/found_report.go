@@ -76,6 +76,77 @@ type FoundPetReportedV2 struct {
 	Status              FoundPetStatus  `json:"status"`
 }
 
+// DecodeFoundPetReported reads every found-pet payload shape published by the
+// application and returns the normalized canonical integration event. Raw
+// payloads predate envelopes and are therefore interpreted as payload v1.
+func DecodeFoundPetReported(data []byte) (FoundPetReportedV2, *EventEnvelope, error) {
+	var event FoundPetReportedV2
+	envelope, err := DecodeEventPayload(data, EventTypeFoundPetReported, &event)
+	if err != nil {
+		return FoundPetReportedV2{}, nil, err
+	}
+
+	payloadVersion := FoundPetReportedLegacyPayloadVersion
+	if envelope != nil {
+		payloadVersion = envelope.PayloadVersion
+	}
+	switch payloadVersion {
+	case FoundPetReportedLegacyPayloadVersion:
+		legacy := FoundPetEvent{
+			PetID:       event.PetID,
+			ImageURL:    event.ImageURL,
+			ImageObject: event.ImageObject,
+			FoundAt:     event.FoundAt,
+			Location:    event.Location,
+		}
+		if err := legacy.Validate(); err != nil {
+			return FoundPetReportedV2{}, nil, fmt.Errorf("domain: invalid found-pet payload v1: %w", err)
+		}
+		event = normalizeFoundPetReported(FoundPetReportedV2{
+			PetID:       legacy.PetID,
+			ImageURL:    legacy.ImageURL,
+			ImageObject: legacy.ImageObject,
+			FoundAt:     legacy.FoundAt,
+			Location:    legacy.Location,
+		})
+	case FoundPetReportedPayloadVersion:
+		if err := event.Validate(); err != nil {
+			return FoundPetReportedV2{}, nil, fmt.Errorf("domain: invalid found-pet payload v%d: %w", payloadVersion, err)
+		}
+		event = normalizeFoundPetReported(event)
+	default:
+		return FoundPetReportedV2{}, nil, fmt.Errorf("domain: unsupported found-pet payload version %d", payloadVersion)
+	}
+	if envelope != nil && strings.TrimSpace(envelope.AggregateID) != event.PetID {
+		return FoundPetReportedV2{}, nil, errors.New("domain: found-pet aggregate ID does not match payload")
+	}
+	return event, envelope, nil
+}
+
+// Validate checks the payload-v2 integration contract independently of finder
+// contact, which is private aggregate state and is not published.
+func (e FoundPetReportedV2) Validate() error {
+	if e.FoundAt.IsZero() {
+		return errors.New("domain: foundAt is required")
+	}
+	return FoundPetReport{
+		PetID:               e.PetID,
+		ImageURL:            e.ImageURL,
+		ImageObject:         e.ImageObject,
+		FoundAt:             e.FoundAt,
+		Location:            e.Location,
+		GeocodingStatus:     e.GeocodingStatus,
+		Coordinates:         e.Coordinates,
+		Species:             e.Species,
+		Breed:               e.Breed,
+		PrimaryColor:        e.PrimaryColor,
+		SecondaryColor:      e.SecondaryColor,
+		DistinctiveMarkings: e.DistinctiveMarkings,
+		CustodyStatus:       e.CustodyStatus,
+		Status:              e.Status,
+	}.Validate()
+}
+
 // PublicFoundPetReport is the unauthenticated found-pet listing DTO. It cannot
 // serialize finder contact because that field is absent by type.
 type PublicFoundPetReport struct {
@@ -217,6 +288,26 @@ func (r FoundPetReport) ReportedEvent() FoundPetReportedV2 {
 		CustodyStatus:       r.CustodyStatus,
 		Status:              r.Status,
 	}
+}
+
+func normalizeFoundPetReported(event FoundPetReportedV2) FoundPetReportedV2 {
+	report := NormalizeFoundPetReport(FoundPetReport{
+		PetID:               event.PetID,
+		ImageURL:            event.ImageURL,
+		ImageObject:         event.ImageObject,
+		FoundAt:             event.FoundAt,
+		Location:            event.Location,
+		GeocodingStatus:     event.GeocodingStatus,
+		Coordinates:         event.Coordinates,
+		Species:             event.Species,
+		Breed:               event.Breed,
+		PrimaryColor:        event.PrimaryColor,
+		SecondaryColor:      event.SecondaryColor,
+		DistinctiveMarkings: event.DistinctiveMarkings,
+		CustodyStatus:       event.CustodyStatus,
+		Status:              event.Status,
+	})
+	return report.ReportedEvent()
 }
 
 func normalizeCustodyStatus(status CustodyStatus) CustodyStatus {

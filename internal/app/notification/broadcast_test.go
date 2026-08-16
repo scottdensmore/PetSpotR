@@ -42,11 +42,14 @@ func TestGeoBroadcastEngine(t *testing.T) {
 		emailSender.Reset()
 		smsSender.Reset()
 
-		evt := &domain.LostPetEvent{
-			PetID:         "lost-buddy",
-			ReporterEmail: "owner@example.com",
-			ReportedAt:    time.Now().UTC(),
-			Location:      "Capitol Hill, Seattle, WA",
+		evt := &domain.LostPetReportedV2{
+			PetID:           "lost-buddy",
+			ReporterEmail:   "owner@example.com",
+			ReportedAt:      time.Now().UTC(),
+			Location:        "Capitol Hill, Seattle, WA",
+			GeocodingStatus: domain.GeocodingVerified,
+			Coordinates:     &domain.LocationPoint{Latitude: 47.615, Longitude: -122.32},
+			Status:          domain.LostPetStatusLost,
 		}
 
 		results, err := engine.BroadcastLostPetAlert(context.Background(), evt, 5.0)
@@ -63,13 +66,34 @@ func TestGeoBroadcastEngine(t *testing.T) {
 			t.Errorf("expected 1 email broadcast sent to nearby resident, got %d", len(emailSender.SentMessages))
 		}
 	})
+
+	t.Run("does not broadcast canonical reports without verified coordinates", func(t *testing.T) {
+		emailSender.Reset()
+		smsSender.Reset()
+
+		evt := &domain.LostPetReportedV2{
+			PetID:           "lost-pending-location",
+			ReportedAt:      time.Now().UTC(),
+			Location:        "Capitol Hill, Seattle, WA",
+			GeocodingStatus: domain.GeocodingPending,
+			Status:          domain.LostPetStatusLost,
+		}
+
+		results, err := engine.BroadcastLostPetAlert(context.Background(), evt, 5.0)
+		if err != nil {
+			t.Fatalf("BroadcastLostPetAlert failed: %v", err)
+		}
+		if len(results) != 0 || len(emailSender.SentMessages) != 0 || len(smsSender.SentMessages) != 0 {
+			t.Fatalf("unverified location dispatched results=%d email=%d sms=%d", len(results), len(emailSender.SentMessages), len(smsSender.SentMessages))
+		}
+	})
 }
 
 func TestWorker_ProcessLostPetBroadcast(t *testing.T) {
 	ps := pubsub.NewMemoryPubSub()
 	worker := NewWorker(ps)
 
-	t.Run("valid lostPet event triggers community broadcast alert", func(t *testing.T) {
+	t.Run("raw payload-v1 is accepted without inventing coordinates", func(t *testing.T) {
 		evt := domain.LostPetEvent{
 			PetID:         "lost-luna",
 			ReporterEmail: "owner@example.com",
@@ -83,8 +107,8 @@ func TestWorker_ProcessLostPetBroadcast(t *testing.T) {
 			t.Fatalf("ProcessLostPetBroadcast failed: %v", err)
 		}
 
-		if len(results) == 0 {
-			t.Errorf("expected non-empty broadcast dispatch results")
+		if len(results) != 0 {
+			t.Errorf("payload-v1 broadcast results = %d, want none until geocoding", len(results))
 		}
 	})
 
@@ -112,8 +136,47 @@ func TestWorker_ProcessLostPetBroadcast(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ProcessLostPetBroadcast(envelope) error = %v", err)
 		}
+		if len(results) != 0 {
+			t.Errorf("payload-v1 envelope results = %d, want none until geocoding", len(results))
+		}
+	})
+
+	t.Run("canonical payload-v2 does not require reporter contact", func(t *testing.T) {
+		evt := domain.LostPetReportedV2{
+			PetID:           "lost-canonical-luna",
+			PetName:         "Luna",
+			Species:         "Dog",
+			ReportedAt:      time.Now().UTC(),
+			Location:        "Green Lake Park, Seattle, WA",
+			GeocodingStatus: domain.GeocodingVerified,
+			Coordinates:     &domain.LocationPoint{Latitude: 47.68, Longitude: -122.329},
+			Status:          domain.LostPetStatusLost,
+		}
+		payload, err := json.Marshal(evt)
+		if err != nil {
+			t.Fatal(err)
+		}
+		envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+			Type:             domain.EventTypeLostPetReported,
+			OccurredAt:       evt.ReportedAt,
+			AggregateID:      evt.PetID,
+			AggregateVersion: 1,
+			PayloadVersion:   domain.LostPetReportedPayloadVersion,
+			Payload:          payload,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := json.Marshal(envelope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		results, err := worker.ProcessLostPetBroadcast(context.Background(), data)
+		if err != nil {
+			t.Fatalf("ProcessLostPetBroadcast(payload-v2) error = %v", err)
+		}
 		if len(results) == 0 {
-			t.Error("expected envelope broadcast dispatch results")
+			t.Error("expected payload-v2 broadcast dispatch results")
 		}
 	})
 }

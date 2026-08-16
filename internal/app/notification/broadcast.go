@@ -57,13 +57,13 @@ func DefaultSubscribers() []CommunitySubscriber {
 }
 
 // BroadcastLostPetAlert computes distance between lost pet location and subscribers, broadcasting urgent alerts to nearby residents.
-func (g *GeoBroadcastEngine) BroadcastLostPetAlert(ctx context.Context, evt *domain.LostPetEvent, maxRadiusMiles float64) ([]DispatchResult, error) {
+func (g *GeoBroadcastEngine) BroadcastLostPetAlert(ctx context.Context, evt *domain.LostPetReportedV2, maxRadiusMiles float64) ([]DispatchResult, error) {
 	return g.broadcastLostPetAlert(ctx, evt, maxRadiusMiles, g.dispatcher.Dispatch)
 }
 
 func (g *GeoBroadcastEngine) broadcastLostPetAlert(
 	ctx context.Context,
-	evt *domain.LostPetEvent,
+	evt *domain.LostPetReportedV2,
 	maxRadiusMiles float64,
 	dispatch notificationDispatch,
 ) ([]DispatchResult, error) {
@@ -73,8 +73,18 @@ func (g *GeoBroadcastEngine) broadcastLostPetAlert(
 	if dispatch == nil {
 		return nil, fmt.Errorf("notification dispatch cannot be nil")
 	}
+	if evt.GeocodingStatus != domain.GeocodingVerified {
+		log.Printf("[GEO BROADCAST] Skipping lost pet %s because coordinates are not verified", evt.PetID)
+		return []DispatchResult{}, nil
+	}
+	if evt.Coordinates == nil {
+		return nil, fmt.Errorf("verified lost pet %s has no coordinates", evt.PetID)
+	}
+	if err := evt.Coordinates.Validate(); err != nil {
+		return nil, fmt.Errorf("lost pet %s has invalid coordinates: %w", evt.PetID, err)
+	}
 
-	petPoint := domain.ParseLocationCoordinates(evt.Location)
+	petPoint := *evt.Coordinates
 	allResults := make([]DispatchResult, 0)
 
 	log.Printf("[GEO BROADCAST] Processing lost pet %s near %s (Lat: %.4f, Lon: %.4f)",
