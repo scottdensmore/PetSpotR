@@ -10,8 +10,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/scottdensmore/petspotr/internal/app/lostpet"
+	"github.com/scottdensmore/petspotr/internal/app/outboxrecovery"
 	"github.com/scottdensmore/petspotr/internal/app/webfrontend"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
+	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
 func main() {
@@ -36,9 +39,35 @@ func main() {
 			log.Printf("Failed to close state runtime: %v", err)
 		}
 	}()
+	messagingConfig, err := runtimeconfig.LoadMessagingConfigFromEnv()
+	if err != nil {
+		log.Fatalf("Invalid messaging configuration: %v", err)
+	}
+	messagingRuntime, err := runtimeconfig.NewMessagingRuntime(ctx, messagingConfig)
+	if err != nil {
+		log.Fatalf("Failed to initialize messaging runtime: %v", err)
+	}
+	defer func() {
+		if err := messagingRuntime.Close(); err != nil {
+			log.Printf("Failed to close messaging runtime: %v", err)
+		}
+	}()
+
+	lostReports := lostpet.NewService(stateRuntime.Store, messagingRuntime.Publisher)
+	backfiller, _ := stateRuntime.Store.(store.OutboxIndexBackfiller)
+	recoveryRunner, err := outboxrecovery.New(outboxrecovery.Config{
+		Service:    "WebFrontendLostPet",
+		Backfiller: backfiller,
+		Recover:    lostReports.RecoverOutbox,
+	})
+	if err != nil {
+		log.Fatalf("Invalid outbox recovery configuration: %v", err)
+	}
+	go recoveryRunner.Run(ctx)
 
 	srv := webfrontend.NewServerWithOptions(stateRuntime.Store, webfrontend.ServerOptions{
 		AllowPrivilegedMutations: config.Mode == runtimeconfig.ModeMemory,
+		LostPetReporter:          lostReports,
 	})
 	httpSrv := &http.Server{
 		Addr:         ":" + port,

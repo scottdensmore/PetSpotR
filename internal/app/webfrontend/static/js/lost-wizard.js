@@ -1,6 +1,7 @@
 // Client-side controller for Lost Pet multi-step wizard
 document.addEventListener('DOMContentLoaded', () => {
   let currentStep = 1;
+  let pendingSubmission = null;
   const totalSteps = 4;
 
   const btnPrev = document.getElementById('btn-prev');
@@ -117,7 +118,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      if (!pendingSubmission) {
+        pendingSubmission = {
+          petId: `lost-${crypto.randomUUID()}`,
+          reportedAt: new Date().toISOString()
+        };
+      }
+
       const payload = {
+        ...pendingSubmission,
         petName: document.getElementById('petName')?.value || '',
         species: document.getElementById('species')?.value || 'Dog',
         breed: document.getElementById('breed')?.value || '',
@@ -136,9 +145,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (resp.ok) {
+          pendingSubmission = null;
           const modal = document.getElementById('success-modal');
           if (modal) modal.hidden = false;
         } else {
+          if (resp.status < 500) pendingSubmission = null;
           alert('Failed to submit report. Please check input fields.');
         }
       } catch (err) {

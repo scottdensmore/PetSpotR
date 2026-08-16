@@ -3,6 +3,11 @@ resource "google_service_account" "lostpet_runtime" {
   display_name = "Lost-pet Cloud Run runtime"
 }
 
+resource "google_service_account" "web_frontend_runtime" {
+  account_id   = "web-frontend-runtime"
+  display_name = "Web frontend Cloud Run runtime"
+}
+
 resource "google_service_account" "foundpet_runtime" {
   account_id   = "foundpet-runtime"
   display_name = "Found-pet Cloud Run runtime"
@@ -18,6 +23,12 @@ resource "google_project_iam_member" "lostpet_datastore" {
   project = var.project_id
   role    = "roles/datastore.user"
   member  = "serviceAccount:${google_service_account.lostpet_runtime.email}"
+}
+
+resource "google_project_iam_member" "web_frontend_datastore" {
+  project = var.project_id
+  role    = "roles/datastore.user"
+  member  = "serviceAccount:${google_service_account.web_frontend_runtime.email}"
 }
 
 resource "google_service_account" "pet_matcher_runtime" {
@@ -53,6 +64,8 @@ resource "google_cloud_run_v2_service" "web_frontend" {
   location = var.region
 
   template {
+    service_account = google_service_account.web_frontend_runtime.email
+
     containers {
       image = var.web_frontend_image
     }
@@ -178,6 +191,10 @@ variable "image_bucket_name" { type = string }
 
 output "web_frontend_url" {
   value = google_cloud_run_v2_service.web_frontend.uri
+}
+
+output "web_frontend_runtime_service_account" {
+  value = google_service_account.web_frontend_runtime.email
 }
 
 output "lostpet_url" {

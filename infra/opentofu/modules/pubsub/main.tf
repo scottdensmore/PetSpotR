@@ -36,6 +36,12 @@ resource "google_pubsub_topic_iam_member" "lost_pet_publisher" {
   member = "serviceAccount:${var.lostpet_runtime_service_account}"
 }
 
+resource "google_pubsub_topic_iam_member" "web_frontend_lost_pet_publisher" {
+  topic  = google_pubsub_topic.lost_pet.name
+  role   = "roles/pubsub.publisher"
+  member = "serviceAccount:${var.web_frontend_runtime_service_account}"
+}
+
 resource "google_pubsub_topic_iam_member" "found_pet_publisher" {
   topic  = google_pubsub_topic.found_pet.name
   role   = "roles/pubsub.publisher"
@@ -270,6 +276,7 @@ variable "pet_matcher_url" { type = string }
 variable "notification_service_name" { type = string }
 variable "notification_service_url" { type = string }
 variable "lostpet_runtime_service_account" { type = string }
+variable "web_frontend_runtime_service_account" { type = string }
 variable "foundpet_runtime_service_account" { type = string }
 variable "pet_matcher_runtime_service_account" { type = string }
 

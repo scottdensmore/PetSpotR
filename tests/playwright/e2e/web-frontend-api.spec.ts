@@ -31,6 +31,41 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     expect(body.status).toBe('success');
   });
 
+  test('should reuse the lost report identity after a transient browser retry', async ({ page }) => {
+    const submissions: Array<Record<string, unknown>> = [];
+    await page.route('**/api/v1/lost-pets', async (route) => {
+      submissions.push(route.request().postDataJSON() as Record<string, unknown>);
+      if (submissions.length === 1) {
+        await route.fulfill({ status: 503, body: 'temporarily unavailable' });
+        return;
+      }
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'success', petId: submissions[1].petId }),
+      });
+    });
+    page.on('dialog', (dialog) => dialog.accept());
+
+    await page.goto(`${WEB_FRONTEND_URL}/report-lost`);
+    await page.locator('#petName').fill('Buddy');
+    await page.locator('#btn-next').click();
+    await page.locator('#btn-next').click();
+    await page.locator('#location').fill('Seattle, WA');
+    await page.locator('#btn-next').click();
+    await page.locator('#reporterEmail').fill('owner@example.com');
+
+    await page.locator('#btn-submit').click();
+    await expect.poll(() => submissions.length).toBe(1);
+    await page.locator('#btn-submit').click();
+    await expect(page.locator('#success-modal')).toBeVisible();
+
+    expect(submissions).toHaveLength(2);
+    expect(submissions[0].petId).toMatch(/^lost-[0-9a-f-]+$/);
+    expect(submissions[1].petId).toBe(submissions[0].petId);
+    expect(submissions[1].reportedAt).toBe(submissions[0].reportedAt);
+  });
+
   test('should handle Found Pet submission via POST /api/v1/found-pets', async ({ request }) => {
     const payload = {
       petId: `found-pw-api-${Date.now()}`,
