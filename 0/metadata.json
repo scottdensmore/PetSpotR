@@ -1,0 +1,52 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M040788MBVN4VT35X22Y7KS0",
+  "session_id": "01a001af-b3bc-79c1-828f-504b40d7da08",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-16T00:41:28.834967493Z",
+  "branch": "refactor/share-outbox-recovery",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/foundpet-service/main.go",
+    "cmd/lostpet-service/main.go",
+    "internal/app/outboxrecovery/runner.go",
+    "internal/app/outboxrecovery/runner_test.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "5ca2bfa1a4bb",
+  "checkpoint_transcript_start": 5266,
+  "transcript_lines_at_start": 5266,
+  "compact_transcript_start": 749,
+  "token_usage": {
+    "input_tokens": 156638,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 6758656,
+    "output_tokens": 23312,
+    "api_call_count": 65
+  },
+  "session_metrics": {
+    "turn_count": 16
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-16T00:41:26.192535795Z",
+    "agent_lines": 423,
+    "agent_removed": 73,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 423,
+    "total_lines_changed": 496,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
