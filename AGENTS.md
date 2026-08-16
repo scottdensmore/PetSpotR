@@ -254,7 +254,7 @@ run and a red CI on the same commit. If you change a version here, change it in
 Go toolchain — `1.26.5`, matching `actions/setup-go` in CI. The Go version is
 pinned for the same reason the linters are: `go vet`'s analyzer set and stdlib
 behavior shift between releases, so a newer local toolchain can pass checks that
-CI rejects. `go.mod` declares `go 1.22` as the **language** version, which is a
+CI rejects. `go.mod` declares `go 1.25.8` as the **language** version, which is a
 separate thing and does not pin the toolchain. Check yours before verifying:
 
 ```bash
