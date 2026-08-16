@@ -33,11 +33,58 @@ type ServiceOptions struct {
 	ReportOperationTimeout time.Duration
 }
 
+// ReportMetadata carries transport metadata into the durable event envelope.
+type ReportMetadata struct {
+	CorrelationID string
+	TraceID       string
+}
+
+// ReportResult identifies the accepted report and its durable event.
+type ReportResult struct {
+	PetID   string
+	EventID string
+}
+
+// ErrInvalidReport identifies domain validation failures.
+var ErrInvalidReport = errors.New("foundpet: invalid report")
+
+type invalidReportError struct {
+	cause error
+}
+
+func (e *invalidReportError) Error() string {
+	return fmt.Sprintf("%s: %v", ErrInvalidReport, e.cause)
+}
+
+func (e *invalidReportError) Unwrap() error {
+	return e.cause
+}
+
+func (e *invalidReportError) Is(target error) bool {
+	return target == ErrInvalidReport || errors.Is(e.cause, target)
+}
+
+// InvalidReportCause returns the domain validation cause when err identifies
+// an invalid report.
+func InvalidReportCause(err error) error {
+	var validationErr *invalidReportError
+	if errors.As(err, &validationErr) {
+		return validationErr.cause
+	}
+	return nil
+}
+
 const defaultReportOperationTimeout = 2 * time.Minute
 
 // NewService constructs a FoundPet Service instance.
 func NewService(st store.StateStore, br pubsub.Publisher, images blob.ImageStore) *Service {
 	return NewServiceWithOptions(st, br, images, ServiceOptions{})
+}
+
+// NewReportService constructs a Service for an adapter that accepts existing
+// image references and does not own the secure upload lifecycle.
+func NewReportService(st store.StateStore, br pubsub.Publisher) *Service {
+	return NewService(st, br, nil)
 }
 
 // NewServiceWithOptions constructs a FoundPet Service with explicit image policy.
@@ -165,15 +212,50 @@ func (s *Service) HandleFoundPet(w http.ResponseWriter, r *http.Request) {
 		evt.ImageObject = finalized.ObjectName
 	}
 
-	if err := evt.Validate(); err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Event validation failed: %v", err))
+	result, err := s.ReportFoundPet(ctx, evt, ReportMetadata{
+		CorrelationID: r.Header.Get("X-Correlation-ID"),
+		TraceID:       r.Header.Get("X-Trace-ID"),
+	})
+	switch {
+	case errors.Is(err, ErrInvalidReport):
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Event validation failed: %v", InvalidReportCause(err)))
 		return
+	case errors.Is(err, store.ErrConflict):
+		respondWithError(w, http.StatusConflict, "A different report already exists for this pet ID")
+		return
+	case err != nil:
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"status":  "success",
+		"petId":   result.PetID,
+		"eventId": result.EventID,
+	})
+}
+
+// ReportFoundPet validates and durably accepts one found-pet report before
+// attempting best-effort publication from its transactional outbox. Image
+// finalization remains the responsibility of the direct HTTP adapter because
+// browser-compatible reports may carry an existing image URL.
+func (s *Service) ReportFoundPet(
+	ctx context.Context,
+	evt domain.FoundPetEvent,
+	metadata ReportMetadata,
+) (ReportResult, error) {
+	if err := evt.Validate(); err != nil {
+		return ReportResult{}, &invalidReportError{cause: err}
+	}
+	if strings.TrimSpace(evt.Location) == "" {
+		return ReportResult{}, &invalidReportError{cause: errors.New("foundpet: location is required")}
 	}
 
 	data, err := evt.ToJSON()
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to marshal event: %v", err))
-		return
+		return ReportResult{}, fmt.Errorf("failed to marshal event: %w", err)
 	}
 
 	occurredAt := evt.FoundAt
@@ -183,51 +265,41 @@ func (s *Service) HandleFoundPet(w http.ResponseWriter, r *http.Request) {
 	envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
 		Type:             domain.EventTypeFoundPetReported,
 		OccurredAt:       occurredAt,
-		CorrelationID:    r.Header.Get("X-Correlation-ID"),
-		TraceID:          r.Header.Get("X-Trace-ID"),
+		CorrelationID:    metadata.CorrelationID,
+		TraceID:          metadata.TraceID,
 		AggregateID:      evt.PetID,
 		AggregateVersion: 1,
 		PayloadVersion:   1,
 		Payload:          data,
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to create event envelope: %v", err))
-		return
+		return ReportResult{}, fmt.Errorf("failed to create event envelope: %w", err)
 	}
 	envelopeData, err := json.Marshal(envelope)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to marshal event envelope: %v", err))
-		return
+		return ReportResult{}, fmt.Errorf("failed to marshal event envelope: %w", err)
 	}
 	recordData, err := outbox.MarshalRecord(outbox.NewRecord(envelope.ID, "foundPet", envelopeData, time.Now().UTC()))
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to create outbox record: %v", err))
-		return
+		return ReportResult{}, fmt.Errorf("failed to create outbox record: %w", err)
 	}
 
 	_, err = s.store.CreateStateAndOutbox(ctx,
 		store.StateWrite{StoreName: store.FoundPetsCollection, Key: evt.PetID, Data: data},
 		store.StateWrite{StoreName: store.OutboxCollection, Key: envelope.ID, Data: recordData},
 	)
-	if errors.Is(err, store.ErrConflict) {
-		respondWithError(w, http.StatusConflict, "A different report already exists for this pet ID")
-		return
-	}
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to save state and outbox: %v", err))
-		return
+		return ReportResult{}, fmt.Errorf("failed to save state and outbox: %w", err)
 	}
+
+	// Publication is best effort on the request path. A failure leaves the
+	// atomic outbox record pending for a later request or the managed relay,
+	// so the durable report can still be acknowledged safely.
 	if s.relay.CanPublish("foundPet") {
 		if _, err := s.relay.PublishRecords(ctx, envelope.ID); err != nil {
 			log.Printf("FoundPet outbox publication deferred: %v", err)
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"status":  "success",
-		"petId":   evt.PetID,
-		"eventId": envelope.ID,
-	})
+	return ReportResult{PetID: evt.PetID, EventID: envelope.ID}, nil
 }
