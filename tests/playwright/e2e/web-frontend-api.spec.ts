@@ -82,6 +82,19 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
 
   test('should reuse the found report identity after a transient browser retry', async ({ page }) => {
     const submissions: Array<Record<string, unknown>> = [];
+    await page.route('**/api/v1/found-pets/extract-features', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          species: 'Dog',
+          breed: 'Golden Retriever',
+          primaryColor: 'Golden',
+          secondaryColor: 'Cream',
+          distinctiveMarkings: ['White chest patch'],
+        }),
+      });
+    });
     await page.route('**/api/v1/found-pets', async (route) => {
       submissions.push(route.request().postDataJSON() as Record<string, unknown>);
       if (submissions.length === 1) {
@@ -97,8 +110,15 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     page.on('dialog', (dialog) => dialog.accept());
 
     await page.goto(`${WEB_FRONTEND_URL}/report-found`);
+    await page.locator('#foundPhotoInput').setInputFiles({
+      name: 'found-pet.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from('found-pet-image'),
+    });
+    await expect(page.locator('#foundBreed')).toHaveValue('Golden Retriever');
     await page.locator('#foundLocation').fill('Seattle, WA');
     await page.locator('#finderEmail').fill('finder@example.com');
+    await page.locator('#custodyStatus').selectOption('Local Shelter');
 
     await page.locator('#found-pet-form button[type="submit"]').click();
     await expect.poll(() => submissions.length).toBe(1);
@@ -109,6 +129,136 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     expect(submissions[0].petId).toMatch(/^found-[0-9a-f-]+$/);
     expect(submissions[1].petId).toBe(submissions[0].petId);
     expect(submissions[1].foundAt).toBe(submissions[0].foundAt);
+    expect(submissions[1]).toMatchObject({
+      finderEmail: 'finder@example.com',
+      species: 'Dog',
+      breed: 'Golden Retriever',
+      primaryColor: 'Golden',
+      secondaryColor: 'Cream',
+      distinctiveMarkings: ['White chest patch'],
+      custodyStatus: 'Local Shelter',
+    });
+  });
+
+  test('should clear stale traits when replacement image analysis fails', async ({ page }) => {
+    let extractionAttempts = 0;
+    let submission: Record<string, unknown> | undefined;
+    await page.route('**/api/v1/found-pets/extract-features', async (route) => {
+      extractionAttempts += 1;
+      if (extractionAttempts === 2) {
+        await route.fulfill({ status: 503, body: 'temporarily unavailable' });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          species: 'Dog',
+          breed: 'Golden Retriever',
+          primaryColor: 'Golden',
+          secondaryColor: 'Cream',
+          distinctiveMarkings: ['White chest patch'],
+        }),
+      });
+    });
+    await page.route('**/api/v1/found-pets', async (route) => {
+      submission = route.request().postDataJSON() as Record<string, unknown>;
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'success', petId: submission.petId }),
+      });
+    });
+
+    await page.goto(`${WEB_FRONTEND_URL}/report-found`);
+    await page.locator('#foundPhotoInput').setInputFiles({
+      name: 'first-pet.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from('first-pet-image'),
+    });
+    await expect(page.locator('#foundBreed')).toHaveValue('Golden Retriever');
+
+    await page.locator('#foundPhotoInput').setInputFiles({
+      name: 'replacement-pet.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from('replacement-pet-image'),
+    });
+    await expect(page.locator('#ai-extraction-status')).toHaveText(
+      'Image analysis failed. Choose the pet traits manually or try another image.',
+    );
+    await expect(page.locator('#foundSpecies')).toHaveValue('');
+    await expect(page.locator('#foundBreed')).toHaveValue('');
+    await expect(page.locator('#foundPrimaryColor')).toHaveValue('');
+    await expect(page.locator('#foundSecondaryColor')).toHaveValue('');
+    await expect(page.locator('#chip-breed')).toHaveText('Breed: Not analyzed');
+    await expect(page.locator('#chip-color')).toHaveText('Colors: Not analyzed');
+
+    await page.locator('#foundSpecies').selectOption('Cat');
+    await page.locator('#foundLocation').fill('Seattle, WA');
+    await page.locator('#finderEmail').fill('finder@example.com');
+    await page.locator('#found-pet-form button[type="submit"]').click();
+    await expect(page.locator('#found-success-modal')).toBeVisible();
+
+    expect(submission).toMatchObject({
+      species: 'Cat',
+      breed: '',
+      primaryColor: '',
+      secondaryColor: '',
+      distinctiveMarkings: [],
+    });
+  });
+
+  test('should ignore a stale analysis response after replacing the image', async ({ page }) => {
+    let extractionAttempts = 0;
+    let releaseFirstExtraction: (() => void) | undefined;
+    const firstExtractionReleased = new Promise<void>((resolve) => {
+      releaseFirstExtraction = resolve;
+    });
+    await page.route('**/api/v1/found-pets/extract-features', async (route) => {
+      extractionAttempts += 1;
+      if (extractionAttempts === 1) {
+        await firstExtractionReleased;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            species: 'Dog',
+            breed: 'Stale Golden Retriever',
+            primaryColor: 'Stale Golden',
+            secondaryColor: 'Stale Cream',
+            distinctiveMarkings: ['Stale white chest patch'],
+          }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 503, body: 'replacement analysis unavailable' });
+    });
+
+    await page.goto(`${WEB_FRONTEND_URL}/report-found`);
+    await page.locator('#foundPhotoInput').setInputFiles({
+      name: 'slow-first-pet.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from('slow-first-pet-image'),
+    });
+    await expect.poll(() => extractionAttempts).toBe(1);
+
+    await page.locator('#foundPhotoInput').setInputFiles({
+      name: 'replacement-pet.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from('replacement-pet-image'),
+    });
+    await expect(page.locator('#ai-extraction-status')).toHaveText(
+      'Image analysis failed. Choose the pet traits manually or try another image.',
+    );
+
+    releaseFirstExtraction?.();
+    await expect.poll(() => page.locator('#foundBreed').inputValue()).toBe('');
+    await expect(page.locator('#foundPrimaryColor')).toHaveValue('');
+    await expect(page.locator('#foundSecondaryColor')).toHaveValue('');
+    await expect(page.locator('#chip-breed')).toHaveText('Breed: Not analyzed');
+    await expect(page.locator('#ai-extraction-status')).toHaveText(
+      'Image analysis failed. Choose the pet traits manually or try another image.',
+    );
   });
 
   test('should return candidate match lists via GET /api/v1/matches', async ({ request }) => {

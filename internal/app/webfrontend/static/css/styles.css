@@ -451,6 +451,13 @@ a {
   font-weight: 600;
 }
 
+.ai-extraction-status {
+  min-height: 1.5rem;
+  margin-top: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
 .spinner {
   display: inline-block;
   width: 32px;

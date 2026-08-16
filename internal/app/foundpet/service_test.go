@@ -73,7 +73,8 @@ func TestFoundPetService_HandleFoundPet(t *testing.T) {
 		if publishedEvent.PetID != "pet-found-555" {
 			t.Errorf("published pet ID mismatch: got %s, want pet-found-555", publishedEvent.PetID)
 		}
-		if publishedEnvelope == nil || publishedEnvelope.AggregateVersion != 1 || publishedEnvelope.PayloadVersion != 1 {
+		if publishedEnvelope == nil || publishedEnvelope.AggregateVersion != 1 ||
+			publishedEnvelope.PayloadVersion != domain.FoundPetReportedPayloadVersion {
 			t.Fatalf("published envelope = %#v", publishedEnvelope)
 		}
 
@@ -122,6 +123,112 @@ func TestFoundPetService_HandleFoundPet(t *testing.T) {
 	})
 }
 
+func TestFoundPetService_PayloadV1RetryRemainsIdempotentAfterSchemaUpgrade(t *testing.T) {
+	petIDs := []string{"found-before-v2", " found-before-v2-spaced "}
+	for _, petID := range petIDs {
+		t.Run(strings.ReplaceAll(petID, " ", "_"), func(t *testing.T) {
+			ctx := context.Background()
+			stateStore := store.NewMemoryStore()
+			legacy := domain.FoundPetEvent{
+				PetID:    petID,
+				ImageURL: "https://storage.petspotr.io/images/found-before-v2.jpg",
+				FoundAt:  time.Date(2026, time.August, 15, 13, 0, 0, 0, time.UTC),
+				Location: "Seattle, WA",
+			}
+			legacyData, err := legacy.ToJSON()
+			if err != nil {
+				t.Fatal(err)
+			}
+			legacyEnvelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+				Type:             domain.EventTypeFoundPetReported,
+				OccurredAt:       legacy.FoundAt,
+				AggregateID:      legacy.PetID,
+				AggregateVersion: 1,
+				PayloadVersion:   domain.FoundPetReportedLegacyPayloadVersion,
+				Payload:          legacyData,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			legacyEnvelopeData, err := json.Marshal(legacyEnvelope)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := stateStore.SaveState(ctx, store.FoundPetsCollection, legacy.PetID, legacyData); err != nil {
+				t.Fatal(err)
+			}
+			if err := outbox.SaveRecord(ctx, stateStore, outbox.NewRecord(
+				legacyEnvelope.ID,
+				"foundPet",
+				legacyEnvelopeData,
+				legacy.FoundAt,
+			)); err != nil {
+				t.Fatal(err)
+			}
+
+			svc := NewService(stateStore, pubsub.NewMemoryPubSub(), blob.NewMemoryBlobStore("https://storage.petspotr.io/images"))
+			submit := func(location string) *httptest.ResponseRecorder {
+				body, marshalErr := json.Marshal(map[string]any{
+					"petId":               legacy.PetID,
+					"imageUrl":            legacy.ImageURL,
+					"foundAt":             legacy.FoundAt,
+					"location":            location,
+					"finderEmail":         "finder@example.com",
+					"species":             "Dog",
+					"breed":               "Golden Retriever",
+					"primaryColor":        "Golden",
+					"secondaryColor":      "Cream",
+					"distinctiveMarkings": []string{"White chest patch"},
+					"custodyStatus":       "Finder Home",
+				})
+				if marshalErr != nil {
+					t.Fatal(marshalErr)
+				}
+				request := httptest.NewRequest(http.MethodPost, "/foundPet", bytes.NewReader(body))
+				recorder := httptest.NewRecorder()
+				svc.HandleFoundPet(recorder, request)
+				return recorder
+			}
+
+			retry := submit(legacy.Location)
+			if retry.Code != http.StatusCreated {
+				t.Fatalf("payload-v1 retry status = %d, want 201; body = %s", retry.Code, retry.Body.String())
+			}
+			var response map[string]string
+			if err := json.Unmarshal(retry.Body.Bytes(), &response); err != nil {
+				t.Fatal(err)
+			}
+			if response["petId"] != legacy.PetID || response["eventId"] != legacyEnvelope.ID {
+				t.Fatalf("payload-v1 retry response = %#v", response)
+			}
+			preserved, err := stateStore.GetState(ctx, store.FoundPetsCollection, legacy.PetID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(preserved, legacyData) {
+				t.Fatalf("payload-v1 state was rewritten: %s", preserved)
+			}
+			if normalizedID := strings.TrimSpace(legacy.PetID); normalizedID != legacy.PetID {
+				if _, err := stateStore.GetState(ctx, store.FoundPetsCollection, normalizedID); !errors.Is(err, store.ErrNotFound) {
+					t.Fatalf("normalized duplicate state lookup error = %v, want %v", err, store.ErrNotFound)
+				}
+			}
+
+			conflict := submit("Portland, OR")
+			if conflict.Code != http.StatusConflict {
+				t.Fatalf("conflicting payload-v1 retry status = %d, want 409; body = %s", conflict.Code, conflict.Body.String())
+			}
+			outboxRecords, err := stateStore.ListState(ctx, store.OutboxCollection)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(outboxRecords) != 1 {
+				t.Fatalf("outbox record count = %d, want 1", len(outboxRecords))
+			}
+		})
+	}
+}
+
 func TestFoundPetService_SecureImageLifecycle(t *testing.T) {
 	ctx := context.Background()
 	st := store.NewMemoryStore()
@@ -164,12 +271,14 @@ func TestFoundPetService_SecureImageLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get found-pet state: %v", err)
 	}
-	var saved domain.FoundPetEvent
+	var saved domain.FoundPetReport
 	if err := json.Unmarshal(stateData, &saved); err != nil {
-		t.Fatalf("decode saved event: %v", err)
+		t.Fatalf("decode saved report: %v", err)
 	}
 	wantObject := "images/found-pets/" + grant.ReportID + "/image.jpg"
-	if saved.ImageObject != wantObject || saved.ImageURL != "" {
+	if saved.ImageObject != wantObject || saved.ImageURL != "" ||
+		saved.GeocodingStatus != domain.GeocodingPending || saved.CustodyStatus != domain.CustodyUnknown ||
+		saved.Status != domain.FoundPetStatusFound {
 		t.Fatalf("saved image reference = %#v, want private object %q", saved, wantObject)
 	}
 	if _, err := images.GetImage(ctx, grant.ObjectName); !errors.Is(err, blob.ErrNotFound) {

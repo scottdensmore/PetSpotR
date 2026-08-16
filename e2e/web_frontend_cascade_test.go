@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -424,13 +425,19 @@ func TestWebFrontendFoundPetSubmissionUsesCanonicalService(t *testing.T) {
 		FoundPetReporter: foundReports,
 	})
 
-	published := make(chan domain.FoundPetEvent, 1)
+	type publishedFoundPet struct {
+		data     []byte
+		envelope *domain.EventEnvelope
+		event    domain.FoundPetReportedV2
+	}
+	published := make(chan publishedFoundPet, 1)
 	if err := ps.Subscribe("foundPet", func(_ context.Context, data []byte) error {
-		var event domain.FoundPetEvent
-		if _, err := domain.DecodeEventPayload(data, domain.EventTypeFoundPetReported, &event); err != nil {
+		var event domain.FoundPetReportedV2
+		envelope, err := domain.DecodeEventPayload(data, domain.EventTypeFoundPetReported, &event)
+		if err != nil {
 			return err
 		}
-		published <- event
+		published <- publishedFoundPet{data: append([]byte(nil), data...), envelope: envelope, event: event}
 		return nil
 	}); err != nil {
 		t.Fatalf("subscribe to foundPet: %v", err)
@@ -438,11 +445,17 @@ func TestWebFrontendFoundPetSubmissionUsesCanonicalService(t *testing.T) {
 
 	foundAt := time.Date(2026, time.August, 15, 13, 0, 0, 0, time.UTC)
 	payload, err := json.Marshal(map[string]any{
-		"petId":       "found-browser-stable",
-		"foundAt":     foundAt,
-		"imageUrl":    "https://storage.petspotr.io/images/found-browser-stable.jpg",
-		"location":    "Seattle, WA",
-		"finderEmail": "finder@example.com",
+		"petId":               "found-browser-stable",
+		"foundAt":             foundAt,
+		"imageUrl":            "https://storage.petspotr.io/images/found-browser-stable.jpg",
+		"location":            "Seattle, WA",
+		"finderEmail":         " Finder@Example.COM ",
+		"species":             "Dog",
+		"breed":               "Golden Retriever",
+		"primaryColor":        "Golden",
+		"secondaryColor":      "Cream",
+		"distinctiveMarkings": []string{"White chest patch"},
+		"custodyStatus":       "Local Shelter",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -467,9 +480,29 @@ func TestWebFrontendFoundPetSubmissionUsesCanonicalService(t *testing.T) {
 	}
 
 	select {
-	case event := <-published:
-		if event.PetID != response.PetID || event.ImageURL != "https://storage.petspotr.io/images/found-browser-stable.jpg" || event.Location != "Seattle, WA" {
-			t.Fatalf("published found-pet event = %#v; response pet ID = %q", event, response.PetID)
+	case got := <-published:
+		if got.envelope == nil || got.envelope.PayloadVersion != domain.FoundPetReportedPayloadVersion {
+			t.Fatalf("published envelope = %#v", got.envelope)
+		}
+		if got.event.PetID != response.PetID ||
+			got.event.ImageURL != "https://storage.petspotr.io/images/found-browser-stable.jpg" ||
+			got.event.Location != "Seattle, WA" || got.event.Species != "Dog" ||
+			got.event.Breed != "Golden Retriever" || got.event.PrimaryColor != "Golden" ||
+			got.event.SecondaryColor != "Cream" || len(got.event.DistinctiveMarkings) != 1 ||
+			got.event.DistinctiveMarkings[0] != "White chest patch" ||
+			got.event.CustodyStatus != domain.CustodyLocalShelter ||
+			got.event.GeocodingStatus != domain.GeocodingPending || got.event.Status != domain.FoundPetStatusFound {
+			t.Fatalf("published found-pet event = %#v; response pet ID = %q", got.event, response.PetID)
+		}
+		if strings.Contains(string(got.data), "finder@example.com") || strings.Contains(string(got.data), "finderEmail") {
+			t.Fatalf("published found-pet event exposed finder contact: %s", got.data)
+		}
+		var legacy domain.FoundPetEvent
+		if _, err := domain.DecodeEventPayload(got.data, domain.EventTypeFoundPetReported, &legacy); err != nil {
+			t.Fatalf("legacy reader rejected payload-v2 event: %v", err)
+		}
+		if legacy.PetID != response.PetID || legacy.ImageURL != got.event.ImageURL || legacy.Location != got.event.Location {
+			t.Fatalf("legacy decoded event = %#v", legacy)
 		}
 	case <-time.After(time.Second):
 		t.Fatal("browser found-pet submission did not publish the canonical foundPet event")
@@ -479,8 +512,35 @@ func TestWebFrontendFoundPetSubmissionUsesCanonicalService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load canonical found-pet state: %v", err)
 	}
-	if strings.Contains(string(stateData), "finder@example.com") || strings.Contains(string(stateData), "finderEmail") {
-		t.Fatalf("canonical found-pet state exposed finder contact: %s", stateData)
+	var report domain.FoundPetReport
+	if err := json.Unmarshal(stateData, &report); err != nil {
+		t.Fatalf("decode canonical found-pet state: %v", err)
+	}
+	if report.FinderEmail != "finder@example.com" || report.Species != "Dog" ||
+		report.Breed != "Golden Retriever" || report.PrimaryColor != "Golden" ||
+		report.SecondaryColor != "Cream" || len(report.DistinctiveMarkings) != 1 ||
+		report.CustodyStatus != domain.CustodyLocalShelter || report.Status != domain.FoundPetStatusFound ||
+		report.GeocodingStatus != domain.GeocodingPending || report.Coordinates != nil {
+		t.Fatalf("persisted found-pet report = %#v", report)
+	}
+
+	publicRequest := httptest.NewRequest(http.MethodGet, "/api/v1/found-pets", nil)
+	publicRecorder := httptest.NewRecorder()
+	frontend.ServeHTTP(publicRecorder, publicRequest)
+	if publicRecorder.Code != http.StatusOK {
+		t.Fatalf("public found-pet status = %d, want 200; body = %s", publicRecorder.Code, publicRecorder.Body.String())
+	}
+	publicData := append([]byte(nil), publicRecorder.Body.Bytes()...)
+	var publicReports []domain.PublicFoundPetReport
+	if err := json.Unmarshal(publicData, &publicReports); err != nil {
+		t.Fatalf("decode public found-pet reports: %v", err)
+	}
+	if len(publicReports) != 1 || publicReports[0].Species != "Dog" ||
+		publicReports[0].SecondaryColor != "Cream" || publicReports[0].CustodyStatus != domain.CustodyLocalShelter {
+		t.Fatalf("public found-pet reports = %#v", publicReports)
+	}
+	if strings.Contains(string(publicData), "finder@example.com") || strings.Contains(string(publicData), "finderEmail") {
+		t.Fatalf("public found-pet response exposed private contact: %s", publicData)
 	}
 	outboxRecords, err := st.ListState(ctx, store.OutboxCollection)
 	if err != nil {
@@ -491,19 +551,61 @@ func TestWebFrontendFoundPetSubmissionUsesCanonicalService(t *testing.T) {
 	}
 }
 
+func TestWebFrontendFoundPetSubmissionRejectsPrivilegedFieldInjection(t *testing.T) {
+	ctx := context.Background()
+	st := store.NewMemoryStore()
+	foundReports := foundpet.NewReportService(st, pubsub.NewMemoryPubSub())
+	frontend := webfrontend.NewServerWithOptions(st, webfrontend.ServerOptions{
+		FoundPetReporter: foundReports,
+	})
+
+	objectOnlyPayload := `{"petId":"found-object-only","imageObject":"images/found-pets/other/image.jpg","location":"Seattle, WA"}`
+	objectOnlyRequest := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets", strings.NewReader(objectOnlyPayload))
+	objectOnlyRecorder := httptest.NewRecorder()
+	frontend.ServeHTTP(objectOnlyRecorder, objectOnlyRequest)
+	if objectOnlyRecorder.Code != http.StatusBadRequest {
+		t.Fatalf("object-only browser report status = %d, want 400; body = %s", objectOnlyRecorder.Code, objectOnlyRecorder.Body.String())
+	}
+	if _, err := st.GetState(ctx, store.FoundPetsCollection, "found-object-only"); !errors.Is(err, store.ErrNotFound) && !errors.Is(err, store.ErrStoreNotFound) {
+		t.Fatalf("object-only browser report mutated state: %v", err)
+	}
+
+	spoofedGeoPayload := `{"petId":"found-spoofed-geo","imageUrl":"https://storage.petspotr.io/found.jpg","imageObject":"images/found-pets/other/image.jpg","location":"Seattle, WA","geocodingStatus":"verified","coordinates":{"latitude":1,"longitude":2}}`
+	spoofedGeoRequest := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets", strings.NewReader(spoofedGeoPayload))
+	spoofedGeoRecorder := httptest.NewRecorder()
+	frontend.ServeHTTP(spoofedGeoRecorder, spoofedGeoRequest)
+	if spoofedGeoRecorder.Code != http.StatusCreated {
+		t.Fatalf("spoofed-geocoding browser report status = %d, want 201; body = %s", spoofedGeoRecorder.Code, spoofedGeoRecorder.Body.String())
+	}
+	stateData, err := st.GetState(ctx, store.FoundPetsCollection, "found-spoofed-geo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var report domain.FoundPetReport
+	if err := json.Unmarshal(stateData, &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.ImageObject != "" || report.GeocodingStatus != domain.GeocodingPending || report.Coordinates != nil {
+		t.Fatalf("browser report accepted privileged fields: %#v", report)
+	}
+}
+
 func TestFoundPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 	foundAt := time.Date(2026, time.August, 15, 14, 0, 0, 0, time.UTC)
 	tests := []struct {
 		name string
 		path string
-		body func(petID, imageURL, location string) string
+		body func(petID, imageURL, location, finderEmail string) string
 	}{
 		{
 			name: "direct service",
 			path: "/foundPet",
-			body: func(petID, imageURL, location string) string {
-				data, err := json.Marshal(domain.FoundPetEvent{
-					PetID: petID, ImageURL: imageURL, FoundAt: foundAt, Location: location,
+			body: func(petID, imageURL, location, finderEmail string) string {
+				data, err := json.Marshal(map[string]any{
+					"petId": petID, "imageUrl": imageURL, "foundAt": foundAt, "location": location,
+					"finderEmail": finderEmail, "species": "Dog", "breed": "Golden Retriever",
+					"primaryColor": "Golden", "secondaryColor": "Cream",
+					"distinctiveMarkings": []string{"White chest patch"}, "custodyStatus": "Finder Home",
 				})
 				if err != nil {
 					t.Fatal(err)
@@ -514,10 +616,12 @@ func TestFoundPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 		{
 			name: "browser service",
 			path: "/api/v1/found-pets",
-			body: func(petID, imageURL, location string) string {
+			body: func(petID, imageURL, location, finderEmail string) string {
 				data, err := json.Marshal(map[string]any{
 					"petId": petID, "imageUrl": imageURL, "foundAt": foundAt,
-					"location": location, "finderEmail": "finder@example.com",
+					"location": location, "finderEmail": finderEmail, "species": "Dog",
+					"breed": "Golden Retriever", "primaryColor": "Golden", "secondaryColor": "Cream",
+					"distinctiveMarkings": []string{"White chest patch"}, "custodyStatus": "Finder Home",
 				})
 				if err != nil {
 					t.Fatal(err)
@@ -537,9 +641,9 @@ func TestFoundPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 				FoundPetReporter: foundReports,
 			})
 
-			published := make(chan domain.FoundPetEvent, 4)
+			published := make(chan domain.FoundPetReportedV2, 4)
 			if err := ps.Subscribe("foundPet", func(_ context.Context, data []byte) error {
-				var event domain.FoundPetEvent
+				var event domain.FoundPetReportedV2
 				if _, err := domain.DecodeEventPayload(data, domain.EventTypeFoundPetReported, &event); err != nil {
 					return err
 				}
@@ -562,21 +666,28 @@ func TestFoundPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 			}
 
 			invalidCases := []struct {
-				name     string
-				imageURL string
-				location string
+				name        string
+				imageURL    string
+				location    string
+				finderEmail string
 			}{
-				{name: "missing image", location: "Seattle, WA"},
-				{name: "missing location", imageURL: "https://storage.petspotr.io/images/found-invalid.jpg"},
+				{name: "missing image", location: "Seattle, WA", finderEmail: "finder@example.com"},
+				{name: "missing location", imageURL: "https://storage.petspotr.io/images/found-invalid.jpg", finderEmail: "finder@example.com"},
+				{name: "invalid finder email", imageURL: "https://storage.petspotr.io/images/found-invalid.jpg", location: "Seattle, WA", finderEmail: "invalid"},
 			}
 			for _, invalidCase := range invalidCases {
-				invalid := submit(tt.body("found-invalid-"+strings.ReplaceAll(invalidCase.name, " ", "-"), invalidCase.imageURL, invalidCase.location))
+				invalid := submit(tt.body(
+					"found-invalid-"+strings.ReplaceAll(invalidCase.name, " ", "-"),
+					invalidCase.imageURL,
+					invalidCase.location,
+					invalidCase.finderEmail,
+				))
 				if invalid.Code != http.StatusBadRequest {
 					t.Fatalf("%s response status = %d, want %d; body = %s", invalidCase.name, invalid.Code, http.StatusBadRequest, invalid.Body.String())
 				}
 			}
 
-			validBody := tt.body("found-stable", "https://storage.petspotr.io/images/found-stable.jpg", "Seattle, WA")
+			validBody := tt.body("found-stable", "https://storage.petspotr.io/images/found-stable.jpg", "Seattle, WA", "finder@example.com")
 			first := submit(validBody)
 			if first.Code != http.StatusCreated {
 				t.Fatalf("first create status = %d, want %d; body = %s", first.Code, http.StatusCreated, first.Body.String())
@@ -585,17 +696,39 @@ func TestFoundPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 			if retry.Code != http.StatusCreated {
 				t.Fatalf("exact retry status = %d, want %d; body = %s", retry.Code, http.StatusCreated, retry.Body.String())
 			}
-			conflict := submit(tt.body("found-stable", "https://storage.petspotr.io/images/found-stable.jpg", "Portland, OR"))
+			conflict := submit(tt.body("found-stable", "https://storage.petspotr.io/images/found-stable.jpg", "Portland, OR", "finder@example.com"))
 			if conflict.Code != http.StatusConflict {
 				t.Fatalf("conflicting retry status = %d, want %d; body = %s", conflict.Code, http.StatusConflict, conflict.Body.String())
 			}
-			distinct := submit(tt.body("found-distinct", "https://storage.petspotr.io/images/found-stable.jpg", "Seattle, WA"))
+			distinct := submit(tt.body("found-distinct", "https://storage.petspotr.io/images/found-stable.jpg", "Seattle, WA", "finder@example.com"))
 			if distinct.Code != http.StatusCreated {
 				t.Fatalf("distinct report status = %d, want %d; body = %s", distinct.Code, http.StatusCreated, distinct.Body.String())
 			}
 
 			if got := len(published); got != 2 {
 				t.Fatalf("published event count = %d, want 2", got)
+			}
+			for len(published) > 0 {
+				event := <-published
+				if event.Species != "Dog" || event.Breed != "Golden Retriever" ||
+					event.PrimaryColor != "Golden" || event.SecondaryColor != "Cream" ||
+					len(event.DistinctiveMarkings) != 1 || event.CustodyStatus != domain.CustodyFinderHome ||
+					event.GeocodingStatus != domain.GeocodingPending || event.Status != domain.FoundPetStatusFound {
+					t.Fatalf("published event = %#v", event)
+				}
+			}
+			stateData, err := st.GetState(ctx, store.FoundPetsCollection, "found-stable")
+			if err != nil {
+				t.Fatal(err)
+			}
+			var report domain.FoundPetReport
+			if err := json.Unmarshal(stateData, &report); err != nil {
+				t.Fatal(err)
+			}
+			if report.FinderEmail != "finder@example.com" || report.Species != "Dog" ||
+				report.Breed != "Golden Retriever" || report.SecondaryColor != "Cream" ||
+				len(report.DistinctiveMarkings) != 1 || report.CustodyStatus != domain.CustodyFinderHome {
+				t.Fatalf("persisted report = %#v", report)
 			}
 			outboxRecords, err := st.ListState(ctx, store.OutboxCollection)
 			if err != nil {
