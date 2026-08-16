@@ -44,7 +44,7 @@ type Server struct {
 // LostPetReporter is the canonical lost-pet command consumed by the browser
 // adapter.
 type LostPetReporter interface {
-	ReportLostPet(context.Context, domain.LostPetEvent, lostpet.ReportMetadata) (lostpet.ReportResult, error)
+	ReportLostPet(context.Context, lostpet.ReportCommand, lostpet.ReportMetadata) (lostpet.ReportResult, error)
 }
 
 // FoundPetReporter is the canonical found-pet command consumed by the browser
@@ -203,12 +203,6 @@ func newLostPetID(petName string) (string, error) {
 	return "lost-" + suffix, nil
 }
 
-type PublicLostPet struct {
-	PetID      string    `json:"petId"`
-	ReportedAt time.Time `json:"reportedAt"`
-	Location   string    `json:"location"`
-}
-
 type QueryParams struct {
 	Limit       int
 	Offset      int
@@ -287,9 +281,9 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 
 		params := parseQueryParams(r)
 
-		pets := make([]domain.LostPetEvent, 0, len(rawItems))
+		pets := make([]domain.LostPetReport, 0, len(rawItems))
 		for _, b := range rawItems {
-			var pet domain.LostPetEvent
+			var pet domain.LostPetReport
 			if err := json.Unmarshal(b, &pet); err == nil {
 				// Species filter check
 				if params.Species != "" {
@@ -318,7 +312,7 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 
 		// Apply pagination limit & offset
 		if params.Offset > len(pets) {
-			pets = []domain.LostPetEvent{}
+			pets = []domain.LostPetReport{}
 		} else {
 			end := params.Offset + params.Limit
 			if end > len(pets) {
@@ -327,13 +321,9 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 			pets = pets[params.Offset:end]
 		}
 
-		publicPets := make([]PublicLostPet, 0, len(pets))
+		publicPets := make([]domain.PublicLostPetReport, 0, len(pets))
 		for _, pet := range pets {
-			publicPets = append(publicPets, PublicLostPet{
-				PetID:      pet.PetID,
-				ReportedAt: pet.ReportedAt,
-				Location:   pet.Location,
-			})
+			publicPets = append(publicPets, pet.Public())
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -369,14 +359,20 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		reportedAt = time.Now().UTC()
 	}
 
-	evt := domain.LostPetEvent{
+	command := lostpet.ReportCommand{
 		PetID:         petID,
+		PetName:       req.PetName,
+		Species:       req.Species,
+		Breed:         req.Breed,
+		PrimaryColor:  req.PrimaryColor,
+		Description:   req.Description,
 		ReporterEmail: req.ReporterEmail,
+		Phone:         req.Phone,
 		ReportedAt:    reportedAt,
 		Location:      req.Location,
 	}
 
-	result, err := s.lostPetReporter.ReportLostPet(r.Context(), evt, lostpet.ReportMetadata{
+	result, err := s.lostPetReporter.ReportLostPet(r.Context(), command, lostpet.ReportMetadata{
 		CorrelationID: r.Header.Get("X-Correlation-ID"),
 		TraceID:       r.Header.Get("X-Trace-ID"),
 	})
@@ -386,7 +382,7 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		if cause := lostpet.InvalidReportCause(err); cause != nil {
 			message = cause.Error()
 		}
-		if strings.TrimSpace(evt.ReporterEmail) == "" {
+		if strings.TrimSpace(command.ReporterEmail) == "" {
 			message = "reporterEmail is required"
 		}
 		http.Error(w, message, http.StatusBadRequest)

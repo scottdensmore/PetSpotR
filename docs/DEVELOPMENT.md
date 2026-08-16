@@ -143,6 +143,14 @@ each event, and closes every publisher handle before closing the shared client.
 Topics and subscriptions must already exist; production infrastructure and the
 emulator contracts create them explicitly.
 
+Event envelope and payload versions evolve independently. Readers must accept
+the legacy raw payload and payload version 1 while those messages can remain in
+flight. Lost-pet producers currently emit additive payload version 2: existing
+field names remain stable, new fields are optional to older readers, and phone
+data is not copied into the event. Removing or renaming a published field
+requires a new payload version and a tolerant decoder for every supported prior
+shape.
+
 | Mode | Required configuration | Messaging backend |
 | --- | --- | --- |
 | `memory` | Consumer: `PUBSUB_PUSH_SUBSCRIPTION`, `PUBSUB_PUSH_DEV_TOKEN` | Process-local test broker and static push authentication |

@@ -81,7 +81,8 @@ func TestLostPetService_HandleLostPet(t *testing.T) {
 		if publishedEvent.PetID != "pet-123" {
 			t.Errorf("published pet ID mismatch: got %s, want pet-123", publishedEvent.PetID)
 		}
-		if publishedEnvelope == nil || publishedEnvelope.AggregateVersion != 1 || publishedEnvelope.PayloadVersion != 1 {
+		if publishedEnvelope == nil || publishedEnvelope.AggregateVersion != 1 ||
+			publishedEnvelope.PayloadVersion != domain.LostPetReportedPayloadVersion {
 			t.Fatalf("published envelope = %#v", publishedEnvelope)
 		}
 
@@ -163,6 +164,210 @@ func TestLostPetService_HandleLostPet(t *testing.T) {
 			t.Errorf("expected validation failed error message, got %s", errResp.Error)
 		}
 	})
+}
+
+func TestLostPetService_LegacyMissingTimestampAndLocationRetryIsStable(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	svc := NewService(stateStore, pubsub.NewMemoryPubSub())
+	body := []byte(`{"petId":"lost-legacy","reporterEmail":"owner@example.com"}`)
+
+	for attempt := 1; attempt <= 2; attempt++ {
+		request := httptest.NewRequest(http.MethodPost, "/lostPet", bytes.NewReader(body))
+		recorder := httptest.NewRecorder()
+		svc.HandleLostPet(recorder, request)
+		if recorder.Code != http.StatusCreated {
+			t.Fatalf("attempt %d status = %d, want 201; body = %s", attempt, recorder.Code, recorder.Body.String())
+		}
+	}
+
+	stateData, err := stateStore.GetState(ctx, store.LostPetsCollection, "lost-legacy")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var report domain.LostPetReport
+	if err := json.Unmarshal(stateData, &report); err != nil {
+		t.Fatal(err)
+	}
+	if !report.ReportedAt.IsZero() || report.GeocodingStatus != domain.GeocodingUnavailable {
+		t.Fatalf("legacy report = %#v", report)
+	}
+	outboxRecords, err := stateStore.ListState(ctx, store.OutboxCollection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(outboxRecords) != 1 {
+		t.Fatalf("outbox records = %d, want 1", len(outboxRecords))
+	}
+}
+
+func TestLostPetService_PayloadV1RetryRemainsIdempotentAfterSchemaUpgrade(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	legacy := domain.LostPetEvent{
+		PetID:         "lost-before-v2",
+		ReporterEmail: "owner@example.com",
+		ReportedAt:    time.Date(2026, time.August, 15, 12, 0, 0, 0, time.UTC),
+		Location:      "Seattle, WA",
+	}
+	legacyData, err := legacy.ToJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyEnvelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+		Type:             domain.EventTypeLostPetReported,
+		OccurredAt:       legacy.ReportedAt,
+		AggregateID:      legacy.PetID,
+		AggregateVersion: 1,
+		PayloadVersion:   domain.LostPetReportedLegacyPayloadVersion,
+		Payload:          legacyData,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyEnvelopeData, err := json.Marshal(legacyEnvelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := stateStore.SaveState(ctx, store.LostPetsCollection, legacy.PetID, legacyData); err != nil {
+		t.Fatal(err)
+	}
+	if err := outbox.SaveRecord(ctx, stateStore, outbox.NewRecord(
+		legacyEnvelope.ID,
+		"lostPet",
+		legacyEnvelopeData,
+		legacy.ReportedAt,
+	)); err != nil {
+		t.Fatal(err)
+	}
+
+	svc := NewService(stateStore, pubsub.NewMemoryPubSub())
+	submit := func(location string) *httptest.ResponseRecorder {
+		body, marshalErr := json.Marshal(map[string]any{
+			"petId":         legacy.PetID,
+			"petName":       "Buddy",
+			"species":       "Dog",
+			"breed":         "Golden Retriever",
+			"primaryColor":  "Golden",
+			"description":   "White chest patch",
+			"reporterEmail": " OWNER@EXAMPLE.COM ",
+			"phone":         "(555) 019-2834",
+			"reportedAt":    legacy.ReportedAt,
+			"location":      location,
+		})
+		if marshalErr != nil {
+			t.Fatal(marshalErr)
+		}
+		request := httptest.NewRequest(http.MethodPost, "/lostPet", bytes.NewReader(body))
+		recorder := httptest.NewRecorder()
+		svc.HandleLostPet(recorder, request)
+		return recorder
+	}
+
+	retry := submit(legacy.Location)
+	if retry.Code != http.StatusCreated {
+		t.Fatalf("payload-v1 retry status = %d, want 201; body = %s", retry.Code, retry.Body.String())
+	}
+	var response map[string]string
+	if err := json.Unmarshal(retry.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response["eventId"] != legacyEnvelope.ID {
+		t.Fatalf("payload-v1 retry event ID = %q, want %q", response["eventId"], legacyEnvelope.ID)
+	}
+	preserved, err := stateStore.GetState(ctx, store.LostPetsCollection, legacy.PetID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(preserved, legacyData) {
+		t.Fatalf("payload-v1 state was rewritten: %s", preserved)
+	}
+
+	conflict := submit("Portland, OR")
+	if conflict.Code != http.StatusConflict {
+		t.Fatalf("conflicting payload-v1 retry status = %d, want 409; body = %s", conflict.Code, conflict.Body.String())
+	}
+}
+
+func TestLostPetService_PayloadV1WhitespaceIDRetryDoesNotDuplicate(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	legacy := domain.LostPetEvent{
+		PetID:         " lost-before-v2 ",
+		ReporterEmail: "owner@example.com",
+		ReportedAt:    time.Date(2026, time.August, 15, 12, 0, 0, 0, time.UTC),
+		Location:      "Seattle, WA",
+	}
+	legacyData, err := legacy.ToJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyEnvelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+		Type:             domain.EventTypeLostPetReported,
+		OccurredAt:       legacy.ReportedAt,
+		AggregateID:      legacy.PetID,
+		AggregateVersion: 1,
+		PayloadVersion:   domain.LostPetReportedLegacyPayloadVersion,
+		Payload:          legacyData,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyEnvelopeData, err := json.Marshal(legacyEnvelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := stateStore.SaveState(ctx, store.LostPetsCollection, legacy.PetID, legacyData); err != nil {
+		t.Fatal(err)
+	}
+	if err := outbox.SaveRecord(ctx, stateStore, outbox.NewRecord(
+		legacyEnvelope.ID,
+		"lostPet",
+		legacyEnvelopeData,
+		legacy.ReportedAt,
+	)); err != nil {
+		t.Fatal(err)
+	}
+
+	svc := NewService(stateStore, pubsub.NewMemoryPubSub())
+	submit := func(location string) *httptest.ResponseRecorder {
+		body, marshalErr := json.Marshal(map[string]any{
+			"petId":         legacy.PetID,
+			"reporterEmail": legacy.ReporterEmail,
+			"reportedAt":    legacy.ReportedAt,
+			"location":      location,
+		})
+		if marshalErr != nil {
+			t.Fatal(marshalErr)
+		}
+		request := httptest.NewRequest(http.MethodPost, "/lostPet", bytes.NewReader(body))
+		recorder := httptest.NewRecorder()
+		svc.HandleLostPet(recorder, request)
+		return recorder
+	}
+
+	retry := submit(legacy.Location)
+	if retry.Code != http.StatusCreated {
+		t.Fatalf("payload-v1 whitespace-ID retry status = %d, want 201; body = %s", retry.Code, retry.Body.String())
+	}
+	var response map[string]string
+	if err := json.Unmarshal(retry.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response["petId"] != legacy.PetID || response["eventId"] != legacyEnvelope.ID {
+		t.Fatalf("payload-v1 whitespace-ID retry response = %#v", response)
+	}
+	if _, err := stateStore.GetState(ctx, store.LostPetsCollection, strings.TrimSpace(legacy.PetID)); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("normalized duplicate state lookup error = %v, want %v", err, store.ErrNotFound)
+	}
+
+	conflict := submit("Portland, OR")
+	if conflict.Code != http.StatusConflict {
+		t.Fatalf("conflicting payload-v1 whitespace-ID retry status = %d, want 409; body = %s", conflict.Code, conflict.Body.String())
+	}
+	if _, err := stateStore.GetState(ctx, store.LostPetsCollection, strings.TrimSpace(legacy.PetID)); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("normalized duplicate state after conflict lookup error = %v, want %v", err, store.ErrNotFound)
+	}
 }
 
 type unavailableBroker struct{}

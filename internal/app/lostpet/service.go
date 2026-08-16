@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
@@ -26,6 +27,23 @@ type Service struct {
 type ReportMetadata struct {
 	CorrelationID string
 	TraceID       string
+}
+
+// ReportCommand carries one lost-pet report from an HTTP adapter into the
+// canonical application service.
+type ReportCommand struct {
+	PetID           string
+	PetName         string
+	Species         string
+	Breed           string
+	PrimaryColor    string
+	Description     string
+	ReporterEmail   string
+	Phone           string
+	ReportedAt      time.Time
+	Location        string
+	GeocodingStatus domain.GeocodingStatus
+	Coordinates     *domain.LocationPoint
 }
 
 // ReportResult identifies the accepted report and its durable event.
@@ -95,13 +113,39 @@ func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
-	var evt domain.LostPetEvent
-	if err := json.NewDecoder(r.Body).Decode(&evt); err != nil {
+	var request struct {
+		PetID           string                 `json:"petId"`
+		PetName         string                 `json:"petName"`
+		Species         string                 `json:"species"`
+		Breed           string                 `json:"breed"`
+		PrimaryColor    string                 `json:"primaryColor"`
+		Description     string                 `json:"description"`
+		ReporterEmail   string                 `json:"reporterEmail"`
+		Phone           string                 `json:"phone"`
+		ReportedAt      time.Time              `json:"reportedAt"`
+		Location        string                 `json:"location"`
+		GeocodingStatus domain.GeocodingStatus `json:"geocodingStatus"`
+		Coordinates     *domain.LocationPoint  `json:"coordinates"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid JSON payload: %v", err))
 		return
 	}
 
-	result, err := s.ReportLostPet(r.Context(), evt, ReportMetadata{
+	result, err := s.ReportLostPet(r.Context(), ReportCommand{
+		PetID:           request.PetID,
+		PetName:         request.PetName,
+		Species:         request.Species,
+		Breed:           request.Breed,
+		PrimaryColor:    request.PrimaryColor,
+		Description:     request.Description,
+		ReporterEmail:   request.ReporterEmail,
+		Phone:           request.Phone,
+		ReportedAt:      request.ReportedAt,
+		Location:        request.Location,
+		GeocodingStatus: request.GeocodingStatus,
+		Coordinates:     request.Coordinates,
+	}, ReportMetadata{
 		CorrelationID: r.Header.Get("X-Correlation-ID"),
 		TraceID:       r.Header.Get("X-Trace-ID"),
 	})
@@ -130,19 +174,53 @@ func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 // attempting best-effort publication from its transactional outbox.
 func (s *Service) ReportLostPet(
 	ctx context.Context,
-	evt domain.LostPetEvent,
+	command ReportCommand,
 	metadata ReportMetadata,
 ) (ReportResult, error) {
-	if err := evt.Validate(); err != nil {
+	report := domain.NormalizeLostPetReport(domain.LostPetReport{
+		PetID:           command.PetID,
+		PetName:         command.PetName,
+		Species:         command.Species,
+		Breed:           command.Breed,
+		PrimaryColor:    command.PrimaryColor,
+		Description:     command.Description,
+		ReporterEmail:   command.ReporterEmail,
+		Phone:           command.Phone,
+		ReportedAt:      command.ReportedAt,
+		Location:        command.Location,
+		GeocodingStatus: command.GeocodingStatus,
+		Coordinates:     command.Coordinates,
+	})
+	if err := report.Validate(); err != nil {
 		return ReportResult{}, &invalidReportError{cause: err}
 	}
 
-	data, err := evt.ToJSON()
-	if err != nil {
-		return ReportResult{}, fmt.Errorf("failed to marshal event: %w", err)
+	// Payload-v1 persisted state used the caller-provided key even though the
+	// envelope normalized its aggregate ID. Check that exact legacy key before
+	// creating canonical state so an old report such as " lost-123 " cannot be
+	// duplicated under the normalized "lost-123" key after an upgrade.
+	if command.PetID != report.PetID {
+		legacyResult, legacyExists, matches, err := s.matchPayloadV1Retry(ctx, command.PetID, report)
+		if err != nil {
+			return ReportResult{}, fmt.Errorf("failed to check payload-v1 retry: %w", err)
+		}
+		if matches {
+			return legacyResult, nil
+		}
+		if legacyExists {
+			return ReportResult{}, fmt.Errorf("failed to save state and outbox: %w", store.ErrConflict)
+		}
 	}
 
-	occurredAt := evt.ReportedAt
+	stateData, err := json.Marshal(report)
+	if err != nil {
+		return ReportResult{}, fmt.Errorf("failed to marshal lost-pet report: %w", err)
+	}
+	eventData, err := json.Marshal(report.ReportedEvent())
+	if err != nil {
+		return ReportResult{}, fmt.Errorf("failed to marshal lost-pet event: %w", err)
+	}
+	occurredAt := report.ReportedAt
 	if occurredAt.IsZero() {
 		occurredAt = time.Now().UTC()
 	}
@@ -151,10 +229,10 @@ func (s *Service) ReportLostPet(
 		OccurredAt:       occurredAt,
 		CorrelationID:    metadata.CorrelationID,
 		TraceID:          metadata.TraceID,
-		AggregateID:      evt.PetID,
+		AggregateID:      report.PetID,
 		AggregateVersion: 1,
-		PayloadVersion:   1,
-		Payload:          data,
+		PayloadVersion:   domain.LostPetReportedPayloadVersion,
+		Payload:          eventData,
 	})
 	if err != nil {
 		return ReportResult{}, fmt.Errorf("failed to create event envelope: %w", err)
@@ -169,9 +247,18 @@ func (s *Service) ReportLostPet(
 	}
 
 	_, err = s.store.CreateStateAndOutbox(ctx,
-		store.StateWrite{StoreName: store.LostPetsCollection, Key: evt.PetID, Data: data},
+		store.StateWrite{StoreName: store.LostPetsCollection, Key: report.PetID, Data: stateData},
 		store.StateWrite{StoreName: store.OutboxCollection, Key: envelope.ID, Data: recordData},
 	)
+	if errors.Is(err, store.ErrConflict) {
+		legacyResult, _, matches, compatibilityErr := s.matchPayloadV1Retry(ctx, report.PetID, report)
+		if compatibilityErr != nil {
+			return ReportResult{}, fmt.Errorf("failed to check payload-v1 retry: %w", compatibilityErr)
+		}
+		if matches {
+			return legacyResult, nil
+		}
+	}
 	if err != nil {
 		return ReportResult{}, fmt.Errorf("failed to save state and outbox: %w", err)
 	}
@@ -185,5 +272,71 @@ func (s *Service) ReportLostPet(
 		}
 	}
 
-	return ReportResult{PetID: evt.PetID, EventID: envelope.ID}, nil
+	return ReportResult{PetID: report.PetID, EventID: envelope.ID}, nil
+}
+
+func (s *Service) matchPayloadV1Retry(
+	ctx context.Context,
+	lookupPetID string,
+	report domain.LostPetReport,
+) (ReportResult, bool, bool, error) {
+	legacyData, err := s.store.GetState(ctx, store.LostPetsCollection, lookupPetID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+			return ReportResult{}, false, false, nil
+		}
+		return ReportResult{}, false, false, err
+	}
+	var shape map[string]json.RawMessage
+	if err := json.Unmarshal(legacyData, &shape); err != nil {
+		return ReportResult{}, true, false, nil
+	}
+	if _, isCurrent := shape["geocodingStatus"]; isCurrent {
+		return ReportResult{}, true, false, nil
+	}
+
+	var legacy domain.LostPetEvent
+	if err := json.Unmarshal(legacyData, &legacy); err != nil {
+		return ReportResult{}, true, false, nil
+	}
+	if strings.TrimSpace(legacy.PetID) != report.PetID ||
+		strings.ToLower(strings.TrimSpace(legacy.ReporterEmail)) != report.ReporterEmail ||
+		strings.TrimSpace(legacy.Location) != report.Location ||
+		!sameTimestamp(legacy.ReportedAt, report.ReportedAt) {
+		return ReportResult{}, true, false, nil
+	}
+
+	occurredAt := legacy.ReportedAt
+	if occurredAt.IsZero() {
+		occurredAt = time.Unix(0, 0).UTC()
+	}
+	legacyEnvelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+		Type:             domain.EventTypeLostPetReported,
+		OccurredAt:       occurredAt,
+		AggregateID:      report.PetID,
+		AggregateVersion: 1,
+		PayloadVersion:   domain.LostPetReportedLegacyPayloadVersion,
+		Payload:          legacyData,
+	})
+	if err != nil {
+		return ReportResult{}, true, false, nil
+	}
+	record, err := outbox.GetRecord(ctx, s.store, legacyEnvelope.ID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+			return ReportResult{}, true, false, nil
+		}
+		return ReportResult{}, true, false, err
+	}
+	if record.Topic != "lostPet" {
+		return ReportResult{}, true, false, nil
+	}
+	return ReportResult{PetID: legacy.PetID, EventID: legacyEnvelope.ID}, true, true, nil
+}
+
+func sameTimestamp(first, second time.Time) bool {
+	if first.IsZero() || second.IsZero() {
+		return first.IsZero() && second.IsZero()
+	}
+	return first.Equal(second)
 }
