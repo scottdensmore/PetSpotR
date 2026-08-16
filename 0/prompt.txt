@@ -1,0 +1,13 @@
+Ok lets do 141
+
+---
+
+Ok lets fix the stop hook (failed) error: hook timed out after 30s problem
+
+---
+
+Ok what is next?
+
+---
+
+Ok lets do 113

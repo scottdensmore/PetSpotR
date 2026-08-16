@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M04545QJGCWAKA2JTEC84W0Z",
+  "strategy": "manual-commit",
+  "branch": "refactor/web-lostpet-canonical-service",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/web-frontend/main.go",
+    "deploy/cloudrun/web-frontend.yaml",
+    "e2e/web_frontend_cascade_test.go",
+    "infra/opentofu/main.tf",
+    "infra/opentofu/modules/cloudrun/main.tf",
+    "infra/opentofu/modules/pubsub/main.tf",
+    "internal/app/lostpet/service.go",
+    "internal/app/webfrontend/server.go",
+    "internal/app/webfrontend/server_test.go",
+    "internal/app/webfrontend/static/js/lost-wizard.js",
+    "tests/playwright/e2e/web-frontend-api.spec.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1407301,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 61525760,
+    "output_tokens": 143339,
+    "api_call_count": 1037
+  }
+}
