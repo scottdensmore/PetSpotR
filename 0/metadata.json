@@ -1,0 +1,67 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M060AGVQ7738719R35V96WMV",
+  "session_id": "01a001af-b3bc-79c1-828f-504b40d7da08",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-16T19:22:18.799931159Z",
+  "branch": "feat/private-report-contacts",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "e2e/firestore_process_test.go",
+    "e2e/web_frontend_cascade_test.go",
+    "internal/app/foundpet/service.go",
+    "internal/app/foundpet/service_test.go",
+    "internal/app/lostpet/service.go",
+    "internal/app/lostpet/service_test.go",
+    "internal/app/webfrontend/server.go",
+    "internal/app/webfrontend/server_test.go",
+    "pkg/domain/found_report.go",
+    "pkg/domain/lost_report.go",
+    "pkg/domain/report_contact.go",
+    "pkg/domain/report_contact_test.go",
+    "pkg/store/atomic_test.go",
+    "pkg/store/firestore.go",
+    "pkg/store/firestore_atomic_integration_test.go",
+    "pkg/store/names.go",
+    "pkg/store/names_test.go",
+    "pkg/store/store.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "9a9281a1b3a5",
+  "checkpoint_transcript_start": 11754,
+  "transcript_lines_at_start": 11754,
+  "compact_transcript_start": 1703,
+  "token_usage": {
+    "input_tokens": 212507,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 12533504,
+    "output_tokens": 39718,
+    "api_call_count": 97
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-16T19:22:14.157062645Z",
+    "agent_lines": 998,
+    "agent_removed": 92,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 998,
+    "total_lines_changed": 1090,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
