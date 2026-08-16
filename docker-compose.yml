@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   ollama:
     image: ollama/ollama:${OLLAMA_VERSION:-0.32.5}
