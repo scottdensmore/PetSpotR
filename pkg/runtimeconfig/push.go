@@ -54,15 +54,7 @@ func LoadNotificationPushConfig(lookup func(string) string) (NotificationPushCon
 // LoadPushConsumerConfig requires OIDC identity in GCP and an explicit static
 // token only for memory/emulator development.
 func LoadPushConsumerConfig(lookup func(string) string) (PushConsumerConfig, error) {
-	rawMode := strings.TrimSpace(lookup("PETSPOTR_RUNTIME_MODE"))
-	cloudRunService := strings.TrimSpace(lookup("K_SERVICE"))
-	if rawMode == "" {
-		if cloudRunService != "" {
-			rawMode = string(ModeGCP)
-		} else {
-			rawMode = string(ModeMemory)
-		}
-	}
+	mode, _, modeErr := resolveRuntimeMode(lookup)
 	pushSubscription := strings.TrimSpace(lookup("PUBSUB_PUSH_SUBSCRIPTION"))
 	legacyFoundSubscription := strings.TrimSpace(lookup("PUBSUB_FOUND_SUBSCRIPTION"))
 	if pushSubscription != "" && legacyFoundSubscription != "" && pushSubscription != legacyFoundSubscription {
@@ -76,7 +68,7 @@ func LoadPushConsumerConfig(lookup func(string) string) (PushConsumerConfig, err
 		pushSubscription = legacyFoundSubscription
 	}
 	config := PushConsumerConfig{
-		Mode:                   Mode(rawMode),
+		Mode:                   mode,
 		ExpectedSubscription:   pushSubscription,
 		ExpectedServiceAccount: strings.TrimSpace(lookup("PUBSUB_PUSH_SERVICE_ACCOUNT")),
 		StaticToken:            strings.TrimSpace(lookup("PUBSUB_PUSH_DEV_TOKEN")),
@@ -84,11 +76,13 @@ func LoadPushConsumerConfig(lookup func(string) string) (PushConsumerConfig, err
 	if config.ExpectedSubscription == "" {
 		return PushConsumerConfig{}, fmt.Errorf("PUBSUB_PUSH_SUBSCRIPTION is required in %q mode", config.Mode)
 	}
+	// Preserve the push loader's existing subscription-validation precedence
+	// while sharing the runtime-mode policy with the other configuration loaders.
+	if modeErr != nil {
+		return PushConsumerConfig{}, modeErr
+	}
 	switch config.Mode {
 	case ModeMemory, ModeLocalEmulator:
-		if cloudRunService != "" {
-			return PushConsumerConfig{}, fmt.Errorf("runtime mode %q is not allowed on Cloud Run", config.Mode)
-		}
 		if config.StaticToken == "" {
 			return PushConsumerConfig{}, fmt.Errorf("PUBSUB_PUSH_DEV_TOKEN is required in %q mode", config.Mode)
 		}
@@ -102,8 +96,6 @@ func LoadPushConsumerConfig(lookup func(string) string) (PushConsumerConfig, err
 		if config.StaticToken != "" {
 			return PushConsumerConfig{}, fmt.Errorf("PUBSUB_PUSH_DEV_TOKEN must not be set in %q mode", config.Mode)
 		}
-	default:
-		return PushConsumerConfig{}, fmt.Errorf("unsupported PETSPOTR_RUNTIME_MODE %q", rawMode)
 	}
 	return config, nil
 }

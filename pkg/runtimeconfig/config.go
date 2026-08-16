@@ -36,32 +36,21 @@ func LoadStateConfigFromEnv() (StateConfig, error) {
 // LoadStateConfig loads StateConfig with a caller-provided environment lookup.
 // Supplying the lookup keeps configuration validation deterministic in tests.
 func LoadStateConfig(lookup func(string) string) (StateConfig, error) {
-	rawMode := strings.TrimSpace(lookup("PETSPOTR_RUNTIME_MODE"))
-	cloudRunService := strings.TrimSpace(lookup("K_SERVICE"))
-	if rawMode == "" {
-		if cloudRunService != "" {
-			rawMode = string(ModeGCP)
-		} else {
-			rawMode = string(ModeMemory)
-		}
+	mode, cloudRun, err := resolveRuntimeMode(lookup)
+	if err != nil {
+		return StateConfig{}, err
 	}
 
 	config := StateConfig{
-		Mode:                  Mode(rawMode),
+		Mode:                  mode,
 		ProjectID:             strings.TrimSpace(lookup("GOOGLE_CLOUD_PROJECT")),
 		FirestoreEmulatorHost: strings.TrimSpace(lookup("FIRESTORE_EMULATOR_HOST")),
 	}
 
 	switch config.Mode {
 	case ModeMemory:
-		if cloudRunService != "" {
-			return StateConfig{}, fmt.Errorf("runtime mode %q is not allowed on Cloud Run", config.Mode)
-		}
 		return StateConfig{Mode: ModeMemory}, nil
 	case ModeLocalEmulator:
-		if cloudRunService != "" {
-			return StateConfig{}, fmt.Errorf("runtime mode %q is not allowed on Cloud Run", config.Mode)
-		}
 		if config.ProjectID == "" {
 			return StateConfig{}, fmt.Errorf("GOOGLE_CLOUD_PROJECT is required in %q mode", config.Mode)
 		}
@@ -69,15 +58,13 @@ func LoadStateConfig(lookup func(string) string) (StateConfig, error) {
 			return StateConfig{}, fmt.Errorf("FIRESTORE_EMULATOR_HOST is required in %q mode", config.Mode)
 		}
 	case ModeGCP:
-		if config.ProjectID == "" && cloudRunService == "" {
+		if config.ProjectID == "" && !cloudRun {
 			return StateConfig{}, fmt.Errorf("GOOGLE_CLOUD_PROJECT is required in %q mode", config.Mode)
 		}
 		config.DetectProjectID = config.ProjectID == ""
 		if config.FirestoreEmulatorHost != "" {
 			return StateConfig{}, fmt.Errorf("FIRESTORE_EMULATOR_HOST must not be set in %q mode", config.Mode)
 		}
-	default:
-		return StateConfig{}, fmt.Errorf("unsupported PETSPOTR_RUNTIME_MODE %q", rawMode)
 	}
 
 	return config, nil

@@ -33,30 +33,19 @@ func LoadMessagingConfigFromEnv() (MessagingConfig, error) {
 
 // LoadMessagingConfig loads and validates publisher configuration.
 func LoadMessagingConfig(lookup func(string) string) (MessagingConfig, error) {
-	rawMode := strings.TrimSpace(lookup("PETSPOTR_RUNTIME_MODE"))
-	cloudRunService := strings.TrimSpace(lookup("K_SERVICE"))
-	if rawMode == "" {
-		if cloudRunService != "" {
-			rawMode = string(ModeGCP)
-		} else {
-			rawMode = string(ModeMemory)
-		}
+	mode, cloudRun, err := resolveRuntimeMode(lookup)
+	if err != nil {
+		return MessagingConfig{}, err
 	}
 	config := MessagingConfig{
-		Mode:               Mode(rawMode),
+		Mode:               mode,
 		ProjectID:          strings.TrimSpace(lookup("GOOGLE_CLOUD_PROJECT")),
 		PubSubEmulatorHost: strings.TrimSpace(lookup("PUBSUB_EMULATOR_HOST")),
 	}
 	switch config.Mode {
 	case ModeMemory:
-		if cloudRunService != "" {
-			return MessagingConfig{}, fmt.Errorf("runtime mode %q is not allowed on Cloud Run", config.Mode)
-		}
 		return MessagingConfig{Mode: ModeMemory}, nil
 	case ModeLocalEmulator:
-		if cloudRunService != "" {
-			return MessagingConfig{}, fmt.Errorf("runtime mode %q is not allowed on Cloud Run", config.Mode)
-		}
 		if config.ProjectID == "" || config.PubSubEmulatorHost == "" {
 			return MessagingConfig{}, fmt.Errorf("GOOGLE_CLOUD_PROJECT and PUBSUB_EMULATOR_HOST are required in %q mode", config.Mode)
 		}
@@ -64,12 +53,10 @@ func LoadMessagingConfig(lookup func(string) string) (MessagingConfig, error) {
 		if config.PubSubEmulatorHost != "" {
 			return MessagingConfig{}, fmt.Errorf("PUBSUB_EMULATOR_HOST must not be set in %q mode", config.Mode)
 		}
-		if config.ProjectID == "" && cloudRunService == "" {
+		if config.ProjectID == "" && !cloudRun {
 			return MessagingConfig{}, fmt.Errorf("GOOGLE_CLOUD_PROJECT is required in %q mode", config.Mode)
 		}
 		config.DetectProjectID = config.ProjectID == ""
-	default:
-		return MessagingConfig{}, fmt.Errorf("unsupported PETSPOTR_RUNTIME_MODE %q", rawMode)
 	}
 	return config, nil
 }
