@@ -48,6 +48,12 @@ resource "google_pubsub_topic_iam_member" "found_pet_publisher" {
   member = "serviceAccount:${var.foundpet_runtime_service_account}"
 }
 
+resource "google_pubsub_topic_iam_member" "web_frontend_found_pet_publisher" {
+  topic  = google_pubsub_topic.found_pet.name
+  role   = "roles/pubsub.publisher"
+  member = "serviceAccount:${var.web_frontend_runtime_service_account}"
+}
+
 resource "google_pubsub_topic_iam_member" "match_found_publisher" {
   topic  = google_pubsub_topic.match_found.name
   role   = "roles/pubsub.publisher"
