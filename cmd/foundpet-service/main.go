@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/scottdensmore/petspotr/internal/app/foundpet"
-	"github.com/scottdensmore/petspotr/pkg/outbox"
+	"github.com/scottdensmore/petspotr/internal/app/outboxrecovery"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
@@ -74,50 +74,31 @@ func main() {
 		storageRuntime.Images,
 		foundpet.ServiceOptions{RequireFinalizedImage: storageConfig.Mode != runtimeconfig.ModeMemory},
 	)
-	nextBackfillAt := time.Time{}
 	nextImageCleanupAt := time.Time{}
-	recoverOutbox := func() {
-		now := time.Now().UTC()
-		if !now.Before(nextImageCleanupAt) {
-			deleted, err := svc.CleanupOrphanedImages(ctx, now)
-			if err != nil && ctx.Err() == nil {
-				log.Printf("FoundPet finalized-image cleanup deferred: %v", err)
-				nextImageCleanupAt = now.Add(5 * time.Minute)
-			} else {
-				nextImageCleanupAt = now.Add(time.Hour)
+	backfiller, _ := stateRuntime.Store.(store.OutboxIndexBackfiller)
+	recoveryRunner, err := outboxrecovery.New(outboxrecovery.Config{
+		Service:    "FoundPet",
+		Backfiller: backfiller,
+		Recover:    svc.RecoverOutbox,
+		BeforeCycle: func(ctx context.Context, now time.Time) {
+			if !now.Before(nextImageCleanupAt) {
+				deleted, err := svc.CleanupOrphanedImages(ctx, now)
+				if err != nil && ctx.Err() == nil {
+					log.Printf("FoundPet finalized-image cleanup deferred: %v", err)
+					nextImageCleanupAt = now.Add(5 * time.Minute)
+				} else {
+					nextImageCleanupAt = now.Add(time.Hour)
+				}
+				if deleted > 0 {
+					log.Printf("FoundPet finalized-image cleanup removed %d orphaned objects", deleted)
+				}
 			}
-			if deleted > 0 {
-				log.Printf("FoundPet finalized-image cleanup removed %d orphaned objects", deleted)
-			}
-		}
-		if backfiller, ok := stateRuntime.Store.(store.OutboxIndexBackfiller); ok && !now.Before(nextBackfillAt) {
-			migrated, complete, err := backfiller.BackfillOutboxIndexes(ctx, outbox.MaxPublishBatch)
-			if err != nil && ctx.Err() == nil {
-				log.Printf("FoundPet legacy outbox index backfill deferred: %v", err)
-			} else if complete {
-				nextBackfillAt = now.Add(time.Minute)
-			}
-			if migrated > 0 {
-				log.Printf("FoundPet legacy outbox index backfill migrated %d records (complete=%t)", migrated, complete)
-			}
-		}
-		if _, err := svc.RecoverOutbox(ctx); err != nil && ctx.Err() == nil {
-			log.Printf("FoundPet outbox recovery deferred: %v", err)
-		}
+		},
+	})
+	if err != nil {
+		log.Fatalf("Invalid outbox recovery configuration: %v", err)
 	}
-	go func() {
-		recoverOutbox()
-		ticker := time.NewTicker(5 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				recoverOutbox()
-			}
-		}
-	}()
+	go recoveryRunner.Run(ctx)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/foundPet", svc.HandleFoundPet)

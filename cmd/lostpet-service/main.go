@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/scottdensmore/petspotr/internal/app/lostpet"
-	"github.com/scottdensmore/petspotr/pkg/outbox"
+	"github.com/scottdensmore/petspotr/internal/app/outboxrecovery"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
@@ -53,37 +53,16 @@ func main() {
 	}()
 
 	svc := lostpet.NewService(stateRuntime.Store, messagingRuntime.Publisher)
-	nextBackfillAt := time.Time{}
-	recoverOutbox := func() {
-		now := time.Now().UTC()
-		if backfiller, ok := stateRuntime.Store.(store.OutboxIndexBackfiller); ok && !now.Before(nextBackfillAt) {
-			migrated, complete, err := backfiller.BackfillOutboxIndexes(ctx, outbox.MaxPublishBatch)
-			if err != nil && ctx.Err() == nil {
-				log.Printf("LostPet legacy outbox index backfill deferred: %v", err)
-			} else if complete {
-				nextBackfillAt = now.Add(time.Minute)
-			}
-			if migrated > 0 {
-				log.Printf("LostPet legacy outbox index backfill migrated %d records (complete=%t)", migrated, complete)
-			}
-		}
-		if _, err := svc.RecoverOutbox(ctx); err != nil && ctx.Err() == nil {
-			log.Printf("LostPet outbox recovery deferred: %v", err)
-		}
+	backfiller, _ := stateRuntime.Store.(store.OutboxIndexBackfiller)
+	recoveryRunner, err := outboxrecovery.New(outboxrecovery.Config{
+		Service:    "LostPet",
+		Backfiller: backfiller,
+		Recover:    svc.RecoverOutbox,
+	})
+	if err != nil {
+		log.Fatalf("Invalid outbox recovery configuration: %v", err)
 	}
-	go func() {
-		recoverOutbox()
-		ticker := time.NewTicker(5 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				recoverOutbox()
-			}
-		}
-	}()
+	go recoveryRunner.Run(ctx)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/lostPet", svc.HandleLostPet)
