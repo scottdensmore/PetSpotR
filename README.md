@@ -4,7 +4,7 @@
 
 PetSpotR is an event-driven AI application for reporting and matching lost pets.
 It runs natively on **Google Cloud Platform (GCP)** and **Locally** using
-**Go 1.22+**, **Ollama**, and **Gemma 4** vision models!
+the **Go 1.26.5 toolchain**, **Ollama**, and **Gemma 4** vision models!
 
 ![Logo](./img/logo.svg)
 
