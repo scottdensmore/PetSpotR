@@ -145,11 +145,20 @@ emulator contracts create them explicitly.
 
 Event envelope and payload versions evolve independently. Readers must accept
 the legacy raw payload and payload version 1 while those messages can remain in
-flight. Lost- and found-pet producers currently emit additive payload version
-2: existing field names remain stable, new fields are optional to older
-readers, and private phone or finder-contact data is not copied into the
-events. Removing or renaming a published field requires a new payload version
-and a tolerant decoder for every supported prior shape.
+flight. Found-pet producers emit additive payload version 2. Lost-pet producers
+emit contact-redacted payload version 3; its decoder continues to accept raw
+and enveloped payload version 1 plus the prior contact-bearing payload version
+2. Private phone and finder-contact data are never copied into report events,
+and current lost-pet events also omit reporter email. Removing or renaming a
+published field requires a new payload version and a tolerant decoder for every
+supported prior shape.
+
+Deploy the lost-pet payload-version-3 rollout consumer first: update
+`notification-service` so it accepts lost-pet payload versions 1, 2, and 3.
+Only after that revision is serving should `lostpet-service` and
+`web-frontend` be deployed to publish version 3. The consumer-first order keeps
+in-flight version-1 and version-2 events readable and prevents old consumers
+from rejecting the contact-redacted payload.
 
 The matcher and notification workers decode report events through the
 canonical payload-version readers. Those readers normalize raw legacy and

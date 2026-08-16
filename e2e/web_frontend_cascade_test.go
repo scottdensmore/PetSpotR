@@ -150,12 +150,11 @@ func TestWebFrontendLostPetSubmissionUsesCanonicalService(t *testing.T) {
 	type publishedLostPet struct {
 		data     []byte
 		envelope *domain.EventEnvelope
-		event    domain.LostPetReportedV2
+		event    domain.LostPetReportedV3
 	}
 	published := make(chan publishedLostPet, 1)
 	if err := ps.Subscribe("lostPet", func(_ context.Context, data []byte) error {
-		var event domain.LostPetReportedV2
-		envelope, err := domain.DecodeEventPayload(data, domain.EventTypeLostPetReported, &event)
+		event, envelope, err := domain.DecodeLostPetReported(data)
 		if err != nil {
 			return err
 		}
@@ -195,20 +194,13 @@ func TestWebFrontendLostPetSubmissionUsesCanonicalService(t *testing.T) {
 		}
 		if got.event.PetID != response.PetID || got.event.PetName != "Buddy" || got.event.Species != "Dog" ||
 			got.event.Breed != "Golden Retriever" || got.event.PrimaryColor != "Golden" ||
-			got.event.Description != "White chest patch" || got.event.ReporterEmail != "owner@example.com" ||
+			got.event.Description != "White chest patch" ||
 			got.event.Location != "Seattle, WA" || got.event.GeocodingStatus != domain.GeocodingPending {
 			t.Fatalf("published lost-pet event = %#v; response pet ID = %q", got.event, response.PetID)
 		}
-		if strings.Contains(string(got.data), `"phone"`) {
-			t.Fatalf("published lost-pet event exposed phone data: %s", got.data)
-		}
-
-		var legacy domain.LostPetEvent
-		if _, err := domain.DecodeEventPayload(got.data, domain.EventTypeLostPetReported, &legacy); err != nil {
-			t.Fatalf("legacy reader rejected payload-v2 event: %v", err)
-		}
-		if legacy.PetID != response.PetID || legacy.ReporterEmail != "owner@example.com" || legacy.Location != "Seattle, WA" {
-			t.Fatalf("legacy decoded event = %#v", legacy)
+		if strings.Contains(string(got.data), `"reporterEmail"`) || strings.Contains(string(got.data), `"phone"`) ||
+			strings.Contains(string(got.data), "owner@example.com") {
+			t.Fatalf("published lost-pet event exposed private contact: %s", got.data)
 		}
 	case <-time.After(time.Second):
 		t.Fatal("browser lost-pet submission did not publish the canonical lostPet event")
@@ -340,10 +332,10 @@ func TestLostPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 				LostPetReporter: lostReports,
 			})
 
-			published := make(chan domain.LostPetReportedV2, 4)
+			published := make(chan domain.LostPetReportedV3, 4)
 			if err := ps.Subscribe("lostPet", func(_ context.Context, data []byte) error {
-				var event domain.LostPetReportedV2
-				if _, err := domain.DecodeEventPayload(data, domain.EventTypeLostPetReported, &event); err != nil {
+				event, _, err := domain.DecodeLostPetReported(data)
+				if err != nil {
 					return err
 				}
 				published <- event

@@ -338,7 +338,7 @@ func matchFoundEnvelope(t *testing.T, foundPetID, lostPetID string) []byte {
 
 func lostPetEnvelope(t *testing.T, petID string) []byte {
 	t.Helper()
-	event := domain.LostPetReportedV2{
+	event := domain.LostPetReportedV3{
 		PetID:           petID,
 		ReportedAt:      time.Date(2026, time.August, 10, 12, 0, 0, 0, time.UTC),
 		Location:        "Green Lake Park, Seattle, WA",
