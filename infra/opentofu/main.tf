@@ -52,16 +52,17 @@ module "cloudrun" {
 }
 
 module "pubsub" {
-  source                              = "./modules/pubsub"
-  project_id                          = var.project_id
-  region                              = var.region
-  pet_matcher_name                    = module.cloudrun.pet_matcher_name
-  pet_matcher_url                     = module.cloudrun.pet_matcher_url
-  notification_service_name           = module.cloudrun.notification_service_name
-  notification_service_url            = module.cloudrun.notification_service_url
-  lostpet_runtime_service_account     = module.cloudrun.lostpet_runtime_service_account
-  foundpet_runtime_service_account    = module.cloudrun.foundpet_runtime_service_account
-  pet_matcher_runtime_service_account = module.cloudrun.pet_matcher_runtime_service_account
+  source                               = "./modules/pubsub"
+  project_id                           = var.project_id
+  region                               = var.region
+  pet_matcher_name                     = module.cloudrun.pet_matcher_name
+  pet_matcher_url                      = module.cloudrun.pet_matcher_url
+  notification_service_name            = module.cloudrun.notification_service_name
+  notification_service_url             = module.cloudrun.notification_service_url
+  lostpet_runtime_service_account      = module.cloudrun.lostpet_runtime_service_account
+  web_frontend_runtime_service_account = module.cloudrun.web_frontend_runtime_service_account
+  foundpet_runtime_service_account     = module.cloudrun.foundpet_runtime_service_account
+  pet_matcher_runtime_service_account  = module.cloudrun.pet_matcher_runtime_service_account
 }
 
 resource "google_storage_bucket_iam_member" "foundpet_objects" {

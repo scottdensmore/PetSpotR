@@ -21,6 +21,10 @@ func (s *failingSaveStore) SaveState(context.Context, string, string, []byte) er
 	return errStateWrite
 }
 
+func (s *failingSaveStore) CreateStateAndOutbox(context.Context, store.StateWrite, store.StateWrite) (bool, error) {
+	return false, errStateWrite
+}
+
 func TestNewServer_Routes(t *testing.T) {
 	srv := NewServer()
 

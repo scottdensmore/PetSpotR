@@ -3,7 +3,9 @@ package webfrontend
 
 import (
 	"context"
+	"crypto/rand"
 	"embed"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,8 +16,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/scottdensmore/petspotr/internal/app/lostpet"
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/store"
 	"github.com/scottdensmore/petspotr/pkg/telemetry"
@@ -31,13 +35,21 @@ type Server struct {
 	mux                      *http.ServeMux
 	metrics                  *telemetry.MetricsRegistry
 	stateStore               store.StateStore
+	lostPetReporter          LostPetReporter
 	allowPrivilegedMutations bool
 }
 
-// ServerOptions controls behavior that must remain limited to explicit demo
-// runtimes until authentication and ownership checks are implemented.
+// LostPetReporter is the canonical lost-pet command consumed by the browser
+// adapter.
+type LostPetReporter interface {
+	ReportLostPet(context.Context, domain.LostPetEvent, lostpet.ReportMetadata) (lostpet.ReportResult, error)
+}
+
+// ServerOptions controls injected commands and behavior that must remain
+// limited to explicit demo runtimes until authorization is implemented.
 type ServerOptions struct {
 	AllowPrivilegedMutations bool
+	LostPetReporter          LostPetReporter
 }
 
 // NewServer initializes a demo/test Server with seeded in-memory match data.
@@ -57,10 +69,15 @@ func NewServerWithStore(st store.StateStore) *Server {
 
 // NewServerWithOptions constructs a Server with explicit demo-only behavior.
 func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
+	lostPetReporter := options.LostPetReporter
+	if lostPetReporter == nil {
+		lostPetReporter = lostpet.NewService(st, pubsub.NewMemoryPubSub())
+	}
 	s := &Server{
 		mux:                      http.NewServeMux(),
 		metrics:                  telemetry.NewMetricsRegistry("web-frontend"),
 		stateStore:               st,
+		lostPetReporter:          lostPetReporter,
 		allowPrivilegedMutations: options.AllowPrivilegedMutations,
 	}
 	s.routes()
@@ -148,14 +165,28 @@ func (s *Server) handleMatches(w http.ResponseWriter, r *http.Request) {
 }
 
 type LostPetFormRequest struct {
-	PetName       string `json:"petName"`
-	Species       string `json:"species"`
-	Breed         string `json:"breed"`
-	PrimaryColor  string `json:"primaryColor"`
-	Description   string `json:"description"`
-	Location      string `json:"location"`
-	ReporterEmail string `json:"reporterEmail"`
-	Phone         string `json:"phone"`
+	PetID         string    `json:"petId"`
+	PetName       string    `json:"petName"`
+	Species       string    `json:"species"`
+	Breed         string    `json:"breed"`
+	PrimaryColor  string    `json:"primaryColor"`
+	Description   string    `json:"description"`
+	Location      string    `json:"location"`
+	ReporterEmail string    `json:"reporterEmail"`
+	Phone         string    `json:"phone"`
+	ReportedAt    time.Time `json:"reportedAt"`
+}
+
+func newLostPetID(petName string) (string, error) {
+	var random [16]byte
+	if _, err := rand.Read(random[:]); err != nil {
+		return "", fmt.Errorf("generate lost-pet ID: %w", err)
+	}
+	suffix := hex.EncodeToString(random[:])
+	if name := strings.ToLower(strings.TrimSpace(petName)); name != "" {
+		return fmt.Sprintf("lost-%s-%s", name, suffix), nil
+	}
+	return "lost-" + suffix, nil
 }
 
 type PublicLostPet struct {
@@ -310,34 +341,46 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.TrimSpace(req.ReporterEmail) == "" {
-		http.Error(w, "reporterEmail is required", http.StatusBadRequest)
-		return
+	petID := strings.TrimSpace(req.PetID)
+	if petID == "" {
+		var err error
+		petID, err = newLostPetID(req.PetName)
+		if err != nil {
+			http.Error(w, "Failed to create lost pet report", http.StatusInternalServerError)
+			return
+		}
 	}
-
-	petID := fmt.Sprintf("lost-%d", time.Now().UnixNano())
-	if strings.TrimSpace(req.PetName) != "" {
-		petID = fmt.Sprintf("lost-%s-%d", strings.ToLower(req.PetName), time.Now().Unix())
+	reportedAt := req.ReportedAt
+	if reportedAt.IsZero() {
+		reportedAt = time.Now().UTC()
 	}
 
 	evt := domain.LostPetEvent{
 		PetID:         petID,
 		ReporterEmail: req.ReporterEmail,
-		ReportedAt:    time.Now().UTC(),
+		ReportedAt:    reportedAt,
 		Location:      req.Location,
 	}
 
-	if err := evt.Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	result, err := s.lostPetReporter.ReportLostPet(r.Context(), evt, lostpet.ReportMetadata{
+		CorrelationID: r.Header.Get("X-Correlation-ID"),
+		TraceID:       r.Header.Get("X-Trace-ID"),
+	})
+	switch {
+	case errors.Is(err, lostpet.ErrInvalidReport):
+		message := err.Error()
+		if cause := lostpet.InvalidReportCause(err); cause != nil {
+			message = cause.Error()
+		}
+		if strings.TrimSpace(evt.ReporterEmail) == "" {
+			message = "reporterEmail is required"
+		}
+		http.Error(w, message, http.StatusBadRequest)
 		return
-	}
-
-	data, err := json.Marshal(evt)
-	if err != nil {
-		http.Error(w, "Failed to encode lost pet report", http.StatusInternalServerError)
+	case errors.Is(err, store.ErrConflict):
+		http.Error(w, "A different report already exists for this pet ID", http.StatusConflict)
 		return
-	}
-	if err := s.stateStore.SaveState(r.Context(), store.LostPetsCollection, evt.PetID, data); err != nil {
+	case err != nil:
 		http.Error(w, "Failed to save lost pet report", http.StatusInternalServerError)
 		return
 	}
@@ -346,7 +389,7 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(map[string]string{
 		"status": "success",
-		"petId":  evt.PetID,
+		"petId":  result.PetID,
 	})
 }
 
