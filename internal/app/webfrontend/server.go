@@ -50,7 +50,7 @@ type LostPetReporter interface {
 // FoundPetReporter is the canonical found-pet command consumed by the browser
 // adapter.
 type FoundPetReporter interface {
-	ReportFoundPet(context.Context, domain.FoundPetEvent, foundpet.ReportMetadata) (foundpet.ReportResult, error)
+	ReportFoundPet(context.Context, foundpet.ReportCommand, foundpet.ReportMetadata) (foundpet.ReportResult, error)
 }
 
 // ServerOptions controls injected commands and behavior that must remain
@@ -436,15 +436,17 @@ func (s *Server) handleApiExtractFeatures(w http.ResponseWriter, r *http.Request
 }
 
 type FoundPetFormRequest struct {
-	PetID         string    `json:"petId"`
-	ImageURL      string    `json:"imageUrl"`
-	Location      string    `json:"location"`
-	FinderEmail   string    `json:"finderEmail"`
-	Species       string    `json:"species"`
-	Breed         string    `json:"breed"`
-	PrimaryColor  string    `json:"primaryColor"`
-	CustodyStatus string    `json:"custodyStatus"`
-	FoundAt       time.Time `json:"foundAt"`
+	PetID               string               `json:"petId"`
+	ImageURL            string               `json:"imageUrl"`
+	Location            string               `json:"location"`
+	FinderEmail         string               `json:"finderEmail"`
+	Species             string               `json:"species"`
+	Breed               string               `json:"breed"`
+	PrimaryColor        string               `json:"primaryColor"`
+	SecondaryColor      string               `json:"secondaryColor"`
+	DistinctiveMarkings []string             `json:"distinctiveMarkings"`
+	CustodyStatus       domain.CustodyStatus `json:"custodyStatus"`
+	FoundAt             time.Time            `json:"foundAt"`
 }
 
 func newFoundPetID() (string, error) {
@@ -465,18 +467,15 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 
 		params := parseQueryParams(r)
 
-		pets := make([]domain.FoundPetEvent, 0, len(rawItems))
+		pets := make([]domain.FoundPetReport, 0, len(rawItems))
 		for _, b := range rawItems {
-			var pet domain.FoundPetEvent
+			var pet domain.FoundPetReport
 			if err := json.Unmarshal(b, &pet); err == nil {
+				pet = domain.NormalizeFoundPetReport(pet)
 				// Species filter check
 				if params.Species != "" {
-					var rawMap map[string]any
-					_ = json.Unmarshal(b, &rawMap)
-					if sp, ok := rawMap["species"].(string); ok && sp != "" {
-						if !strings.EqualFold(sp, params.Species) {
-							continue
-						}
+					if pet.Species != "" && !strings.EqualFold(pet.Species, params.Species) {
+						continue
 					}
 				}
 				// Geo filter check
@@ -496,7 +495,7 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 
 		// Apply pagination limit & offset
 		if params.Offset > len(pets) {
-			pets = []domain.FoundPetEvent{}
+			pets = []domain.FoundPetReport{}
 		} else {
 			end := params.Offset + params.Limit
 			if end > len(pets) {
@@ -505,9 +504,14 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 			pets = pets[params.Offset:end]
 		}
 
+		publicPets := make([]domain.PublicFoundPetReport, 0, len(pets))
+		for _, pet := range pets {
+			publicPets = append(publicPets, pet.Public())
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(pets)
+		_ = json.NewEncoder(w).Encode(publicPets)
 		return
 	}
 
@@ -538,14 +542,21 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 		foundAt = time.Now().UTC()
 	}
 
-	evt := domain.FoundPetEvent{
-		PetID:    petID,
-		ImageURL: req.ImageURL,
-		FoundAt:  foundAt,
-		Location: req.Location,
+	command := foundpet.ReportCommand{
+		PetID:               petID,
+		ImageURL:            req.ImageURL,
+		FoundAt:             foundAt,
+		Location:            req.Location,
+		FinderEmail:         req.FinderEmail,
+		Species:             req.Species,
+		Breed:               req.Breed,
+		PrimaryColor:        req.PrimaryColor,
+		SecondaryColor:      req.SecondaryColor,
+		DistinctiveMarkings: req.DistinctiveMarkings,
+		CustodyStatus:       req.CustodyStatus,
 	}
 
-	result, err := s.foundPetReporter.ReportFoundPet(r.Context(), evt, foundpet.ReportMetadata{
+	result, err := s.foundPetReporter.ReportFoundPet(r.Context(), command, foundpet.ReportMetadata{
 		CorrelationID: r.Header.Get("X-Correlation-ID"),
 		TraceID:       r.Header.Get("X-Trace-ID"),
 	})
@@ -555,8 +566,8 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 		if cause := foundpet.InvalidReportCause(err); cause != nil {
 			message = cause.Error()
 		}
-		if strings.TrimSpace(evt.ImageURL) == "" && strings.TrimSpace(evt.ImageObject) == "" ||
-			strings.TrimSpace(evt.Location) == "" {
+		if strings.TrimSpace(command.ImageURL) == "" && strings.TrimSpace(command.ImageObject) == "" ||
+			strings.TrimSpace(command.Location) == "" {
 			message = "imageUrl and location are required"
 		}
 		http.Error(w, message, http.StatusBadRequest)

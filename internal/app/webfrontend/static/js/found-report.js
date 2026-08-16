@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const previewContainer = document.getElementById('found-preview-container');
   const imagePreview = document.getElementById('foundImagePreview');
   const spinner = document.getElementById('ai-spinner');
+  const extractionStatus = document.getElementById('ai-extraction-status');
   const form = document.getElementById('found-pet-form');
 
   const chipSpecies = document.getElementById('chip-species');
@@ -17,7 +18,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputSecondaryColor = document.getElementById('foundSecondaryColor');
 
   let currentImageUrl = '';
+  let currentDistinctiveMarkings = [];
   let pendingSubmission = null;
+  let extractionSequence = 0;
+
+  function clearExtractedTraits() {
+    currentDistinctiveMarkings = [];
+    if (inputSpecies) inputSpecies.value = '';
+    if (inputBreed) inputBreed.value = '';
+    if (inputPrimaryColor) inputPrimaryColor.value = '';
+    if (inputSecondaryColor) inputSecondaryColor.value = '';
+    if (chipSpecies) chipSpecies.textContent = 'Species: Not analyzed';
+    if (chipBreed) chipBreed.textContent = 'Breed: Not analyzed';
+    if (chipColor) chipColor.textContent = 'Colors: Not analyzed';
+  }
 
   if (dropzone && photoInput) {
     dropzone.addEventListener('click', () => photoInput.click());
@@ -67,6 +81,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function extractAIFeatures(imageUrl) {
+    const extractionID = ++extractionSequence;
+    clearExtractedTraits();
+    if (extractionStatus) extractionStatus.textContent = 'Analyzing the selected image.';
     if (spinner) spinner.hidden = false;
 
     try {
@@ -76,23 +93,36 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ imageUrl: imageUrl })
       });
 
-      if (resp.ok) {
-        const traits = await resp.json();
-        // Update Form Fields
-        if (inputSpecies && traits.species) inputSpecies.value = traits.species;
-        if (inputBreed && traits.breed) inputBreed.value = traits.breed;
-        if (inputPrimaryColor && traits.primaryColor) inputPrimaryColor.value = traits.primaryColor;
-        if (inputSecondaryColor && traits.secondaryColor) inputSecondaryColor.value = traits.secondaryColor || '';
+      if (extractionID !== extractionSequence) return;
+      if (!resp.ok) throw new Error(`feature extraction failed with status ${resp.status}`);
 
-        // Update AI Chips
-        if (chipSpecies) chipSpecies.textContent = `Species: ${traits.species || 'Unknown'}`;
-        if (chipBreed) chipBreed.textContent = `Breed: ${traits.breed || 'Mixed'}`;
-        if (chipColor) chipColor.textContent = `Color: ${traits.primaryColor || 'N/A'}`;
+      const traits = await resp.json();
+      if (extractionID !== extractionSequence) return;
+      // Update Form Fields
+      if (inputSpecies && traits.species) inputSpecies.value = traits.species;
+      if (inputBreed && traits.breed) inputBreed.value = traits.breed;
+      if (inputPrimaryColor && traits.primaryColor) inputPrimaryColor.value = traits.primaryColor;
+      if (inputSecondaryColor && traits.secondaryColor) inputSecondaryColor.value = traits.secondaryColor || '';
+      currentDistinctiveMarkings = Array.isArray(traits.distinctiveMarkings)
+        ? traits.distinctiveMarkings.filter((marking) => typeof marking === 'string')
+        : [];
+
+      // Update AI Chips
+      if (chipSpecies) chipSpecies.textContent = `Species: ${traits.species || 'Unknown'}`;
+      if (chipBreed) chipBreed.textContent = `Breed: ${traits.breed || 'Mixed'}`;
+      if (chipColor) {
+        const colors = [traits.primaryColor, traits.secondaryColor].filter(Boolean).join(' / ');
+        chipColor.textContent = `Colors: ${colors || 'N/A'}`;
       }
+      if (extractionStatus) extractionStatus.textContent = 'Image analysis complete. Review the detected traits below.';
     } catch (err) {
+      if (extractionID !== extractionSequence) return;
       console.error('AI extraction error:', err);
+      if (extractionStatus) {
+        extractionStatus.textContent = 'Image analysis failed. Choose the pet traits manually or try another image.';
+      }
     } finally {
-      if (spinner) spinner.hidden = true;
+      if (spinner && extractionID === extractionSequence) spinner.hidden = true;
     }
   }
 
@@ -122,6 +152,8 @@ document.addEventListener('DOMContentLoaded', () => {
         species: inputSpecies?.value || 'Dog',
         breed: inputBreed?.value || '',
         primaryColor: inputPrimaryColor?.value || '',
+        secondaryColor: inputSecondaryColor?.value || '',
+        distinctiveMarkings: currentDistinctiveMarkings,
         custodyStatus: document.getElementById('custodyStatus')?.value || 'Finder Home'
       };
 

@@ -145,11 +145,11 @@ emulator contracts create them explicitly.
 
 Event envelope and payload versions evolve independently. Readers must accept
 the legacy raw payload and payload version 1 while those messages can remain in
-flight. Lost-pet producers currently emit additive payload version 2: existing
-field names remain stable, new fields are optional to older readers, and phone
-data is not copied into the event. Removing or renaming a published field
-requires a new payload version and a tolerant decoder for every supported prior
-shape.
+flight. Lost- and found-pet producers currently emit additive payload version
+2: existing field names remain stable, new fields are optional to older
+readers, and private phone or finder-contact data is not copied into the
+events. Removing or renaming a published field requires a new payload version
+and a tolerant decoder for every supported prior shape.
 
 | Mode | Required configuration | Messaging backend |
 | --- | --- | --- |
