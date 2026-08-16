@@ -151,6 +151,13 @@ readers, and private phone or finder-contact data is not copied into the
 events. Removing or renaming a published field requires a new payload version
 and a tolerant decoder for every supported prior shape.
 
+The matcher and notification workers decode report events through the
+canonical payload-version readers. Those readers normalize raw legacy and
+payload-version-1 messages without trusting fields that did not exist in that
+schema. Community broadcasts require `verified` geocoding plus validated
+coordinates; older messages and pending locations are accepted but do not
+trigger a broadcast or receive an invented fallback location.
+
 | Mode | Required configuration | Messaging backend |
 | --- | --- | --- |
 | `memory` | Consumer: `PUBSUB_PUSH_SUBSCRIPTION`, `PUBSUB_PUSH_DEV_TOKEN` | Process-local test broker and static push authentication |

@@ -250,6 +250,40 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 		}
 	})
 
+	t.Run("canonical payload-v2 rejects invalid report state", func(t *testing.T) {
+		foundEvt := domain.FoundPetReportedV2{
+			PetID:           "found-invalid-state",
+			ImageURL:        "https://storage.petspotr.io/found-invalid-state.jpg",
+			FoundAt:         time.Now().UTC(),
+			Location:        "Seattle, WA",
+			GeocodingStatus: domain.GeocodingPending,
+			CustodyStatus:   domain.CustodyUnknown,
+			Status:          domain.FoundPetStatus("reunited"),
+		}
+		payload, err := json.Marshal(foundEvt)
+		if err != nil {
+			t.Fatal(err)
+		}
+		envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+			Type:             domain.EventTypeFoundPetReported,
+			OccurredAt:       foundEvt.FoundAt,
+			AggregateID:      foundEvt.PetID,
+			AggregateVersion: 1,
+			PayloadVersion:   domain.FoundPetReportedPayloadVersion,
+			Payload:          payload,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := json.Marshal(envelope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := worker.ProcessFoundPet(context.Background(), data); err == nil {
+			t.Fatal("ProcessFoundPet(payload-v2) error = nil, want invalid state error")
+		}
+	})
+
 	t.Run("invalid json event returns error", func(t *testing.T) {
 		err := worker.ProcessFoundPet(context.Background(), []byte("{invalid-json"))
 		if err == nil {

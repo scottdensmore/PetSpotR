@@ -208,7 +208,7 @@ func TestLostPetBroadcastRedeliverySkipsCompletedSubscriberChannels(t *testing.T
 	}
 }
 
-func TestLegacyLostPetBroadcastRedeliveryIsIdempotent(t *testing.T) {
+func TestLegacyLostPetBroadcastIsAcceptedWithoutInventedCoordinates(t *testing.T) {
 	stateStore := store.NewMemoryStore()
 	email := newIdempotentTestSender(ChannelEmail, 0)
 	dispatcher := NewMultiChannelDispatcher(email)
@@ -237,8 +237,8 @@ func TestLegacyLostPetBroadcastRedeliveryIsIdempotent(t *testing.T) {
 			t.Fatalf("ProcessLostPetBroadcast(legacy) error = %v", err)
 		}
 	}
-	if calls, effects := email.snapshot(); calls != 1 || effects != 1 {
-		t.Fatalf("legacy email calls/effects = %d/%d, want 1/1", calls, effects)
+	if calls, effects := email.snapshot(); calls != 0 || effects != 0 {
+		t.Fatalf("legacy email calls/effects = %d/%d, want 0/0", calls, effects)
 	}
 }
 
@@ -338,13 +338,15 @@ func matchFoundEnvelope(t *testing.T, foundPetID, lostPetID string) []byte {
 
 func lostPetEnvelope(t *testing.T, petID string) []byte {
 	t.Helper()
-	event := domain.LostPetEvent{
-		PetID:         petID,
-		ReporterEmail: "owner@example.com",
-		ReportedAt:    time.Date(2026, time.August, 10, 12, 0, 0, 0, time.UTC),
-		Location:      "Green Lake Park, Seattle, WA",
+	event := domain.LostPetReportedV2{
+		PetID:           petID,
+		ReportedAt:      time.Date(2026, time.August, 10, 12, 0, 0, 0, time.UTC),
+		Location:        "Green Lake Park, Seattle, WA",
+		GeocodingStatus: domain.GeocodingVerified,
+		Coordinates:     &domain.LocationPoint{Latitude: 47.68, Longitude: -122.329},
+		Status:          domain.LostPetStatusLost,
 	}
-	payload, err := event.ToJSON()
+	payload, err := json.Marshal(event)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -353,7 +355,7 @@ func lostPetEnvelope(t *testing.T, petID string) []byte {
 		OccurredAt:       event.ReportedAt,
 		AggregateID:      event.PetID,
 		AggregateVersion: 1,
-		PayloadVersion:   1,
+		PayloadVersion:   domain.LostPetReportedPayloadVersion,
 		Payload:          payload,
 	})
 	if err != nil {

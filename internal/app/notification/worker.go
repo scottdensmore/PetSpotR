@@ -219,14 +219,9 @@ func (w *Worker) ProcessLostPetBroadcast(ctx context.Context, lostPetData []byte
 		return nil, err
 	}
 
-	var evt domain.LostPetEvent
-	envelope, err := domain.DecodeEventPayload(lostPetData, domain.EventTypeLostPetReported, &evt)
+	evt, envelope, err := domain.DecodeLostPetReported(lostPetData)
 	if err != nil {
-		return nil, fmt.Errorf("notification-service: failed to unmarshal LostPetEvent: %w", err)
-	}
-
-	if err := evt.Validate(); err != nil {
-		return nil, fmt.Errorf("notification-service: invalid LostPetEvent payload: %w", err)
+		return nil, fmt.Errorf("notification-service: decode lost-pet report: %w", err)
 	}
 
 	if w.geoEngine == nil {

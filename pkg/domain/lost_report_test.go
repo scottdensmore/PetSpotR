@@ -185,3 +185,183 @@ func TestLostPetReportedV2ReaderAcceptsPriorPayloadShapes(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeLostPetReportedAcceptsPublishedVersions(t *testing.T) {
+	reportedAt := time.Date(2026, time.August, 16, 12, 0, 0, 0, time.UTC)
+	legacy := domain.LostPetEvent{
+		PetID:         "lost-legacy-reader",
+		ReporterEmail: "owner@example.com",
+		ReportedAt:    reportedAt,
+		Location:      "Seattle, WA",
+	}
+	legacyData, err := legacy.ToJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyEnvelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+		Type:             domain.EventTypeLostPetReported,
+		OccurredAt:       reportedAt,
+		AggregateID:      legacy.PetID,
+		AggregateVersion: 1,
+		PayloadVersion:   domain.LostPetReportedLegacyPayloadVersion,
+		Payload:          legacyData,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyEnvelopeData, err := json.Marshal(legacyEnvelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	current := domain.LostPetReportedV2{
+		PetID:           "lost-current-reader",
+		PetName:         "Buddy",
+		Species:         "Dog",
+		Breed:           "Golden Retriever",
+		ReportedAt:      reportedAt,
+		Location:        "Capitol Hill, Seattle, WA",
+		GeocodingStatus: domain.GeocodingVerified,
+		Coordinates:     &domain.LocationPoint{Latitude: 47.615, Longitude: -122.32},
+		Status:          domain.LostPetStatusLost,
+	}
+	currentData, err := json.Marshal(current)
+	if err != nil {
+		t.Fatal(err)
+	}
+	currentEnvelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+		Type:             domain.EventTypeLostPetReported,
+		OccurredAt:       reportedAt,
+		AggregateID:      current.PetID,
+		AggregateVersion: 1,
+		PayloadVersion:   domain.LostPetReportedPayloadVersion,
+		Payload:          currentData,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	currentEnvelopeData, err := json.Marshal(currentEnvelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name               string
+		data               []byte
+		wantPetID          string
+		wantPayloadVersion int
+		wantGeocoding      domain.GeocodingStatus
+	}{
+		{
+			name:          "raw payload-v1",
+			data:          legacyData,
+			wantPetID:     legacy.PetID,
+			wantGeocoding: domain.GeocodingPending,
+		},
+		{
+			name:               "enveloped payload-v1",
+			data:               legacyEnvelopeData,
+			wantPetID:          legacy.PetID,
+			wantPayloadVersion: domain.LostPetReportedLegacyPayloadVersion,
+			wantGeocoding:      domain.GeocodingPending,
+		},
+		{
+			name:               "enveloped payload-v2 without reporter contact",
+			data:               currentEnvelopeData,
+			wantPetID:          current.PetID,
+			wantPayloadVersion: domain.LostPetReportedPayloadVersion,
+			wantGeocoding:      domain.GeocodingVerified,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			event, metadata, err := domain.DecodeLostPetReported(tt.data)
+			if err != nil {
+				t.Fatalf("DecodeLostPetReported() error = %v", err)
+			}
+			if event.PetID != tt.wantPetID || event.Status != domain.LostPetStatusLost ||
+				event.GeocodingStatus != tt.wantGeocoding {
+				t.Fatalf("event = %#v", event)
+			}
+			if tt.wantPayloadVersion == 0 {
+				if metadata != nil {
+					t.Fatalf("metadata = %#v, want nil", metadata)
+				}
+			} else if metadata == nil || metadata.PayloadVersion != tt.wantPayloadVersion {
+				t.Fatalf("metadata = %#v, want payload version %d", metadata, tt.wantPayloadVersion)
+			}
+		})
+	}
+}
+
+func TestDecodeLostPetReportedPayloadV1IgnoresUnknownCanonicalFields(t *testing.T) {
+	data := []byte(`{
+		"petId":"lost-v1-extra-fields",
+		"reporterEmail":"owner@example.com",
+		"reportedAt":"2026-08-16T12:00:00Z",
+		"location":"Seattle, WA",
+		"species":"Wolf",
+		"status":"reunited",
+		"geocodingStatus":"verified",
+		"coordinates":{"latitude":0,"longitude":0}
+	}`)
+
+	event, metadata, err := domain.DecodeLostPetReported(data)
+	if err != nil {
+		t.Fatalf("DecodeLostPetReported() error = %v", err)
+	}
+	if metadata != nil {
+		t.Fatalf("metadata = %#v, want nil for raw payload-v1", metadata)
+	}
+	if event.Status != domain.LostPetStatusLost || event.GeocodingStatus != domain.GeocodingPending ||
+		event.Coordinates != nil || event.Species != "" {
+		t.Fatalf("payload-v1 unknown fields leaked into canonical event: %#v", event)
+	}
+}
+
+func TestDecodeLostPetReportedRejectsIncompletePayloadV2(t *testing.T) {
+	reportedAt := time.Date(2026, time.August, 16, 14, 0, 0, 0, time.UTC)
+	base := domain.LostPetReportedV2{
+		PetID:           "lost-incomplete-v2",
+		ReportedAt:      reportedAt,
+		Location:        "Seattle, WA",
+		GeocodingStatus: domain.GeocodingPending,
+		Status:          domain.LostPetStatusLost,
+	}
+	tests := []struct {
+		name   string
+		mutate func(*domain.LostPetReportedV2)
+	}{
+		{name: "missing reportedAt", mutate: func(event *domain.LostPetReportedV2) { event.ReportedAt = time.Time{} }},
+		{name: "missing geocodingStatus", mutate: func(event *domain.LostPetReportedV2) { event.GeocodingStatus = "" }},
+		{name: "missing status", mutate: func(event *domain.LostPetReportedV2) { event.Status = "" }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			event := base
+			tt.mutate(&event)
+			payload, err := json.Marshal(event)
+			if err != nil {
+				t.Fatal(err)
+			}
+			envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+				Type:             domain.EventTypeLostPetReported,
+				OccurredAt:       reportedAt,
+				AggregateID:      event.PetID,
+				AggregateVersion: 1,
+				PayloadVersion:   domain.LostPetReportedPayloadVersion,
+				Payload:          payload,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			data, err := json.Marshal(envelope)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, _, err := domain.DecodeLostPetReported(data); err == nil {
+				t.Fatal("DecodeLostPetReported() error = nil, want incomplete payload-v2 rejection")
+			}
+		})
+	}
+}

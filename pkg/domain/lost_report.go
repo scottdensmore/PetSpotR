@@ -64,12 +64,88 @@ type LostPetReportedV2 struct {
 	Breed           string          `json:"breed,omitempty"`
 	PrimaryColor    string          `json:"primaryColor,omitempty"`
 	Description     string          `json:"description,omitempty"`
-	ReporterEmail   string          `json:"reporterEmail"`
+	ReporterEmail   string          `json:"reporterEmail,omitempty"`
 	ReportedAt      time.Time       `json:"reportedAt"`
 	Location        string          `json:"location"`
 	GeocodingStatus GeocodingStatus `json:"geocodingStatus"`
 	Coordinates     *LocationPoint  `json:"coordinates,omitempty"`
 	Status          LostPetStatus   `json:"status"`
+}
+
+// DecodeLostPetReported reads every lost-pet payload shape published by the
+// application and returns the normalized canonical integration event. Raw
+// payloads predate envelopes and are therefore interpreted as payload v1.
+func DecodeLostPetReported(data []byte) (LostPetReportedV2, *EventEnvelope, error) {
+	var event LostPetReportedV2
+	envelope, err := DecodeEventPayload(data, EventTypeLostPetReported, &event)
+	if err != nil {
+		return LostPetReportedV2{}, nil, err
+	}
+
+	payloadVersion := LostPetReportedLegacyPayloadVersion
+	if envelope != nil {
+		payloadVersion = envelope.PayloadVersion
+	}
+	switch payloadVersion {
+	case LostPetReportedLegacyPayloadVersion:
+		legacy := LostPetEvent{
+			PetID:         event.PetID,
+			ReporterEmail: event.ReporterEmail,
+			ReportedAt:    event.ReportedAt,
+			Location:      event.Location,
+		}
+		if err := legacy.Validate(); err != nil {
+			return LostPetReportedV2{}, nil, fmt.Errorf("domain: invalid lost-pet payload v1: %w", err)
+		}
+		event = normalizeLostPetReported(LostPetReportedV2{
+			PetID:         legacy.PetID,
+			ReporterEmail: legacy.ReporterEmail,
+			ReportedAt:    legacy.ReportedAt,
+			Location:      legacy.Location,
+		})
+	case LostPetReportedPayloadVersion:
+		if err := event.Validate(); err != nil {
+			return LostPetReportedV2{}, nil, fmt.Errorf("domain: invalid lost-pet payload v%d: %w", payloadVersion, err)
+		}
+		event = normalizeLostPetReported(event)
+	default:
+		return LostPetReportedV2{}, nil, fmt.Errorf("domain: unsupported lost-pet payload version %d", payloadVersion)
+	}
+	if envelope != nil && strings.TrimSpace(envelope.AggregateID) != event.PetID {
+		return LostPetReportedV2{}, nil, errors.New("domain: lost-pet aggregate ID does not match payload")
+	}
+	return event, envelope, nil
+}
+
+// Validate checks the fields consumed from the contact-independent payload-v2
+// integration contract.
+func (e LostPetReportedV2) Validate() error {
+	if strings.TrimSpace(e.PetID) == "" {
+		return errors.New("domain: petId is required")
+	}
+	if e.ReportedAt.IsZero() {
+		return errors.New("domain: reportedAt is required")
+	}
+	if err := validateLostPetCanonicalFields(LostPetReport{
+		PetID:           e.PetID,
+		PetName:         e.PetName,
+		Species:         e.Species,
+		Breed:           e.Breed,
+		PrimaryColor:    e.PrimaryColor,
+		Description:     e.Description,
+		ReporterEmail:   e.ReporterEmail,
+		ReportedAt:      e.ReportedAt,
+		Location:        e.Location,
+		GeocodingStatus: e.GeocodingStatus,
+		Coordinates:     e.Coordinates,
+		Status:          e.Status,
+	}); err != nil {
+		return err
+	}
+	if e.ReporterEmail != "" && (!strings.Contains(e.ReporterEmail, "@") || !strings.Contains(e.ReporterEmail, ".")) {
+		return fmt.Errorf("domain: invalid reporterEmail address: %s", e.ReporterEmail)
+	}
+	return nil
 }
 
 // PublicLostPetReport is the unauthenticated lost-pet listing DTO. It cannot
@@ -127,6 +203,10 @@ func (r LostPetReport) Validate() error {
 	if err := legacy.Validate(); err != nil {
 		return err
 	}
+	return validateLostPetCanonicalFields(r)
+}
+
+func validateLostPetCanonicalFields(r LostPetReport) error {
 	if err := validateLostPetLengths(r); err != nil {
 		return err
 	}
@@ -159,6 +239,24 @@ func (r LostPetReport) Validate() error {
 		return fmt.Errorf("domain: unsupported geocoding status %q", r.GeocodingStatus)
 	}
 	return nil
+}
+
+func normalizeLostPetReported(event LostPetReportedV2) LostPetReportedV2 {
+	report := NormalizeLostPetReport(LostPetReport{
+		PetID:           event.PetID,
+		PetName:         event.PetName,
+		Species:         event.Species,
+		Breed:           event.Breed,
+		PrimaryColor:    event.PrimaryColor,
+		Description:     event.Description,
+		ReporterEmail:   event.ReporterEmail,
+		ReportedAt:      event.ReportedAt,
+		Location:        event.Location,
+		GeocodingStatus: event.GeocodingStatus,
+		Coordinates:     event.Coordinates,
+		Status:          event.Status,
+	})
+	return report.ReportedEvent()
 }
 
 // Public returns the redacted listing representation of the aggregate.

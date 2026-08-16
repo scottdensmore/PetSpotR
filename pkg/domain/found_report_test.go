@@ -209,3 +209,187 @@ func TestFoundPetReportedV2ReaderAcceptsPriorPayloadShapes(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeFoundPetReportedAcceptsPublishedVersions(t *testing.T) {
+	foundAt := time.Date(2026, time.August, 16, 13, 0, 0, 0, time.UTC)
+	legacy := domain.FoundPetEvent{
+		PetID:    "found-legacy-reader",
+		ImageURL: "https://storage.petspotr.io/found-legacy-reader.jpg",
+		FoundAt:  foundAt,
+		Location: "Seattle, WA",
+	}
+	legacyData, err := legacy.ToJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyEnvelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+		Type:             domain.EventTypeFoundPetReported,
+		OccurredAt:       foundAt,
+		AggregateID:      legacy.PetID,
+		AggregateVersion: 1,
+		PayloadVersion:   domain.FoundPetReportedLegacyPayloadVersion,
+		Payload:          legacyData,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyEnvelopeData, err := json.Marshal(legacyEnvelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	current := domain.FoundPetReportedV2{
+		PetID:           "found-current-reader",
+		ImageObject:     "images/found-pets/found-current-reader/image.jpg",
+		FoundAt:         foundAt,
+		Location:        "Capitol Hill, Seattle, WA",
+		GeocodingStatus: domain.GeocodingVerified,
+		Coordinates:     &domain.LocationPoint{Latitude: 47.615, Longitude: -122.32},
+		Species:         "Dog",
+		CustodyStatus:   domain.CustodyFinderHome,
+		Status:          domain.FoundPetStatusFound,
+	}
+	currentData, err := json.Marshal(current)
+	if err != nil {
+		t.Fatal(err)
+	}
+	currentEnvelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+		Type:             domain.EventTypeFoundPetReported,
+		OccurredAt:       foundAt,
+		AggregateID:      current.PetID,
+		AggregateVersion: 1,
+		PayloadVersion:   domain.FoundPetReportedPayloadVersion,
+		Payload:          currentData,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	currentEnvelopeData, err := json.Marshal(currentEnvelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name               string
+		data               []byte
+		wantPetID          string
+		wantPayloadVersion int
+		wantGeocoding      domain.GeocodingStatus
+	}{
+		{
+			name:          "raw payload-v1",
+			data:          legacyData,
+			wantPetID:     legacy.PetID,
+			wantGeocoding: domain.GeocodingPending,
+		},
+		{
+			name:               "enveloped payload-v1",
+			data:               legacyEnvelopeData,
+			wantPetID:          legacy.PetID,
+			wantPayloadVersion: domain.FoundPetReportedLegacyPayloadVersion,
+			wantGeocoding:      domain.GeocodingPending,
+		},
+		{
+			name:               "enveloped payload-v2",
+			data:               currentEnvelopeData,
+			wantPetID:          current.PetID,
+			wantPayloadVersion: domain.FoundPetReportedPayloadVersion,
+			wantGeocoding:      domain.GeocodingVerified,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			event, metadata, err := domain.DecodeFoundPetReported(tt.data)
+			if err != nil {
+				t.Fatalf("DecodeFoundPetReported() error = %v", err)
+			}
+			if event.PetID != tt.wantPetID || event.Status != domain.FoundPetStatusFound ||
+				event.GeocodingStatus != tt.wantGeocoding {
+				t.Fatalf("event = %#v", event)
+			}
+			if tt.wantPayloadVersion == 0 {
+				if metadata != nil {
+					t.Fatalf("metadata = %#v, want nil", metadata)
+				}
+			} else if metadata == nil || metadata.PayloadVersion != tt.wantPayloadVersion {
+				t.Fatalf("metadata = %#v, want payload version %d", metadata, tt.wantPayloadVersion)
+			}
+		})
+	}
+}
+
+func TestDecodeFoundPetReportedPayloadV1IgnoresUnknownCanonicalFields(t *testing.T) {
+	data := []byte(`{
+		"petId":"found-v1-extra-fields",
+		"imageUrl":"https://storage.petspotr.io/found-v1-extra-fields.jpg",
+		"foundAt":"2026-08-16T13:00:00Z",
+		"location":"Seattle, WA",
+		"species":"Wolf",
+		"status":"reunited",
+		"custodyStatus":"Not Real",
+		"geocodingStatus":"verified",
+		"coordinates":{"latitude":0,"longitude":0}
+	}`)
+
+	event, metadata, err := domain.DecodeFoundPetReported(data)
+	if err != nil {
+		t.Fatalf("DecodeFoundPetReported() error = %v", err)
+	}
+	if metadata != nil {
+		t.Fatalf("metadata = %#v, want nil for raw payload-v1", metadata)
+	}
+	if event.Status != domain.FoundPetStatusFound || event.CustodyStatus != domain.CustodyUnknown ||
+		event.GeocodingStatus != domain.GeocodingPending || event.Coordinates != nil || event.Species != "" {
+		t.Fatalf("payload-v1 unknown fields leaked into canonical event: %#v", event)
+	}
+}
+
+func TestDecodeFoundPetReportedRejectsIncompletePayloadV2(t *testing.T) {
+	foundAt := time.Date(2026, time.August, 16, 15, 0, 0, 0, time.UTC)
+	base := domain.FoundPetReportedV2{
+		PetID:           "found-incomplete-v2",
+		ImageObject:     "images/found-pets/found-incomplete-v2/image.jpg",
+		FoundAt:         foundAt,
+		Location:        "Seattle, WA",
+		GeocodingStatus: domain.GeocodingPending,
+		CustodyStatus:   domain.CustodyUnknown,
+		Status:          domain.FoundPetStatusFound,
+	}
+	tests := []struct {
+		name   string
+		mutate func(*domain.FoundPetReportedV2)
+	}{
+		{name: "missing foundAt", mutate: func(event *domain.FoundPetReportedV2) { event.FoundAt = time.Time{} }},
+		{name: "missing geocodingStatus", mutate: func(event *domain.FoundPetReportedV2) { event.GeocodingStatus = "" }},
+		{name: "missing custodyStatus", mutate: func(event *domain.FoundPetReportedV2) { event.CustodyStatus = "" }},
+		{name: "missing status", mutate: func(event *domain.FoundPetReportedV2) { event.Status = "" }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			event := base
+			tt.mutate(&event)
+			payload, err := json.Marshal(event)
+			if err != nil {
+				t.Fatal(err)
+			}
+			envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+				Type:             domain.EventTypeFoundPetReported,
+				OccurredAt:       foundAt,
+				AggregateID:      event.PetID,
+				AggregateVersion: 1,
+				PayloadVersion:   domain.FoundPetReportedPayloadVersion,
+				Payload:          payload,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			data, err := json.Marshal(envelope)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, _, err := domain.DecodeFoundPetReported(data); err == nil {
+				t.Fatal("DecodeFoundPetReported() error = nil, want incomplete payload-v2 rejection")
+			}
+		})
+	}
+}
