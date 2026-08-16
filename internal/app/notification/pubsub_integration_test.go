@@ -10,7 +10,8 @@ import (
 	"testing"
 	"time"
 
-	gcppubsub "cloud.google.com/go/pubsub"
+	gcppubsub "cloud.google.com/go/pubsub/v2"
+	"cloud.google.com/go/pubsub/v2/apiv1/pubsubpb"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	petpubsub "github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/store"
@@ -55,21 +56,30 @@ func TestNotificationPubSubEmulatorDeliversRetriesAndRetainsPoison(t *testing.T)
 	}))
 	defer server.Close()
 
-	topic, err := client.CreateTopic(ctx, topicID)
+	topic, err := client.TopicAdminClient.CreateTopic(ctx, &pubsubpb.Topic{
+		Name: fmt.Sprintf("projects/%s/topics/%s", projectID, topicID),
+	})
 	if err != nil {
 		t.Fatalf("create topic: %v", err)
 	}
-	t.Cleanup(func() { _ = topic.Delete(context.Background()) })
-	subscription, err := client.CreateSubscription(ctx, subscriptionID, gcppubsub.SubscriptionConfig{
-		Topic: topic,
-		PushConfig: gcppubsub.PushConfig{
-			Endpoint: server.URL + "/pubsub/match-found?token=emulator-secret",
+	t.Cleanup(func() {
+		_ = client.TopicAdminClient.DeleteTopic(context.Background(), &pubsubpb.DeleteTopicRequest{Topic: topic.GetName()})
+	})
+	subscription, err := client.SubscriptionAdminClient.CreateSubscription(ctx, &pubsubpb.Subscription{
+		Name:  fmt.Sprintf("projects/%s/subscriptions/%s", projectID, subscriptionID),
+		Topic: topic.GetName(),
+		PushConfig: &pubsubpb.PushConfig{
+			PushEndpoint: server.URL + "/pubsub/match-found?token=emulator-secret",
 		},
 	})
 	if err != nil {
 		t.Fatalf("create push subscription: %v", err)
 	}
-	t.Cleanup(func() { _ = subscription.Delete(context.Background()) })
+	t.Cleanup(func() {
+		_ = client.SubscriptionAdminClient.DeleteSubscription(context.Background(), &pubsubpb.DeleteSubscriptionRequest{
+			Subscription: subscription.GetName(),
+		})
+	})
 	publisher, err := petpubsub.NewGooglePublisher(ctx, projectID, host)
 	if err != nil {
 		t.Fatalf("NewGooglePublisher() error = %v", err)
@@ -149,21 +159,30 @@ func TestNotificationLostPetPubSubEmulatorDeliversRetriesAndRetainsPoison(t *tes
 	}))
 	defer server.Close()
 
-	topic, err := client.CreateTopic(ctx, topicID)
+	topic, err := client.TopicAdminClient.CreateTopic(ctx, &pubsubpb.Topic{
+		Name: fmt.Sprintf("projects/%s/topics/%s", projectID, topicID),
+	})
 	if err != nil {
 		t.Fatalf("create topic: %v", err)
 	}
-	t.Cleanup(func() { _ = topic.Delete(context.Background()) })
-	subscription, err := client.CreateSubscription(ctx, subscriptionID, gcppubsub.SubscriptionConfig{
-		Topic: topic,
-		PushConfig: gcppubsub.PushConfig{
-			Endpoint: server.URL + "/pubsub/lost-pet?token=emulator-secret",
+	t.Cleanup(func() {
+		_ = client.TopicAdminClient.DeleteTopic(context.Background(), &pubsubpb.DeleteTopicRequest{Topic: topic.GetName()})
+	})
+	subscription, err := client.SubscriptionAdminClient.CreateSubscription(ctx, &pubsubpb.Subscription{
+		Name:  fmt.Sprintf("projects/%s/subscriptions/%s", projectID, subscriptionID),
+		Topic: topic.GetName(),
+		PushConfig: &pubsubpb.PushConfig{
+			PushEndpoint: server.URL + "/pubsub/lost-pet?token=emulator-secret",
 		},
 	})
 	if err != nil {
 		t.Fatalf("create push subscription: %v", err)
 	}
-	t.Cleanup(func() { _ = subscription.Delete(context.Background()) })
+	t.Cleanup(func() {
+		_ = client.SubscriptionAdminClient.DeleteSubscription(context.Background(), &pubsubpb.DeleteSubscriptionRequest{
+			Subscription: subscription.GetName(),
+		})
+	})
 	publisher, err := petpubsub.NewGooglePublisher(ctx, projectID, host)
 	if err != nil {
 		t.Fatalf("NewGooglePublisher() error = %v", err)
