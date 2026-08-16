@@ -345,15 +345,26 @@ func firestoreDeliveryRecord(operation delivery.Operation) (firestoreRecord, err
 // Firestore transaction. Exact retries do not replace a completed outbox
 // record, while competing aggregate creates fail with ErrConflict.
 func (s *FirestoreStore) CreateStateAndOutbox(ctx context.Context, state, outbox StateWrite) (bool, error) {
+	return s.CreateStatesAndOutbox(ctx, []StateWrite{state}, outbox)
+}
+
+// CreateStatesAndOutbox creates related state records and an outbox record in
+// one Firestore transaction. Exact retries compare every state record and keep
+// the first outbox value, which may already contain publication state.
+func (s *FirestoreStore) CreateStatesAndOutbox(ctx context.Context, states []StateWrite, outbox StateWrite) (bool, error) {
 	if err := ctx.Err(); err != nil {
 		return false, err
 	}
-	if err := validateAtomicWrites(state, outbox); err != nil {
+	if err := validateAtomicWrites(states, outbox); err != nil {
 		return false, err
 	}
-	stateDoc, err := s.document(state.StoreName, state.Key)
-	if err != nil {
-		return false, err
+	stateDocs := make([]*firestore.DocumentRef, len(states))
+	for index, state := range states {
+		stateDoc, err := s.document(state.StoreName, state.Key)
+		if err != nil {
+			return false, err
+		}
+		stateDocs[index] = stateDoc
 	}
 	outboxDoc, err := s.document(outbox.StoreName, outbox.Key)
 	if err != nil {
@@ -365,42 +376,63 @@ func (s *FirestoreStore) CreateStateAndOutbox(ctx context.Context, state, outbox
 		// Firestore may retry this callback after contention. Reset the result
 		// for every attempt so a superseded write cannot leak into the return.
 		created = false
-		stateSnapshot, stateErr := tx.Get(stateDoc)
-		outboxSnapshot, outboxErr := tx.Get(outboxDoc)
-		stateExists := stateErr == nil
-		outboxExists := outboxErr == nil
-		if stateErr != nil && status.Code(stateErr) != codes.NotFound {
-			return stateErr
+		stateSnapshots := make([]*firestore.DocumentSnapshot, len(stateDocs))
+		stateExists := make([]bool, len(stateDocs))
+		anyExists := false
+		allExistAndMatch := true
+		for index, stateDoc := range stateDocs {
+			stateSnapshot, stateErr := tx.Get(stateDoc)
+			if stateErr != nil && status.Code(stateErr) != codes.NotFound {
+				return stateErr
+			}
+			stateSnapshots[index] = stateSnapshot
+			stateExists[index] = stateErr == nil
+			anyExists = anyExists || stateExists[index]
+			allExistAndMatch = allExistAndMatch && stateExists[index]
 		}
+		outboxSnapshot, outboxErr := tx.Get(outboxDoc)
+		outboxExists := outboxErr == nil
 		if outboxErr != nil && status.Code(outboxErr) != codes.NotFound {
 			return outboxErr
 		}
-		if stateExists || outboxExists {
-			if !stateExists || !outboxExists {
-				return fmt.Errorf("%w: %s/%s", ErrConflict, state.StoreName, state.Key)
+		anyExists = anyExists || outboxExists
+		allExistAndMatch = allExistAndMatch && outboxExists
+		if anyExists {
+			for index, stateSnapshot := range stateSnapshots {
+				if !stateExists[index] {
+					continue
+				}
+				var storedState firestoreRecord
+				if err := stateSnapshot.DataTo(&storedState); err != nil {
+					return err
+				}
+				allExistAndMatch = allExistAndMatch && storedState.Key == states[index].Key &&
+					bytes.Equal(storedState.Data, states[index].Data)
 			}
-			var storedState, storedOutbox firestoreRecord
-			if err := stateSnapshot.DataTo(&storedState); err != nil {
-				return err
+			if outboxExists {
+				var storedOutbox firestoreRecord
+				if err := outboxSnapshot.DataTo(&storedOutbox); err != nil {
+					return err
+				}
+				allExistAndMatch = allExistAndMatch && storedOutbox.Key == outbox.Key
 			}
-			if err := outboxSnapshot.DataTo(&storedOutbox); err != nil {
-				return err
-			}
-			if storedState.Key == state.Key && storedOutbox.Key == outbox.Key && bytes.Equal(storedState.Data, state.Data) {
+			if allExistAndMatch {
 				return nil
 			}
-			return fmt.Errorf("%w: %s/%s", ErrConflict, state.StoreName, state.Key)
-		}
-		stateRecord, err := newFirestoreRecord(state.StoreName, state.Key, state.Data)
-		if err != nil {
-			return err
+			return fmt.Errorf("%w: %s/%s", ErrConflict, states[0].StoreName, states[0].Key)
 		}
 		outboxRecord, err := newFirestoreRecord(outbox.StoreName, outbox.Key, outbox.Data)
 		if err != nil {
 			return err
 		}
-		if err := tx.Set(stateDoc, stateRecord); err != nil {
-			return err
+		for index, state := range states {
+			stateRecord, recordErr := newFirestoreRecord(state.StoreName, state.Key, state.Data)
+			if recordErr != nil {
+				return recordErr
+			}
+			if err := tx.Set(stateDocs[index], stateRecord); err != nil {
+				return err
+			}
 		}
 		if err := tx.Set(outboxDoc, outboxRecord); err != nil {
 			return err

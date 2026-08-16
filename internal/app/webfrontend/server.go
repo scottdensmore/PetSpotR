@@ -281,10 +281,11 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 
 		params := parseQueryParams(r)
 
-		pets := make([]domain.LostPetReport, 0, len(rawItems))
+		pets := make([]domain.LostPetRecord, 0, len(rawItems))
 		for _, b := range rawItems {
-			var pet domain.LostPetReport
+			var pet domain.LostPetRecord
 			if err := json.Unmarshal(b, &pet); err == nil {
+				pet = domain.NormalizeLostPetRecord(pet)
 				// Species filter check
 				if params.Species != "" {
 					var rawMap map[string]any
@@ -312,7 +313,7 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 
 		// Apply pagination limit & offset
 		if params.Offset > len(pets) {
-			pets = []domain.LostPetReport{}
+			pets = []domain.LostPetRecord{}
 		} else {
 			end := params.Offset + params.Limit
 			if end > len(pets) {
@@ -467,11 +468,11 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 
 		params := parseQueryParams(r)
 
-		pets := make([]domain.FoundPetReport, 0, len(rawItems))
+		pets := make([]domain.FoundPetRecord, 0, len(rawItems))
 		for _, b := range rawItems {
-			var pet domain.FoundPetReport
+			var pet domain.FoundPetRecord
 			if err := json.Unmarshal(b, &pet); err == nil {
-				pet = domain.NormalizeFoundPetReport(pet)
+				pet = domain.NormalizeFoundPetRecord(pet)
 				// Species filter check
 				if params.Species != "" {
 					if pet.Species != "" && !strings.EqualFold(pet.Species, params.Species) {
@@ -495,7 +496,7 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 
 		// Apply pagination limit & offset
 		if params.Offset > len(pets) {
-			pets = []domain.FoundPetReport{}
+			pets = []domain.FoundPetRecord{}
 		} else {
 			end := params.Offset + params.Limit
 			if end > len(pets) {

@@ -56,6 +56,55 @@ func TestMemoryStoreCreateStateAndOutboxIsAtomicAndIdempotent(t *testing.T) {
 	}
 }
 
+func TestMemoryStoreCreateStatesAndOutboxIsAtomicAndIdempotent(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	report := store.StateWrite{StoreName: store.LostPetsCollection, Key: "lost-private-101", Data: []byte(`{"petId":"lost-private-101"}`)}
+	contact := store.StateWrite{StoreName: store.ReportContactsCollection, Key: "lost/lost-private-101/owner", Data: []byte(`{"email":"owner@example.com"}`)}
+	outbox := store.StateWrite{StoreName: store.OutboxCollection, Key: "evt-private-101", Data: []byte(`{"id":"evt-private-101"}`)}
+
+	created, err := stateStore.CreateStatesAndOutbox(ctx, []store.StateWrite{report, contact}, outbox)
+	if err != nil || !created {
+		t.Fatalf("CreateStatesAndOutbox() = %t, %v; want true, nil", created, err)
+	}
+
+	created, err = stateStore.CreateStatesAndOutbox(ctx, []store.StateWrite{report, contact}, outbox)
+	if err != nil || created {
+		t.Fatalf("idempotent CreateStatesAndOutbox() = %t, %v; want false, nil", created, err)
+	}
+
+	changedContact := contact
+	changedContact.Data = []byte(`{"email":"other@example.com"}`)
+	created, err = stateStore.CreateStatesAndOutbox(ctx, []store.StateWrite{report, changedContact}, outbox)
+	if !errors.Is(err, store.ErrConflict) || created {
+		t.Fatalf("competing CreateStatesAndOutbox() = %t, %v; want false, ErrConflict", created, err)
+	}
+	storedContact, err := stateStore.GetState(ctx, contact.StoreName, contact.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(storedContact) != string(contact.Data) {
+		t.Fatalf("competing create replaced contact = %s, want %s", storedContact, contact.Data)
+	}
+
+	partialReport := store.StateWrite{StoreName: store.LostPetsCollection, Key: "lost-partial-101", Data: []byte(`{"petId":"lost-partial-101"}`)}
+	partialContact := store.StateWrite{StoreName: store.ReportContactsCollection, Key: "lost/lost-partial-101/owner", Data: []byte(`{"email":"owner@example.com"}`)}
+	partialOutbox := store.StateWrite{StoreName: store.OutboxCollection, Key: "evt-partial-101", Data: []byte(`{"id":"evt-partial-101"}`)}
+	if err := stateStore.SaveState(ctx, partialReport.StoreName, partialReport.Key, partialReport.Data); err != nil {
+		t.Fatal(err)
+	}
+	created, err = stateStore.CreateStatesAndOutbox(ctx, []store.StateWrite{partialReport, partialContact}, partialOutbox)
+	if !errors.Is(err, store.ErrConflict) || created {
+		t.Fatalf("partial CreateStatesAndOutbox() = %t, %v; want false, ErrConflict", created, err)
+	}
+	if _, err := stateStore.GetState(ctx, partialContact.StoreName, partialContact.Key); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("partial transaction contact error = %v, want ErrNotFound", err)
+	}
+	if _, err := stateStore.GetState(ctx, partialOutbox.StoreName, partialOutbox.Key); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("partial transaction outbox error = %v, want ErrNotFound", err)
+	}
+}
+
 func TestMemoryStoreListsBoundedPendingOutboxByTopic(t *testing.T) {
 	ctx := context.Background()
 	stateStore := store.NewMemoryStore()

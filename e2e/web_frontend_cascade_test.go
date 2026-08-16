@@ -218,16 +218,30 @@ func TestWebFrontendLostPetSubmissionUsesCanonicalService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load canonical lost-pet state: %v", err)
 	}
-	var report domain.LostPetReport
+	if strings.Contains(string(stateData), `"reporterEmail"`) || strings.Contains(string(stateData), `"phone"`) {
+		t.Fatalf("persisted lost-pet report exposed private contact: %s", stateData)
+	}
+	var report domain.LostPetRecord
 	if err := json.Unmarshal(stateData, &report); err != nil {
 		t.Fatalf("decode canonical lost-pet state: %v", err)
 	}
 	if report.PetName != "Buddy" || report.Species != "Dog" || report.Breed != "Golden Retriever" ||
 		report.PrimaryColor != "Golden" || report.Description != "White chest patch" ||
-		report.ReporterEmail != "owner@example.com" || report.Phone != "(555) 019-2834" ||
 		report.Status != domain.LostPetStatusLost || report.GeocodingStatus != domain.GeocodingPending ||
 		report.Coordinates != nil {
 		t.Fatalf("persisted lost-pet report = %#v", report)
+	}
+	contactData, err := st.GetState(ctx, store.ReportContactsCollection, report.OwnerIdentityRef)
+	if err != nil {
+		t.Fatalf("load private lost-pet contact: %v", err)
+	}
+	var contact domain.ReportContact
+	if err := json.Unmarshal(contactData, &contact); err != nil {
+		t.Fatalf("decode private lost-pet contact: %v", err)
+	}
+	if contact.Email != "owner@example.com" || contact.Phone != "(555) 019-2834" ||
+		contact.IdentityRef != report.OwnerIdentityRef {
+		t.Fatalf("persisted lost-pet contact = %#v", contact)
 	}
 
 	publicRequest := httptest.NewRequest(http.MethodGet, "/api/v1/lost-pets", nil)
@@ -246,7 +260,8 @@ func TestWebFrontendLostPetSubmissionUsesCanonicalService(t *testing.T) {
 		t.Fatalf("public lost-pet reports = %#v", publicReports)
 	}
 	if strings.Contains(string(publicData), "owner@example.com") ||
-		strings.Contains(string(publicData), "reporterEmail") || strings.Contains(string(publicData), "phone") {
+		strings.Contains(string(publicData), "reporterEmail") || strings.Contains(string(publicData), "phone") ||
+		strings.Contains(string(publicData), "ownerIdentityRef") || strings.Contains(string(publicData), report.OwnerIdentityRef) {
 		t.Fatalf("public lost-pet response exposed private contact: %s", publicData)
 	}
 
@@ -396,14 +411,24 @@ func TestLostPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			var report domain.LostPetReport
+			var report domain.LostPetRecord
 			if err := json.Unmarshal(stateData, &report); err != nil {
 				t.Fatal(err)
 			}
 			if report.PetName != "Buddy" || report.Species != "Dog" || report.Breed != "Golden Retriever" ||
-				report.PrimaryColor != "Golden" || report.Description != "White chest patch" ||
-				report.Phone != "(555) 019-2834" {
+				report.PrimaryColor != "Golden" || report.Description != "White chest patch" {
 				t.Fatalf("persisted report = %#v", report)
+			}
+			contactData, err := st.GetState(ctx, store.ReportContactsCollection, report.OwnerIdentityRef)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var contact domain.ReportContact
+			if err := json.Unmarshal(contactData, &contact); err != nil {
+				t.Fatal(err)
+			}
+			if contact.Email != "owner@example.com" || contact.Phone != "(555) 019-2834" {
+				t.Fatalf("persisted contact = %#v", contact)
 			}
 			outboxRecords, err := st.ListState(ctx, store.OutboxCollection)
 			if err != nil {
@@ -512,16 +537,30 @@ func TestWebFrontendFoundPetSubmissionUsesCanonicalService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load canonical found-pet state: %v", err)
 	}
-	var report domain.FoundPetReport
+	if strings.Contains(string(stateData), `"finderEmail"`) {
+		t.Fatalf("persisted found-pet report exposed private contact: %s", stateData)
+	}
+	var report domain.FoundPetRecord
 	if err := json.Unmarshal(stateData, &report); err != nil {
 		t.Fatalf("decode canonical found-pet state: %v", err)
 	}
-	if report.FinderEmail != "finder@example.com" || report.Species != "Dog" ||
+	if report.Species != "Dog" ||
 		report.Breed != "Golden Retriever" || report.PrimaryColor != "Golden" ||
 		report.SecondaryColor != "Cream" || len(report.DistinctiveMarkings) != 1 ||
 		report.CustodyStatus != domain.CustodyLocalShelter || report.Status != domain.FoundPetStatusFound ||
 		report.GeocodingStatus != domain.GeocodingPending || report.Coordinates != nil {
 		t.Fatalf("persisted found-pet report = %#v", report)
+	}
+	contactData, err := st.GetState(ctx, store.ReportContactsCollection, report.FinderIdentityRef)
+	if err != nil {
+		t.Fatalf("load private found-pet contact: %v", err)
+	}
+	var contact domain.ReportContact
+	if err := json.Unmarshal(contactData, &contact); err != nil {
+		t.Fatalf("decode private found-pet contact: %v", err)
+	}
+	if contact.Email != "finder@example.com" || contact.IdentityRef != report.FinderIdentityRef {
+		t.Fatalf("persisted found-pet contact = %#v", contact)
 	}
 
 	publicRequest := httptest.NewRequest(http.MethodGet, "/api/v1/found-pets", nil)
@@ -539,7 +578,8 @@ func TestWebFrontendFoundPetSubmissionUsesCanonicalService(t *testing.T) {
 		publicReports[0].SecondaryColor != "Cream" || publicReports[0].CustodyStatus != domain.CustodyLocalShelter {
 		t.Fatalf("public found-pet reports = %#v", publicReports)
 	}
-	if strings.Contains(string(publicData), "finder@example.com") || strings.Contains(string(publicData), "finderEmail") {
+	if strings.Contains(string(publicData), "finder@example.com") || strings.Contains(string(publicData), "finderEmail") ||
+		strings.Contains(string(publicData), "finderIdentityRef") || strings.Contains(string(publicData), report.FinderIdentityRef) {
 		t.Fatalf("public found-pet response exposed private contact: %s", publicData)
 	}
 	outboxRecords, err := st.ListState(ctx, store.OutboxCollection)
@@ -581,7 +621,7 @@ func TestWebFrontendFoundPetSubmissionRejectsPrivilegedFieldInjection(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	var report domain.FoundPetReport
+	var report domain.FoundPetRecord
 	if err := json.Unmarshal(stateData, &report); err != nil {
 		t.Fatal(err)
 	}
@@ -721,14 +761,25 @@ func TestFoundPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			var report domain.FoundPetReport
+			var report domain.FoundPetRecord
 			if err := json.Unmarshal(stateData, &report); err != nil {
 				t.Fatal(err)
 			}
-			if report.FinderEmail != "finder@example.com" || report.Species != "Dog" ||
+			if report.Species != "Dog" ||
 				report.Breed != "Golden Retriever" || report.SecondaryColor != "Cream" ||
 				len(report.DistinctiveMarkings) != 1 || report.CustodyStatus != domain.CustodyFinderHome {
 				t.Fatalf("persisted report = %#v", report)
+			}
+			contactData, err := st.GetState(ctx, store.ReportContactsCollection, report.FinderIdentityRef)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var contact domain.ReportContact
+			if err := json.Unmarshal(contactData, &contact); err != nil {
+				t.Fatal(err)
+			}
+			if contact.Email != "finder@example.com" {
+				t.Fatalf("persisted contact = %#v", contact)
 			}
 			outboxRecords, err := st.ListState(ctx, store.OutboxCollection)
 			if err != nil {

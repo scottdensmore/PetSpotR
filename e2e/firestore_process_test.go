@@ -74,6 +74,12 @@ func TestFirestoreStateCrossesServiceProcessesAndSurvivesRestart(t *testing.T) {
 	t.Cleanup(func() {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cleanupCancel()
+		if data, getErr := stateRuntime.Store.GetState(cleanupCtx, store.LostPetsCollection, petID); getErr == nil {
+			var report domain.LostPetRecord
+			if json.Unmarshal(data, &report) == nil && report.OwnerIdentityRef != "" {
+				_ = stateRuntime.Store.DeleteState(cleanupCtx, store.ReportContactsCollection, report.OwnerIdentityRef)
+			}
+		}
 		_ = stateRuntime.Store.DeleteState(cleanupCtx, store.LostPetsCollection, petID)
 		if eventID != "" {
 			_ = stateRuntime.Store.DeleteState(cleanupCtx, store.OutboxCollection, eventID)

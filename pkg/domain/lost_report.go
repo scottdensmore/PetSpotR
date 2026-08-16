@@ -34,9 +34,8 @@ const (
 	GeocodingUnavailable GeocodingStatus = "unavailable"
 )
 
-// LostPetReport is the canonical persisted aggregate for a lost-pet report.
-// Private contact remains on the aggregate in this first schema slice and is
-// deliberately omitted from PublicLostPetReport.
+// LostPetReport is the canonical application-boundary model for a lost-pet
+// report. Persisted separates its private contact into ReportContact.
 type LostPetReport struct {
 	PetID           string          `json:"petId"`
 	PetName         string          `json:"petName,omitempty"`
@@ -51,6 +50,23 @@ type LostPetReport struct {
 	GeocodingStatus GeocodingStatus `json:"geocodingStatus"`
 	Coordinates     *LocationPoint  `json:"coordinates,omitempty"`
 	Status          LostPetStatus   `json:"status"`
+}
+
+// LostPetRecord is the persisted lost-pet aggregate. Private owner contact is
+// stored separately and linked by OwnerIdentityRef.
+type LostPetRecord struct {
+	PetID            string          `json:"petId"`
+	PetName          string          `json:"petName,omitempty"`
+	Species          string          `json:"species,omitempty"`
+	Breed            string          `json:"breed,omitempty"`
+	PrimaryColor     string          `json:"primaryColor,omitempty"`
+	Description      string          `json:"description,omitempty"`
+	OwnerIdentityRef string          `json:"ownerIdentityRef"`
+	ReportedAt       time.Time       `json:"reportedAt"`
+	Location         string          `json:"location"`
+	GeocodingStatus  GeocodingStatus `json:"geocodingStatus"`
+	Coordinates      *LocationPoint  `json:"coordinates,omitempty"`
+	Status           LostPetStatus   `json:"status"`
 }
 
 // LostPetReportedV2 is the additive payload-v2 integration event. Its legacy
@@ -261,6 +277,69 @@ func normalizeLostPetReported(event LostPetReportedV2) LostPetReportedV2 {
 
 // Public returns the redacted listing representation of the aggregate.
 func (r LostPetReport) Public() PublicLostPetReport {
+	return PublicLostPetReport{
+		PetID:           r.PetID,
+		PetName:         r.PetName,
+		Species:         r.Species,
+		Breed:           r.Breed,
+		PrimaryColor:    r.PrimaryColor,
+		Description:     r.Description,
+		ReportedAt:      r.ReportedAt,
+		Location:        r.Location,
+		GeocodingStatus: r.GeocodingStatus,
+		Coordinates:     cloneLocationPoint(r.Coordinates),
+		Status:          r.Status,
+	}
+}
+
+// Persisted separates private owner contact from the report aggregate.
+func (r LostPetReport) Persisted() (LostPetRecord, ReportContact) {
+	identityRef := reportIdentityRef("lost", r.PetID, "owner")
+	return LostPetRecord{
+			PetID:            r.PetID,
+			PetName:          r.PetName,
+			Species:          r.Species,
+			Breed:            r.Breed,
+			PrimaryColor:     r.PrimaryColor,
+			Description:      r.Description,
+			OwnerIdentityRef: identityRef,
+			ReportedAt:       r.ReportedAt,
+			Location:         r.Location,
+			GeocodingStatus:  r.GeocodingStatus,
+			Coordinates:      cloneLocationPoint(r.Coordinates),
+			Status:           r.Status,
+		}, NormalizeReportContact(ReportContact{
+			IdentityRef: identityRef,
+			Email:       r.ReporterEmail,
+			Phone:       r.Phone,
+		})
+}
+
+// NormalizeLostPetRecord canonicalizes persisted state, including legacy
+// records that predate explicit identity references.
+func NormalizeLostPetRecord(record LostPetRecord) LostPetRecord {
+	report := NormalizeLostPetReport(LostPetReport{
+		PetID:           record.PetID,
+		PetName:         record.PetName,
+		Species:         record.Species,
+		Breed:           record.Breed,
+		PrimaryColor:    record.PrimaryColor,
+		Description:     record.Description,
+		ReportedAt:      record.ReportedAt,
+		Location:        record.Location,
+		GeocodingStatus: record.GeocodingStatus,
+		Coordinates:     record.Coordinates,
+		Status:          record.Status,
+	})
+	normalized, _ := report.Persisted()
+	if identityRef := strings.TrimSpace(record.OwnerIdentityRef); identityRef != "" {
+		normalized.OwnerIdentityRef = identityRef
+	}
+	return normalized
+}
+
+// Public returns the unauthenticated representation of persisted state.
+func (r LostPetRecord) Public() PublicLostPetReport {
 	return PublicLostPetReport{
 		PetID:           r.PetID,
 		PetName:         r.PetName,

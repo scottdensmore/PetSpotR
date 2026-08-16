@@ -2,6 +2,7 @@
 package foundpet
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -314,15 +315,19 @@ func (s *Service) ReportFoundPet(
 	if err := report.Validate(); err != nil {
 		return ReportResult{}, &invalidReportError{cause: err}
 	}
+	persistedReport, contact := report.Persisted()
+	if err := contact.Validate(); err != nil {
+		return ReportResult{}, &invalidReportError{cause: err}
+	}
 
 	// Payload-v1 persisted state used the caller-provided key even though the
 	// envelope normalized its aggregate ID. Check that exact legacy key before
 	// creating canonical state so an old whitespace-bearing key cannot be
 	// duplicated under its normalized form after an upgrade.
 	if command.PetID != report.PetID {
-		legacyResult, legacyExists, matches, err := s.matchPayloadV1Retry(ctx, command.PetID, report)
+		legacyResult, legacyExists, matches, err := s.matchPersistedRetry(ctx, command.PetID, report)
 		if err != nil {
-			return ReportResult{}, fmt.Errorf("failed to check payload-v1 retry: %w", err)
+			return ReportResult{}, fmt.Errorf("failed to check persisted report retry: %w", err)
 		}
 		if matches {
 			return legacyResult, nil
@@ -332,9 +337,13 @@ func (s *Service) ReportFoundPet(
 		}
 	}
 
-	stateData, err := json.Marshal(report)
+	stateData, err := json.Marshal(persistedReport)
 	if err != nil {
 		return ReportResult{}, fmt.Errorf("failed to marshal found-pet report: %w", err)
+	}
+	contactData, err := json.Marshal(contact)
+	if err != nil {
+		return ReportResult{}, fmt.Errorf("failed to marshal found-pet contact: %w", err)
 	}
 	eventData, err := json.Marshal(report.ReportedEvent())
 	if err != nil {
@@ -367,14 +376,16 @@ func (s *Service) ReportFoundPet(
 		return ReportResult{}, fmt.Errorf("failed to create outbox record: %w", err)
 	}
 
-	_, err = s.store.CreateStateAndOutbox(ctx,
-		store.StateWrite{StoreName: store.FoundPetsCollection, Key: report.PetID, Data: stateData},
+	_, err = s.store.CreateStatesAndOutbox(ctx, []store.StateWrite{
+		{StoreName: store.FoundPetsCollection, Key: report.PetID, Data: stateData},
+		{StoreName: store.ReportContactsCollection, Key: contact.IdentityRef, Data: contactData},
+	},
 		store.StateWrite{StoreName: store.OutboxCollection, Key: envelope.ID, Data: recordData},
 	)
 	if errors.Is(err, store.ErrConflict) {
-		legacyResult, _, matches, compatibilityErr := s.matchPayloadV1Retry(ctx, report.PetID, report)
+		legacyResult, _, matches, compatibilityErr := s.matchPersistedRetry(ctx, report.PetID, report)
 		if compatibilityErr != nil {
-			return ReportResult{}, fmt.Errorf("failed to check payload-v1 retry: %w", compatibilityErr)
+			return ReportResult{}, fmt.Errorf("failed to check persisted report retry: %w", compatibilityErr)
 		}
 		if matches {
 			return legacyResult, nil
@@ -396,7 +407,7 @@ func (s *Service) ReportFoundPet(
 	return ReportResult{PetID: report.PetID, EventID: envelope.ID}, nil
 }
 
-func (s *Service) matchPayloadV1Retry(
+func (s *Service) matchPersistedRetry(
 	ctx context.Context,
 	lookupPetID string,
 	report domain.FoundPetReport,
@@ -412,8 +423,52 @@ func (s *Service) matchPayloadV1Retry(
 	if err := json.Unmarshal(legacyData, &shape); err != nil {
 		return ReportResult{}, true, false, nil
 	}
-	if _, isCurrent := shape["geocodingStatus"]; isCurrent {
+	if _, isSeparated := shape["finderIdentityRef"]; isSeparated {
 		return ReportResult{}, true, false, nil
+	}
+	if _, isCurrent := shape["geocodingStatus"]; isCurrent {
+		var previous domain.FoundPetReport
+		if err := json.Unmarshal(legacyData, &previous); err != nil {
+			return ReportResult{}, true, false, nil
+		}
+		previous = domain.NormalizeFoundPetReport(previous)
+		previousData, err := json.Marshal(previous)
+		if err != nil {
+			return ReportResult{}, true, false, err
+		}
+		reportData, err := json.Marshal(report)
+		if err != nil {
+			return ReportResult{}, true, false, err
+		}
+		if !bytes.Equal(previousData, reportData) {
+			return ReportResult{}, true, false, nil
+		}
+		payload, err := json.Marshal(previous.ReportedEvent())
+		if err != nil {
+			return ReportResult{}, true, false, err
+		}
+		envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+			Type:             domain.EventTypeFoundPetReported,
+			OccurredAt:       previous.FoundAt,
+			AggregateID:      previous.PetID,
+			AggregateVersion: 1,
+			PayloadVersion:   domain.FoundPetReportedPayloadVersion,
+			Payload:          payload,
+		})
+		if err != nil {
+			return ReportResult{}, true, false, nil
+		}
+		record, err := outbox.GetRecord(ctx, s.store, envelope.ID)
+		if err != nil {
+			if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+				return ReportResult{}, true, false, nil
+			}
+			return ReportResult{}, true, false, err
+		}
+		if record.Topic != "foundPet" {
+			return ReportResult{}, true, false, nil
+		}
+		return ReportResult{PetID: previous.PetID, EventID: envelope.ID}, true, true, nil
 	}
 
 	var legacy domain.FoundPetEvent
