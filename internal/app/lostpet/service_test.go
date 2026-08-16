@@ -166,6 +166,53 @@ func TestLostPetService_HandleLostPet(t *testing.T) {
 	})
 }
 
+func TestLostPetServicePersistsPrivateContactSeparately(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	service := NewService(stateStore, pubsub.NewMemoryPubSub())
+	command := ReportCommand{
+		PetID:         "lost-private-contact",
+		PetName:       "Buddy",
+		ReporterEmail: "OWNER@EXAMPLE.COM",
+		Phone:         "(555) 019-2834",
+		ReportedAt:    time.Date(2026, time.August, 16, 12, 0, 0, 0, time.UTC),
+		Location:      "Seattle, WA",
+	}
+
+	if _, err := service.ReportLostPet(ctx, command, ReportMetadata{}); err != nil {
+		t.Fatalf("ReportLostPet() error = %v", err)
+	}
+	reportData, err := stateStore.GetState(ctx, store.LostPetsCollection, command.PetID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(reportData), "owner@example.com") || strings.Contains(string(reportData), "reporterEmail") ||
+		strings.Contains(string(reportData), command.Phone) || strings.Contains(string(reportData), "phone") {
+		t.Fatalf("persisted report exposed private contact: %s", reportData)
+	}
+	var report domain.LostPetRecord
+	if err := json.Unmarshal(reportData, &report); err != nil {
+		t.Fatal(err)
+	}
+	contactData, err := stateStore.GetState(ctx, store.ReportContactsCollection, report.OwnerIdentityRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var contact domain.ReportContact
+	if err := json.Unmarshal(contactData, &contact); err != nil {
+		t.Fatal(err)
+	}
+	if contact.IdentityRef != report.OwnerIdentityRef || contact.Email != "owner@example.com" || contact.Phone != command.Phone {
+		t.Fatalf("private contact = %#v; report = %#v", contact, report)
+	}
+
+	changed := command
+	changed.Phone = "(555) 010-9999"
+	if _, err := service.ReportLostPet(ctx, changed, ReportMetadata{}); !errors.Is(err, store.ErrConflict) {
+		t.Fatalf("changed contact retry error = %v, want ErrConflict", err)
+	}
+}
+
 func TestLostPetService_LegacyMissingTimestampAndLocationRetryIsStable(t *testing.T) {
 	ctx := context.Background()
 	stateStore := store.NewMemoryStore()
@@ -286,6 +333,80 @@ func TestLostPetService_PayloadV1RetryRemainsIdempotentAfterSchemaUpgrade(t *tes
 	conflict := submit("Portland, OR")
 	if conflict.Code != http.StatusConflict {
 		t.Fatalf("conflicting payload-v1 retry status = %d, want 409; body = %s", conflict.Code, conflict.Body.String())
+	}
+}
+
+func TestLostPetServiceContactBearingPayloadV2StateRemainsRetryable(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	previous := domain.NormalizeLostPetReport(domain.LostPetReport{
+		PetID:         "lost-before-private-contact",
+		PetName:       "Buddy",
+		Species:       "Dog",
+		ReporterEmail: "owner@example.com",
+		Phone:         "(555) 019-2834",
+		ReportedAt:    time.Date(2026, time.August, 15, 12, 0, 0, 0, time.UTC),
+		Location:      "Seattle, WA",
+	})
+	stateData, err := json.Marshal(previous)
+	if err != nil {
+		t.Fatal(err)
+	}
+	eventData, err := json.Marshal(previous.ReportedEvent())
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+		Type:             domain.EventTypeLostPetReported,
+		OccurredAt:       previous.ReportedAt,
+		AggregateID:      previous.PetID,
+		AggregateVersion: 1,
+		PayloadVersion:   domain.LostPetReportedPayloadVersion,
+		Payload:          eventData,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelopeData, err := json.Marshal(envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := stateStore.SaveState(ctx, store.LostPetsCollection, previous.PetID, stateData); err != nil {
+		t.Fatal(err)
+	}
+	if err := outbox.SaveRecord(ctx, stateStore, outbox.NewRecord(envelope.ID, "lostPet", envelopeData, previous.ReportedAt)); err != nil {
+		t.Fatal(err)
+	}
+
+	service := NewService(stateStore, pubsub.NewMemoryPubSub())
+	command := ReportCommand{
+		PetID:         previous.PetID,
+		PetName:       previous.PetName,
+		Species:       previous.Species,
+		ReporterEmail: previous.ReporterEmail,
+		Phone:         previous.Phone,
+		ReportedAt:    previous.ReportedAt,
+		Location:      previous.Location,
+	}
+	result, err := service.ReportLostPet(ctx, command, ReportMetadata{})
+	if err != nil || result.EventID != envelope.ID {
+		t.Fatalf("ReportLostPet() = %#v, %v; want legacy event %s", result, err, envelope.ID)
+	}
+	preserved, err := stateStore.GetState(ctx, store.LostPetsCollection, previous.PetID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(preserved, stateData) {
+		t.Fatalf("contact-bearing state was rewritten: %s", preserved)
+	}
+	_, contact := previous.Persisted()
+	if _, err := stateStore.GetState(ctx, store.ReportContactsCollection, contact.IdentityRef); !errors.Is(err, store.ErrNotFound) && !errors.Is(err, store.ErrStoreNotFound) {
+		t.Fatalf("compatibility retry contact lookup error = %v, want not found", err)
+	}
+
+	command.Phone = "(555) 010-9999"
+	if _, err := service.ReportLostPet(ctx, command, ReportMetadata{}); !errors.Is(err, store.ErrConflict) {
+		t.Fatalf("changed legacy contact error = %v, want ErrConflict", err)
 	}
 }
 

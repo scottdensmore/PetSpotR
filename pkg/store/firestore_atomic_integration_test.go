@@ -133,6 +133,11 @@ func TestFirestoreCreateStateAndOutboxTransaction(t *testing.T) {
 		Key:       "lost-atomic-" + suffix,
 		Data:      []byte(`{"petId":"lost-atomic"}`),
 	}
+	contact := store.StateWrite{
+		StoreName: store.ReportContactsCollection,
+		Key:       "lost/lost-atomic/owner-" + suffix,
+		Data:      []byte(`{"email":"owner@example.com"}`),
+	}
 	outboxRecord := outbox.NewRecord("evt-atomic-"+suffix, "lostPet", []byte(`{"id":"evt-atomic"}`), time.Now().UTC())
 	outboxData, err := outbox.MarshalRecord(outboxRecord)
 	if err != nil {
@@ -147,12 +152,13 @@ func TestFirestoreCreateStateAndOutboxTransaction(t *testing.T) {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cleanupCancel()
 		_ = stateStore.DeleteState(cleanupCtx, state.StoreName, state.Key)
+		_ = stateStore.DeleteState(cleanupCtx, contact.StoreName, contact.Key)
 		_ = stateStore.DeleteState(cleanupCtx, outboxWrite.StoreName, outboxWrite.Key)
 	})
 
-	created, err := stateStore.CreateStateAndOutbox(ctx, state, outboxWrite)
+	created, err := stateStore.CreateStatesAndOutbox(ctx, []store.StateWrite{state, contact}, outboxWrite)
 	if err != nil || !created {
-		t.Fatalf("CreateStateAndOutbox() = %t, %v; want true, nil", created, err)
+		t.Fatalf("CreateStatesAndOutbox() = %t, %v; want true, nil", created, err)
 	}
 
 	// A retry may carry different request metadata in the envelope, but the
@@ -165,9 +171,9 @@ func TestFirestoreCreateStateAndOutboxTransaction(t *testing.T) {
 	}
 	retryOutbox := outboxWrite
 	retryOutbox.Data = retryData
-	created, err = stateStore.CreateStateAndOutbox(ctx, state, retryOutbox)
+	created, err = stateStore.CreateStatesAndOutbox(ctx, []store.StateWrite{state, contact}, retryOutbox)
 	if err != nil || created {
-		t.Fatalf("retry CreateStateAndOutbox() = %t, %v; want false, nil", created, err)
+		t.Fatalf("retry CreateStatesAndOutbox() = %t, %v; want false, nil", created, err)
 	}
 	storedOutbox, err := stateStore.GetState(ctx, outboxWrite.StoreName, outboxWrite.Key)
 	if err != nil {
@@ -191,12 +197,21 @@ func TestFirestoreCreateStateAndOutboxTransaction(t *testing.T) {
 		defer cleanupCancel()
 		_ = stateStore.DeleteState(cleanupCtx, competing.StoreName, competing.Key)
 	})
-	created, err = stateStore.CreateStateAndOutbox(ctx, state, competing)
+	changedContact := contact
+	changedContact.Data = []byte(`{"email":"other@example.com"}`)
+	created, err = stateStore.CreateStatesAndOutbox(ctx, []store.StateWrite{state, changedContact}, competing)
 	if !errors.Is(err, store.ErrConflict) || created {
-		t.Fatalf("competing CreateStateAndOutbox() = %t, %v; want false, ErrConflict", created, err)
+		t.Fatalf("competing CreateStatesAndOutbox() = %t, %v; want false, ErrConflict", created, err)
 	}
 	if _, err := stateStore.GetState(ctx, competing.StoreName, competing.Key); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("competing outbox error = %v, want ErrNotFound", err)
+	}
+	storedContact, err := stateStore.GetState(ctx, contact.StoreName, contact.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(storedContact) != string(contact.Data) {
+		t.Fatalf("competing create replaced contact = %s, want %s", storedContact, contact.Data)
 	}
 }
 

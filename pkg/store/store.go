@@ -43,6 +43,7 @@ type StateStore interface {
 	SaveState(ctx context.Context, storeName, key string, data []byte) error
 	UpdateState(ctx context.Context, storeName, key string, update StateUpdater) error
 	CreateStateAndOutbox(ctx context.Context, state, outbox StateWrite) (bool, error)
+	CreateStatesAndOutbox(ctx context.Context, states []StateWrite, outbox StateWrite) (bool, error)
 	GetState(ctx context.Context, storeName, key string) ([]byte, error)
 	DeleteState(ctx context.Context, storeName, key string) error
 	ListState(ctx context.Context, storeName string) (map[string][]byte, error)
@@ -68,32 +69,47 @@ type OutboxIndexBackfiller interface {
 // record. An exact retry is a successful no-op; a competing aggregate create
 // returns ErrConflict.
 func (m *MemoryStore) CreateStateAndOutbox(ctx context.Context, state, outbox StateWrite) (bool, error) {
+	return m.CreateStatesAndOutbox(ctx, []StateWrite{state}, outbox)
+}
+
+// CreateStatesAndOutbox atomically creates one or more related state records
+// and their outbox record. Exact retries compare every state record while
+// preserving the first outbox value, which may already record publication.
+func (m *MemoryStore) CreateStatesAndOutbox(ctx context.Context, states []StateWrite, outbox StateWrite) (bool, error) {
 	if err := ctx.Err(); err != nil {
 		return false, err
 	}
-	if err := validateAtomicWrites(state, outbox); err != nil {
+	if err := validateAtomicWrites(states, outbox); err != nil {
 		return false, err
 	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	stateData, stateExists := m.items[state.StoreName][state.Key]
 	_, outboxExists := m.items[outbox.StoreName][outbox.Key]
-	if stateExists || outboxExists {
-		if stateExists && outboxExists && bytes.Equal(stateData, state.Data) {
+	anyExists := outboxExists
+	allExistAndMatch := outboxExists
+	for _, state := range states {
+		stateData, stateExists := m.items[state.StoreName][state.Key]
+		anyExists = anyExists || stateExists
+		allExistAndMatch = allExistAndMatch && stateExists && bytes.Equal(stateData, state.Data)
+	}
+	if anyExists {
+		if allExistAndMatch {
 			return false, nil
 		}
-		return false, fmt.Errorf("%w: %s/%s", ErrConflict, state.StoreName, state.Key)
+		return false, fmt.Errorf("%w: %s/%s", ErrConflict, states[0].StoreName, states[0].Key)
 	}
 
-	if _, exists := m.items[state.StoreName]; !exists {
-		m.items[state.StoreName] = make(map[string][]byte)
+	for _, state := range states {
+		if _, exists := m.items[state.StoreName]; !exists {
+			m.items[state.StoreName] = make(map[string][]byte)
+		}
+		m.items[state.StoreName][state.Key] = bytes.Clone(state.Data)
 	}
 	if _, exists := m.items[outbox.StoreName]; !exists {
 		m.items[outbox.StoreName] = make(map[string][]byte)
 	}
-	m.items[state.StoreName][state.Key] = bytes.Clone(state.Data)
 	m.items[outbox.StoreName][outbox.Key] = bytes.Clone(outbox.Data)
 	return true, nil
 }
@@ -255,11 +271,21 @@ func (m *MemoryStore) ListPendingOutbox(ctx context.Context, topic string, limit
 	return ids, errors.Join(decodeErrors...)
 }
 
-func validateAtomicWrites(state, outbox StateWrite) error {
-	for _, write := range []StateWrite{state, outbox} {
+func validateAtomicWrites(states []StateWrite, outbox StateWrite) error {
+	if len(states) == 0 {
+		return errors.New("store: at least one state write is required")
+	}
+	writes := append(append(make([]StateWrite, 0, len(states)+1), states...), outbox)
+	targets := make(map[string]struct{}, len(writes))
+	for _, write := range writes {
 		if write.StoreName == "" || write.Key == "" {
 			return errors.New("store: atomic write store name and key are required")
 		}
+		target := write.StoreName + "\x00" + write.Key
+		if _, exists := targets[target]; exists {
+			return fmt.Errorf("store: duplicate atomic write target %s/%s", write.StoreName, write.Key)
+		}
+		targets[target] = struct{}{}
 	}
 	if outbox.StoreName != OutboxCollection {
 		return fmt.Errorf("store: outbox write must target %s", OutboxCollection)

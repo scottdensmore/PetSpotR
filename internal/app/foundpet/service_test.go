@@ -123,6 +123,51 @@ func TestFoundPetService_HandleFoundPet(t *testing.T) {
 	})
 }
 
+func TestFoundPetServicePersistsPrivateContactSeparately(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	service := NewReportService(stateStore, pubsub.NewMemoryPubSub())
+	command := ReportCommand{
+		PetID:       "found-private-contact",
+		ImageURL:    "https://storage.petspotr.io/found-private-contact.jpg",
+		FoundAt:     time.Date(2026, time.August, 16, 13, 0, 0, 0, time.UTC),
+		Location:    "Seattle, WA",
+		FinderEmail: "FINDER@EXAMPLE.COM",
+	}
+
+	if _, err := service.ReportFoundPet(ctx, command, ReportMetadata{}); err != nil {
+		t.Fatalf("ReportFoundPet() error = %v", err)
+	}
+	reportData, err := stateStore.GetState(ctx, store.FoundPetsCollection, command.PetID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(reportData), "finder@example.com") || strings.Contains(string(reportData), "finderEmail") {
+		t.Fatalf("persisted report exposed private contact: %s", reportData)
+	}
+	var report domain.FoundPetRecord
+	if err := json.Unmarshal(reportData, &report); err != nil {
+		t.Fatal(err)
+	}
+	contactData, err := stateStore.GetState(ctx, store.ReportContactsCollection, report.FinderIdentityRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var contact domain.ReportContact
+	if err := json.Unmarshal(contactData, &contact); err != nil {
+		t.Fatal(err)
+	}
+	if contact.IdentityRef != report.FinderIdentityRef || contact.Email != "finder@example.com" {
+		t.Fatalf("private contact = %#v; report = %#v", contact, report)
+	}
+
+	changed := command
+	changed.FinderEmail = "other@example.com"
+	if _, err := service.ReportFoundPet(ctx, changed, ReportMetadata{}); !errors.Is(err, store.ErrConflict) {
+		t.Fatalf("changed contact retry error = %v, want ErrConflict", err)
+	}
+}
+
 func TestFoundPetService_PayloadV1RetryRemainsIdempotentAfterSchemaUpgrade(t *testing.T) {
 	petIDs := []string{"found-before-v2", " found-before-v2-spaced "}
 	for _, petID := range petIDs {
@@ -226,6 +271,134 @@ func TestFoundPetService_PayloadV1RetryRemainsIdempotentAfterSchemaUpgrade(t *te
 				t.Fatalf("outbox record count = %d, want 1", len(outboxRecords))
 			}
 		})
+	}
+}
+
+func TestFoundPetServiceContactBearingPayloadV2StateRemainsRetryable(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	previous := domain.NormalizeFoundPetReport(domain.FoundPetReport{
+		PetID:         "found-before-private-contact",
+		ImageURL:      "https://storage.petspotr.io/found-before-private-contact.jpg",
+		FoundAt:       time.Date(2026, time.August, 15, 13, 0, 0, 0, time.UTC),
+		Location:      "Seattle, WA",
+		FinderEmail:   "finder@example.com",
+		Species:       "Dog",
+		CustodyStatus: domain.CustodyFinderHome,
+	})
+	stateData, err := json.Marshal(previous)
+	if err != nil {
+		t.Fatal(err)
+	}
+	eventData, err := json.Marshal(previous.ReportedEvent())
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+		Type:             domain.EventTypeFoundPetReported,
+		OccurredAt:       previous.FoundAt,
+		AggregateID:      previous.PetID,
+		AggregateVersion: 1,
+		PayloadVersion:   domain.FoundPetReportedPayloadVersion,
+		Payload:          eventData,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelopeData, err := json.Marshal(envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := stateStore.SaveState(ctx, store.FoundPetsCollection, previous.PetID, stateData); err != nil {
+		t.Fatal(err)
+	}
+	if err := outbox.SaveRecord(ctx, stateStore, outbox.NewRecord(envelope.ID, "foundPet", envelopeData, previous.FoundAt)); err != nil {
+		t.Fatal(err)
+	}
+
+	service := NewReportService(stateStore, pubsub.NewMemoryPubSub())
+	command := ReportCommand{
+		PetID:         previous.PetID,
+		ImageURL:      previous.ImageURL,
+		FoundAt:       previous.FoundAt,
+		Location:      previous.Location,
+		FinderEmail:   previous.FinderEmail,
+		Species:       previous.Species,
+		CustodyStatus: previous.CustodyStatus,
+	}
+	result, err := service.ReportFoundPet(ctx, command, ReportMetadata{})
+	if err != nil || result.EventID != envelope.ID {
+		t.Fatalf("ReportFoundPet() = %#v, %v; want legacy event %s", result, err, envelope.ID)
+	}
+	preserved, err := stateStore.GetState(ctx, store.FoundPetsCollection, previous.PetID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(preserved, stateData) {
+		t.Fatalf("contact-bearing state was rewritten: %s", preserved)
+	}
+	_, contact := previous.Persisted()
+	if _, err := stateStore.GetState(ctx, store.ReportContactsCollection, contact.IdentityRef); !errors.Is(err, store.ErrNotFound) && !errors.Is(err, store.ErrStoreNotFound) {
+		t.Fatalf("compatibility retry contact lookup error = %v, want not found", err)
+	}
+
+	command.FinderEmail = "other@example.com"
+	if _, err := service.ReportFoundPet(ctx, command, ReportMetadata{}); !errors.Is(err, store.ErrConflict) {
+		t.Fatalf("changed legacy contact error = %v, want ErrConflict", err)
+	}
+}
+
+func TestFoundPetServiceRejectsSeparatedStateMissingPrivateContact(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	previous := domain.NormalizeFoundPetReport(domain.FoundPetReport{
+		PetID:    "found-missing-private-contact",
+		ImageURL: "https://storage.petspotr.io/found-missing-private-contact.jpg",
+		FoundAt:  time.Date(2026, time.August, 16, 13, 0, 0, 0, time.UTC),
+		Location: "Seattle, WA",
+		Species:  "Dog",
+	})
+	record, _ := previous.Persisted()
+	stateData, err := json.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	eventData, err := json.Marshal(previous.ReportedEvent())
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+		Type:             domain.EventTypeFoundPetReported,
+		OccurredAt:       previous.FoundAt,
+		AggregateID:      previous.PetID,
+		AggregateVersion: 1,
+		PayloadVersion:   domain.FoundPetReportedPayloadVersion,
+		Payload:          eventData,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelopeData, err := json.Marshal(envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := stateStore.SaveState(ctx, store.FoundPetsCollection, previous.PetID, stateData); err != nil {
+		t.Fatal(err)
+	}
+	if err := outbox.SaveRecord(ctx, stateStore, outbox.NewRecord(envelope.ID, "foundPet", envelopeData, previous.FoundAt)); err != nil {
+		t.Fatal(err)
+	}
+
+	service := NewReportService(stateStore, pubsub.NewMemoryPubSub())
+	_, err = service.ReportFoundPet(ctx, ReportCommand{
+		PetID:    previous.PetID,
+		ImageURL: previous.ImageURL,
+		FoundAt:  previous.FoundAt,
+		Location: previous.Location,
+		Species:  previous.Species,
+	}, ReportMetadata{})
+	if !errors.Is(err, store.ErrConflict) {
+		t.Fatalf("missing private contact error = %v, want ErrConflict", err)
 	}
 }
 
@@ -350,6 +523,21 @@ func (s *deadlineBlockingStore) CreateStateAndOutbox(
 		return false, err
 	}
 	return s.MemoryStore.CreateStateAndOutbox(ctx, stateWrite, outboxWrite)
+}
+
+func (s *deadlineBlockingStore) CreateStatesAndOutbox(
+	ctx context.Context,
+	stateWrites []store.StateWrite,
+	outboxWrite store.StateWrite,
+) (bool, error) {
+	close(s.entered)
+	<-ctx.Done()
+	close(s.timedOut)
+	<-s.release
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	return s.MemoryStore.CreateStatesAndOutbox(ctx, stateWrites, outboxWrite)
 }
 
 type deadlineCleanupImageStore struct {

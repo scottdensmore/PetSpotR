@@ -35,9 +35,8 @@ const (
 	CustodySightedOnly   CustodyStatus = "Sighted Only"
 )
 
-// FoundPetReport is the canonical persisted aggregate for a found-pet report.
-// FinderEmail remains private state and is deliberately omitted from
-// PublicFoundPetReport and FoundPetReportedV2.
+// FoundPetReport is the canonical application-boundary model for a found-pet
+// report. Persisted separates its private contact into ReportContact.
 type FoundPetReport struct {
 	PetID               string          `json:"petId"`
 	ImageURL            string          `json:"imageUrl,omitempty"`
@@ -47,6 +46,26 @@ type FoundPetReport struct {
 	GeocodingStatus     GeocodingStatus `json:"geocodingStatus"`
 	Coordinates         *LocationPoint  `json:"coordinates,omitempty"`
 	FinderEmail         string          `json:"finderEmail,omitempty"`
+	Species             string          `json:"species,omitempty"`
+	Breed               string          `json:"breed,omitempty"`
+	PrimaryColor        string          `json:"primaryColor,omitempty"`
+	SecondaryColor      string          `json:"secondaryColor,omitempty"`
+	DistinctiveMarkings []string        `json:"distinctiveMarkings,omitempty"`
+	CustodyStatus       CustodyStatus   `json:"custodyStatus"`
+	Status              FoundPetStatus  `json:"status"`
+}
+
+// FoundPetRecord is the persisted found-pet aggregate. Private finder contact
+// is stored separately and linked by FinderIdentityRef.
+type FoundPetRecord struct {
+	PetID               string          `json:"petId"`
+	ImageURL            string          `json:"imageUrl,omitempty"`
+	ImageObject         string          `json:"imageObject,omitempty"`
+	FoundAt             time.Time       `json:"foundAt"`
+	Location            string          `json:"location"`
+	GeocodingStatus     GeocodingStatus `json:"geocodingStatus"`
+	Coordinates         *LocationPoint  `json:"coordinates,omitempty"`
+	FinderIdentityRef   string          `json:"finderIdentityRef"`
 	Species             string          `json:"species,omitempty"`
 	Breed               string          `json:"breed,omitempty"`
 	PrimaryColor        string          `json:"primaryColor,omitempty"`
@@ -252,6 +271,77 @@ func (r FoundPetReport) Validate() error {
 
 // Public returns the redacted listing representation of the aggregate.
 func (r FoundPetReport) Public() PublicFoundPetReport {
+	return PublicFoundPetReport{
+		PetID:               r.PetID,
+		ImageURL:            r.ImageURL,
+		ImageObject:         r.ImageObject,
+		FoundAt:             r.FoundAt,
+		Location:            r.Location,
+		GeocodingStatus:     r.GeocodingStatus,
+		Coordinates:         cloneLocationPoint(r.Coordinates),
+		Species:             r.Species,
+		Breed:               r.Breed,
+		PrimaryColor:        r.PrimaryColor,
+		SecondaryColor:      r.SecondaryColor,
+		DistinctiveMarkings: append([]string(nil), r.DistinctiveMarkings...),
+		CustodyStatus:       r.CustodyStatus,
+		Status:              r.Status,
+	}
+}
+
+// Persisted separates private finder contact from the report aggregate.
+func (r FoundPetReport) Persisted() (FoundPetRecord, ReportContact) {
+	identityRef := reportIdentityRef("found", r.PetID, "finder")
+	return FoundPetRecord{
+			PetID:               r.PetID,
+			ImageURL:            r.ImageURL,
+			ImageObject:         r.ImageObject,
+			FoundAt:             r.FoundAt,
+			Location:            r.Location,
+			GeocodingStatus:     r.GeocodingStatus,
+			Coordinates:         cloneLocationPoint(r.Coordinates),
+			FinderIdentityRef:   identityRef,
+			Species:             r.Species,
+			Breed:               r.Breed,
+			PrimaryColor:        r.PrimaryColor,
+			SecondaryColor:      r.SecondaryColor,
+			DistinctiveMarkings: append([]string(nil), r.DistinctiveMarkings...),
+			CustodyStatus:       r.CustodyStatus,
+			Status:              r.Status,
+		}, NormalizeReportContact(ReportContact{
+			IdentityRef: identityRef,
+			Email:       r.FinderEmail,
+		})
+}
+
+// NormalizeFoundPetRecord canonicalizes persisted state, including legacy
+// records that predate explicit identity references.
+func NormalizeFoundPetRecord(record FoundPetRecord) FoundPetRecord {
+	report := NormalizeFoundPetReport(FoundPetReport{
+		PetID:               record.PetID,
+		ImageURL:            record.ImageURL,
+		ImageObject:         record.ImageObject,
+		FoundAt:             record.FoundAt,
+		Location:            record.Location,
+		GeocodingStatus:     record.GeocodingStatus,
+		Coordinates:         record.Coordinates,
+		Species:             record.Species,
+		Breed:               record.Breed,
+		PrimaryColor:        record.PrimaryColor,
+		SecondaryColor:      record.SecondaryColor,
+		DistinctiveMarkings: record.DistinctiveMarkings,
+		CustodyStatus:       record.CustodyStatus,
+		Status:              record.Status,
+	})
+	normalized, _ := report.Persisted()
+	if identityRef := strings.TrimSpace(record.FinderIdentityRef); identityRef != "" {
+		normalized.FinderIdentityRef = identityRef
+	}
+	return normalized
+}
+
+// Public returns the unauthenticated representation of persisted state.
+func (r FoundPetRecord) Public() PublicFoundPetReport {
 	return PublicFoundPetReport{
 		PetID:               r.PetID,
 		ImageURL:            r.ImageURL,

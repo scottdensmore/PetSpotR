@@ -4,6 +4,7 @@ package store
 const (
 	LostPetsCollection               = "lostPets"
 	FoundPetsCollection              = "foundPets"
+	ReportContactsCollection         = "reportContacts"
 	MatchesCollection                = "matches"
 	PushSubscriptionsCollection      = "pushSubscriptions"
 	OutboxCollection                 = "eventOutbox"

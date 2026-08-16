@@ -314,14 +314,18 @@ The test specifically requests `gemma2:2b`; the Compose stack's default
 still reports `ok`. This live contract is not part of the default verifier or
 CI battery, so do not claim live Ollama coverage unless the command above ran.
 
-### Transactional report outbox
+### Transactional report state and outbox
 
-The lost- and found-report services create aggregate state and a durable
-`eventOutbox` record in one transaction. Each outbox payload uses envelope
-version 1 with a stable event ID, type, occurrence time, correlation and trace
-IDs, aggregate ID and version, and payload version. Consumers accept both this
-envelope and the legacy raw event payload so messages already in flight remain
-readable.
+The lost- and found-report services create a contact-free aggregate, its
+private `reportContacts` record, and a durable `eventOutbox` record in one
+transaction. The aggregate links to contact through a stable, report-scoped
+owner or finder identity reference; public DTOs omit both the reference and the
+private record. Each outbox payload uses envelope version 1 with a stable event
+ID, type, occurrence time, correlation and trace IDs, aggregate ID and version,
+and payload version. Consumers accept both this envelope and the legacy raw
+event payload so messages already in flight remain readable. Exact retries of
+the prior contact-bearing aggregate shape are also accepted without rewriting
+legacy state.
 
 An exact retry is a successful no-op and cannot reset a completed outbox
 record. A competing create with the same pet ID returns `409 Conflict`; report

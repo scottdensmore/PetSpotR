@@ -15,6 +15,9 @@ func TestCanonicalCollectionNames(t *testing.T) {
 	if store.FoundPetsCollection != "foundPets" {
 		t.Fatalf("FoundPetsCollection = %q, want foundPets", store.FoundPetsCollection)
 	}
+	if store.ReportContactsCollection != "reportContacts" {
+		t.Fatalf("ReportContactsCollection = %q, want reportContacts", store.ReportContactsCollection)
+	}
 	if store.MatchesCollection != "matches" {
 		t.Fatalf("MatchesCollection = %q, want matches", store.MatchesCollection)
 	}
