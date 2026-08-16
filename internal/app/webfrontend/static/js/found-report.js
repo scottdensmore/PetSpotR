@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputSecondaryColor = document.getElementById('foundSecondaryColor');
 
   let currentImageUrl = '';
+  let pendingSubmission = null;
 
   if (dropzone && photoInput) {
     dropzone.addEventListener('click', () => photoInput.click());
@@ -106,8 +107,15 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Please enter found location and finder contact email.');
         return;
       }
+      if (!pendingSubmission) {
+        pendingSubmission = {
+          petId: `found-${crypto.randomUUID()}`,
+          foundAt: new Date().toISOString()
+        };
+      }
 
       const payload = {
+        ...pendingSubmission,
         imageUrl: currentImageUrl || 'https://storage.petspotr.io/found-sample.jpg',
         location: location.trim(),
         finderEmail: finderEmail.trim(),
@@ -125,9 +133,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (resp.ok) {
+          pendingSubmission = null;
           const modal = document.getElementById('found-success-modal');
           if (modal) modal.hidden = false;
         } else {
+          if (resp.status < 500) pendingSubmission = null;
           alert('Failed to submit found pet report.');
         }
       } catch (err) {

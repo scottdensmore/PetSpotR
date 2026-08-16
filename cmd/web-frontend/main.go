@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/scottdensmore/petspotr/internal/app/foundpet"
 	"github.com/scottdensmore/petspotr/internal/app/lostpet"
 	"github.com/scottdensmore/petspotr/internal/app/outboxrecovery"
 	"github.com/scottdensmore/petspotr/internal/app/webfrontend"
@@ -54,11 +55,16 @@ func main() {
 	}()
 
 	lostReports := lostpet.NewService(stateRuntime.Store, messagingRuntime.Publisher)
+	foundReports := foundpet.NewReportService(stateRuntime.Store, messagingRuntime.Publisher)
 	backfiller, _ := stateRuntime.Store.(store.OutboxIndexBackfiller)
 	recoveryRunner, err := outboxrecovery.New(outboxrecovery.Config{
-		Service:    "WebFrontendLostPet",
+		Service:    "WebFrontend",
 		Backfiller: backfiller,
-		Recover:    lostReports.RecoverOutbox,
+		Recover: func(ctx context.Context) (int, error) {
+			lostCount, lostErr := lostReports.RecoverOutbox(ctx)
+			foundCount, foundErr := foundReports.RecoverOutbox(ctx)
+			return lostCount + foundCount, errors.Join(lostErr, foundErr)
+		},
 	})
 	if err != nil {
 		log.Fatalf("Invalid outbox recovery configuration: %v", err)
@@ -67,6 +73,7 @@ func main() {
 
 	srv := webfrontend.NewServerWithOptions(stateRuntime.Store, webfrontend.ServerOptions{
 		AllowPrivilegedMutations: config.Mode == runtimeconfig.ModeMemory,
+		FoundPetReporter:         foundReports,
 		LostPetReporter:          lostReports,
 	})
 	httpSrv := &http.Server{

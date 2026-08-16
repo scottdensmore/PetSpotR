@@ -18,7 +18,8 @@ import (
 	"testing"
 	"time"
 
-	gcppubsub "cloud.google.com/go/pubsub"
+	gcppubsub "cloud.google.com/go/pubsub/v2"
+	"cloud.google.com/go/pubsub/v2/apiv1/pubsubpb"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/outbox"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
@@ -51,11 +52,15 @@ func TestFirestoreStateCrossesServiceProcessesAndSurvivesRestart(t *testing.T) {
 		t.Fatalf("create Pub/Sub emulator client: %v", err)
 	}
 	t.Cleanup(func() { _ = pubsubClient.Close() })
-	lostTopic, err := pubsubClient.CreateTopic(ctx, "lostPet")
+	lostTopic, err := pubsubClient.TopicAdminClient.CreateTopic(ctx, &pubsubpb.Topic{
+		Name: fmt.Sprintf("projects/%s/topics/lostPet", projectID),
+	})
 	if err != nil {
 		t.Fatalf("create lostPet emulator topic: %v", err)
 	}
-	t.Cleanup(func() { _ = lostTopic.Delete(context.Background()) })
+	t.Cleanup(func() {
+		_ = pubsubClient.TopicAdminClient.DeleteTopic(context.Background(), &pubsubpb.DeleteTopicRequest{Topic: lostTopic.GetName()})
+	})
 	petID := fmt.Sprintf("lost-process-%d", time.Now().UnixNano())
 	stateRuntime, err := runtimeconfig.NewStateRuntime(ctx, runtimeconfig.StateConfig{
 		Mode:                  runtimeconfig.ModeLocalEmulator,
