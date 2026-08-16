@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M062HMAYAZKJQP90XPFJWZ6D",
+  "strategy": "manual-commit",
+  "branch": "feat/lost-report-event-v3",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "e2e/web_frontend_cascade_test.go",
+    "internal/app/lostpet/service.go",
+    "internal/app/lostpet/service_test.go",
+    "internal/app/notification/broadcast.go",
+    "internal/app/notification/broadcast_test.go",
+    "internal/app/notification/idempotency_test.go",
+    "pkg/domain/lost_report.go",
+    "pkg/domain/lost_report_test.go",
+    "pkg/domain/lost_report_v3_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 218287,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 12694272,
+    "output_tokens": 32175,
+    "api_call_count": 106
+  }
+}
