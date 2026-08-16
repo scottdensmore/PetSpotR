@@ -146,13 +146,19 @@ func TestWebFrontendLostPetSubmissionUsesCanonicalService(t *testing.T) {
 		LostPetReporter: lostReports,
 	})
 
-	published := make(chan domain.LostPetEvent, 1)
+	type publishedLostPet struct {
+		data     []byte
+		envelope *domain.EventEnvelope
+		event    domain.LostPetReportedV2
+	}
+	published := make(chan publishedLostPet, 1)
 	if err := ps.Subscribe("lostPet", func(_ context.Context, data []byte) error {
-		var event domain.LostPetEvent
-		if _, err := domain.DecodeEventPayload(data, domain.EventTypeLostPetReported, &event); err != nil {
+		var event domain.LostPetReportedV2
+		envelope, err := domain.DecodeEventPayload(data, domain.EventTypeLostPetReported, &event)
+		if err != nil {
 			return err
 		}
-		published <- event
+		published <- publishedLostPet{data: append([]byte(nil), data...), envelope: envelope, event: event}
 		return nil
 	}); err != nil {
 		t.Fatalf("subscribe to lostPet: %v", err)
@@ -161,7 +167,7 @@ func TestWebFrontendLostPetSubmissionUsesCanonicalService(t *testing.T) {
 	request := httptest.NewRequest(
 		http.MethodPost,
 		"/api/v1/lost-pets",
-		strings.NewReader(`{"petName":"Buddy","reporterEmail":"owner@example.com","location":"Seattle, WA"}`),
+		strings.NewReader(`{"petId":"lost-buddy-schema","petName":"Buddy","species":"Dog","breed":"Golden Retriever","primaryColor":"Golden","description":"White chest patch","reporterEmail":" Owner@Example.COM ","phone":" (555) 019-2834 ","reportedAt":"2026-08-15T12:00:00Z","location":"Seattle, WA"}`),
 	)
 	request.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
@@ -182,17 +188,67 @@ func TestWebFrontendLostPetSubmissionUsesCanonicalService(t *testing.T) {
 	}
 
 	select {
-	case event := <-published:
-		if event.PetID != response.PetID || event.ReporterEmail != "owner@example.com" || event.Location != "Seattle, WA" {
-			t.Fatalf("published lost-pet event = %#v; response pet ID = %q", event, response.PetID)
+	case got := <-published:
+		if got.envelope == nil || got.envelope.PayloadVersion != domain.LostPetReportedPayloadVersion {
+			t.Fatalf("published envelope = %#v", got.envelope)
+		}
+		if got.event.PetID != response.PetID || got.event.PetName != "Buddy" || got.event.Species != "Dog" ||
+			got.event.Breed != "Golden Retriever" || got.event.PrimaryColor != "Golden" ||
+			got.event.Description != "White chest patch" || got.event.ReporterEmail != "owner@example.com" ||
+			got.event.Location != "Seattle, WA" || got.event.GeocodingStatus != domain.GeocodingPending {
+			t.Fatalf("published lost-pet event = %#v; response pet ID = %q", got.event, response.PetID)
+		}
+		if strings.Contains(string(got.data), `"phone"`) {
+			t.Fatalf("published lost-pet event exposed phone data: %s", got.data)
+		}
+
+		var legacy domain.LostPetEvent
+		if _, err := domain.DecodeEventPayload(got.data, domain.EventTypeLostPetReported, &legacy); err != nil {
+			t.Fatalf("legacy reader rejected payload-v2 event: %v", err)
+		}
+		if legacy.PetID != response.PetID || legacy.ReporterEmail != "owner@example.com" || legacy.Location != "Seattle, WA" {
+			t.Fatalf("legacy decoded event = %#v", legacy)
 		}
 	case <-time.After(time.Second):
 		t.Fatal("browser lost-pet submission did not publish the canonical lostPet event")
 	}
 
-	if _, err := st.GetState(ctx, store.LostPetsCollection, response.PetID); err != nil {
+	stateData, err := st.GetState(ctx, store.LostPetsCollection, response.PetID)
+	if err != nil {
 		t.Fatalf("load canonical lost-pet state: %v", err)
 	}
+	var report domain.LostPetReport
+	if err := json.Unmarshal(stateData, &report); err != nil {
+		t.Fatalf("decode canonical lost-pet state: %v", err)
+	}
+	if report.PetName != "Buddy" || report.Species != "Dog" || report.Breed != "Golden Retriever" ||
+		report.PrimaryColor != "Golden" || report.Description != "White chest patch" ||
+		report.ReporterEmail != "owner@example.com" || report.Phone != "(555) 019-2834" ||
+		report.Status != domain.LostPetStatusLost || report.GeocodingStatus != domain.GeocodingPending ||
+		report.Coordinates != nil {
+		t.Fatalf("persisted lost-pet report = %#v", report)
+	}
+
+	publicRequest := httptest.NewRequest(http.MethodGet, "/api/v1/lost-pets", nil)
+	publicRecorder := httptest.NewRecorder()
+	frontend.ServeHTTP(publicRecorder, publicRequest)
+	if publicRecorder.Code != http.StatusOK {
+		t.Fatalf("public lost-pet status = %d, want 200; body = %s", publicRecorder.Code, publicRecorder.Body.String())
+	}
+	publicData := append([]byte(nil), publicRecorder.Body.Bytes()...)
+	var publicReports []domain.PublicLostPetReport
+	if err := json.Unmarshal(publicData, &publicReports); err != nil {
+		t.Fatalf("decode public lost-pet reports: %v", err)
+	}
+	if len(publicReports) != 1 || publicReports[0].PetName != "Buddy" || publicReports[0].Species != "Dog" ||
+		publicReports[0].GeocodingStatus != domain.GeocodingPending {
+		t.Fatalf("public lost-pet reports = %#v", publicReports)
+	}
+	if strings.Contains(string(publicData), "owner@example.com") ||
+		strings.Contains(string(publicData), "reporterEmail") || strings.Contains(string(publicData), "phone") {
+		t.Fatalf("public lost-pet response exposed private contact: %s", publicData)
+	}
+
 	outboxRecords, err := st.ListState(ctx, store.OutboxCollection)
 	if err != nil {
 		t.Fatalf("list canonical lost-pet outbox: %v", err)
@@ -214,11 +270,17 @@ func TestLostPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 			name: "direct service",
 			path: "/lostPet",
 			body: func(petID, reporterEmail, location string) string {
-				data, err := json.Marshal(domain.LostPetEvent{
-					PetID:         petID,
-					ReporterEmail: reporterEmail,
-					ReportedAt:    reportedAt,
-					Location:      location,
+				data, err := json.Marshal(map[string]any{
+					"petId":         petID,
+					"petName":       "Buddy",
+					"species":       "Dog",
+					"breed":         "Golden Retriever",
+					"primaryColor":  "Golden",
+					"description":   "White chest patch",
+					"reporterEmail": reporterEmail,
+					"phone":         "(555) 019-2834",
+					"reportedAt":    reportedAt,
+					"location":      location,
 				})
 				if err != nil {
 					t.Fatal(err)
@@ -234,7 +296,12 @@ func TestLostPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 				data, err := json.Marshal(map[string]any{
 					"petId":         petID,
 					"petName":       "Buddy",
+					"species":       "Dog",
+					"breed":         "Golden Retriever",
+					"primaryColor":  "Golden",
+					"description":   "White chest patch",
 					"reporterEmail": reporterEmail,
+					"phone":         "(555) 019-2834",
 					"reportedAt":    reportedAt,
 					"location":      location,
 				})
@@ -257,9 +324,9 @@ func TestLostPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 				LostPetReporter: lostReports,
 			})
 
-			published := make(chan domain.LostPetEvent, 4)
+			published := make(chan domain.LostPetReportedV2, 4)
 			if err := ps.Subscribe("lostPet", func(_ context.Context, data []byte) error {
-				var event domain.LostPetEvent
+				var event domain.LostPetReportedV2
 				if _, err := domain.DecodeEventPayload(data, domain.EventTypeLostPetReported, &event); err != nil {
 					return err
 				}
@@ -286,6 +353,11 @@ func TestLostPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 				t.Fatalf("invalid response = %d %q, want %d %q", invalid.Code, invalid.Body.String(), http.StatusBadRequest, tt.invalidResponse)
 			}
 
+			legacyEmptyLocation := submit(tt.body("lost-no-location", "owner@example.com", ""))
+			if legacyEmptyLocation.Code != http.StatusCreated {
+				t.Fatalf("empty-location create status = %d, want %d; body = %s", legacyEmptyLocation.Code, http.StatusCreated, legacyEmptyLocation.Body.String())
+			}
+
 			validBody := tt.body("lost-stable", "owner@example.com", "Seattle, WA")
 			first := submit(validBody)
 			if first.Code != http.StatusCreated {
@@ -304,15 +376,40 @@ func TestLostPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 				t.Fatalf("same-name distinct report status = %d, want %d; body = %s", sameName.Code, http.StatusCreated, sameName.Body.String())
 			}
 
-			if got := len(published); got != 2 {
-				t.Fatalf("published event count = %d, want 2", got)
+			if got := len(published); got != 3 {
+				t.Fatalf("published event count = %d, want 3", got)
+			}
+			for len(published) > 0 {
+				event := <-published
+				wantGeocodingStatus := domain.GeocodingPending
+				if event.PetID == "lost-no-location" {
+					wantGeocodingStatus = domain.GeocodingUnavailable
+				}
+				if event.PetName != "Buddy" || event.Species != "Dog" || event.Breed != "Golden Retriever" ||
+					event.PrimaryColor != "Golden" || event.Description != "White chest patch" ||
+					event.GeocodingStatus != wantGeocodingStatus || event.Status != domain.LostPetStatusLost {
+					t.Fatalf("published event = %#v", event)
+				}
+			}
+			stateData, err := st.GetState(ctx, store.LostPetsCollection, "lost-stable")
+			if err != nil {
+				t.Fatal(err)
+			}
+			var report domain.LostPetReport
+			if err := json.Unmarshal(stateData, &report); err != nil {
+				t.Fatal(err)
+			}
+			if report.PetName != "Buddy" || report.Species != "Dog" || report.Breed != "Golden Retriever" ||
+				report.PrimaryColor != "Golden" || report.Description != "White chest patch" ||
+				report.Phone != "(555) 019-2834" {
+				t.Fatalf("persisted report = %#v", report)
 			}
 			outboxRecords, err := st.ListState(ctx, store.OutboxCollection)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(outboxRecords) != 2 {
-				t.Fatalf("outbox record count = %d, want 2", len(outboxRecords))
+			if len(outboxRecords) != 3 {
+				t.Fatalf("outbox record count = %d, want 3", len(outboxRecords))
 			}
 		})
 	}
