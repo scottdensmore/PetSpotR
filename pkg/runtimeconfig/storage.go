@@ -37,31 +37,20 @@ func LoadStorageConfigFromEnv() (StorageConfig, error) {
 
 // LoadStorageConfig loads and validates image-storage configuration.
 func LoadStorageConfig(lookup func(string) string) (StorageConfig, error) {
-	rawMode := strings.TrimSpace(lookup("PETSPOTR_RUNTIME_MODE"))
-	cloudRunService := strings.TrimSpace(lookup("K_SERVICE"))
-	if rawMode == "" {
-		if cloudRunService != "" {
-			rawMode = string(ModeGCP)
-		} else {
-			rawMode = string(ModeMemory)
-		}
+	mode, _, err := resolveRuntimeMode(lookup)
+	if err != nil {
+		return StorageConfig{}, err
 	}
 	config := StorageConfig{
-		Mode:                Mode(rawMode),
+		Mode:                mode,
 		BucketName:          strings.TrimSpace(lookup("PETSPOTR_IMAGE_BUCKET")),
 		StorageEmulatorHost: strings.TrimSpace(lookup("STORAGE_EMULATOR_HOST")),
 		MemoryBaseURL:       strings.TrimSpace(lookup("PETSPOTR_IMAGE_BASE_URL")),
 	}
 	switch config.Mode {
 	case ModeMemory:
-		if cloudRunService != "" {
-			return StorageConfig{}, fmt.Errorf("runtime mode %q is not allowed on Cloud Run", config.Mode)
-		}
 		return StorageConfig{Mode: ModeMemory, MemoryBaseURL: config.MemoryBaseURL}, nil
 	case ModeLocalEmulator:
-		if cloudRunService != "" {
-			return StorageConfig{}, fmt.Errorf("runtime mode %q is not allowed on Cloud Run", config.Mode)
-		}
 		if config.BucketName == "" || config.StorageEmulatorHost == "" {
 			return StorageConfig{}, fmt.Errorf("PETSPOTR_IMAGE_BUCKET and STORAGE_EMULATOR_HOST are required in %q mode", config.Mode)
 		}
@@ -72,8 +61,6 @@ func LoadStorageConfig(lookup func(string) string) (StorageConfig, error) {
 		if config.StorageEmulatorHost != "" {
 			return StorageConfig{}, fmt.Errorf("STORAGE_EMULATOR_HOST must not be set in %q mode", config.Mode)
 		}
-	default:
-		return StorageConfig{}, fmt.Errorf("unsupported PETSPOTR_RUNTIME_MODE %q", rawMode)
 	}
 	return config, nil
 }
