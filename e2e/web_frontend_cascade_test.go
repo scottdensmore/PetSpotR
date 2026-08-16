@@ -318,6 +318,199 @@ func TestLostPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 	}
 }
 
+func TestWebFrontendFoundPetSubmissionUsesCanonicalService(t *testing.T) {
+	ctx := context.Background()
+	st := store.NewMemoryStore()
+	ps := pubsub.NewMemoryPubSub()
+	foundReports := foundpet.NewService(st, ps, blob.NewMemoryBlobStore("https://storage.petspotr.io/images"))
+	frontend := webfrontend.NewServerWithOptions(st, webfrontend.ServerOptions{
+		FoundPetReporter: foundReports,
+	})
+
+	published := make(chan domain.FoundPetEvent, 1)
+	if err := ps.Subscribe("foundPet", func(_ context.Context, data []byte) error {
+		var event domain.FoundPetEvent
+		if _, err := domain.DecodeEventPayload(data, domain.EventTypeFoundPetReported, &event); err != nil {
+			return err
+		}
+		published <- event
+		return nil
+	}); err != nil {
+		t.Fatalf("subscribe to foundPet: %v", err)
+	}
+
+	foundAt := time.Date(2026, time.August, 15, 13, 0, 0, 0, time.UTC)
+	payload, err := json.Marshal(map[string]any{
+		"petId":       "found-browser-stable",
+		"foundAt":     foundAt,
+		"imageUrl":    "https://storage.petspotr.io/images/found-browser-stable.jpg",
+		"location":    "Seattle, WA",
+		"finderEmail": "finder@example.com",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets", bytes.NewReader(payload))
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+	frontend.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusCreated {
+		t.Fatalf("browser found-pet status = %d, want %d; body = %s", recorder.Code, http.StatusCreated, recorder.Body.String())
+	}
+	var response struct {
+		Status string `json:"status"`
+		PetID  string `json:"petId"`
+	}
+	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+		t.Fatalf("decode browser found-pet response: %v", err)
+	}
+	if response.Status != "success" || response.PetID != "found-browser-stable" {
+		t.Fatalf("browser found-pet response = %#v", response)
+	}
+
+	select {
+	case event := <-published:
+		if event.PetID != response.PetID || event.ImageURL != "https://storage.petspotr.io/images/found-browser-stable.jpg" || event.Location != "Seattle, WA" {
+			t.Fatalf("published found-pet event = %#v; response pet ID = %q", event, response.PetID)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("browser found-pet submission did not publish the canonical foundPet event")
+	}
+
+	stateData, err := st.GetState(ctx, store.FoundPetsCollection, response.PetID)
+	if err != nil {
+		t.Fatalf("load canonical found-pet state: %v", err)
+	}
+	if strings.Contains(string(stateData), "finder@example.com") || strings.Contains(string(stateData), "finderEmail") {
+		t.Fatalf("canonical found-pet state exposed finder contact: %s", stateData)
+	}
+	outboxRecords, err := st.ListState(ctx, store.OutboxCollection)
+	if err != nil {
+		t.Fatalf("list canonical found-pet outbox: %v", err)
+	}
+	if len(outboxRecords) != 1 {
+		t.Fatalf("found-pet outbox record count = %d, want 1", len(outboxRecords))
+	}
+}
+
+func TestFoundPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
+	foundAt := time.Date(2026, time.August, 15, 14, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name string
+		path string
+		body func(petID, imageURL, location string) string
+	}{
+		{
+			name: "direct service",
+			path: "/foundPet",
+			body: func(petID, imageURL, location string) string {
+				data, err := json.Marshal(domain.FoundPetEvent{
+					PetID: petID, ImageURL: imageURL, FoundAt: foundAt, Location: location,
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				return string(data)
+			},
+		},
+		{
+			name: "browser service",
+			path: "/api/v1/found-pets",
+			body: func(petID, imageURL, location string) string {
+				data, err := json.Marshal(map[string]any{
+					"petId": petID, "imageUrl": imageURL, "foundAt": foundAt,
+					"location": location, "finderEmail": "finder@example.com",
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				return string(data)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			st := store.NewMemoryStore()
+			ps := pubsub.NewMemoryPubSub()
+			foundReports := foundpet.NewService(st, ps, blob.NewMemoryBlobStore("https://storage.petspotr.io/images"))
+			frontend := webfrontend.NewServerWithOptions(st, webfrontend.ServerOptions{
+				FoundPetReporter: foundReports,
+			})
+
+			published := make(chan domain.FoundPetEvent, 4)
+			if err := ps.Subscribe("foundPet", func(_ context.Context, data []byte) error {
+				var event domain.FoundPetEvent
+				if _, err := domain.DecodeEventPayload(data, domain.EventTypeFoundPetReported, &event); err != nil {
+					return err
+				}
+				published <- event
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+
+			handler := http.Handler(http.HandlerFunc(foundReports.HandleFoundPet))
+			if tt.path == "/api/v1/found-pets" {
+				handler = frontend
+			}
+			submit := func(body string) *httptest.ResponseRecorder {
+				recorder := httptest.NewRecorder()
+				request := httptest.NewRequest(http.MethodPost, tt.path, strings.NewReader(body))
+				request.Header.Set("Content-Type", "application/json")
+				handler.ServeHTTP(recorder, request)
+				return recorder
+			}
+
+			invalidCases := []struct {
+				name     string
+				imageURL string
+				location string
+			}{
+				{name: "missing image", location: "Seattle, WA"},
+				{name: "missing location", imageURL: "https://storage.petspotr.io/images/found-invalid.jpg"},
+			}
+			for _, invalidCase := range invalidCases {
+				invalid := submit(tt.body("found-invalid-"+strings.ReplaceAll(invalidCase.name, " ", "-"), invalidCase.imageURL, invalidCase.location))
+				if invalid.Code != http.StatusBadRequest {
+					t.Fatalf("%s response status = %d, want %d; body = %s", invalidCase.name, invalid.Code, http.StatusBadRequest, invalid.Body.String())
+				}
+			}
+
+			validBody := tt.body("found-stable", "https://storage.petspotr.io/images/found-stable.jpg", "Seattle, WA")
+			first := submit(validBody)
+			if first.Code != http.StatusCreated {
+				t.Fatalf("first create status = %d, want %d; body = %s", first.Code, http.StatusCreated, first.Body.String())
+			}
+			retry := submit(validBody)
+			if retry.Code != http.StatusCreated {
+				t.Fatalf("exact retry status = %d, want %d; body = %s", retry.Code, http.StatusCreated, retry.Body.String())
+			}
+			conflict := submit(tt.body("found-stable", "https://storage.petspotr.io/images/found-stable.jpg", "Portland, OR"))
+			if conflict.Code != http.StatusConflict {
+				t.Fatalf("conflicting retry status = %d, want %d; body = %s", conflict.Code, http.StatusConflict, conflict.Body.String())
+			}
+			distinct := submit(tt.body("found-distinct", "https://storage.petspotr.io/images/found-stable.jpg", "Seattle, WA"))
+			if distinct.Code != http.StatusCreated {
+				t.Fatalf("distinct report status = %d, want %d; body = %s", distinct.Code, http.StatusCreated, distinct.Body.String())
+			}
+
+			if got := len(published); got != 2 {
+				t.Fatalf("published event count = %d, want 2", got)
+			}
+			outboxRecords, err := st.ListState(ctx, store.OutboxCollection)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(outboxRecords) != 2 {
+				t.Fatalf("outbox record count = %d, want 2", len(outboxRecords))
+			}
+		})
+	}
+}
+
 func assertFrontendMatchStatus(t *testing.T, frontend http.Handler, matchID, wantStatus string) {
 	t.Helper()
 

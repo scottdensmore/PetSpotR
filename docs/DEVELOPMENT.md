@@ -7,7 +7,8 @@ outlines how to build, test, run locally, and deploy PetSpotR.
 
 ## 1. Architecture Overview
 
-PetSpotR is an event-driven microservice system written in **Go 1.22+**:
+PetSpotR is an event-driven microservice system targeting **Go 1.25.8** and
+built with the pinned **Go 1.26.5** toolchain:
 
 - **`web-frontend`** (`cmd/web-frontend`): Modern web application UI at `http://localhost:8082`,
   offering Lost Pet wizards, Found Pet dropzone, AI visual match comparison dashboard, and Web Push.
@@ -30,7 +31,7 @@ PetSpotR is an event-driven microservice system written in **Go 1.22+**:
 
 ### Prerequisites
 
-- Go 1.22+ installed locally.
+- Go 1.26.5 installed locally, or available through `GOTOOLCHAIN=go1.26.5`.
 - Docker & Docker Compose installed.
 - Ollama installed locally or running via Docker Compose.
 
@@ -135,6 +136,12 @@ PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
 
 The lost- and found-report publishers, pet matcher, and notification service
 use the same runtime-mode selection as state:
+
+Managed and emulator publishing uses `cloud.google.com/go/pubsub/v2`. The
+runtime reuses one publisher handle per topic, waits for Pub/Sub to acknowledge
+each event, and closes every publisher handle before closing the shared client.
+Topics and subscriptions must already exist; production infrastructure and the
+emulator contracts create them explicitly.
 
 | Mode | Required configuration | Messaging backend |
 | --- | --- | --- |

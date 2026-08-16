@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/scottdensmore/petspotr/internal/app/foundpet"
 	"github.com/scottdensmore/petspotr/internal/app/lostpet"
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
@@ -35,6 +36,7 @@ type Server struct {
 	mux                      *http.ServeMux
 	metrics                  *telemetry.MetricsRegistry
 	stateStore               store.StateStore
+	foundPetReporter         FoundPetReporter
 	lostPetReporter          LostPetReporter
 	allowPrivilegedMutations bool
 }
@@ -45,10 +47,17 @@ type LostPetReporter interface {
 	ReportLostPet(context.Context, domain.LostPetEvent, lostpet.ReportMetadata) (lostpet.ReportResult, error)
 }
 
+// FoundPetReporter is the canonical found-pet command consumed by the browser
+// adapter.
+type FoundPetReporter interface {
+	ReportFoundPet(context.Context, domain.FoundPetEvent, foundpet.ReportMetadata) (foundpet.ReportResult, error)
+}
+
 // ServerOptions controls injected commands and behavior that must remain
 // limited to explicit demo runtimes until authorization is implemented.
 type ServerOptions struct {
 	AllowPrivilegedMutations bool
+	FoundPetReporter         FoundPetReporter
 	LostPetReporter          LostPetReporter
 }
 
@@ -69,6 +78,10 @@ func NewServerWithStore(st store.StateStore) *Server {
 
 // NewServerWithOptions constructs a Server with explicit demo-only behavior.
 func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
+	foundPetReporter := options.FoundPetReporter
+	if foundPetReporter == nil {
+		foundPetReporter = foundpet.NewReportService(st, pubsub.NewMemoryPubSub())
+	}
 	lostPetReporter := options.LostPetReporter
 	if lostPetReporter == nil {
 		lostPetReporter = lostpet.NewService(st, pubsub.NewMemoryPubSub())
@@ -77,6 +90,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		mux:                      http.NewServeMux(),
 		metrics:                  telemetry.NewMetricsRegistry("web-frontend"),
 		stateStore:               st,
+		foundPetReporter:         foundPetReporter,
 		lostPetReporter:          lostPetReporter,
 		allowPrivilegedMutations: options.AllowPrivilegedMutations,
 	}
@@ -426,13 +440,23 @@ func (s *Server) handleApiExtractFeatures(w http.ResponseWriter, r *http.Request
 }
 
 type FoundPetFormRequest struct {
-	ImageURL      string `json:"imageUrl"`
-	Location      string `json:"location"`
-	FinderEmail   string `json:"finderEmail"`
-	Species       string `json:"species"`
-	Breed         string `json:"breed"`
-	PrimaryColor  string `json:"primaryColor"`
-	CustodyStatus string `json:"custodyStatus"`
+	PetID         string    `json:"petId"`
+	ImageURL      string    `json:"imageUrl"`
+	Location      string    `json:"location"`
+	FinderEmail   string    `json:"finderEmail"`
+	Species       string    `json:"species"`
+	Breed         string    `json:"breed"`
+	PrimaryColor  string    `json:"primaryColor"`
+	CustodyStatus string    `json:"custodyStatus"`
+	FoundAt       time.Time `json:"foundAt"`
+}
+
+func newFoundPetID() (string, error) {
+	var random [16]byte
+	if _, err := rand.Read(random[:]); err != nil {
+		return "", fmt.Errorf("generate found-pet ID: %w", err)
+	}
+	return "found-" + hex.EncodeToString(random[:]), nil
 }
 
 func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
@@ -504,31 +528,47 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.TrimSpace(req.ImageURL) == "" || strings.TrimSpace(req.Location) == "" {
-		http.Error(w, "imageUrl and location are required", http.StatusBadRequest)
-		return
+	petID := strings.TrimSpace(req.PetID)
+	if petID == "" {
+		var err error
+		petID, err = newFoundPetID()
+		if err != nil {
+			http.Error(w, "Failed to create found pet report", http.StatusInternalServerError)
+			return
+		}
 	}
-
-	petID := fmt.Sprintf("found-%d", time.Now().UnixNano())
+	foundAt := req.FoundAt
+	if foundAt.IsZero() {
+		foundAt = time.Now().UTC()
+	}
 
 	evt := domain.FoundPetEvent{
 		PetID:    petID,
 		ImageURL: req.ImageURL,
-		FoundAt:  time.Now().UTC(),
+		FoundAt:  foundAt,
 		Location: req.Location,
 	}
 
-	if err := evt.Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	result, err := s.foundPetReporter.ReportFoundPet(r.Context(), evt, foundpet.ReportMetadata{
+		CorrelationID: r.Header.Get("X-Correlation-ID"),
+		TraceID:       r.Header.Get("X-Trace-ID"),
+	})
+	switch {
+	case errors.Is(err, foundpet.ErrInvalidReport):
+		message := err.Error()
+		if cause := foundpet.InvalidReportCause(err); cause != nil {
+			message = cause.Error()
+		}
+		if strings.TrimSpace(evt.ImageURL) == "" && strings.TrimSpace(evt.ImageObject) == "" ||
+			strings.TrimSpace(evt.Location) == "" {
+			message = "imageUrl and location are required"
+		}
+		http.Error(w, message, http.StatusBadRequest)
 		return
-	}
-
-	data, err := json.Marshal(evt)
-	if err != nil {
-		http.Error(w, "Failed to encode found pet report", http.StatusInternalServerError)
+	case errors.Is(err, store.ErrConflict):
+		http.Error(w, "A different report already exists for this pet ID", http.StatusConflict)
 		return
-	}
-	if err := s.stateStore.SaveState(r.Context(), store.FoundPetsCollection, evt.PetID, data); err != nil {
+	case err != nil:
 		http.Error(w, "Failed to save found pet report", http.StatusInternalServerError)
 		return
 	}
@@ -537,7 +577,7 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(map[string]string{
 		"status": "success",
-		"petId":  evt.PetID,
+		"petId":  result.PetID,
 	})
 }
 

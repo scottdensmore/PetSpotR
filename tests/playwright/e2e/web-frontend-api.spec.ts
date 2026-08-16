@@ -80,6 +80,37 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     expect(body.status).toBe('success');
   });
 
+  test('should reuse the found report identity after a transient browser retry', async ({ page }) => {
+    const submissions: Array<Record<string, unknown>> = [];
+    await page.route('**/api/v1/found-pets', async (route) => {
+      submissions.push(route.request().postDataJSON() as Record<string, unknown>);
+      if (submissions.length === 1) {
+        await route.fulfill({ status: 503, body: 'temporarily unavailable' });
+        return;
+      }
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'success', petId: submissions[1].petId }),
+      });
+    });
+    page.on('dialog', (dialog) => dialog.accept());
+
+    await page.goto(`${WEB_FRONTEND_URL}/report-found`);
+    await page.locator('#foundLocation').fill('Seattle, WA');
+    await page.locator('#finderEmail').fill('finder@example.com');
+
+    await page.locator('#found-pet-form button[type="submit"]').click();
+    await expect.poll(() => submissions.length).toBe(1);
+    await page.locator('#found-pet-form button[type="submit"]').click();
+    await expect(page.locator('#found-success-modal')).toBeVisible();
+
+    expect(submissions).toHaveLength(2);
+    expect(submissions[0].petId).toMatch(/^found-[0-9a-f-]+$/);
+    expect(submissions[1].petId).toBe(submissions[0].petId);
+    expect(submissions[1].foundAt).toBe(submissions[0].foundAt);
+  });
+
   test('should return candidate match lists via GET /api/v1/matches', async ({ request }) => {
     const response = await request.get(`${WEB_FRONTEND_URL}/api/v1/matches`);
     expect(response.status()).toBe(200);
