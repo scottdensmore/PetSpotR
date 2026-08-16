@@ -266,6 +266,32 @@ PETSPOTR_GCS_INTEGRATION_BUCKET=your-disposable-test-bucket \
 The test creates uniquely named objects and deletes its finalized object. Use
 only a disposable bucket configured with the same private-access policy.
 
+### Live Ollama scoring
+
+An independent opt-in contract exercises the scoring pipeline against a live
+Ollama server. Start Ollama so it is reachable at `http://localhost:11434` (or
+set `OLLAMA_HOST` to its base URL) and pull the model required by this test:
+
+```bash
+ollama pull gemma2:2b
+```
+
+Then run the focused contract with the CI-pinned Go toolchain:
+
+```bash
+GO_INTEGRATION_OLLAMA=1 \
+OLLAMA_HOST="${OLLAMA_HOST:-http://localhost:11434}" \
+GOTOOLCHAIN=go1.26.5 \
+  go test ./pkg/scoring \
+  -run '^TestScoringPipeline_LiveOllamaIntegration$' -v
+```
+
+The test specifically requests `gemma2:2b`; the Compose stack's default
+`gemma4:e2b` model does not satisfy this contract. When
+`GO_INTEGRATION_OLLAMA` is unset or not `1`, the test skips and the package
+still reports `ok`. This live contract is not part of the default verifier or
+CI battery, so do not claim live Ollama coverage unless the command above ran.
+
 ### Transactional report outbox
 
 The lost- and found-report services create aggregate state and a durable
