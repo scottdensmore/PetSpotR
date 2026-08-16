@@ -42,9 +42,8 @@ func TestGeoBroadcastEngine(t *testing.T) {
 		emailSender.Reset()
 		smsSender.Reset()
 
-		evt := &domain.LostPetReportedV2{
+		evt := &domain.LostPetReportedV3{
 			PetID:           "lost-buddy",
-			ReporterEmail:   "owner@example.com",
 			ReportedAt:      time.Now().UTC(),
 			Location:        "Capitol Hill, Seattle, WA",
 			GeocodingStatus: domain.GeocodingVerified,
@@ -71,7 +70,7 @@ func TestGeoBroadcastEngine(t *testing.T) {
 		emailSender.Reset()
 		smsSender.Reset()
 
-		evt := &domain.LostPetReportedV2{
+		evt := &domain.LostPetReportedV3{
 			PetID:           "lost-pending-location",
 			ReportedAt:      time.Now().UTC(),
 			Location:        "Capitol Hill, Seattle, WA",
@@ -161,7 +160,7 @@ func TestWorker_ProcessLostPetBroadcast(t *testing.T) {
 			OccurredAt:       evt.ReportedAt,
 			AggregateID:      evt.PetID,
 			AggregateVersion: 1,
-			PayloadVersion:   domain.LostPetReportedPayloadVersion,
+			PayloadVersion:   domain.LostPetReportedContactPayloadVersion,
 			Payload:          payload,
 		})
 		if err != nil {
@@ -177,6 +176,45 @@ func TestWorker_ProcessLostPetBroadcast(t *testing.T) {
 		}
 		if len(results) == 0 {
 			t.Error("expected payload-v2 broadcast dispatch results")
+		}
+	})
+
+	t.Run("contact-redacted payload-v3 dispatches from verified coordinates", func(t *testing.T) {
+		evt := domain.LostPetReportedV3{
+			PetID:           "lost-v3-luna",
+			PetName:         "Luna",
+			Species:         "Dog",
+			ReportedAt:      time.Now().UTC(),
+			Location:        "Green Lake Park, Seattle, WA",
+			GeocodingStatus: domain.GeocodingVerified,
+			Coordinates:     &domain.LocationPoint{Latitude: 47.68, Longitude: -122.329},
+			Status:          domain.LostPetStatusLost,
+		}
+		payload, err := json.Marshal(evt)
+		if err != nil {
+			t.Fatal(err)
+		}
+		envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+			Type:             domain.EventTypeLostPetReported,
+			OccurredAt:       evt.ReportedAt,
+			AggregateID:      evt.PetID,
+			AggregateVersion: 1,
+			PayloadVersion:   domain.LostPetReportedPayloadVersion,
+			Payload:          payload,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := json.Marshal(envelope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		results, err := worker.ProcessLostPetBroadcast(context.Background(), data)
+		if err != nil {
+			t.Fatalf("ProcessLostPetBroadcast(payload-v3) error = %v", err)
+		}
+		if len(results) == 0 {
+			t.Error("expected payload-v3 broadcast dispatch results")
 		}
 	})
 }

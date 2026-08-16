@@ -213,6 +213,50 @@ func TestLostPetServicePersistsPrivateContactSeparately(t *testing.T) {
 	}
 }
 
+func TestLostPetServicePublishesContactRedactedPayloadV3(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	broker := pubsub.NewMemoryPubSub()
+	service := NewService(stateStore, broker)
+	published := make(chan []byte, 1)
+	if err := broker.Subscribe("lostPet", func(_ context.Context, data []byte) error {
+		published <- append([]byte(nil), data...)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := service.ReportLostPet(ctx, ReportCommand{
+		PetID:         "lost-redacted-event",
+		PetName:       "Buddy",
+		Species:       "Dog",
+		ReporterEmail: "owner@example.com",
+		Phone:         "(555) 019-2834",
+		ReportedAt:    time.Date(2026, time.August, 16, 14, 0, 0, 0, time.UTC),
+		Location:      "Seattle, WA",
+	}, ReportMetadata{})
+	if err != nil {
+		t.Fatalf("ReportLostPet() error = %v", err)
+	}
+
+	select {
+	case data := <-published:
+		if strings.Contains(string(data), "owner@example.com") || strings.Contains(string(data), "reporterEmail") ||
+			strings.Contains(string(data), "(555) 019-2834") || strings.Contains(string(data), "phone") {
+			t.Fatalf("published event exposed private contact: %s", data)
+		}
+		event, envelope, err := domain.DecodeLostPetReported(data)
+		if err != nil {
+			t.Fatalf("DecodeLostPetReported() error = %v", err)
+		}
+		if envelope == nil || envelope.PayloadVersion != 3 || event.PetID != "lost-redacted-event" {
+			t.Fatalf("published event/envelope = %#v / %#v", event, envelope)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("lostPet event was not published")
+	}
+}
+
 func TestLostPetService_LegacyMissingTimestampAndLocationRetryIsStable(t *testing.T) {
 	ctx := context.Background()
 	stateStore := store.NewMemoryStore()
@@ -352,7 +396,7 @@ func TestLostPetServiceContactBearingPayloadV2StateRemainsRetryable(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	eventData, err := json.Marshal(previous.ReportedEvent())
+	eventData, err := json.Marshal(previous.ReportedEventV2())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -361,7 +405,7 @@ func TestLostPetServiceContactBearingPayloadV2StateRemainsRetryable(t *testing.T
 		OccurredAt:       previous.ReportedAt,
 		AggregateID:      previous.PetID,
 		AggregateVersion: 1,
-		PayloadVersion:   domain.LostPetReportedPayloadVersion,
+		PayloadVersion:   domain.LostPetReportedContactPayloadVersion,
 		Payload:          eventData,
 	})
 	if err != nil {
@@ -407,6 +451,85 @@ func TestLostPetServiceContactBearingPayloadV2StateRemainsRetryable(t *testing.T
 	command.Phone = "(555) 010-9999"
 	if _, err := service.ReportLostPet(ctx, command, ReportMetadata{}); !errors.Is(err, store.ErrConflict) {
 		t.Fatalf("changed legacy contact error = %v, want ErrConflict", err)
+	}
+}
+
+func TestLostPetServiceSeparatedPayloadV2StateRemainsRetryableAfterV3Upgrade(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	previous := domain.NormalizeLostPetReport(domain.LostPetReport{
+		PetID:         "lost-separated-before-v3",
+		PetName:       "Buddy",
+		Species:       "Dog",
+		ReporterEmail: "owner@example.com",
+		Phone:         "(555) 019-2834",
+		ReportedAt:    time.Date(2026, time.August, 15, 12, 0, 0, 0, time.UTC),
+		Location:      "Seattle, WA",
+	})
+	record, contact := previous.Persisted()
+	stateData, err := json.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	contactData, err := json.Marshal(contact)
+	if err != nil {
+		t.Fatal(err)
+	}
+	eventData, err := json.Marshal(previous.ReportedEventV2())
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+		Type:             domain.EventTypeLostPetReported,
+		OccurredAt:       previous.ReportedAt,
+		AggregateID:      previous.PetID,
+		AggregateVersion: 1,
+		PayloadVersion:   domain.LostPetReportedContactPayloadVersion,
+		Payload:          eventData,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelopeData, err := json.Marshal(envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outboxData, err := outbox.MarshalRecord(outbox.NewRecord(envelope.ID, "lostPet", envelopeData, previous.ReportedAt))
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := stateStore.CreateStatesAndOutbox(ctx, []store.StateWrite{
+		{StoreName: store.LostPetsCollection, Key: record.PetID, Data: stateData},
+		{StoreName: store.ReportContactsCollection, Key: contact.IdentityRef, Data: contactData},
+	}, store.StateWrite{StoreName: store.OutboxCollection, Key: envelope.ID, Data: outboxData})
+	if err != nil || !created {
+		t.Fatalf("seed payload-v2 state = %t, %v", created, err)
+	}
+
+	service := NewService(stateStore, pubsub.NewMemoryPubSub())
+	command := ReportCommand{
+		PetID:         previous.PetID,
+		PetName:       previous.PetName,
+		Species:       previous.Species,
+		ReporterEmail: previous.ReporterEmail,
+		Phone:         previous.Phone,
+		ReportedAt:    previous.ReportedAt,
+		Location:      previous.Location,
+	}
+	result, err := service.ReportLostPet(ctx, command, ReportMetadata{})
+	if err != nil || result.EventID != envelope.ID {
+		t.Fatalf("ReportLostPet() = %#v, %v; want payload-v2 event %s", result, err, envelope.ID)
+	}
+	outboxRecords, err := stateStore.ListState(ctx, store.OutboxCollection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(outboxRecords) != 1 {
+		t.Fatalf("outbox record count = %d, want 1", len(outboxRecords))
+	}
+	command.Phone = "(555) 010-9999"
+	if _, err := service.ReportLostPet(ctx, command, ReportMetadata{}); !errors.Is(err, store.ErrConflict) {
+		t.Fatalf("changed separated contact error = %v, want ErrConflict", err)
 	}
 }
 

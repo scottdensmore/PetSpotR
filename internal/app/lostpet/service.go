@@ -303,7 +303,8 @@ func (s *Service) matchPersistedRetry(
 		return ReportResult{}, true, false, nil
 	}
 	if _, isSeparated := shape["ownerIdentityRef"]; isSeparated {
-		return ReportResult{}, true, false, nil
+		result, matches, err := s.matchSeparatedPayloadV2Retry(ctx, legacyData, report)
+		return result, true, matches, err
 	}
 	if _, isCurrent := shape["geocodingStatus"]; isCurrent {
 		var previous domain.LostPetReport
@@ -322,7 +323,7 @@ func (s *Service) matchPersistedRetry(
 		if !bytes.Equal(previousData, reportData) {
 			return ReportResult{}, true, false, nil
 		}
-		payload, err := json.Marshal(previous.ReportedEvent())
+		payload, err := json.Marshal(previous.ReportedEventV2())
 		if err != nil {
 			return ReportResult{}, true, false, err
 		}
@@ -331,23 +332,14 @@ func (s *Service) matchPersistedRetry(
 			OccurredAt:       previous.ReportedAt,
 			AggregateID:      previous.PetID,
 			AggregateVersion: 1,
-			PayloadVersion:   domain.LostPetReportedPayloadVersion,
+			PayloadVersion:   domain.LostPetReportedContactPayloadVersion,
 			Payload:          payload,
 		})
 		if err != nil {
 			return ReportResult{}, true, false, nil
 		}
-		record, err := outbox.GetRecord(ctx, s.store, envelope.ID)
-		if err != nil {
-			if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-				return ReportResult{}, true, false, nil
-			}
-			return ReportResult{}, true, false, err
-		}
-		if record.Topic != "lostPet" {
-			return ReportResult{}, true, false, nil
-		}
-		return ReportResult{PetID: previous.PetID, EventID: envelope.ID}, true, true, nil
+		result, matches, err := s.matchPersistedOutbox(ctx, previous.PetID, envelope)
+		return result, true, matches, err
 	}
 
 	var legacy domain.LostPetEvent
@@ -376,17 +368,91 @@ func (s *Service) matchPersistedRetry(
 	if err != nil {
 		return ReportResult{}, true, false, nil
 	}
-	record, err := outbox.GetRecord(ctx, s.store, legacyEnvelope.ID)
+	result, matches, err := s.matchPersistedOutbox(ctx, legacy.PetID, legacyEnvelope)
+	return result, true, matches, err
+}
+
+func (s *Service) matchSeparatedPayloadV2Retry(
+	ctx context.Context,
+	stateData []byte,
+	report domain.LostPetReport,
+) (ReportResult, bool, error) {
+	var previous domain.LostPetRecord
+	if err := json.Unmarshal(stateData, &previous); err != nil {
+		return ReportResult{}, false, nil
+	}
+	previous = domain.NormalizeLostPetRecord(previous)
+	expectedRecord, expectedContact := report.Persisted()
+	previousData, err := json.Marshal(previous)
+	if err != nil {
+		return ReportResult{}, false, err
+	}
+	expectedData, err := json.Marshal(expectedRecord)
+	if err != nil {
+		return ReportResult{}, false, err
+	}
+	if !bytes.Equal(previousData, expectedData) {
+		return ReportResult{}, false, nil
+	}
+
+	contactData, err := s.store.GetState(ctx, store.ReportContactsCollection, previous.OwnerIdentityRef)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-			return ReportResult{}, true, false, nil
+			return ReportResult{}, false, nil
 		}
-		return ReportResult{}, true, false, err
+		return ReportResult{}, false, err
+	}
+	var previousContact domain.ReportContact
+	if err := json.Unmarshal(contactData, &previousContact); err != nil {
+		return ReportResult{}, false, nil
+	}
+	previousContact = domain.NormalizeReportContact(previousContact)
+	previousContactData, err := json.Marshal(previousContact)
+	if err != nil {
+		return ReportResult{}, false, err
+	}
+	expectedContactData, err := json.Marshal(expectedContact)
+	if err != nil {
+		return ReportResult{}, false, err
+	}
+	if !bytes.Equal(previousContactData, expectedContactData) {
+		return ReportResult{}, false, nil
+	}
+
+	payload, err := json.Marshal(report.ReportedEventV2())
+	if err != nil {
+		return ReportResult{}, false, err
+	}
+	envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+		Type:             domain.EventTypeLostPetReported,
+		OccurredAt:       report.ReportedAt,
+		AggregateID:      report.PetID,
+		AggregateVersion: 1,
+		PayloadVersion:   domain.LostPetReportedContactPayloadVersion,
+		Payload:          payload,
+	})
+	if err != nil {
+		return ReportResult{}, false, nil
+	}
+	return s.matchPersistedOutbox(ctx, previous.PetID, envelope)
+}
+
+func (s *Service) matchPersistedOutbox(
+	ctx context.Context,
+	petID string,
+	envelope domain.EventEnvelope,
+) (ReportResult, bool, error) {
+	record, err := outbox.GetRecord(ctx, s.store, envelope.ID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+			return ReportResult{}, false, nil
+		}
+		return ReportResult{}, false, err
 	}
 	if record.Topic != "lostPet" {
-		return ReportResult{}, true, false, nil
+		return ReportResult{}, false, nil
 	}
-	return ReportResult{PetID: legacy.PetID, EventID: legacyEnvelope.ID}, true, true, nil
+	return ReportResult{PetID: petID, EventID: envelope.ID}, true, nil
 }
 
 func sameTimestamp(first, second time.Time) bool {

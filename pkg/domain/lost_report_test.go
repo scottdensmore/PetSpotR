@@ -102,7 +102,7 @@ func TestLostPetReportedV2RemainsReadableByPayloadV1Consumer(t *testing.T) {
 		ReportedAt:    time.Date(2026, time.August, 15, 12, 0, 0, 0, time.UTC),
 		Location:      "Seattle, WA",
 	})
-	payload, err := json.Marshal(report.ReportedEvent())
+	payload, err := json.Marshal(report.ReportedEventV2())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestLostPetReportedV2RemainsReadableByPayloadV1Consumer(t *testing.T) {
 		OccurredAt:       report.ReportedAt,
 		AggregateID:      report.PetID,
 		AggregateVersion: 1,
-		PayloadVersion:   domain.LostPetReportedPayloadVersion,
+		PayloadVersion:   domain.LostPetReportedContactPayloadVersion,
 		Payload:          payload,
 	})
 	if err != nil {
@@ -127,7 +127,7 @@ func TestLostPetReportedV2RemainsReadableByPayloadV1Consumer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DecodeEventPayload() error = %v", err)
 	}
-	if metadata.PayloadVersion != domain.LostPetReportedPayloadVersion || legacy.PetID != report.PetID ||
+	if metadata.PayloadVersion != domain.LostPetReportedContactPayloadVersion || legacy.PetID != report.PetID ||
 		legacy.ReporterEmail != report.ReporterEmail || legacy.Location != report.Location {
 		t.Fatalf("legacy event = %#v; metadata = %#v", legacy, metadata)
 	}
@@ -234,7 +234,7 @@ func TestDecodeLostPetReportedAcceptsPublishedVersions(t *testing.T) {
 		OccurredAt:       reportedAt,
 		AggregateID:      current.PetID,
 		AggregateVersion: 1,
-		PayloadVersion:   domain.LostPetReportedPayloadVersion,
+		PayloadVersion:   domain.LostPetReportedContactPayloadVersion,
 		Payload:          currentData,
 	})
 	if err != nil {
@@ -269,7 +269,7 @@ func TestDecodeLostPetReportedAcceptsPublishedVersions(t *testing.T) {
 			name:               "enveloped payload-v2 without reporter contact",
 			data:               currentEnvelopeData,
 			wantPetID:          current.PetID,
-			wantPayloadVersion: domain.LostPetReportedPayloadVersion,
+			wantPayloadVersion: domain.LostPetReportedContactPayloadVersion,
 			wantGeocoding:      domain.GeocodingVerified,
 		},
 	}
@@ -349,7 +349,7 @@ func TestDecodeLostPetReportedRejectsIncompletePayloadV2(t *testing.T) {
 				OccurredAt:       reportedAt,
 				AggregateID:      event.PetID,
 				AggregateVersion: 1,
-				PayloadVersion:   domain.LostPetReportedPayloadVersion,
+				PayloadVersion:   domain.LostPetReportedContactPayloadVersion,
 				Payload:          payload,
 			})
 			if err != nil {
