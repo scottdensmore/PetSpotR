@@ -1,0 +1,54 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M03Y2ZG637559YX5YHC9YA0Y",
+  "session_id": "01a001af-b3bc-79c1-828f-504b40d7da08",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-16T00:04:11.36098904Z",
+  "branch": "refactor/centralize-runtime-mode",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "pkg/runtimeconfig/config.go",
+    "pkg/runtimeconfig/messaging.go",
+    "pkg/runtimeconfig/mode.go",
+    "pkg/runtimeconfig/mode_test.go",
+    "pkg/runtimeconfig/push.go",
+    "pkg/runtimeconfig/storage.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "b7cbf103b30d",
+  "checkpoint_transcript_start": 4900,
+  "transcript_lines_at_start": 4900,
+  "compact_transcript_start": 697,
+  "token_usage": {
+    "input_tokens": 94172,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 6881280,
+    "output_tokens": 20636,
+    "api_call_count": 52
+  },
+  "session_metrics": {
+    "turn_count": 15
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-16T00:04:09.321446898Z",
+    "agent_lines": 313,
+    "agent_removed": 68,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 313,
+    "total_lines_changed": 381,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
