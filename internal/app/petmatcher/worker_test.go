@@ -684,6 +684,11 @@ func seedMatcherLostPet(t *testing.T, st store.StateStore) {
 		Coordinates:      matcherTestPoint(),
 		Status:           domain.LostPetStatusLost,
 	}
+	record.ImageObject = "images/lost-pets/" + record.PetID + "/image.jpg"
+	record.ImageAnalysis = verifiedCandidateAnalysis(record.PetID, record.ImageObject, domain.PetImageTraits{
+		Breed: record.Breed, PrimaryColor: record.PrimaryColor,
+		DistinctiveMarkings: []string{record.Description},
+	})
 	data, err := json.Marshal(record)
 	if err != nil {
 		t.Fatal(err)

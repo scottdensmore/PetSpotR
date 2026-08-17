@@ -233,14 +233,8 @@ func (w *Worker) processClaimedFoundPet(
 			return errors.New("pet-matcher: scoring result omitted score components")
 		}
 		matchedAt := w.now().UTC()
-		lostBreed := lostRecord.Breed
-		if lostBreed == "" {
-			lostBreed = lostTraits.Breed
-		}
-		foundBreed := foundEvt.Breed
-		if foundBreed == "" {
-			foundBreed = foundTraits.Breed
-		}
+		lostBreed := lostTraits.Breed
+		foundBreed := foundTraits.Breed
 		matchRecord := domain.MatchRecord{
 			MatchID:          matchID,
 			FoundPetID:       foundEvt.PetID,
