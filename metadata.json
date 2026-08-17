@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M08FGM0S7CC6K5QZTCTYZTTW",
+  "strategy": "manual-commit",
+  "branch": "feat/matcher-require-image-traits",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "e2e/e2e_test.go",
+    "e2e/lost_image_helpers_test.go",
+    "e2e/web_frontend_cascade_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 75567,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3655680,
+    "output_tokens": 11079,
+    "api_call_count": 50
+  }
+}

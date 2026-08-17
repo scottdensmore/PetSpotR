@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M08FGM0S7CC6K5QZTCTYZTTW",
+  "session_id": "01a0106b-5c6a-72c3-ad94-2ec2cccbe9fa",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-17T18:25:21.205941207Z",
+  "branch": "feat/matcher-require-image-traits",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "e2e/e2e_test.go",
+    "e2e/lost_image_helpers_test.go",
+    "e2e/web_frontend_cascade_test.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "6b9514c42417",
+  "checkpoint_transcript_start": 2164,
+  "transcript_lines_at_start": 2164,
+  "compact_transcript_start": 324,
+  "token_usage": {
+    "input_tokens": 75567,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3655680,
+    "output_tokens": 11079,
+    "api_call_count": 50
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-17T18:25:20.117173549Z",
+    "agent_lines": 94,
+    "agent_removed": 22,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 94,
+    "total_lines_changed": 116,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
