@@ -444,7 +444,7 @@ func TestFoundPetService_SecureImageLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get found-pet state: %v", err)
 	}
-	var saved domain.FoundPetReport
+	var saved domain.FoundPetRecord
 	if err := json.Unmarshal(stateData, &saved); err != nil {
 		t.Fatalf("decode saved report: %v", err)
 	}
@@ -458,12 +458,41 @@ func TestFoundPetService_SecureImageLifecycle(t *testing.T) {
 		t.Fatalf("temporary image remains after report creation: %v", err)
 	}
 
+	analysis := &domain.ImageTraitAnalysis{
+		Status: domain.ImageTraitsVerified,
+		Traits: domain.PetImageTraits{Breed: "Golden Retriever", PrimaryColor: "Golden"},
+		Model:  "gemma4:e2b", AnalysisVersion: "pet-image-traits-v1",
+		SourceEventID: "evt-found-analysis", SourceImageObject: wantObject,
+		VerifiedAt: time.Now().UTC(),
+	}
+	if err := st.UpdateState(ctx, store.FoundPetsCollection, grant.ReportID, func(current []byte) ([]byte, error) {
+		var enriched domain.FoundPetRecord
+		if err := json.Unmarshal(current, &enriched); err != nil {
+			return nil, err
+		}
+		enriched.ImageAnalysis = analysis
+		return json.Marshal(enriched)
+	}); err != nil {
+		t.Fatal(err)
+	}
+
 	retryRequest := httptest.NewRequest(http.MethodPost, "/foundPet", bytes.NewReader(eventBody))
 	retryRequest.Header.Set("X-PetSpotR-Upload-Token", grant.FinalizeToken)
 	retryRecorder := httptest.NewRecorder()
 	svc.HandleFoundPet(retryRecorder, retryRequest)
 	if retryRecorder.Code != http.StatusCreated {
 		t.Fatalf("idempotent report retry status = %d, want 201: %s", retryRecorder.Code, retryRecorder.Body.String())
+	}
+	retryState, err := st.GetState(ctx, store.FoundPetsCollection, grant.ReportID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var retried domain.FoundPetRecord
+	if err := json.Unmarshal(retryState, &retried); err != nil {
+		t.Fatal(err)
+	}
+	if retried.ImageAnalysis == nil || retried.ImageAnalysis.SourceEventID != analysis.SourceEventID {
+		t.Fatalf("exact retry lost matcher-owned analysis: %#v", retried.ImageAnalysis)
 	}
 }
 

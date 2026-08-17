@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	lostImageAnalysisChannel = "lostPetImageAnalysis"
-	lostImageAnalysisVersion = "pet-image-traits-v1"
+	lostImageAnalysisChannel  = "lostPetImageAnalysis"
+	imageTraitAnalysisVersion = "pet-image-traits-v1"
 )
 
 // ProcessLostPet analyzes a finalized lost-pet image asynchronously and
@@ -127,7 +127,7 @@ func (w *Worker) processClaimedLostPet(
 			DistinctiveMarkings: append([]string(nil), traits.DistinctiveMarkings...),
 			EyeColor:            traits.EyeColor,
 		},
-		Model: model, AnalysisVersion: lostImageAnalysisVersion,
+		Model: model, AnalysisVersion: imageTraitAnalysisVersion,
 		SourceEventID: inputEventID, SourceImageObject: lostEvent.ImageObject,
 		VerifiedAt: w.now().UTC(),
 	})

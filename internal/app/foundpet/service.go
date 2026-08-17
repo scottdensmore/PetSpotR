@@ -429,7 +429,8 @@ func (s *Service) matchPersistedRetry(
 		return ReportResult{}, true, false, nil
 	}
 	if _, isSeparated := shape["finderIdentityRef"]; isSeparated {
-		return ReportResult{}, true, false, nil
+		result, matches, err := s.matchSeparatedRetry(ctx, legacyData, report)
+		return result, true, matches, err
 	}
 	if _, isCurrent := shape["geocodingStatus"]; isCurrent {
 		var previous domain.FoundPetReport
@@ -514,6 +515,84 @@ func (s *Service) matchPersistedRetry(
 		return ReportResult{}, true, false, nil
 	}
 	return ReportResult{PetID: legacy.PetID, EventID: legacyEnvelope.ID}, true, true, nil
+}
+
+func (s *Service) matchSeparatedRetry(
+	ctx context.Context,
+	stateData []byte,
+	report domain.FoundPetReport,
+) (ReportResult, bool, error) {
+	var previous domain.FoundPetRecord
+	if err := json.Unmarshal(stateData, &previous); err != nil {
+		return ReportResult{}, false, nil
+	}
+	previous = domain.NormalizeFoundPetRecord(previous)
+	// Image analysis is matcher-owned enrichment added after report creation.
+	// It must not turn an exact reporter retry into a competing create.
+	previous.ImageAnalysis = nil
+	expectedRecord, expectedContact := report.Persisted()
+	previousData, err := json.Marshal(previous)
+	if err != nil {
+		return ReportResult{}, false, err
+	}
+	expectedData, err := json.Marshal(expectedRecord)
+	if err != nil {
+		return ReportResult{}, false, err
+	}
+	if !bytes.Equal(previousData, expectedData) {
+		return ReportResult{}, false, nil
+	}
+
+	contactData, err := s.store.GetState(ctx, store.ReportContactsCollection, previous.FinderIdentityRef)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+			return ReportResult{}, false, nil
+		}
+		return ReportResult{}, false, err
+	}
+	var previousContact domain.ReportContact
+	if err := json.Unmarshal(contactData, &previousContact); err != nil {
+		return ReportResult{}, false, nil
+	}
+	previousContact = domain.NormalizeReportContact(previousContact)
+	previousContactData, err := json.Marshal(previousContact)
+	if err != nil {
+		return ReportResult{}, false, err
+	}
+	expectedContactData, err := json.Marshal(expectedContact)
+	if err != nil {
+		return ReportResult{}, false, err
+	}
+	if !bytes.Equal(previousContactData, expectedContactData) {
+		return ReportResult{}, false, nil
+	}
+
+	payload, err := json.Marshal(report.ReportedEvent())
+	if err != nil {
+		return ReportResult{}, false, err
+	}
+	envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+		Type:             domain.EventTypeFoundPetReported,
+		OccurredAt:       report.FoundAt,
+		AggregateID:      report.PetID,
+		AggregateVersion: 1,
+		PayloadVersion:   domain.FoundPetReportedPayloadVersion,
+		Payload:          payload,
+	})
+	if err != nil {
+		return ReportResult{}, false, nil
+	}
+	record, err := outbox.GetRecord(ctx, s.store, envelope.ID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+			return ReportResult{}, false, nil
+		}
+		return ReportResult{}, false, err
+	}
+	if record.Topic != "foundPet" {
+		return ReportResult{}, false, nil
+	}
+	return ReportResult{PetID: previous.PetID, EventID: envelope.ID}, true, nil
 }
 
 func sameTimestamp(first, second time.Time) bool {

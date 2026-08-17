@@ -457,6 +457,14 @@ durable aggregate before analysis. Successful model output is bounded,
 normalized, and transactionally added to the existing lost record. Model,
 parsing, storage, or persistence failures request Pub/Sub redelivery.
 
+When a found event references a finalized private object, the same matching
+operation validates that object against the durable found record, persists its
+bounded analysis and provenance before scoring, and reuses those verified
+traits after a failed delivery attempt or worker restart. Exact reporter
+retries ignore but preserve this matcher-owned enrichment. Legacy found events
+that carry only `imageUrl` remain readable and use the prior inline analysis
+path without treating an external URL as verified private-object provenance.
+
 Lost-pet writes now duplicate only query metadata beside the opaque state blob:
 status, geocoding status, normalized species, report timestamp, and verified
 coordinates. On startup, `pet-matcher` completes a cursor-backed migration of
@@ -496,7 +504,7 @@ with:
 ```bash
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
   go test ./internal/app/petmatcher \
-  -run 'TestFirestore(MatcherRecoversPersistedResult|LostImageAnalysisSurvivesCompletionRetry)AcrossWorkers'
+  -run 'TestFirestore(MatcherRecoversPersistedResult|(Lost|Found)ImageAnalysisSurvivesCompletionRetry)AcrossWorkers'
 ```
 
 ### Idempotent notification delivery

@@ -113,7 +113,7 @@ func TestMatcherWorkerAnalyzesPrivateLostPetImageAndPersistsVerifiedTraits(t *te
 		len(analysis.Traits.DistinctiveMarkings) != 1 || analysis.Traits.DistinctiveMarkings[0] != "White chest patch" {
 		t.Fatalf("verified traits = %#v", analysis.Traits)
 	}
-	if analysis.Model != "gemma4:e2b" || analysis.AnalysisVersion != lostImageAnalysisVersion ||
+	if analysis.Model != "gemma4:e2b" || analysis.AnalysisVersion != imageTraitAnalysisVersion ||
 		analysis.SourceEventID != eventID || analysis.SourceImageObject != finalized.ObjectName ||
 		!analysis.VerifiedAt.Equal(verifiedAt) {
 		t.Fatalf("analysis provenance = %#v", analysis)

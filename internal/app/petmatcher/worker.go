@@ -3,13 +3,11 @@ package petmatcher
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/blob"
@@ -166,33 +164,10 @@ func (w *Worker) processClaimedFoundPet(
 		return nil
 	}
 
-	// 1. Analyze found pet image with Ollama + Gemma 4
-	prompt := scoring.BuildGemmaPrompt("Pet", "")
-	imageInput := foundEvt.ImageURL
-	if foundEvt.ImageObject != "" {
-		if w.images == nil {
-			return errors.New("pet-matcher: private image store is not configured")
-		}
-		imageBytes, err := w.images.ReadFinalizedImage(ctx, foundEvt.ImageObject)
-		if err != nil {
-			return fmt.Errorf("pet-matcher: read private found-pet image: %w", err)
-		}
-		imageInput = base64.StdEncoding.EncodeToString(imageBytes)
-	}
-	genReq := &ollama.GenerateRequest{
-		Model:  w.modelName,
-		Prompt: prompt,
-		Images: []string{imageInput},
-	}
-
-	genResp, err := w.ollamaClient.Generate(ctx, genReq)
+	// 1. Reuse verified private-image traits, or analyze and persist them once.
+	foundTraits, foundModel, err := w.foundImageTraits(ctx, inputEventID, foundEvt)
 	if err != nil {
-		return fmt.Errorf("pet-matcher: Ollama generation failed: %w", err)
-	}
-
-	foundTraits, err := scoring.ParseGemmaResponse(genResp.Response)
-	if err != nil {
-		return fmt.Errorf("pet-matcher: failed to parse traits from Gemma response: %w", err)
+		return err
 	}
 
 	// 2. Score every eligible candidate and choose a deterministic winner.
@@ -220,10 +195,7 @@ func (w *Worker) processClaimedFoundPet(
 		lostTraits := winner.candidate.traits
 		lostPetID := lostRecord.PetID
 		matchResult.SourceEventID = inputEventID
-		matchResult.Model = genResp.Model
-		if strings.TrimSpace(matchResult.Model) == "" {
-			matchResult.Model = w.modelName
-		}
+		matchResult.Model = foundModel
 		matchID, err := domain.StableMatchID(inputEventID, foundEvt.PetID, lostPetID)
 		if err != nil {
 			return fmt.Errorf("pet-matcher: derive match ID: %w", err)

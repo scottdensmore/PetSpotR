@@ -507,7 +507,7 @@ func seedUnanalyzedCandidateRecord(t *testing.T, st store.StateStore, record dom
 func verifiedCandidateAnalysis(petID, imageObject string, traits domain.PetImageTraits) *domain.ImageTraitAnalysis {
 	return &domain.ImageTraitAnalysis{
 		Status: domain.ImageTraitsVerified, Traits: traits,
-		Model: "gemma4:e2b", AnalysisVersion: lostImageAnalysisVersion,
+		Model: "gemma4:e2b", AnalysisVersion: imageTraitAnalysisVersion,
 		SourceEventID: "evt-analysis-" + petID, SourceImageObject: imageObject,
 		VerifiedAt: time.Date(2026, time.August, 17, 22, 0, 0, 0, time.UTC),
 	}

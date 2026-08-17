@@ -3,6 +3,9 @@ package petmatcher
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"sync/atomic"
 	"testing"
@@ -15,6 +18,106 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
+
+func TestFirestoreFoundImageAnalysisSurvivesCompletionRetryAcrossWorkers(t *testing.T) {
+	host := os.Getenv("FIRESTORE_EMULATOR_HOST")
+	if host == "" {
+		t.Skip("FIRESTORE_EMULATOR_HOST is not set")
+	}
+	ctx := context.Background()
+	projectID := "petspotr-found-analysis-recovery"
+	firstStore, err := store.NewFirestoreEmulatorStore(ctx, projectID, host)
+	if err != nil {
+		t.Fatalf("NewFirestoreEmulatorStore(first) error = %v", err)
+	}
+	t.Cleanup(func() { _ = firstStore.Close() })
+	secondStore, err := store.NewFirestoreEmulatorStore(ctx, projectID, host)
+	if err != nil {
+		t.Fatalf("NewFirestoreEmulatorStore(second) error = %v", err)
+	}
+	t.Cleanup(func() { _ = secondStore.Close() })
+
+	images := blob.NewMemoryBlobStore("https://storage.petspotr.invalid")
+	grant, err := images.BeginImageUpload(ctx, blob.ImageUploadIntent{
+		Purpose: blob.ImagePurposeFoundPet, ContentType: "image/jpeg",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := images.UploadImage(ctx, grant.ObjectName, encodedMatcherImage(t)); err != nil {
+		t.Fatal(err)
+	}
+	finalized, err := images.FinalizeImageForPurpose(
+		ctx, blob.ImagePurposeFoundPet, grant.ReportID, grant.ObjectName, grant.FinalizeToken,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundEvent := domain.FoundPetReportedV2{
+		PetID: grant.ReportID, ImageObject: finalized.ObjectName, FoundAt: time.Now().UTC(),
+		Location: "Seattle, WA", GeocodingStatus: domain.GeocodingVerified,
+		Coordinates: matcherTestPoint(), Species: "Dog", CustodyStatus: domain.CustodyFinderHome,
+		Status: domain.FoundPetStatusFound,
+	}
+	seedMatcherFoundPet(t, firstStore, foundEvent)
+	seedMatcherLostPet(t, firstStore)
+	foundData := verifiedFoundEventData(t, foundEvent)
+	_, envelope, err := domain.DecodeFoundPetReported(foundData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if envelope == nil {
+		t.Fatal("verified found-pet fixture omitted event envelope")
+	}
+	operation, err := delivery.NewOperation(envelope.ID, foundEvent.PetID, matcherDeliveryChannel, time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = firstStore.DeleteState(context.Background(), store.FoundPetsCollection, foundEvent.PetID)
+		_ = firstStore.DeleteState(context.Background(), store.LostPetsCollection, "lost-101")
+		_ = firstStore.DeleteState(context.Background(), store.NotificationDeliveriesCollection, operation.ID)
+	})
+
+	var ollamaCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		ollamaCalls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprint(w, `{"model":"gemma4:e2b","response":"{\"breed\":\"Poodle\",\"primaryColor\":\"Black\",\"secondaryColor\":\"Gray\",\"distinctiveMarkings\":[\"Black ear\"],\"eyeColor\":\"Blue\"}","done":true}`)
+	}))
+	t.Cleanup(server.Close)
+	client := ollama.NewClient(ollama.WithBaseURL(server.URL))
+	failingStore := &failCompleteOnceStore{Store: firstStore}
+	if err := NewWorkerWithImageStore(failingStore, pubsub.NewMemoryPubSub(), client, images).
+		ProcessFoundPet(ctx, foundData); err == nil {
+		t.Fatal("first ProcessFoundPet() error = nil, want completion failure")
+	}
+	if err := NewWorkerWithImageStore(secondStore, pubsub.NewMemoryPubSub(), client, images).
+		ProcessFoundPet(ctx, foundData); err != nil {
+		t.Fatalf("second ProcessFoundPet() error = %v", err)
+	}
+	if got := ollamaCalls.Load(); got != 1 {
+		t.Fatalf("Ollama calls across workers = %d, want 1", got)
+	}
+	foundState, err := secondStore.GetState(ctx, store.FoundPetsCollection, foundEvent.PetID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var persisted domain.FoundPetRecord
+	if err := json.Unmarshal(foundState, &persisted); err != nil {
+		t.Fatal(err)
+	}
+	if persisted.ImageAnalysis == nil || persisted.ImageAnalysis.SourceEventID != envelope.ID {
+		t.Fatalf("persisted found image analysis = %#v", persisted.ImageAnalysis)
+	}
+	completed, err := secondStore.GetDeliveryOperation(ctx, operation.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if completed.Status != delivery.StatusCompleted {
+		t.Fatalf("matcher operation status = %q, want completed", completed.Status)
+	}
+}
 
 func TestFirestoreLostImageAnalysisSurvivesCompletionRetryAcrossWorkers(t *testing.T) {
 	host := os.Getenv("FIRESTORE_EMULATOR_HOST")

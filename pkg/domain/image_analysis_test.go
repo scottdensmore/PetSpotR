@@ -44,6 +44,23 @@ func TestImageTraitAnalysisValidationAndPrivacy(t *testing.T) {
 	if strings.Contains(string(publicData), "imageAnalysis") || strings.Contains(string(publicData), "sourceImageObject") {
 		t.Fatalf("public report exposed private analysis: %s", publicData)
 	}
+
+	foundRecord := domain.NormalizeFoundPetRecord(domain.FoundPetRecord{
+		PetID: "found-1", ImageObject: "images/found-pets/found-1/image.jpg",
+		FoundAt: verifiedAt, Location: "Seattle, WA", GeocodingStatus: domain.GeocodingPending,
+		FinderIdentityRef: "identity-found-1", Status: domain.FoundPetStatusFound,
+		ImageAnalysis: analysis,
+	})
+	if foundRecord.ImageAnalysis == analysis || foundRecord.ImageAnalysis == nil {
+		t.Fatal("NormalizeFoundPetRecord() did not isolate image analysis")
+	}
+	publicData, err = json.Marshal(foundRecord.Public())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(publicData), "imageAnalysis") || strings.Contains(string(publicData), "sourceImageObject") {
+		t.Fatalf("public found report exposed private analysis: %s", publicData)
+	}
 }
 
 func TestImageTraitAnalysisRejectsIncompleteOrOversizedResults(t *testing.T) {
