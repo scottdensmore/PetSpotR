@@ -22,7 +22,31 @@ type FoundPetStatus string
 const (
 	// FoundPetStatusFound identifies an active report for a pet that was found.
 	FoundPetStatusFound FoundPetStatus = "found"
+	// FoundPetStatusResolved identifies a terminal report resolved by its finder.
+	FoundPetStatusResolved FoundPetStatus = "resolved"
+	// FoundPetStatusExpired identifies a terminal report that aged out.
+	FoundPetStatusExpired FoundPetStatus = "expired"
 )
+
+// IsActive reports whether the found-pet report remains open.
+func (s FoundPetStatus) IsActive() bool {
+	return s == FoundPetStatusFound
+}
+
+// IsTerminal reports whether no further found-pet lifecycle transition is valid.
+func (s FoundPetStatus) IsTerminal() bool {
+	switch s {
+	case FoundPetStatusResolved, FoundPetStatusExpired:
+		return true
+	default:
+		return false
+	}
+}
+
+// CanTransitionTo reports whether next is a valid one-way lifecycle transition.
+func (s FoundPetStatus) CanTransitionTo(next FoundPetStatus) bool {
+	return s.IsActive() && next.IsTerminal()
+}
 
 // CustodyStatus records where the found pet is currently located.
 type CustodyStatus string

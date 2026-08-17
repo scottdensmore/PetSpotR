@@ -462,6 +462,19 @@ candidate is ready, scoring uses only its validated model-derived breed, colors,
 markings, and eye color; reporter-entered visual fields are never a scoring
 fallback.
 
+### Pet report lifecycle
+
+New lost and found reports always begin in their active `lost` and `found`
+states. Lost reports may transition once to `reunited`, `expired`, or `closed`;
+found reports may transition once to `resolved` or `expired`. Terminal states
+cannot reopen or transition again. The matcher uses this lifecycle contract and
+never considers a terminal lost report an active candidate.
+
+Status mutation HTTP routes are intentionally not exposed yet. Issue #110 must
+first provide authenticated reporter, finder, and operator identities plus
+ownership enforcement; adding an unauthenticated lifecycle endpoint would
+expand the existing demo security debt.
+
 The lost-image consumer derives a separate durable operation from the verified
 `lostPet` envelope ID, or from a stable digest for exact legacy payloads. Reports
 without images complete without storage or model access. For image-bearing

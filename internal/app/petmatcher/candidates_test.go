@@ -53,12 +53,19 @@ func TestMatcherWorkerSelectsEligibleCandidateDeterministically(t *testing.T) {
 		Location: "Capitol Hill, Seattle, WA", GeocodingStatus: domain.GeocodingPending,
 		Status: domain.LostPetStatusLost,
 	})
-	seedCandidateRecord(t, st, domain.LostPetRecord{
-		PetID: "lost-closed", Species: "Dog", Breed: "Golden Retriever", PrimaryColor: "Golden",
-		OwnerIdentityRef: "identity-closed", ReportedAt: now.Add(-time.Hour),
-		Location: "Capitol Hill, Seattle, WA", GeocodingStatus: domain.GeocodingVerified, Coordinates: &nearPoint,
-		Status: domain.LostPetStatus("reunited"),
-	})
+	for _, status := range []domain.LostPetStatus{
+		domain.LostPetStatusReunited,
+		domain.LostPetStatusExpired,
+		domain.LostPetStatusClosed,
+	} {
+		petID := "lost-000-" + string(status)
+		seedCandidateRecord(t, st, domain.LostPetRecord{
+			PetID: petID, Species: "Dog", Breed: "Golden Retriever", PrimaryColor: "Golden",
+			OwnerIdentityRef: "identity-" + petID, ReportedAt: now.Add(-time.Hour),
+			Location: "Capitol Hill, Seattle, WA", GeocodingStatus: domain.GeocodingVerified, Coordinates: &foundPoint,
+			Status: status,
+		})
+	}
 	seedCandidateRecord(t, st, domain.LostPetRecord{
 		PetID: "lost-cat", Species: "Cat", Breed: "Golden Retriever", PrimaryColor: "Golden",
 		OwnerIdentityRef: "identity-cat", ReportedAt: now.Add(-time.Hour),
