@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M075HAFM9NDV9WJJAX855XR4",
+  "strategy": "manual-commit",
+  "branch": "feat/persist-real-matches",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "e2e/web_frontend_cascade_test.go",
+    "internal/app/petmatcher/firestore_integration_test.go",
+    "internal/app/petmatcher/worker.go",
+    "internal/app/petmatcher/worker_test.go",
+    "internal/app/webfrontend/server.go",
+    "pkg/domain/events.go",
+    "pkg/domain/match.go",
+    "pkg/domain/match_test.go",
+    "pkg/scoring/scorer.go",
+    "pkg/scoring/scorer_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": -34900992,
+    "output_tokens": -84284,
+    "api_call_count": 123
+  }
+}
