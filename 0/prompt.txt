@@ -1,1 +1,1 @@
-Ok lets pick up 115. You can keep going after each merged pr until you need something from me
+Yes add the Firestore index and migration. We should increase the stop hook time out to 300 seconds
