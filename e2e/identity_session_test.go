@@ -200,6 +200,49 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("public lost reports exposed private identity: %s", publicBody)
 	}
 
+	privateContactURL := srv.URL + "/api/v1/lost-pets/" + reportID + "/contact"
+	privateContactResponse := productRequest(t, client, http.MethodGet, privateContactURL, "", "")
+	if privateContactResponse.StatusCode != http.StatusOK {
+		t.Fatalf("owner private-contact status = %d, want %d", privateContactResponse.StatusCode, http.StatusOK)
+	}
+	var privateContact struct {
+		Email string `json:"email"`
+		Phone string `json:"phone"`
+	}
+	decodeResponseJSON(t, privateContactResponse, &privateContact)
+	if privateContact.Email != email || privateContact.Phone != "(555) 010-0200" {
+		t.Fatalf("owner private contact = %#v, want verified email and stored phone", privateContact)
+	}
+
+	anonymousPrivateContact := productRequest(t, publicClient, http.MethodGet, privateContactURL, "", "")
+	if anonymousPrivateContact.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("anonymous private-contact status = %d, want %d", anonymousPrivateContact.StatusCode, http.StatusUnauthorized)
+	}
+	closeResponse(t, anonymousPrivateContact)
+
+	otherEmail := fmt.Sprintf("other-%d@example.com", time.Now().UnixNano())
+	otherClient := createAuthenticatedEmulatorClient(t, ctx, setupAuth, host, srv.URL, otherEmail, password)
+	wrongOwnerContact := productRequest(t, otherClient, http.MethodGet, privateContactURL, "", "")
+	if wrongOwnerContact.StatusCode != http.StatusNotFound {
+		t.Fatalf("wrong-owner private-contact status = %d, want %d", wrongOwnerContact.StatusCode, http.StatusNotFound)
+	}
+	wrongOwnerBody, err := io.ReadAll(wrongOwnerContact.Body)
+	if err != nil {
+		t.Fatalf("read wrong-owner response: %v", err)
+	}
+	_ = wrongOwnerContact.Body.Close()
+	missingContact := productRequest(
+		t, otherClient, http.MethodGet, srv.URL+"/api/v1/lost-pets/lost-missing/contact", "", "",
+	)
+	missingBody, err := io.ReadAll(missingContact.Body)
+	if err != nil {
+		t.Fatalf("read missing-contact response: %v", err)
+	}
+	_ = missingContact.Body.Close()
+	if missingContact.StatusCode != http.StatusNotFound || !bytes.Equal(missingBody, wrongOwnerBody) {
+		t.Fatalf("missing private-contact response = %d %q, want non-enumerating %d %q", missingContact.StatusCode, missingBody, http.StatusNotFound, wrongOwnerBody)
+	}
+
 	missingFoundCSRF := productRequest(
 		t, client, http.MethodPost, srv.URL+"/api/v1/found-pets",
 		`{"petId":"found-no-csrf","imageUrl":"https://storage.petspotr.io/found.jpg","finderEmail":"spoofed@example.com","location":"Seattle, WA"}`, "",
@@ -274,6 +317,11 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("post-logout session status = %d, want %d", afterLogout.StatusCode, http.StatusUnauthorized)
 	}
 	closeResponse(t, afterLogout)
+	afterLogoutContact := productRequest(t, client, http.MethodGet, privateContactURL, "", "")
+	if afterLogoutContact.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("post-logout private-contact status = %d, want %d", afterLogoutContact.StatusCode, http.StatusUnauthorized)
+	}
+	closeResponse(t, afterLogoutContact)
 	afterLogoutReport := productRequest(
 		t, client, http.MethodPost, srv.URL+"/api/v1/lost-pets",
 		`{"petId":"lost-after-logout","petName":"Buddy","reporterEmail":"spoofed@example.com","location":"Seattle, WA"}`, csrfToken,
@@ -290,6 +338,52 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("post-logout found-report status = %d, want %d", afterLogoutFoundReport.StatusCode, http.StatusUnauthorized)
 	}
 	closeResponse(t, afterLogoutFoundReport)
+}
+
+func createAuthenticatedEmulatorClient(
+	t *testing.T,
+	ctx context.Context,
+	setupAuth *auth.Client,
+	host string,
+	baseURL string,
+	email string,
+	password string,
+) *http.Client {
+	t.Helper()
+	created, err := setupAuth.CreateUser(ctx, (&auth.UserToCreate{}).
+		Email(email).
+		EmailVerified(true).
+		Password(password))
+	if err != nil {
+		t.Fatalf("create additional verified emulator user: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cleanupCancel()
+		_ = setupAuth.DeleteUser(cleanupCtx, created.UID)
+	})
+	idToken := signInToAuthEmulator(t, ctx, host, email, password)
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatalf("create additional cookie jar: %v", err)
+	}
+	client := &http.Client{Jar: jar, Timeout: 10 * time.Second}
+	csrfResponse := productRequest(t, client, http.MethodGet, baseURL+"/api/v1/session/csrf", "", "")
+	if csrfResponse.StatusCode != http.StatusOK {
+		t.Fatalf("additional CSRF status = %d, want %d", csrfResponse.StatusCode, http.StatusOK)
+	}
+	var csrfBody map[string]string
+	decodeResponseJSON(t, csrfResponse, &csrfBody)
+	login := productRequest(
+		t, client, http.MethodPost, baseURL+"/api/v1/session", `{"idToken":"`+idToken+`"}`, csrfBody["csrfToken"],
+	)
+	if login.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(login.Body)
+		_ = login.Body.Close()
+		t.Fatalf("additional session login status = %d, want %d; body = %s", login.StatusCode, http.StatusCreated, body)
+	}
+	closeResponse(t, login)
+	return client
 }
 
 func signInToAuthEmulator(t *testing.T, ctx context.Context, host, email, password string) string {
