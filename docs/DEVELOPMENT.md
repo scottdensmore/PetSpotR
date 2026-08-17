@@ -33,6 +33,7 @@ built with the pinned **Go 1.26.5** toolchain:
 ### Prerequisites
 
 - Go 1.26.5 installed locally, or available through `GOTOOLCHAIN=go1.26.5`.
+- Node 24 for the pinned Firebase Authentication emulator and browser tests.
 - Docker & Docker Compose installed.
 - Ollama installed locally or running via Docker Compose.
 
@@ -145,6 +146,56 @@ PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
   go test ./e2e \
   -run TestFirestoreStateCrossesServiceProcessesAndSurvivesRestart
 ```
+
+### Human Identity Sessions
+
+The web frontend has a provider-neutral human session boundary backed by
+Google Identity Platform through the Firebase Admin Go SDK. It is deployed
+consumer-first and defaults to `disabled`, including on Cloud Run, until the
+later infrastructure and sign-in UI slices activate it. Existing report and
+demo routes do not use the session yet, and pet lifecycle mutation routes
+remain unexposed.
+
+| `PETSPOTR_IDENTITY_MODE` | Required configuration | Cookie policy |
+| --- | --- | --- |
+| `disabled` or unset | None | Session routes return `404 Not Found` |
+| `local-emulator` | `GOOGLE_CLOUD_PROJECT`, `FIREBASE_AUTH_EMULATOR_HOST` without an `http://` scheme | Local HTTP cookie names without `Secure` |
+| `gcp` | Application Default Credentials; optional explicit `GOOGLE_CLOUD_PROJECT` | `Secure`, `HttpOnly`, `SameSite=Strict`, host-only cookies |
+
+`POST /api/v1/session` exchanges a recently issued, verified-email Identity
+Platform ID token for a five-day server session. `GET /api/v1/session` verifies
+the cookie signature, expiry, user state, and revocation before returning the
+normalized issuer, subject, email, and sign-in provider. `DELETE
+/api/v1/session` clears the browser session. Login and logout require the
+double-submit token returned by `GET /api/v1/session/csrf`; provider tokens and
+session cookies are never returned in JSON.
+
+This first slice accepts project-level Identity Platform users only. It rejects
+tenant tokens before session creation or project-scoped revocation checks;
+tenant support requires a later runtime that selects the matching tenant-scoped
+Admin client.
+
+Start the pinned Authentication emulator from one terminal:
+
+```bash
+mise x node@24 -- npx --yes firebase-tools@15.27.0 \
+  emulators:start --only auth --project demo-petspotr-auth
+```
+
+Then run the real ID-token-to-session journey from another terminal:
+
+```bash
+FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
+GOTOOLCHAIN=go1.26.5 \
+  go test ./e2e -count=1 -v \
+  -run '^TestIdentityPlatformSessionJourneyWithAuthEmulator$'
+```
+
+The contract creates a verified emulator user, obtains an emulator-issued ID
+token, exercises CSRF rejection, establishes and verifies the session through
+the real web server, logs out, and confirms the session no longer authenticates.
+Use the `demo-` project exactly as shown so an accidentally missing emulator
+cannot reach a billable Firebase project.
 
 ### Messaging Runtime and Pub/Sub Push
 
