@@ -164,9 +164,9 @@ Google Identity Platform through the Firebase Admin Go SDK. It is deployed
 consumer-first and defaults to `disabled`, including on Cloud Run, until the
 later infrastructure and sign-in UI slices activate it. When configured, the
 web frontend requires a verified session and double-submit CSRF token for
-`POST /api/v1/lost-pets`; when disabled, the existing anonymous demo flow is
-preserved. Found-report and demo routes do not use the session yet, and pet
-lifecycle mutation routes remain unexposed.
+`POST /api/v1/lost-pets` and `POST /api/v1/found-pets`; when disabled, the
+existing anonymous demo flow is preserved. Other demo routes do not use the
+session yet, and pet lifecycle mutation routes remain unexposed.
 
 Lost- and found-report application commands can already persist an optional
 provider-neutral `issuer` plus opaque `subject` owner. The owner is private
@@ -188,12 +188,13 @@ normalized issuer, subject, email, and sign-in provider. `DELETE
 double-submit token returned by `GET /api/v1/session/csrf`; provider tokens and
 session cookies are never returned in JSON.
 
-Authenticated lost reports derive their owner key and reporter email from the
-verified session. A caller-supplied `reporterEmail` cannot override that email.
-The owner remains private durable state, and `GET /api/v1/lost-pets` remains a
-public, contact- and identity-redacted listing.
+Authenticated lost and found reports derive their owner key and reporter or
+finder email from the verified session. Caller-supplied `reporterEmail` and
+`finderEmail` values cannot override that email. The owner remains private
+durable state, and both report-listing endpoints remain public, contact- and
+identity-redacted views.
 
-This first slice accepts project-level Identity Platform users only. It rejects
+The current boundary accepts project-level Identity Platform users only. It rejects
 tenant tokens before session creation or project-scoped revocation checks;
 tenant support requires a later runtime that selects the matching tenant-scoped
 Admin client.
@@ -216,10 +217,10 @@ GOTOOLCHAIN=go1.26.5 \
 
 The contract creates a verified emulator user, obtains an emulator-issued ID
 token, exercises CSRF rejection, establishes and verifies the session through
-the real web server, and creates an owned lost report. It proves anonymous and
-post-logout submissions are rejected, a caller cannot spoof the reporter email,
-and the public listing omits owner identity and contact. It then logs out and
-confirms the session no longer authenticates.
+the real web server, and creates owned lost and found reports. It proves
+anonymous and post-logout submissions are rejected, a caller cannot spoof the
+reporter or finder email, and the public listings omit owner identity and
+contact. It then logs out and confirms the session no longer authenticates.
 Use the `demo-` project exactly as shown so an accidentally missing emulator
 cannot reach a billable Firebase project.
 
