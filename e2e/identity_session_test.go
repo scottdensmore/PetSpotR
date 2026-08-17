@@ -17,6 +17,7 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
 	"github.com/scottdensmore/petspotr/internal/app/webfrontend"
+	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/identity"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
 	"github.com/scottdensmore/petspotr/pkg/store"
@@ -62,7 +63,8 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewIdentityRuntime() error = %v", err)
 	}
-	srv := httptest.NewServer(webfrontend.NewServerWithOptions(store.NewMemoryStore(), webfrontend.ServerOptions{
+	state := store.NewMemoryStore()
+	srv := httptest.NewServer(webfrontend.NewServerWithOptions(state, webfrontend.ServerOptions{
 		IdentitySessions: identityRuntime.Sessions, SecureSessionCookie: identityRuntime.SecureCookies,
 	}))
 	defer srv.Close()
@@ -77,6 +79,14 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("anonymous session status = %d, want %d", anonymous.StatusCode, http.StatusUnauthorized)
 	}
 	closeResponse(t, anonymous)
+	anonymousReport := productRequest(
+		t, client, http.MethodPost, srv.URL+"/api/v1/lost-pets",
+		`{"petId":"lost-anonymous","petName":"Buddy","reporterEmail":"spoofed@example.com","location":"Seattle, WA"}`, "",
+	)
+	if anonymousReport.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("anonymous lost-report status = %d, want %d", anonymousReport.StatusCode, http.StatusUnauthorized)
+	}
+	closeResponse(t, anonymousReport)
 
 	csrfResponse := productRequest(t, client, http.MethodGet, srv.URL+"/api/v1/session/csrf", "", "")
 	if csrfResponse.StatusCode != http.StatusOK {
@@ -117,6 +127,71 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("verified principal = %#v, want %#v", verified, loggedIn)
 	}
 
+	missingReportCSRF := productRequest(
+		t, client, http.MethodPost, srv.URL+"/api/v1/lost-pets",
+		`{"petId":"lost-no-csrf","petName":"Buddy","reporterEmail":"spoofed@example.com","location":"Seattle, WA"}`, "",
+	)
+	if missingReportCSRF.StatusCode != http.StatusForbidden {
+		t.Fatalf("lost-report without CSRF status = %d, want %d", missingReportCSRF.StatusCode, http.StatusForbidden)
+	}
+	closeResponse(t, missingReportCSRF)
+
+	reportID := fmt.Sprintf("lost-owner-%d", time.Now().UnixNano())
+	reportBody, err := json.Marshal(map[string]string{
+		"petId": reportID, "petName": "Buddy", "reporterEmail": "spoofed@example.com",
+		"phone": "(555) 010-0200", "location": "Seattle, WA",
+	})
+	if err != nil {
+		t.Fatalf("marshal authenticated lost report: %v", err)
+	}
+	reportResponse := productRequest(
+		t, client, http.MethodPost, srv.URL+"/api/v1/lost-pets", string(reportBody), csrfToken,
+	)
+	if reportResponse.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(reportResponse.Body)
+		_ = reportResponse.Body.Close()
+		t.Fatalf("authenticated lost-report status = %d, want %d; body = %s", reportResponse.StatusCode, http.StatusCreated, body)
+	}
+	closeResponse(t, reportResponse)
+
+	reportData, err := state.GetState(ctx, store.LostPetsCollection, reportID)
+	if err != nil {
+		t.Fatalf("load authenticated lost report: %v", err)
+	}
+	var report domain.LostPetRecord
+	if err := json.Unmarshal(reportData, &report); err != nil {
+		t.Fatalf("decode authenticated lost report: %v", err)
+	}
+	wantOwner := domain.PrincipalRef{Issuer: loggedIn.Issuer, Subject: loggedIn.Subject}
+	if report.OwnedBy == nil || *report.OwnedBy != wantOwner {
+		t.Fatalf("persisted lost-report owner = %#v, want %#v", report.OwnedBy, wantOwner)
+	}
+	contactData, err := state.GetState(ctx, store.ReportContactsCollection, report.OwnerIdentityRef)
+	if err != nil {
+		t.Fatalf("load authenticated lost-report contact: %v", err)
+	}
+	var contact domain.ReportContact
+	if err := json.Unmarshal(contactData, &contact); err != nil {
+		t.Fatalf("decode authenticated lost-report contact: %v", err)
+	}
+	if contact.Email != email || contact.Email == "spoofed@example.com" {
+		t.Fatalf("persisted reporter email = %q, want verified email %q", contact.Email, email)
+	}
+
+	publicClient := &http.Client{Timeout: 10 * time.Second}
+	publicReports := productRequest(t, publicClient, http.MethodGet, srv.URL+"/api/v1/lost-pets", "", "")
+	if publicReports.StatusCode != http.StatusOK {
+		t.Fatalf("public lost-report status = %d, want %d", publicReports.StatusCode, http.StatusOK)
+	}
+	publicBody, err := io.ReadAll(publicReports.Body)
+	if err != nil {
+		t.Fatalf("read public lost reports: %v", err)
+	}
+	_ = publicReports.Body.Close()
+	if bytes.Contains(publicBody, []byte(email)) || bytes.Contains(publicBody, []byte("ownedBy")) {
+		t.Fatalf("public lost reports exposed private identity: %s", publicBody)
+	}
+
 	logout := productRequest(t, client, http.MethodDelete, srv.URL+"/api/v1/session", "", csrfToken)
 	if logout.StatusCode != http.StatusNoContent {
 		t.Fatalf("logout status = %d, want %d", logout.StatusCode, http.StatusNoContent)
@@ -128,6 +203,14 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("post-logout session status = %d, want %d", afterLogout.StatusCode, http.StatusUnauthorized)
 	}
 	closeResponse(t, afterLogout)
+	afterLogoutReport := productRequest(
+		t, client, http.MethodPost, srv.URL+"/api/v1/lost-pets",
+		`{"petId":"lost-after-logout","petName":"Buddy","reporterEmail":"spoofed@example.com","location":"Seattle, WA"}`, csrfToken,
+	)
+	if afterLogoutReport.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("post-logout lost-report status = %d, want %d", afterLogoutReport.StatusCode, http.StatusUnauthorized)
+	}
+	closeResponse(t, afterLogoutReport)
 }
 
 func signInToAuthEmulator(t *testing.T, ctx context.Context, host, email, password string) string {

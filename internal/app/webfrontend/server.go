@@ -353,6 +353,19 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var principal *identity.Principal
+	if s.identitySessions != nil {
+		verified, ok := s.verifiedRequestPrincipal(w, r)
+		if !ok {
+			return
+		}
+		if !s.validCSRF(r) {
+			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+			return
+		}
+		principal = &verified
+	}
+
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
 	var req LostPetFormRequest
@@ -374,6 +387,12 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 	if reportedAt.IsZero() {
 		reportedAt = time.Now().UTC()
 	}
+	reporterEmail := req.ReporterEmail
+	var ownedBy *domain.PrincipalRef
+	if principal != nil {
+		reporterEmail = principal.Email
+		ownedBy = &domain.PrincipalRef{Issuer: principal.Issuer, Subject: principal.Subject}
+	}
 
 	command := lostpet.ReportCommand{
 		PetID:         petID,
@@ -382,10 +401,11 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		Breed:         req.Breed,
 		PrimaryColor:  req.PrimaryColor,
 		Description:   req.Description,
-		ReporterEmail: req.ReporterEmail,
+		ReporterEmail: reporterEmail,
 		Phone:         req.Phone,
 		ReportedAt:    reportedAt,
 		Location:      req.Location,
+		OwnedBy:       ownedBy,
 	}
 
 	result, err := s.lostPetReporter.ReportLostPet(r.Context(), command, lostpet.ReportMetadata{

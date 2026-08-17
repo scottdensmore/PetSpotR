@@ -116,19 +116,27 @@ func (s *Server) handleSessionLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleCurrentSession(w http.ResponseWriter, r *http.Request) {
+	principal, ok := s.verifiedRequestPrincipal(w, r)
+	if !ok {
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(principal)
+}
+
+func (s *Server) verifiedRequestPrincipal(w http.ResponseWriter, r *http.Request) (identity.Principal, bool) {
 	cookie, err := r.Cookie(s.sessionCookieName())
 	if err != nil || strings.TrimSpace(cookie.Value) == "" {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
+		return identity.Principal{}, false
 	}
 	principal, err := s.identitySessions.VerifySession(r.Context(), cookie.Value)
 	if err != nil {
 		s.setSessionCookie(w, "", -1, time.Unix(1, 0))
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
-		return
+		return identity.Principal{}, false
 	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(principal)
+	return principal, true
 }
 
 func (s *Server) handleSessionLogout(w http.ResponseWriter, r *http.Request) {
