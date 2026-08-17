@@ -1,0 +1,49 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M08WRAMZB7JKZ1CXE3XR8226",
+  "session_id": "01a0106b-5c6a-72c3-ad94-2ec2cccbe9fa",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-17T22:17:03.422354049Z",
+  "branch": "feat/persist-report-ownership",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "e2e/report_ownership_firestore_test.go",
+    "internal/app/foundpet/service.go",
+    "internal/app/foundpet/service_test.go",
+    "internal/app/lostpet/service.go",
+    "internal/app/lostpet/service_test.go",
+    "pkg/domain/found_report.go",
+    "pkg/domain/lost_report.go",
+    "pkg/domain/principal.go",
+    "pkg/domain/report_ownership_test.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "6997676395b3",
+  "checkpoint_transcript_start": 5735,
+  "transcript_lines_at_start": 5735,
+  "compact_transcript_start": 848,
+  "token_usage": {
+    "input_tokens": 222938,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 21518848,
+    "output_tokens": 33909,
+    "api_call_count": 140
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-17T22:17:00.624041922Z",
+    "agent_lines": 460,
+    "agent_removed": 2,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 460,
+    "total_lines_changed": 462,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}

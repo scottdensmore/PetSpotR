@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M08WRAMZB7JKZ1CXE3XR8226",
+  "strategy": "manual-commit",
+  "branch": "feat/persist-report-ownership",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "e2e/report_ownership_firestore_test.go",
+    "internal/app/foundpet/service.go",
+    "internal/app/foundpet/service_test.go",
+    "internal/app/lostpet/service.go",
+    "internal/app/lostpet/service_test.go",
+    "pkg/domain/found_report.go",
+    "pkg/domain/lost_report.go",
+    "pkg/domain/principal.go",
+    "pkg/domain/report_ownership_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 222938,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 21518848,
+    "output_tokens": 33909,
+    "api_call_count": 140
+  }
+}
