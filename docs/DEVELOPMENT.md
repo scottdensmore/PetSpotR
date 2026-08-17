@@ -110,6 +110,19 @@ export PUBSUB_EMULATOR_HOST=127.0.0.1:8086
 go run ./cmd/lostpet-service
 ```
 
+To add the fixed-ID match fixtures with current-relative timestamps explicitly
+to that local Firestore emulator, run:
+
+```bash
+go run ./cmd/demo-seed
+```
+
+The seed command refuses `memory` and `gcp` modes so it cannot silently write
+ephemeral data or modify a deployed environment. Normal web-frontend startup
+never creates demo matches. Rerunning the command intentionally replaces
+`match-101` and `match-102` and refreshes their timestamps, so use a dedicated
+emulator project for demo data.
+
 The lost- and found-report binaries initialize both managed adapters, so their
 `local-emulator` processes require both emulator endpoints. State-package tests
 that instantiate only `StateRuntime` still require Firestore alone.
