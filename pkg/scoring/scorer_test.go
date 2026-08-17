@@ -150,5 +150,10 @@ func TestComparePetsGeo(t *testing.T) {
 		if res.Score < 0.70 {
 			t.Errorf("expected combined score >= 0.70, got %f", res.Score)
 		}
+		if res.Scores == nil || res.Scores.Visual != 1 || res.Scores.Color != 1 ||
+			res.Scores.Spatial <= 0 || res.Scores.DistanceMiles <= 0 ||
+			res.Scores.Threshold != scoring.MatchThreshold || res.ThresholdVersion != scoring.MatchThresholdVersion {
+			t.Fatalf("score provenance = %#v; threshold version = %q", res.Scores, res.ThresholdVersion)
+		}
 	})
 }

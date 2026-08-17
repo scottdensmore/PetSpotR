@@ -589,32 +589,11 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-type MatchScoreBreakdown struct {
-	Visual        float64 `json:"visual"`
-	Color         float64 `json:"color"`
-	Spatial       float64 `json:"spatial"`
-	DistanceMiles float64 `json:"distanceMiles"`
-}
+type MatchScoreBreakdown = domain.MatchScoreBreakdown
 
-type PetDetail struct {
-	PetID    string `json:"petId"`
-	PetName  string `json:"petName,omitempty"`
-	Breed    string `json:"breed"`
-	ImageURL string `json:"imageUrl"`
-	Location string `json:"location"`
-}
+type PetDetail = domain.MatchPetDetail
 
-type MatchRecord struct {
-	MatchID      string              `json:"matchId"`
-	FoundPetID   string              `json:"foundPetId"`
-	MatchedPetID string              `json:"matchedPetId"`
-	Score        float64             `json:"score"`
-	Status       string              `json:"status"`
-	MatchedAt    time.Time           `json:"matchedAt"`
-	Scores       MatchScoreBreakdown `json:"scores"`
-	LostPet      PetDetail           `json:"lostPet"`
-	FoundPet     PetDetail           `json:"foundPet"`
-}
+type MatchRecord = domain.MatchRecord
 
 func demoMatchRecords() []MatchRecord {
 	return []MatchRecord{
@@ -761,7 +740,7 @@ func (s *Server) handleApiMatchAction(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to decode match", http.StatusInternalServerError)
 		return
 	}
-	record.Status = status
+	record.Status = domain.MatchStatus(status)
 	updated, err := json.Marshal(record)
 	if err != nil {
 		http.Error(w, "Failed to encode match", http.StatusInternalServerError)

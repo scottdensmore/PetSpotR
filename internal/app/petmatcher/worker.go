@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/blob"
@@ -35,6 +36,7 @@ type Store interface {
 type matcherResultRecord struct {
 	InputEventID string `json:"inputEventId"`
 	OutboxID     string `json:"outboxId"`
+	MatchID      string `json:"matchId,omitempty"`
 }
 
 // Worker consumes foundPet events, extracts visual traits via Ollama, and matches against stored lost pets.
@@ -192,16 +194,13 @@ func (w *Worker) processClaimedFoundPet(
 	}
 	var lostTraits *scoring.PetTraits
 	lostPetID := "lost-101"
-	lostLocation := "Capitol Hill, Seattle, WA"
-	var lostEvt domain.LostPetEvent
-	if err := json.Unmarshal(lostStateBytes, &lostEvt); err != nil {
+	var lostRecord domain.LostPetRecord
+	if err := json.Unmarshal(lostStateBytes, &lostRecord); err != nil {
 		return fmt.Errorf("pet-matcher: decode lost-pet candidate: %w", err)
 	}
-	if lostEvt.PetID != "" {
-		lostPetID = lostEvt.PetID
-	}
-	if lostEvt.Location != "" {
-		lostLocation = lostEvt.Location
+	lostRecord = domain.NormalizeLostPetRecord(lostRecord)
+	if lostRecord.PetID != "" {
+		lostPetID = lostRecord.PetID
 	}
 	lostTraits = &scoring.PetTraits{
 		Breed:               "Golden Retriever",
@@ -212,9 +211,58 @@ func (w *Worker) processClaimedFoundPet(
 	}
 
 	// 3. Compute distance-weighted combined similarity score
-	matchResult := scoring.ComparePetsGeo(lostPetID, foundEvt.PetID, lostLocation, foundEvt.Location, lostTraits, foundTraits)
+	matchResult := scoring.ComparePetsGeo(lostPetID, foundEvt.PetID, lostRecord.Location, foundEvt.Location, lostTraits, foundTraits)
 	if matchResult != nil && matchResult.IsMatch {
 		matchResult.SourceEventID = inputEventID
+		matchResult.Model = genResp.Model
+		if strings.TrimSpace(matchResult.Model) == "" {
+			matchResult.Model = w.modelName
+		}
+		matchID, err := domain.StableMatchID(inputEventID, foundEvt.PetID, lostPetID)
+		if err != nil {
+			return fmt.Errorf("pet-matcher: derive match ID: %w", err)
+		}
+		matchResult.MatchID = matchID
+		if matchResult.Scores == nil {
+			return errors.New("pet-matcher: scoring result omitted score components")
+		}
+		matchedAt := w.now().UTC()
+		lostBreed := lostRecord.Breed
+		if lostBreed == "" {
+			lostBreed = lostTraits.Breed
+		}
+		foundBreed := foundEvt.Breed
+		if foundBreed == "" {
+			foundBreed = foundTraits.Breed
+		}
+		matchRecord := domain.MatchRecord{
+			MatchID:          matchID,
+			FoundPetID:       foundEvt.PetID,
+			MatchedPetID:     lostPetID,
+			Score:            matchResult.Score,
+			Status:           domain.MatchStatusPendingReview,
+			MatchedAt:        matchedAt,
+			Scores:           *matchResult.Scores,
+			SourceEventID:    inputEventID,
+			Model:            matchResult.Model,
+			ThresholdVersion: matchResult.ThresholdVersion,
+			Explanation:      matchResult.Details,
+			LostPet: domain.MatchPetDetail{
+				PetID:    lostPetID,
+				PetName:  lostRecord.PetName,
+				Breed:    lostBreed,
+				Location: lostRecord.Location,
+			},
+			FoundPet: domain.MatchPetDetail{
+				PetID:    foundEvt.PetID,
+				Breed:    foundBreed,
+				ImageURL: foundEvt.ImageURL,
+				Location: foundEvt.Location,
+			},
+		}
+		if err := matchRecord.Validate(); err != nil {
+			return fmt.Errorf("pet-matcher: validate match record: %w", err)
+		}
 		resultBytes, err := matchResult.ToJSON()
 		if err != nil {
 			return fmt.Errorf("pet-matcher: failed to marshal MatchResult: %w", err)
@@ -228,7 +276,7 @@ func (w *Worker) processClaimedFoundPet(
 		}
 		matchEnvelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
 			Type:             domain.EventTypeMatchFound,
-			OccurredAt:       w.now().UTC(),
+			OccurredAt:       matchedAt,
 			CorrelationID:    correlationID,
 			TraceID:          traceID,
 			AggregateID:      matchResult.FoundPetID + ":" + matchResult.MatchedPetID,
@@ -243,7 +291,7 @@ func (w *Worker) processClaimedFoundPet(
 		if err != nil {
 			return fmt.Errorf("pet-matcher: failed to marshal matchFound envelope: %w", err)
 		}
-		resultRecord, err := w.persistMatcherResult(ctx, inputEventID, matchEnvelope.ID, envelopeBytes)
+		resultRecord, err := w.persistMatcherResult(ctx, inputEventID, matchRecord, matchEnvelope.ID, envelopeBytes)
 		if err != nil {
 			return err
 		}
@@ -261,10 +309,11 @@ func (w *Worker) processClaimedFoundPet(
 func (w *Worker) persistMatcherResult(
 	ctx context.Context,
 	inputEventID string,
+	match domain.MatchRecord,
 	outboxID string,
 	payload []byte,
 ) (matcherResultRecord, error) {
-	record := matcherResultRecord{InputEventID: inputEventID, OutboxID: outboxID}
+	record := matcherResultRecord{InputEventID: inputEventID, OutboxID: outboxID, MatchID: match.MatchID}
 	stateData, err := json.Marshal(record)
 	if err != nil {
 		return matcherResultRecord{}, fmt.Errorf("pet-matcher: marshal matcher result: %w", err)
@@ -274,9 +323,16 @@ func (w *Worker) persistMatcherResult(
 	if err != nil {
 		return matcherResultRecord{}, fmt.Errorf("pet-matcher: marshal matchFound outbox: %w", err)
 	}
-	_, err = w.store.CreateStateAndOutbox(
+	matchData, err := json.Marshal(match)
+	if err != nil {
+		return matcherResultRecord{}, fmt.Errorf("pet-matcher: marshal match record: %w", err)
+	}
+	_, err = w.store.CreateStatesAndOutbox(
 		ctx,
-		store.StateWrite{StoreName: store.MatcherResultsCollection, Key: inputEventID, Data: stateData},
+		[]store.StateWrite{
+			{StoreName: store.MatcherResultsCollection, Key: inputEventID, Data: stateData},
+			{StoreName: store.MatchesCollection, Key: match.MatchID, Data: matchData},
+		},
 		store.StateWrite{StoreName: store.OutboxCollection, Key: outboxID, Data: outboxData},
 	)
 	if err == nil {
