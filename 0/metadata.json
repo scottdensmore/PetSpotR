@@ -1,0 +1,48 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M08J5WTZ8SX5N83ZPF2ESCH9",
+  "session_id": "01a0106b-5c6a-72c3-ad94-2ec2cccbe9fa",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-17T19:11:59.905714233Z",
+  "branch": "feat/matcher-persist-found-image-traits",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "internal/app/foundpet/service.go",
+    "internal/app/foundpet/service_test.go",
+    "internal/app/petmatcher/candidates_test.go",
+    "internal/app/petmatcher/firestore_integration_test.go",
+    "internal/app/petmatcher/found_analysis.go",
+    "internal/app/petmatcher/lost_analysis.go",
+    "internal/app/petmatcher/lost_analysis_test.go",
+    "internal/app/petmatcher/worker.go",
+    "internal/app/petmatcher/worker_test.go",
+    "pkg/domain/found_report.go",
+    "pkg/domain/image_analysis_test.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "6b9514c42417",
+  "checkpoint_transcript_start": 2470,
+  "transcript_lines_at_start": 2470,
+  "compact_transcript_start": 367,
+  "token_usage": {
+    "input_tokens": 168425,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 17021440,
+    "output_tokens": 33616,
+    "api_call_count": 116
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-17T19:11:58.346556389Z",
+    "agent_lines": 667,
+    "agent_removed": 59,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 667,
+    "total_lines_changed": 726,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
