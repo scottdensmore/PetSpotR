@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M08KYP8VPRF7942X7CC59DKC",
+  "strategy": "manual-commit",
+  "branch": "feat/web-explicit-demo-seed",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/demo-seed/main.go",
+    "docs/DEVELOPMENT.md",
+    "e2e/firestore_process_test.go",
+    "internal/app/webfrontend/server.go",
+    "internal/app/webfrontend/server_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 183295,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 10362880,
+    "output_tokens": 19093,
+    "api_call_count": 109
+  }
+}
