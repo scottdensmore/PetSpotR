@@ -194,12 +194,13 @@ finder email from the verified session. Caller-supplied `reporterEmail` and
 durable state, and both report-listing endpoints remain public, contact- and
 identity-redacted views.
 
-`GET /api/v1/lost-pets/{petId}/contact` returns only the authenticated report
-owner's email and phone with `Cache-Control: no-store`. Missing sessions return
-`401 Unauthorized`; missing reports, legacy reports without ownership, and
-wrong-owner requests all return the same `404 Not Found` response so callers
-cannot use the endpoint to enumerate private resources. The endpoint is absent
-while identity is disabled.
+`GET /api/v1/lost-pets/{petId}/contact` and
+`GET /api/v1/found-pets/{petId}/contact` return only the authenticated report
+owner's stored email and optional phone with `Cache-Control: no-store`. Missing
+sessions return `401 Unauthorized`; missing reports, legacy reports without
+ownership, and wrong-owner requests all return the same `404 Not Found`
+response so callers cannot use either endpoint to enumerate private resources.
+The endpoints are absent while identity is disabled.
 
 The current boundary accepts project-level Identity Platform users only. It rejects
 tenant tokens before session creation or project-scoped revocation checks;
@@ -227,9 +228,9 @@ token, exercises CSRF rejection, establishes and verifies the session through
 the real web server, and creates owned lost and found reports. It proves
 anonymous and post-logout submissions are rejected, a caller cannot spoof the
 reporter or finder email, and the public listings omit owner identity and
-contact. It also proves the lost-report owner can read their private contact,
-while anonymous and independently authenticated wrong-owner requests cannot.
-It then logs out and confirms the session no longer authenticates.
+contact. It also proves each report owner can read their private contact, while
+anonymous and independently authenticated wrong-owner requests cannot. It then
+logs out and confirms the session no longer authenticates.
 Use the `demo-` project exactly as shown so an accidentally missing emulator
 cannot reach a billable Firebase project.
 

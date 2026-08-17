@@ -128,6 +128,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/contact", s.handleApiLostPetContact)
 	s.mux.HandleFunc("/api/v1/found-pets/extract-features", s.handleApiExtractFeatures)
 	s.mux.HandleFunc("/api/v1/found-pets", s.handleApiFoundPets)
+	s.mux.HandleFunc("/api/v1/found-pets/{petID}/contact", s.handleApiFoundPetContact)
 	s.mux.HandleFunc("/api/v1/matches", s.handleApiMatches)
 	s.mux.HandleFunc("/api/v1/matches/action", s.handleApiMatchAction)
 	s.mux.HandleFunc("/api/v1/reunions/contact", s.handleApiReunionContact)

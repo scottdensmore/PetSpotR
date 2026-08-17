@@ -306,6 +306,43 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("public found reports exposed private identity: %s", publicFoundBody)
 	}
 
+	privateFoundContactURL := srv.URL + "/api/v1/found-pets/" + foundReportID + "/contact"
+	privateFoundContactResponse := productRequest(t, client, http.MethodGet, privateFoundContactURL, "", "")
+	if privateFoundContactResponse.StatusCode != http.StatusOK {
+		t.Fatalf("finder private-contact status = %d, want %d", privateFoundContactResponse.StatusCode, http.StatusOK)
+	}
+	var privateFoundContact map[string]string
+	decodeResponseJSON(t, privateFoundContactResponse, &privateFoundContact)
+	if privateFoundContact["email"] != email || privateFoundContact["phone"] != "" {
+		t.Fatalf("finder private contact = %#v, want verified email without phone", privateFoundContact)
+	}
+
+	anonymousFoundContact := productRequest(t, publicClient, http.MethodGet, privateFoundContactURL, "", "")
+	if anonymousFoundContact.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("anonymous found-contact status = %d, want %d", anonymousFoundContact.StatusCode, http.StatusUnauthorized)
+	}
+	closeResponse(t, anonymousFoundContact)
+	wrongOwnerFoundContact := productRequest(t, otherClient, http.MethodGet, privateFoundContactURL, "", "")
+	if wrongOwnerFoundContact.StatusCode != http.StatusNotFound {
+		t.Fatalf("wrong-owner found-contact status = %d, want %d", wrongOwnerFoundContact.StatusCode, http.StatusNotFound)
+	}
+	wrongOwnerFoundBody, err := io.ReadAll(wrongOwnerFoundContact.Body)
+	if err != nil {
+		t.Fatalf("read wrong-owner found-contact response: %v", err)
+	}
+	_ = wrongOwnerFoundContact.Body.Close()
+	missingFoundContact := productRequest(
+		t, otherClient, http.MethodGet, srv.URL+"/api/v1/found-pets/found-missing/contact", "", "",
+	)
+	missingFoundContactBody, err := io.ReadAll(missingFoundContact.Body)
+	if err != nil {
+		t.Fatalf("read missing found-contact response: %v", err)
+	}
+	_ = missingFoundContact.Body.Close()
+	if missingFoundContact.StatusCode != http.StatusNotFound || !bytes.Equal(missingFoundContactBody, wrongOwnerFoundBody) {
+		t.Fatalf("missing found-contact response = %d %q, want non-enumerating %d %q", missingFoundContact.StatusCode, missingFoundContactBody, http.StatusNotFound, wrongOwnerFoundBody)
+	}
+
 	logout := productRequest(t, client, http.MethodDelete, srv.URL+"/api/v1/session", "", csrfToken)
 	if logout.StatusCode != http.StatusNoContent {
 		t.Fatalf("logout status = %d, want %d", logout.StatusCode, http.StatusNoContent)
@@ -322,6 +359,11 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("post-logout private-contact status = %d, want %d", afterLogoutContact.StatusCode, http.StatusUnauthorized)
 	}
 	closeResponse(t, afterLogoutContact)
+	afterLogoutFoundContact := productRequest(t, client, http.MethodGet, privateFoundContactURL, "", "")
+	if afterLogoutFoundContact.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("post-logout found-contact status = %d, want %d", afterLogoutFoundContact.StatusCode, http.StatusUnauthorized)
+	}
+	closeResponse(t, afterLogoutFoundContact)
 	afterLogoutReport := productRequest(
 		t, client, http.MethodPost, srv.URL+"/api/v1/lost-pets",
 		`{"petId":"lost-after-logout","petName":"Buddy","reporterEmail":"spoofed@example.com","location":"Seattle, WA"}`, csrfToken,
