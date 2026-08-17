@@ -46,6 +46,14 @@ func TestMatcherWorker_ReadsPrivateFoundPetImage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	foundAt := time.Now().UTC()
+	foundEvent := domain.FoundPetReportedV2{
+		PetID: grant.ReportID, ImageObject: finalized.ObjectName, FoundAt: foundAt,
+		Location: "Seattle, WA", GeocodingStatus: domain.GeocodingVerified,
+		Coordinates: matcherTestPoint(), CustodyStatus: domain.CustodyUnknown,
+		Status: domain.FoundPetStatusFound,
+	}
+	seedMatcherFoundPet(t, st, foundEvent)
 
 	var received ollama.GenerateRequest
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -66,15 +74,237 @@ func TestMatcherWorker_ReadsPrivateFoundPetImage(t *testing.T) {
 		ollama.NewClient(ollama.WithBaseURL(server.URL)),
 		images,
 	)
-	foundData := verifiedFoundEventData(t, domain.FoundPetReportedV2{
-		PetID: grant.ReportID, ImageObject: finalized.ObjectName, FoundAt: time.Now().UTC(),
-		Location: "Seattle, WA",
-	})
+	foundData := verifiedFoundEventData(t, foundEvent)
 	if err := worker.ProcessFoundPet(ctx, foundData); err != nil {
 		t.Fatalf("ProcessFoundPet() error = %v", err)
 	}
 	if len(received.Images) != 1 || received.Images[0] != base64.StdEncoding.EncodeToString(imageBytes) {
 		t.Fatalf("Ollama images = %#v, want base64-encoded private object", received.Images)
+	}
+	foundState, err := st.GetState(ctx, store.FoundPetsCollection, grant.ReportID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var persisted domain.FoundPetRecord
+	if err := json.Unmarshal(foundState, &persisted); err != nil {
+		t.Fatal(err)
+	}
+	if persisted.ImageAnalysis == nil || persisted.ImageAnalysis.SourceImageObject != finalized.ObjectName ||
+		persisted.ImageAnalysis.Status != domain.ImageTraitsVerified {
+		t.Fatalf("persisted found image analysis = %#v", persisted.ImageAnalysis)
+	}
+}
+
+func TestMatcherWorkerPrivateFoundAnalysisSurvivesCompletionRetryWithoutMatch(t *testing.T) {
+	ctx := context.Background()
+	baseStore := store.NewMemoryStore()
+	failingStore := &failCompleteOnceStore{Store: baseStore}
+	images := blob.NewMemoryBlobStore("https://storage.petspotr.invalid")
+	grant, err := images.BeginImageUpload(ctx, blob.ImageUploadIntent{
+		Purpose: blob.ImagePurposeFoundPet, ContentType: "image/jpeg",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := images.UploadImage(ctx, grant.ObjectName, encodedMatcherImage(t)); err != nil {
+		t.Fatal(err)
+	}
+	finalized, err := images.FinalizeImageForPurpose(
+		ctx, blob.ImagePurposeFoundPet, grant.ReportID, grant.ObjectName, grant.FinalizeToken,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundEvent := domain.FoundPetReportedV2{
+		PetID: grant.ReportID, ImageObject: finalized.ObjectName, FoundAt: time.Now().UTC(),
+		Location: "Seattle, WA", GeocodingStatus: domain.GeocodingVerified,
+		Coordinates: matcherTestPoint(), Species: "Dog", CustodyStatus: domain.CustodyFinderHome,
+		Status: domain.FoundPetStatusFound,
+	}
+	seedMatcherFoundPet(t, baseStore, foundEvent)
+	seedMatcherLostPet(t, baseStore)
+
+	var ollamaCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		ollamaCalls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprint(w, `{"model":"gemma4:e2b","response":"{\"breed\":\"Poodle\",\"primaryColor\":\"Black\",\"secondaryColor\":\"Gray\",\"distinctiveMarkings\":[\"Black ear\"],\"eyeColor\":\"Blue\"}","done":true}`)
+	}))
+	t.Cleanup(server.Close)
+	client := ollama.NewClient(ollama.WithBaseURL(server.URL))
+	foundData := verifiedFoundEventData(t, foundEvent)
+
+	if err := NewWorkerWithImageStore(failingStore, pubsub.NewMemoryPubSub(), client, images).
+		ProcessFoundPet(ctx, foundData); err == nil {
+		t.Fatal("first ProcessFoundPet() error = nil, want completion failure")
+	}
+	if err := NewWorkerWithImageStore(baseStore, pubsub.NewMemoryPubSub(), client, images).
+		ProcessFoundPet(ctx, foundData); err != nil {
+		t.Fatalf("second ProcessFoundPet() error = %v", err)
+	}
+	if got := ollamaCalls.Load(); got != 1 {
+		t.Fatalf("Ollama calls across completion retry = %d, want 1", got)
+	}
+	assertCompletedMatcherOperation(t, baseStore, foundData, foundEvent.PetID)
+	foundState, err := baseStore.GetState(ctx, store.FoundPetsCollection, foundEvent.PetID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var persisted domain.FoundPetRecord
+	if err := json.Unmarshal(foundState, &persisted); err != nil {
+		t.Fatal(err)
+	}
+	if persisted.ImageAnalysis == nil || persisted.ImageAnalysis.SourceImageObject != finalized.ObjectName {
+		t.Fatalf("persisted found image analysis = %#v", persisted.ImageAnalysis)
+	}
+}
+
+func TestMatcherWorkerReclaimedAttemptScoresCommittedFoundAnalysis(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	images := blob.NewMemoryBlobStore("https://storage.petspotr.invalid")
+	grant, err := images.BeginImageUpload(ctx, blob.ImageUploadIntent{
+		Purpose: blob.ImagePurposeFoundPet, ContentType: "image/jpeg",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := images.UploadImage(ctx, grant.ObjectName, encodedMatcherImage(t)); err != nil {
+		t.Fatal(err)
+	}
+	finalized, err := images.FinalizeImageForPurpose(
+		ctx, blob.ImagePurposeFoundPet, grant.ReportID, grant.ObjectName, grant.FinalizeToken,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := time.Date(2026, time.August, 17, 19, 0, 0, 0, time.UTC)
+	foundEvent := domain.FoundPetReportedV2{
+		PetID: grant.ReportID, ImageObject: finalized.ObjectName, FoundAt: start,
+		Location: "Seattle, WA", GeocodingStatus: domain.GeocodingVerified,
+		Coordinates: matcherTestPoint(), Species: "Dog", CustodyStatus: domain.CustodyFinderHome,
+		Status: domain.FoundPetStatusFound,
+	}
+	seedMatcherFoundPet(t, stateStore, foundEvent)
+	seedMatcherLostPet(t, stateStore)
+	foundData := verifiedFoundEventData(t, foundEvent)
+
+	firstEntered := make(chan struct{}, 1)
+	releaseFirst := make(chan struct{})
+	firstServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		firstEntered <- struct{}{}
+		<-releaseFirst
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprint(w, `{"model":"first-model","response":"{\"breed\":\"Golden Retriever\",\"primaryColor\":\"Golden\",\"distinctiveMarkings\":[\"White chest patch\"]}","done":true}`)
+	}))
+	t.Cleanup(firstServer.Close)
+	secondServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprint(w, `{"model":"second-model","response":"{\"breed\":\"Poodle\",\"primaryColor\":\"Black\",\"distinctiveMarkings\":[\"Black ear\"]}","done":true}`)
+	}))
+	t.Cleanup(secondServer.Close)
+
+	var currentTime atomic.Int64
+	currentTime.Store(start.UnixNano())
+	now := func() time.Time { return time.Unix(0, currentTime.Load()).UTC() }
+	broker := pubsub.NewMemoryPubSub()
+	var publications atomic.Int32
+	if err := broker.Subscribe("matchFound", func(context.Context, []byte) error {
+		publications.Add(1)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	firstWorker := NewWorkerWithImageStore(
+		stateStore, broker, ollama.NewClient(ollama.WithBaseURL(firstServer.URL)), images,
+	)
+	firstWorker.now = now
+	secondWorker := NewWorkerWithImageStore(
+		stateStore, broker, ollama.NewClient(ollama.WithBaseURL(secondServer.URL)), images,
+	)
+	secondWorker.now = now
+
+	firstResult := make(chan error, 1)
+	go func() { firstResult <- firstWorker.ProcessFoundPet(ctx, foundData) }()
+	select {
+	case <-firstEntered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("first attempt did not reach the model")
+	}
+	currentTime.Store(start.Add(defaultMatcherLease + time.Minute).UnixNano())
+	if err := secondWorker.ProcessFoundPet(ctx, foundData); err != nil {
+		t.Fatalf("reclaimed ProcessFoundPet() error = %v", err)
+	}
+	close(releaseFirst)
+	if err := <-firstResult; err != nil {
+		t.Fatalf("stale ProcessFoundPet() error = %v", err)
+	}
+
+	if got := publications.Load(); got != 0 {
+		t.Fatalf("matchFound publications = %d, want 0 from committed non-match analysis", got)
+	}
+	matches, err := stateStore.ListState(ctx, store.MatchesCollection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 0 {
+		t.Fatalf("persisted matches = %d, want 0 from committed non-match analysis", len(matches))
+	}
+	foundState, err := stateStore.GetState(ctx, store.FoundPetsCollection, foundEvent.PetID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var persisted domain.FoundPetRecord
+	if err := json.Unmarshal(foundState, &persisted); err != nil {
+		t.Fatal(err)
+	}
+	if persisted.ImageAnalysis == nil || persisted.ImageAnalysis.Model != "second-model" ||
+		persisted.ImageAnalysis.Traits.Breed != "Poodle" {
+		t.Fatalf("committed found analysis = %#v", persisted.ImageAnalysis)
+	}
+}
+
+func TestMatcherWorkerRejectsInvalidPrivateFoundImageProvenance(t *testing.T) {
+	now := time.Now().UTC()
+	tests := []struct {
+		name        string
+		foundEvent  domain.FoundPetReportedV2
+		seedDurable bool
+	}{
+		{
+			name: "cross-purpose object",
+			foundEvent: domain.FoundPetReportedV2{
+				PetID: "found-cross-purpose", ImageObject: "images/lost-pets/found-cross-purpose/image.jpg",
+			},
+		},
+		{
+			name: "durable object mismatch",
+			foundEvent: domain.FoundPetReportedV2{
+				PetID: "found-object-mismatch", ImageObject: "images/found-pets/found-object-mismatch/image.jpg",
+			},
+			seedDurable: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			stateStore := store.NewMemoryStore()
+			seedMatcherLostPet(t, stateStore)
+			test.foundEvent.FoundAt = now
+			test.foundEvent.Location = "Seattle, WA"
+			test.foundEvent.GeocodingStatus = domain.GeocodingVerified
+			test.foundEvent.Coordinates = matcherTestPoint()
+			test.foundEvent.CustodyStatus = domain.CustodyFinderHome
+			test.foundEvent.Status = domain.FoundPetStatusFound
+			if test.seedDurable {
+				durable := test.foundEvent
+				durable.ImageObject = "images/found-pets/found-object-mismatch/other.jpg"
+				seedMatcherFoundPet(t, stateStore, durable)
+			}
+			worker := NewWorker(stateStore, pubsub.NewMemoryPubSub(), nil)
+			if err := worker.ProcessFoundPet(context.Background(), verifiedFoundEventData(t, test.foundEvent)); err == nil {
+				t.Fatal("ProcessFoundPet() error = nil, want invalid private provenance")
+			}
+		})
 	}
 }
 
@@ -694,6 +924,26 @@ func seedMatcherLostPet(t *testing.T, st store.StateStore) {
 		t.Fatal(err)
 	}
 	if err := st.SaveState(context.Background(), store.LostPetsCollection, record.PetID, data); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func seedMatcherFoundPet(t *testing.T, st store.StateStore, event domain.FoundPetReportedV2) {
+	t.Helper()
+	report := domain.NormalizeFoundPetReport(domain.FoundPetReport{
+		PetID: event.PetID, ImageURL: event.ImageURL, ImageObject: event.ImageObject,
+		FoundAt: event.FoundAt, Location: event.Location,
+		GeocodingStatus: event.GeocodingStatus, Coordinates: event.Coordinates,
+		Species: event.Species, Breed: event.Breed, PrimaryColor: event.PrimaryColor,
+		SecondaryColor: event.SecondaryColor, DistinctiveMarkings: event.DistinctiveMarkings,
+		CustodyStatus: event.CustodyStatus, Status: event.Status,
+	})
+	record, _ := report.Persisted()
+	data, err := json.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SaveState(context.Background(), store.FoundPetsCollection, record.PetID, data); err != nil {
 		t.Fatal(err)
 	}
 }
