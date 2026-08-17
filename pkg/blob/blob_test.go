@@ -229,6 +229,26 @@ func TestMemoryBlobStoreScopesLostPetImageLifecycle(t *testing.T) {
 	}
 }
 
+func TestFinalizedImagePurposeBinding(t *testing.T) {
+	if !blob.IsFinalizedImageForPurpose(
+		blob.ImagePurposeLostPet,
+		"lost-123",
+		"images/lost-pets/lost-123/image.jpg",
+	) {
+		t.Fatal("exact lost-pet finalized image was rejected")
+	}
+	for _, objectName := range []string{
+		"images/found-pets/lost-123/image.jpg",
+		"images/lost-pets/lost-123/image.gif",
+		"images/lost-pets/lost-123/image.jpg/extra",
+		"images/lost-pets/other/image.jpg",
+	} {
+		if blob.IsFinalizedImageForPurpose(blob.ImagePurposeLostPet, "lost-123", objectName) {
+			t.Fatalf("invalid finalized object %q was accepted", objectName)
+		}
+	}
+}
+
 func TestMemoryBlobStoreRejectsCrossPurposeFinalization(t *testing.T) {
 	ctx := context.Background()
 	images := blob.NewMemoryBlobStore("https://storage.petspotr.io")

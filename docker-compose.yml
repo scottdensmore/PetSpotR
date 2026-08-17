@@ -61,6 +61,7 @@ services:
       - OLLAMA_HOST=http://ollama:11434
       - OLLAMA_MODEL=${OLLAMA_MODEL:-gemma4:e2b}
       - PUBSUB_PUSH_SUBSCRIPTION=projects/petspotr-local/subscriptions/found-pet-matcher
+      - PUBSUB_LOST_SUBSCRIPTION=projects/petspotr-local/subscriptions/lost-pet-matcher-analysis
       - PUBSUB_PUSH_DEV_TOKEN=${PUBSUB_PUSH_DEV_TOKEN:-petspotr-local-push}
     depends_on:
       ollama-init:

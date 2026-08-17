@@ -147,6 +147,49 @@ resource "google_pubsub_subscription_iam_member" "found_pet_subscriber" {
   member       = "serviceAccount:${local.pubsub_service_agent}"
 }
 
+resource "google_pubsub_subscription" "lost_pet_matcher_analysis" {
+  name  = "lost-pet-matcher-analysis"
+  topic = google_pubsub_topic.lost_pet.id
+
+  ack_deadline_seconds       = 600
+  message_retention_duration = "604800s"
+
+  expiration_policy {
+    ttl = ""
+  }
+
+  retry_policy {
+    minimum_backoff = "10s"
+    maximum_backoff = "600s"
+  }
+
+  dead_letter_policy {
+    dead_letter_topic     = google_pubsub_topic.lost_pet_dead_letter.id
+    max_delivery_attempts = 10
+  }
+
+  push_config {
+    push_endpoint = "${trimsuffix(var.pet_matcher_url, "/")}/pubsub/lost-pet"
+
+    oidc_token {
+      service_account_email = google_service_account.pet_matcher_invoker.email
+      audience              = var.pet_matcher_url
+    }
+  }
+
+  depends_on = [
+    google_cloud_run_v2_service_iam_member.pet_matcher_invoker,
+    google_pubsub_topic_iam_member.lost_pet_dead_letter_publisher,
+    google_service_account_iam_member.pubsub_token_creator,
+  ]
+}
+
+resource "google_pubsub_subscription_iam_member" "lost_pet_matcher_subscriber" {
+  subscription = google_pubsub_subscription.lost_pet_matcher_analysis.name
+  role         = "roles/pubsub.subscriber"
+  member       = "serviceAccount:${local.pubsub_service_agent}"
+}
+
 resource "google_pubsub_subscription" "found_pet_dead_letter_retention" {
   name                       = "found-pet-dead-letter-retention"
   topic                      = google_pubsub_topic.found_pet_dead_letter.id

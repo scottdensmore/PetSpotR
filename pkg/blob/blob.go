@@ -77,6 +77,17 @@ type ImageUploadGrant struct {
 	ExpiresAt     time.Time         `json:"expiresAt"`
 }
 
+// IsFinalizedImageForPurpose verifies the exact private object namespace and
+// report ID binding without reading object contents.
+func IsFinalizedImageForPurpose(purpose ImagePurpose, reportID, objectName string) bool {
+	path, ok := imagePathForPurpose(purpose)
+	if !ok || !strings.HasPrefix(reportID, path.reportPrefix) || strings.Contains(reportID, "/") {
+		return false
+	}
+	prefix := "images/" + path.objectSegment + "/" + reportID + "/image"
+	return objectName == prefix+".jpg" || objectName == prefix+".png"
+}
+
 // FinalizedImage is a validated private image object.
 type FinalizedImage struct {
 	ObjectName  string `json:"objectName"`

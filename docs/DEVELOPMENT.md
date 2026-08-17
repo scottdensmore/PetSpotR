@@ -18,9 +18,10 @@ built with the pinned **Go 1.26.5** toolchain:
   `POST /foundPet/uploads` and `POST /foundPet`, validates private image
   uploads, persists found pet events, and emits `foundPet` events.
 - **`pet-matcher`** (`cmd/pet-matcher`): Private HTTP service receiving
-  authenticated `foundPet` Pub/Sub push requests, performing visual feature
-  extraction using **Ollama** and **Gemma 4** models (`gemma4:e2b`), scoring
-  similarity against lost pets, and emitting `matchFound` events.
+  authenticated `lostPet` and `foundPet` Pub/Sub push requests, persisting
+  lost-image traits, performing found-image feature extraction using **Ollama**
+  and **Gemma 4** models (`gemma4:e2b`), scoring similarity against lost pets,
+  and emitting `matchFound` events.
 - **`notification-service`** (`cmd/notification-service`): Private HTTP service
   receiving authenticated `matchFound` Pub/Sub push requests and generating
   owner alert emails, SMS, and Web Push notifications.
@@ -154,11 +155,12 @@ are never copied into report events, and current lost-pet events also omit
 reporter email. Removing or renaming a published field requires a new payload
 version and a tolerant decoder for every supported prior shape.
 
-Deploy the lost-pet payload-version-4 rollout consumer first: update
-`notification-service` so it accepts lost-pet payload versions 1 through 4.
-Only after that revision is serving should `lostpet-service` and
-`web-frontend` be deployed to publish version 4. The consumer-first order keeps
-every in-flight prior version readable and prevents old consumers from
+Deploy the lost-pet payload-version-4 consumers first: update
+`notification-service` to accept lost-pet payload versions 1 through 4, and
+update `pet-matcher` with its distinct `lost-pet-matcher-analysis`
+subscription. Only after both revisions are serving should `lostpet-service`
+and `web-frontend` be deployed to publish version 4. The consumer-first order
+keeps every in-flight prior version readable and prevents old consumers from
 rejecting the private-image payload.
 
 The matcher and notification workers decode report events through the
@@ -174,9 +176,11 @@ trigger a broadcast or receive an invented fallback location.
 | `local-emulator` | `GOOGLE_CLOUD_PROJECT`, `PUBSUB_EMULATOR_HOST`; consumer push variables above | Google Pub/Sub emulator |
 | `gcp` | Application Default Credentials; consumer: `PUBSUB_PUSH_SUBSCRIPTION`, `PUBSUB_PUSH_SERVICE_ACCOUNT` | Managed Pub/Sub and verified Google OIDC push identity |
 
-The notification service also requires `PUBSUB_LOST_SUBSCRIPTION`; it must be
-different from `PUBSUB_PUSH_SUBSCRIPTION` so each route is bound to exactly one
-managed subscription.
+The matcher and notification services also require
+`PUBSUB_LOST_SUBSCRIPTION`. Within each service it must be different from
+`PUBSUB_PUSH_SUBSCRIPTION` so each route is bound to exactly one managed
+subscription. The matcher binds it to `lost-pet-matcher-analysis`; the
+notification service binds it to `lost-pet-notification`.
 
 In GCP mode each consumer accepts only a valid Google-signed ID token whose
 verified email is that consumer's configured invocation service account. The
@@ -302,10 +306,18 @@ under the separate `uploads/lost-pets/` and `images/lost-pets/` namespaces:
    before atomically creating report state and its payload-v4 outbox event.
 
 Reports may omit `imageObject`; they remain valid but have no visual evidence
-for asynchronous analysis. The private object name is available only in
-persisted internal state and the integration event, never the unauthenticated
-lost-pet listing DTO. Lost-pet orphan reconciliation is purpose-scoped so it
-cannot delete found-pet objects, and vice versa.
+for asynchronous analysis. The matcher receives image-bearing reports through
+its authenticated `lost-pet-matcher-analysis` subscription, verifies the object
+belongs to the report's private lost-pet namespace, reads it with the matcher
+identity, and persists parsed traits plus model, analysis version, source event,
+source object, and verification time. A transactional ten-minute delivery lease
+admits one model invocation; a retry after state persistence reuses the durable
+analysis instead of invoking the model again. Payload versions 1 through 3 and
+version 4 reports without images are acknowledged as no-ops. The private object
+name remains in persisted internal state and the integration event; trait
+provenance exists only in persisted internal state. Neither is exposed by the
+unauthenticated lost-pet listing DTO. Lost-pet orphan reconciliation is
+purpose-scoped so it cannot delete found-pet objects, and vice versa.
 
 An opt-in deployed contract exercises signing, upload, finalization, private
 service reads, and a signed read URL against a real bucket:
@@ -401,14 +413,14 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
 ```
 
 The durable `lostPet` and `foundPet` outboxes publish to managed Pub/Sub. The
-pet matcher receives authenticated `foundPet` push delivery and its durable
-`matchFound` output reaches the notification service through a separate
-authenticated subscription. The notification service also receives `lostPet`
-pushes on its community-broadcast route. All three subscriptions have retry,
-retention, expiration, and DLQ policy. Multi-instance outbox claiming is
-durable. Found-pet image events carry a private finalized GCS object name in
-managed mode and retain legacy `imageUrl` decoding for messages already in
-flight.
+pet matcher receives independent authenticated `foundPet` matching and
+`lostPet` image-analysis deliveries. Its durable `matchFound` output reaches
+the notification service through a separate authenticated subscription, and
+the notification service independently receives `lostPet` community-broadcast
+pushes. All four subscriptions have retry, retention, expiration, and DLQ
+policy. Multi-instance outbox claiming is durable. Found-pet image events carry
+a private finalized GCS object name in managed mode and retain legacy
+`imageUrl` decoding for messages already in flight.
 
 ### Idempotent matcher result publication
 
@@ -426,10 +438,19 @@ species in the indexed query, then applies exact Haversine filtering. It never
 parses a user-entered location into fallback coordinates. It sorts eligible
 candidates by ID before scoring, then chooses the highest score with distance
 and candidate ID as deterministic tie-breakers. Pending or unavailable
-geocoding completes without invoking the model or creating a match. The current
-lost-side visual inputs come from canonical reported breed, primary color, and
-description fields; persisted image-derived lost traits remain a separate
-matcher rollout step.
+geocoding completes without invoking the found-image model or creating a match.
+Lost-image analysis now persists verified traits and provenance independently;
+scoring still uses canonical reported breed, primary color, and description
+until the next matcher rollout consumes those traits and defers candidates that
+lack them.
+
+The lost-image consumer derives a separate durable operation from the verified
+`lostPet` envelope ID, or from a stable digest for exact legacy payloads. Reports
+without images complete without storage or model access. For image-bearing
+reports, the event object must match both the exact lost-pet namespace and the
+durable aggregate before analysis. Successful model output is bounded,
+normalized, and transactionally added to the existing lost record. Model,
+parsing, storage, or persistence failures request Pub/Sub redelivery.
 
 Lost-pet writes now duplicate only query metadata beside the opaque state blob:
 status, geocoding status, normalized species, report timestamp, and verified
@@ -470,7 +491,7 @@ with:
 ```bash
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
   go test ./internal/app/petmatcher \
-  -run TestFirestoreMatcherRecoversPersistedResultAcrossWorkers
+  -run 'TestFirestore(MatcherRecoversPersistedResult|LostImageAnalysisSurvivesCompletionRetry)AcrossWorkers'
 ```
 
 ### Idempotent notification delivery
@@ -517,9 +538,10 @@ private Cloud Run push endpoints with exact subscription binding.
 Infrastructure is defined as code under `infra/opentofu`:
 
 - GCS Bucket for image storage (`modules/storage`)
-- Cloud Pub/Sub topics, authenticated `lostPet`, `foundPet`, and `matchFound`
-  push subscriptions, retry and dead-letter policies, and a dedicated
-  invocation identity for each consumer (`modules/pubsub`)
+- Cloud Pub/Sub topics, four authenticated matcher and notification push
+  subscriptions for `lostPet`, `foundPet`, and `matchFound`, retry and
+  dead-letter policies, and a dedicated invocation identity for each consumer
+  (`modules/pubsub`)
 - Cloud Firestore database plus pending-outbox and matcher-candidate composite
   indexes
   (`modules/firestore`)

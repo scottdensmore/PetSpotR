@@ -75,7 +75,7 @@ func NewWorkerWithImageStore(st Store, br pubsub.Publisher, oc *ollama.Client, i
 	}
 }
 
-// Start registers the foundPet topic subscription.
+// Start registers the foundPet matching and lostPet image-analysis subscriptions.
 func (w *Worker) Start(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -84,8 +84,13 @@ func (w *Worker) Start(ctx context.Context) error {
 	if !ok {
 		return fmt.Errorf("pet-matcher: publisher does not support in-process subscriptions")
 	}
-	return broker.Subscribe("foundPet", func(handlerCtx context.Context, data []byte) error {
+	if err := broker.Subscribe("foundPet", func(handlerCtx context.Context, data []byte) error {
 		return w.ProcessFoundPet(handlerCtx, data)
+	}); err != nil {
+		return err
+	}
+	return broker.Subscribe("lostPet", func(handlerCtx context.Context, data []byte) error {
+		return w.ProcessLostPet(handlerCtx, data)
 	})
 }
 
