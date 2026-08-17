@@ -1,0 +1,54 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M08NNJRATDPSTRTKSZHRV8W1",
+  "session_id": "01a0106b-5c6a-72c3-ad94-2ec2cccbe9fa",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-17T20:13:03.918473963Z",
+  "branch": "feat/pet-status-lifecycle",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "internal/app/petmatcher/candidates.go",
+    "internal/app/petmatcher/candidates_test.go",
+    "pkg/domain/found_report.go",
+    "pkg/domain/lost_report.go",
+    "pkg/domain/status_lifecycle_test.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "bc53930482cf",
+  "checkpoint_transcript_start": 4019,
+  "transcript_lines_at_start": 4019,
+  "compact_transcript_start": 592,
+  "token_usage": {
+    "input_tokens": 148539,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 13787648,
+    "output_tokens": 20091,
+    "api_call_count": 84
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-17T20:13:01.904601253Z",
+    "agent_lines": 179,
+    "agent_removed": 7,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 179,
+    "total_lines_changed": 186,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
