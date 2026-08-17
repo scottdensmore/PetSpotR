@@ -59,11 +59,11 @@ func TestWebFrontendFullEventCascadeJourney(t *testing.T) {
 		t.Fatalf("subscribe to matchFound: %v", err)
 	}
 
-	matcher := petmatcher.NewWorker(st, ps, ollama.NewClient(ollama.WithBaseURL(mockOllamaServer.URL)))
+	matcher := petmatcher.NewWorkerWithImageStore(st, ps, ollama.NewClient(ollama.WithBaseURL(mockOllamaServer.URL)), bs)
 	if err := matcher.Start(ctx); err != nil {
 		t.Fatalf("start matcher: %v", err)
 	}
-	lostReports := lostpet.NewService(st, ps)
+	lostReports := lostpet.NewServiceWithImageStore(st, ps, bs)
 	foundReports := foundpet.NewService(st, ps, bs)
 	frontend := webfrontend.NewServerWithOptions(st, webfrontend.ServerOptions{
 		AllowPrivilegedMutations: true,
@@ -72,14 +72,17 @@ func TestWebFrontendFullEventCascadeJourney(t *testing.T) {
 	})
 
 	verifiedPoint := &domain.LocationPoint{Latitude: 47.6150, Longitude: -122.3200}
-	if _, err := lostReports.ReportLostPet(ctx, lostpet.ReportCommand{
-		PetID: "lost-101", PetName: "Buddy", Species: "Dog", Breed: "Golden Retriever",
+	imageGrant := beginLostPetImageUpload(t, ctx, lostReports, bs)
+	lostPetID := imageGrant.ReportID
+	lostRecorder := reportLostPetWithImage(t, lostReports, imageGrant, domain.LostPetReport{
+		PetName: "Buddy", Species: "Dog", Breed: "Golden Retriever",
 		PrimaryColor: "Golden", Description: "White chest patch", ReporterEmail: "owner@example.com",
 		ReportedAt: time.Date(2026, time.August, 16, 12, 0, 0, 0, time.UTC),
 		Location:   "Capitol Hill, Seattle, WA", GeocodingStatus: domain.GeocodingVerified,
 		Coordinates: verifiedPoint,
-	}, lostpet.ReportMetadata{}); err != nil {
-		t.Fatalf("report verified lost pet: %v", err)
+	})
+	if lostRecorder.Code != http.StatusCreated {
+		t.Fatalf("report verified lost pet status = %d, want %d; body = %s", lostRecorder.Code, http.StatusCreated, lostRecorder.Body.String())
 	}
 	if _, err := foundReports.ReportFoundPet(ctx, foundpet.ReportCommand{
 		PetID: "found-999", ImageURL: "https://storage.petspotr.io/images/found-999.jpg",
@@ -95,7 +98,7 @@ func TestWebFrontendFullEventCascadeJourney(t *testing.T) {
 	var generatedMatch domain.MatchResult
 	select {
 	case match := <-matchResults:
-		if match.MatchedPetID != "lost-101" || match.FoundPetID != "found-999" || match.MatchID == "" {
+		if match.MatchedPetID != lostPetID || match.FoundPetID != "found-999" || match.MatchID == "" {
 			t.Fatalf("generated match = %#v", match)
 		}
 		if match.Score < 0.70 {
@@ -117,7 +120,7 @@ func TestWebFrontendFullEventCascadeJourney(t *testing.T) {
 		t.Fatalf("decode match list: %v", err)
 	}
 	if len(matches) != 1 || matches[0].MatchID != generatedMatch.MatchID || matches[0].FoundPetID != "found-999" ||
-		matches[0].MatchedPetID != "lost-101" || matches[0].Status != domain.MatchStatusPendingReview {
+		matches[0].MatchedPetID != lostPetID || matches[0].Status != domain.MatchStatusPendingReview {
 		t.Fatalf("durable browser-visible matches = %#v", matches)
 	}
 
@@ -139,7 +142,7 @@ func TestWebFrontendFullEventCascadeJourney(t *testing.T) {
 
 	resolveBody, err := json.Marshal(map[string]any{
 		"matchId":  generatedMatch.MatchID,
-		"petId":    "lost-101",
+		"petId":    lostPetID,
 		"rating":   5,
 		"feedback": "Reunited via Gemma 4 AI!",
 	})
