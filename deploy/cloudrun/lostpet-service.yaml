@@ -15,6 +15,9 @@ spec:
       serviceAccountName: lostpet-runtime@petspotr.iam.gserviceaccount.com
       containers:
         - image: gcr.io/petspotr/lostpet-service:latest
+          env:
+            - name: PETSPOTR_IMAGE_BUCKET
+              value: petspotr-pet-images
           ports:
             - containerPort: 8080
           resources:

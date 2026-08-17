@@ -103,6 +103,46 @@ func TestGCSImageStoreSecureLifecycle(t *testing.T) {
 	}
 }
 
+func TestGCSImageStoreScopesLostPetLifecycle(t *testing.T) {
+	ctx := context.Background()
+	backend := newFakeGCSBackend()
+	images := newGCSImageStore(backend)
+	grant, err := images.BeginImageUpload(ctx, ImageUploadIntent{
+		Purpose: ImagePurposeLostPet, ContentType: "image/png",
+	})
+	if err != nil {
+		t.Fatalf("BeginImageUpload() error = %v", err)
+	}
+	if !strings.HasPrefix(grant.ReportID, "lost-") ||
+		!strings.HasPrefix(grant.ObjectName, "uploads/lost-pets/"+grant.ReportID+"/") ||
+		grant.FormFields[metadataPurposeField] != string(ImagePurposeLostPet) {
+		t.Fatalf("lost-pet grant = %#v", grant)
+	}
+	imageBytes := encodedGCSImage(t, "png")
+	backend.objects[grant.ObjectName] = fakeGCSObject{
+		attrs: gcsObjectAttrs{
+			Name: grant.ObjectName, ContentType: "image/png", Size: int64(len(imageBytes)), Generation: 17,
+			Metadata: map[string]string{
+				metadataReportID: grant.ReportID, metadataPurpose: string(ImagePurposeLostPet),
+				metadataUploadToken:    tokenDigest(grant.FinalizeToken),
+				metadataFinalizeBefore: strconv.FormatInt(grant.ExpiresAt.Unix(), 10),
+			},
+		},
+		data: imageBytes,
+	}
+	finalized, err := images.FinalizeImage(ctx, grant.ReportID, grant.ObjectName, grant.FinalizeToken)
+	if err != nil {
+		t.Fatalf("FinalizeImage() error = %v", err)
+	}
+	wantFinal := "images/lost-pets/" + grant.ReportID + "/image.png"
+	if finalized.ObjectName != wantFinal {
+		t.Fatalf("finalized object = %q, want %q", finalized.ObjectName, wantFinal)
+	}
+	if got, err := images.ReadFinalizedImage(ctx, wantFinal); err != nil || !bytes.Equal(got, imageBytes) {
+		t.Fatalf("ReadFinalizedImage() = %d bytes, %v", len(got), err)
+	}
+}
+
 func TestGCSImageStoreRejectsUntrustedObjectMetadata(t *testing.T) {
 	ctx := context.Background()
 	backend := newFakeGCSBackend()
@@ -256,6 +296,40 @@ func TestGCSImageStoreCleansFinalizedOrphansSafely(t *testing.T) {
 		if _, ok := backend.objects[preserved]; !ok {
 			t.Fatalf("safe object %q was deleted", preserved)
 		}
+	}
+}
+
+func TestGCSImageStoreScopesOrphanCleanupByPurpose(t *testing.T) {
+	ctx := context.Background()
+	backend := newFakeGCSBackend()
+	images := newGCSImageStore(backend)
+	old := time.Now().UTC().Add(-DefaultOrphanGracePeriod - time.Hour)
+	addFinalObject := func(purpose ImagePurpose, reportID, segment string, generation int64) string {
+		name := "images/" + segment + "/" + reportID + "/image.jpg"
+		backend.objects[name] = fakeGCSObject{attrs: gcsObjectAttrs{
+			Name: name, ContentType: "image/jpeg", Size: 100, Generation: generation, Created: old,
+			Metadata: map[string]string{
+				metadataReportID: reportID, metadataPurpose: string(purpose),
+				metadataWidth: "2", metadataHeight: "3", metadataUploadToken: strings.Repeat("c", 64),
+				metadataFinalizeBefore: strconv.FormatInt(old.Unix(), 10),
+			},
+		}}
+		return name
+	}
+	foundObject := addFinalObject(ImagePurposeFoundPet, "found-scope", "found-pets", 21)
+	lostObject := addFinalObject(ImagePurposeLostPet, "lost-scope", "lost-pets", 22)
+	deleted, err := images.CleanupOrphanedFinalizedImagesForPurpose(
+		ctx, ImagePurposeLostPet, time.Now().UTC(), MaxOrphanCleanupBatch,
+		func(context.Context, string, string) (bool, error) { return false, nil },
+	)
+	if err != nil || deleted != 1 {
+		t.Fatalf("lost-pet cleanup = (%d, %v), want (1, nil)", deleted, err)
+	}
+	if _, ok := backend.objects[lostObject]; ok {
+		t.Fatal("lost-pet orphan was preserved")
+	}
+	if _, ok := backend.objects[foundObject]; !ok {
+		t.Fatal("lost-pet cleanup deleted a found-pet object")
 	}
 }
 

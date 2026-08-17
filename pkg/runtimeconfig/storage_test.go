@@ -31,6 +31,21 @@ func TestLoadStorageConfigRejectsUnsafeModes(t *testing.T) {
 			wantErr: "not allowed on Cloud Run",
 		},
 		{
+			name: "component memory override is forbidden on Cloud Run",
+			env: map[string]string{
+				"PETSPOTR_RUNTIME_MODE": "gcp", "PETSPOTR_STORAGE_MODE": "memory",
+				"K_SERVICE": "lostpet-service",
+			},
+			wantErr: "not allowed on Cloud Run",
+		},
+		{
+			name: "unknown component mode is rejected",
+			env: map[string]string{
+				"PETSPOTR_RUNTIME_MODE": "memory", "PETSPOTR_STORAGE_MODE": "automatic",
+			},
+			wantErr: "unsupported PETSPOTR_STORAGE_MODE",
+		},
+		{
 			name: "managed mode requires a bucket",
 			env: map[string]string{
 				"PETSPOTR_RUNTIME_MODE": "gcp", "GOOGLE_CLOUD_PROJECT": "project",
@@ -61,6 +76,22 @@ func TestLoadStorageConfigRejectsUnsafeModes(t *testing.T) {
 				t.Fatalf("LoadStorageConfig() error = %v, want containing %q", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestLoadStorageConfigAllowsExplicitComponentModeForMixedLocalContracts(t *testing.T) {
+	config, err := runtimeconfig.LoadStorageConfig(func(key string) string {
+		return map[string]string{
+			"PETSPOTR_RUNTIME_MODE":   "local-emulator",
+			"PETSPOTR_STORAGE_MODE":   "memory",
+			"PETSPOTR_IMAGE_BASE_URL": "http://127.0.0.1:8080/images",
+		}[key]
+	})
+	if err != nil {
+		t.Fatalf("LoadStorageConfig() error = %v", err)
+	}
+	if config.Mode != runtimeconfig.ModeMemory || config.MemoryBaseURL != "http://127.0.0.1:8080/images" {
+		t.Fatalf("storage config = %#v, want explicit memory component mode", config)
 	}
 }
 

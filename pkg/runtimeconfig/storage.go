@@ -37,7 +37,7 @@ func LoadStorageConfigFromEnv() (StorageConfig, error) {
 
 // LoadStorageConfig loads and validates image-storage configuration.
 func LoadStorageConfig(lookup func(string) string) (StorageConfig, error) {
-	mode, _, err := resolveRuntimeMode(lookup)
+	mode, _, err := resolveComponentMode(lookup, "PETSPOTR_STORAGE_MODE")
 	if err != nil {
 		return StorageConfig{}, err
 	}

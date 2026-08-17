@@ -3,6 +3,12 @@ resource "google_service_account" "lostpet_runtime" {
   display_name = "Lost-pet Cloud Run runtime"
 }
 
+resource "google_service_account_iam_member" "lostpet_runtime_signer" {
+  service_account_id = google_service_account.lostpet_runtime.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${google_service_account.lostpet_runtime.email}"
+}
+
 resource "google_service_account" "web_frontend_runtime" {
   account_id   = "web-frontend-runtime"
   display_name = "Web frontend Cloud Run runtime"
@@ -86,6 +92,11 @@ resource "google_cloud_run_v2_service" "lostpet_service" {
 
     containers {
       image = var.lostpet_image
+
+      env {
+        name  = "PETSPOTR_IMAGE_BUCKET"
+        value = var.image_bucket_name
+      }
 
       resources {
         cpu_idle = false

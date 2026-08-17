@@ -146,19 +146,20 @@ emulator contracts create them explicitly.
 Event envelope and payload versions evolve independently. Readers must accept
 the legacy raw payload and payload version 1 while those messages can remain in
 flight. Found-pet producers emit additive payload version 2. Lost-pet producers
-emit contact-redacted payload version 3; its decoder continues to accept raw
-and enveloped payload version 1 plus the prior contact-bearing payload version
-2. Private phone and finder-contact data are never copied into report events,
-and current lost-pet events also omit reporter email. Removing or renaming a
-published field requires a new payload version and a tolerant decoder for every
-supported prior shape.
+emit payload version 4, which adds an optional finalized private `imageObject`
+to the contact-redacted version-3 shape. Its decoder continues to accept raw
+and enveloped payload version 1, the prior contact-bearing payload version 2,
+and contact-redacted payload version 3. Private phone and finder-contact data
+are never copied into report events, and current lost-pet events also omit
+reporter email. Removing or renaming a published field requires a new payload
+version and a tolerant decoder for every supported prior shape.
 
-Deploy the lost-pet payload-version-3 rollout consumer first: update
-`notification-service` so it accepts lost-pet payload versions 1, 2, and 3.
+Deploy the lost-pet payload-version-4 rollout consumer first: update
+`notification-service` so it accepts lost-pet payload versions 1 through 4.
 Only after that revision is serving should `lostpet-service` and
-`web-frontend` be deployed to publish version 3. The consumer-first order keeps
-in-flight version-1 and version-2 events readable and prevents old consumers
-from rejecting the contact-redacted payload.
+`web-frontend` be deployed to publish version 4. The consumer-first order keeps
+every in-flight prior version readable and prevents old consumers from
+rejecting the private-image payload.
 
 The matcher and notification workers decode report events through the
 canonical payload-version readers. Those readers normalize raw legacy and
@@ -231,8 +232,8 @@ retry and DLQ routing; issue #91 retains provider circuit-breaker work.
 
 ### Private image storage
 
-The found-pet service and pet matcher select image storage with the same
-`PETSPOTR_RUNTIME_MODE` contract:
+The lost-pet service, found-pet service, and pet matcher select image storage
+with the same `PETSPOTR_RUNTIME_MODE` contract:
 
 | Mode | Required configuration | Image backend |
 | --- | --- | --- |
@@ -240,10 +241,15 @@ The found-pet service and pet matcher select image storage with the same
 | `local-emulator` | `PETSPOTR_IMAGE_BUCKET`, `STORAGE_EMULATOR_HOST` as an HTTP(S) URL | GCS-compatible local emulator |
 | `gcp` | `PETSPOTR_IMAGE_BUCKET`, Application Default Credentials | Private managed GCS bucket |
 
+Storage follows `PETSPOTR_RUNTIME_MODE` by default. Mixed local contracts that
+exercise Firestore or Pub/Sub without a GCS emulator may set the explicit
+`PETSPOTR_STORAGE_MODE=memory` component override. Cloud Run still rejects
+every non-GCP component mode, so this override cannot weaken managed startup.
+
 Managed mode rejects an emulator endpoint and never falls back to memory.
-Cloud Run receives the bucket name from OpenTofu. Its found-pet identity has
-object-user access and may sign short-lived policies through IAM Credentials;
-the matcher has read-only object access.
+Cloud Run receives the bucket name from OpenTofu. The lost- and found-pet
+identities have object-user access and may sign short-lived policies through
+IAM Credentials; the matcher has read-only object access.
 
 The secure found-pet flow is:
 
@@ -285,6 +291,21 @@ referenced, or replaced objects. The capability authenticates the generated
 report upload; tying that capability to a signed-in user remains tracked by
 issue #110. Routing the browser through the canonical service remains tracked
 by issue #113.
+
+The optional lost-pet flow uses the same capability and validation lifecycle
+under the separate `uploads/lost-pets/` and `images/lost-pets/` namespaces:
+
+1. `POST /lostPet/uploads` with `purpose: "lost-pet"` and a JPEG or PNG
+   content type, then upload using the returned V4 POST policy.
+2. `POST /lostPet` with the generated `reportId`, temporary `imageObject`, and
+   `X-PetSpotR-Upload-Token`. The service finalizes and verifies the object
+   before atomically creating report state and its payload-v4 outbox event.
+
+Reports may omit `imageObject`; they remain valid but have no visual evidence
+for asynchronous analysis. The private object name is available only in
+persisted internal state and the integration event, never the unauthenticated
+lost-pet listing DTO. Lost-pet orphan reconciliation is purpose-scoped so it
+cannot delete found-pet objects, and vice versa.
 
 An opt-in deployed contract exercises signing, upload, finalization, private
 service reads, and a signed read URL against a real bucket:
