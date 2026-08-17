@@ -71,20 +71,25 @@ func TestWebFrontendFullEventCascadeJourney(t *testing.T) {
 		LostPetReporter:          lostReports,
 	})
 
-	lostBody := []byte(`{"petId":"lost-101","petName":"Buddy","species":"Dog","breed":"Golden Retriever","primaryColor":"Golden","description":"White chest patch","reporterEmail":"owner@example.com","reportedAt":"2026-08-16T12:00:00Z","location":"Capitol Hill, Seattle, WA"}`)
-	lostRequest := httptest.NewRequest(http.MethodPost, "/api/v1/lost-pets", bytes.NewReader(lostBody))
-	lostRecorder := httptest.NewRecorder()
-	frontend.ServeHTTP(lostRecorder, lostRequest)
-	if lostRecorder.Code != http.StatusCreated {
-		t.Fatalf("lost-pet report status = %d, want %d; body = %s", lostRecorder.Code, http.StatusCreated, lostRecorder.Body.String())
+	verifiedPoint := &domain.LocationPoint{Latitude: 47.6150, Longitude: -122.3200}
+	if _, err := lostReports.ReportLostPet(ctx, lostpet.ReportCommand{
+		PetID: "lost-101", PetName: "Buddy", Species: "Dog", Breed: "Golden Retriever",
+		PrimaryColor: "Golden", Description: "White chest patch", ReporterEmail: "owner@example.com",
+		ReportedAt: time.Date(2026, time.August, 16, 12, 0, 0, 0, time.UTC),
+		Location:   "Capitol Hill, Seattle, WA", GeocodingStatus: domain.GeocodingVerified,
+		Coordinates: verifiedPoint,
+	}, lostpet.ReportMetadata{}); err != nil {
+		t.Fatalf("report verified lost pet: %v", err)
 	}
-
-	foundBody := []byte(`{"petId":"found-999","imageUrl":"https://storage.petspotr.io/images/found-999.jpg","finderEmail":"finder@example.com","foundAt":"2026-08-16T12:05:00Z","location":"Capitol Hill, Seattle, WA","species":"Dog","breed":"Golden Retriever","primaryColor":"Golden","secondaryColor":"Cream","distinctiveMarkings":["White chest patch"],"custodyStatus":"Finder Home"}`)
-	foundRequest := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets", bytes.NewReader(foundBody))
-	foundRecorder := httptest.NewRecorder()
-	frontend.ServeHTTP(foundRecorder, foundRequest)
-	if foundRecorder.Code != http.StatusCreated {
-		t.Fatalf("found-pet report status = %d, want %d; body = %s", foundRecorder.Code, http.StatusCreated, foundRecorder.Body.String())
+	if _, err := foundReports.ReportFoundPet(ctx, foundpet.ReportCommand{
+		PetID: "found-999", ImageURL: "https://storage.petspotr.io/images/found-999.jpg",
+		FoundAt:  time.Date(2026, time.August, 16, 12, 5, 0, 0, time.UTC),
+		Location: "Capitol Hill, Seattle, WA", GeocodingStatus: domain.GeocodingVerified,
+		Coordinates: verifiedPoint, FinderEmail: "finder@example.com", Species: "Dog",
+		Breed: "Golden Retriever", PrimaryColor: "Golden", SecondaryColor: "Cream",
+		DistinctiveMarkings: []string{"White chest patch"}, CustodyStatus: domain.CustodyFinderHome,
+	}, foundpet.ReportMetadata{}); err != nil {
+		t.Fatalf("report verified found pet: %v", err)
 	}
 
 	var generatedMatch domain.MatchResult

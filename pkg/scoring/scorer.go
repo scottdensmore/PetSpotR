@@ -15,6 +15,7 @@ const (
 	WeightMarkings        = 0.20
 	WeightEyeColor        = 0.10
 	MatchThreshold        = 0.70
+	MatchRadiusMiles      = 15.0
 	MatchThresholdVersion = "visual-spatial-v1"
 )
 
@@ -79,13 +80,20 @@ func ComparePets(lostPetID, foundPetID string, lostTraits, foundTraits *PetTrait
 
 // ComparePetsGeo generates a validated domain.MatchResult combining visual similarity and spatial distance.
 func ComparePetsGeo(lostPetID, foundPetID, lostLocation, foundLocation string, lostTraits, foundTraits *PetTraits) *domain.MatchResult {
-	visualScore := CalculateMatchScore(lostTraits, foundTraits)
-
-	// Distance Calculation
 	p1 := domain.ParseLocationCoordinates(lostLocation)
 	p2 := domain.ParseLocationCoordinates(foundLocation)
 	distMiles := domain.HaversineDistanceMiles(p1, p2)
-	spatialScore := CalculateDistanceScore(distMiles, 15.0)
+	return ComparePetsAtDistance(lostPetID, foundPetID, distMiles, lostTraits, foundTraits)
+}
+
+// ComparePetsAtDistance generates a validated MatchResult from an explicit,
+// verified distance without parsing or inventing location coordinates.
+func ComparePetsAtDistance(lostPetID, foundPetID string, distMiles float64, lostTraits, foundTraits *PetTraits) *domain.MatchResult {
+	if math.IsNaN(distMiles) || math.IsInf(distMiles, 0) || distMiles < 0 {
+		return nil
+	}
+	visualScore := CalculateMatchScore(lostTraits, foundTraits)
+	spatialScore := CalculateDistanceScore(distMiles, MatchRadiusMiles)
 	colorScore := calculateColorScore(lostTraits, foundTraits)
 
 	combinedScore := CalculateCombinedMatchScore(visualScore, spatialScore)

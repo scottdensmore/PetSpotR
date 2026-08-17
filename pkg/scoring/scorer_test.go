@@ -157,3 +157,20 @@ func TestComparePetsGeo(t *testing.T) {
 		}
 	})
 }
+
+func TestComparePetsAtDistanceUsesExplicitVerifiedDistance(t *testing.T) {
+	traits := &scoring.PetTraits{
+		Breed: "Golden Retriever", PrimaryColor: "Golden", SecondaryColor: "Cream",
+		DistinctiveMarkings: []string{"White chest patch"}, EyeColor: "Brown",
+	}
+	result := scoring.ComparePetsAtDistance("lost-verified", "found-verified", 4.25, traits, traits)
+	if result == nil || !result.IsMatch || result.Scores == nil {
+		t.Fatalf("ComparePetsAtDistance() = %#v, want a scored match", result)
+	}
+	if result.Scores.DistanceMiles != 4.25 {
+		t.Fatalf("distance = %f, want exact verified distance 4.25", result.Scores.DistanceMiles)
+	}
+	if result := scoring.ComparePetsAtDistance("lost-invalid", "found-invalid", -1, traits, traits); result != nil {
+		t.Fatalf("negative-distance result = %#v, want nil", result)
+	}
+}

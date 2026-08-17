@@ -14,6 +14,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
+	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
 func main() {
@@ -72,6 +73,13 @@ func main() {
 	matcherStateStore, ok := stateRuntime.Store.(petmatcher.Store)
 	if !ok {
 		log.Fatal("State runtime does not support durable matcher operations")
+	}
+	candidateBackfiller, ok := stateRuntime.Store.(store.LostPetCandidateIndexBackfiller)
+	if !ok {
+		log.Fatal("State runtime does not support lost-pet candidate index migration")
+	}
+	if err := petmatcher.PrepareLostPetCandidateIndex(ctx, candidateBackfiller, log.Printf); err != nil {
+		log.Fatalf("Failed to prepare lost-pet candidate index: %v", err)
 	}
 	worker := petmatcher.NewWorkerWithImageStore(matcherStateStore, messagingRuntime.Publisher, oc, storageRuntime.Images)
 
