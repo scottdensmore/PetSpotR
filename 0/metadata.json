@@ -1,0 +1,67 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M089Z0RXQ327MMS5SA0JSPG3",
+  "session_id": "01a0106b-5c6a-72c3-ad94-2ec2cccbe9fa",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-17T16:48:14.3803551Z",
+  "branch": "feat/lost-pet-private-images",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/lostpet-service/main.go",
+    "deploy/cloudrun/lostpet-service.yaml",
+    "docs/DEVELOPMENT.md",
+    "e2e/firestore_process_test.go",
+    "e2e/web_frontend_cascade_test.go",
+    "infra/opentofu/main.tf",
+    "infra/opentofu/modules/cloudrun/main.tf",
+    "internal/app/foundpet/service.go",
+    "internal/app/foundpet/service_test.go",
+    "internal/app/lostpet/service.go",
+    "internal/app/lostpet/service_test.go",
+    "internal/app/notification/broadcast.go",
+    "internal/app/notification/broadcast_test.go",
+    "internal/app/notification/idempotency_test.go",
+    "pkg/blob/blob.go",
+    "pkg/blob/blob_test.go",
+    "pkg/blob/gcs.go",
+    "pkg/blob/gcs_test.go",
+    "pkg/domain/lost_report.go",
+    "pkg/domain/lost_report_v3_test.go",
+    "pkg/domain/lost_report_v4_test.go",
+    "pkg/runtimeconfig/mode.go",
+    "pkg/runtimeconfig/storage.go",
+    "pkg/runtimeconfig/storage_test.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "6b9514c42417",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 350136,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 18450688,
+    "output_tokens": 45807,
+    "api_call_count": 142
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-17T16:48:13.764068391Z",
+    "agent_lines": 1008,
+    "agent_removed": 97,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1008,
+    "total_lines_changed": 1105,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}

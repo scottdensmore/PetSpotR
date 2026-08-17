@@ -1,0 +1,17 @@
+> Continue development of PetSpotR at /home/scottdensmore/Developer/scottdensmore/petspotr. Read and follow AGENTS.md
+  > first, then inspect current Git/GitHub state.
+  >
+  > main should be clean at or after 0de0c41. PR #185 increased the Stop hook timeout to 300 seconds, and PR #186 added
+  > indexed active-candidate matching with a Firestore migration.
+  >
+  > Continue issue #115 with the next thin slice. I approve this direction:
+  >
+  > - Add an optional private imageObject through a backward-compatible lost-report event v4.
+  > - Preserve readers for event versions v1–v3.
+  > - Reuse the secure upload/finalization lifecycle.
+  > - Analyze lost images asynchronously and persist verified traits.
+  > - Defer matching when required image traits are unavailable.
+  >
+  > Use TDD and keep each PR independently shippable. Run every applicable UI-review, verifier, emulator, OpenTofu,
+  > Playwright, and code-review gate. When a PR is clean and every GitHub check passes, squash-merge it automatically and
+  > continue to the next slice until you need a decision or credential from me.

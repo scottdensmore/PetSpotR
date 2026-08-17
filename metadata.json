@@ -1,0 +1,49 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M089Z0RXQ327MMS5SA0JSPG3",
+  "strategy": "manual-commit",
+  "branch": "feat/lost-pet-private-images",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/lostpet-service/main.go",
+    "deploy/cloudrun/lostpet-service.yaml",
+    "docs/DEVELOPMENT.md",
+    "e2e/firestore_process_test.go",
+    "e2e/web_frontend_cascade_test.go",
+    "infra/opentofu/main.tf",
+    "infra/opentofu/modules/cloudrun/main.tf",
+    "internal/app/foundpet/service.go",
+    "internal/app/foundpet/service_test.go",
+    "internal/app/lostpet/service.go",
+    "internal/app/lostpet/service_test.go",
+    "internal/app/notification/broadcast.go",
+    "internal/app/notification/broadcast_test.go",
+    "internal/app/notification/idempotency_test.go",
+    "pkg/blob/blob.go",
+    "pkg/blob/blob_test.go",
+    "pkg/blob/gcs.go",
+    "pkg/blob/gcs_test.go",
+    "pkg/domain/lost_report.go",
+    "pkg/domain/lost_report_v3_test.go",
+    "pkg/domain/lost_report_v4_test.go",
+    "pkg/runtimeconfig/mode.go",
+    "pkg/runtimeconfig/storage.go",
+    "pkg/runtimeconfig/storage_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 350136,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 18450688,
+    "output_tokens": 45807,
+    "api_call_count": 142
+  }
+}
