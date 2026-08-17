@@ -3,6 +3,7 @@ package petmatcher
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -10,10 +11,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
+
+var errLostImageTraitsPending = errors.New("pet-matcher: eligible lost-pet image traits are pending")
 
 const (
 	matcherCandidateWindow      = 30 * 24 * time.Hour
@@ -63,6 +67,7 @@ func (w *Worker) eligibleLostPetCandidates(
 	}
 
 	candidates := make([]lostPetCandidate, 0, len(rawCandidates))
+	pendingImageTraits := false
 	for key, data := range rawCandidates {
 		var record domain.LostPetRecord
 		if err := json.Unmarshal(data, &record); err != nil {
@@ -96,16 +101,39 @@ func (w *Worker) eligibleLostPetCandidates(
 		if distanceMiles > matcherCandidateRadiusMiles {
 			continue
 		}
-		traits := &scoring.PetTraits{
-			Breed:        record.Breed,
-			PrimaryColor: record.PrimaryColor,
+		if record.ImageObject == "" {
+			continue
 		}
-		if description := strings.TrimSpace(record.Description); description != "" {
-			traits.DistinctiveMarkings = []string{description}
+		if !blob.IsFinalizedImageForPurpose(blob.ImagePurposeLostPet, record.PetID, record.ImageObject) {
+			log.Printf("[Pet Matcher] Skipping lost-pet candidate %q with invalid image namespace", key)
+			continue
+		}
+		analysis := record.ImageAnalysis
+		if analysis == nil {
+			pendingImageTraits = true
+			continue
+		}
+		if analysis.SourceImageObject != record.ImageObject || analysis.Status != domain.ImageTraitsVerified {
+			log.Printf("[Pet Matcher] Skipping lost-pet candidate %q with invalid image provenance", key)
+			continue
+		}
+		if err := analysis.Validate(); err != nil {
+			log.Printf("[Pet Matcher] Skipping lost-pet candidate %q with invalid image analysis", key)
+			continue
+		}
+		traits := &scoring.PetTraits{
+			Breed:               analysis.Traits.Breed,
+			PrimaryColor:        analysis.Traits.PrimaryColor,
+			SecondaryColor:      analysis.Traits.SecondaryColor,
+			DistinctiveMarkings: append([]string(nil), analysis.Traits.DistinctiveMarkings...),
+			EyeColor:            analysis.Traits.EyeColor,
 		}
 		candidates = append(candidates, lostPetCandidate{
 			record: record, distanceMiles: distanceMiles, traits: traits,
 		})
+	}
+	if pendingImageTraits {
+		return nil, errLostImageTraitsPending
 	}
 	sort.Slice(candidates, func(i, j int) bool {
 		return candidates[i].record.PetID < candidates[j].record.PetID

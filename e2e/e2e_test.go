@@ -49,7 +49,7 @@ func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 	ollamaClient := ollama.NewClient(ollama.WithBaseURL(mockOllamaServer.URL))
 
 	// 2. Setup Services
-	lostSvc := lostpet.NewService(st, ps)
+	lostSvc := lostpet.NewServiceWithImageStore(st, ps, bs)
 	foundSvc := foundpet.NewService(st, ps, bs)
 
 	// 3. Register the production Notification worker with an observable dev sender.
@@ -68,26 +68,21 @@ func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 	}
 
 	// 4. Register the production Pet Matcher worker.
-	matcherWorker := petmatcher.NewWorker(st, ps, ollamaClient)
+	matcherWorker := petmatcher.NewWorkerWithImageStore(st, ps, ollamaClient, bs)
 	if err := matcherWorker.Start(context.Background()); err != nil {
 		t.Fatalf("failed to start pet matcher: %v", err)
 	}
 
 	// --- Step A: Report Lost Pet ---
 	verifiedPoint := &domain.LocationPoint{Latitude: 47.6150, Longitude: -122.3200}
+	imageGrant := beginLostPetImageUpload(t, context.Background(), lostSvc, bs)
 	lostReport := domain.LostPetReport{
-		PetID: "lost-101", PetName: "Buddy", Species: "Dog", Breed: "Golden Retriever",
+		PetName: "Buddy", Species: "Dog", Breed: "Golden Retriever",
 		PrimaryColor: "Golden", Description: "White chest patch", ReporterEmail: "owner@example.com",
 		ReportedAt: time.Now().UTC(), Location: "Seattle, WA",
 		GeocodingStatus: domain.GeocodingVerified, Coordinates: verifiedPoint, Status: domain.LostPetStatusLost,
 	}
-	lostBody, err := json.Marshal(lostReport)
-	if err != nil {
-		t.Fatalf("failed to serialize LostPetReport: %v", err)
-	}
-	reqLost := httptest.NewRequest(http.MethodPost, "/lostPet", bytes.NewReader(lostBody))
-	recLost := httptest.NewRecorder()
-	lostSvc.HandleLostPet(recLost, reqLost)
+	recLost := reportLostPetWithImage(t, lostSvc, imageGrant, lostReport)
 
 	if recLost.Code != http.StatusCreated {
 		t.Fatalf("LostPet request failed with status %d (body: %s)", recLost.Code, recLost.Body.String())
@@ -125,10 +120,10 @@ func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 	if ownerMessage == nil {
 		t.Fatal("expected owner notification to be dispatched")
 	}
-	if ownerMessage.Subject != "Match Found for Your Pet (lost-101)" {
+	if ownerMessage.Subject != "Match Found for Your Pet ("+imageGrant.ReportID+")" {
 		t.Errorf("notification subject mismatch: got %q", ownerMessage.Subject)
 	}
-	if !strings.Contains(ownerMessage.Body, "<strong>85%</strong>") {
-		t.Errorf("expected rendered 85%% match confidence from persisted lost traits, got %q", ownerMessage.Body)
+	if !strings.Contains(ownerMessage.Body, "<strong>100%</strong>") {
+		t.Errorf("expected rendered 100%% match confidence from verified image traits, got %q", ownerMessage.Body)
 	}
 }

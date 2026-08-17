@@ -439,10 +439,15 @@ parses a user-entered location into fallback coordinates. It sorts eligible
 candidates by ID before scoring, then chooses the highest score with distance
 and candidate ID as deterministic tie-breakers. Pending or unavailable
 geocoding completes without invoking the found-image model or creating a match.
-Lost-image analysis now persists verified traits and provenance independently;
-scoring still uses canonical reported breed, primary color, and description
-until the next matcher rollout consumes those traits and defers candidates that
-lack them.
+After those geographic and species filters, image-less lost reports and records
+with invalid analysis provenance are ineligible. If any otherwise eligible,
+image-bearing report is still waiting for analysis, the fenced found-event
+operation fails before found-image model access so Pub/Sub can retry after the
+lost analysis lands. This prevents a ready candidate from winning prematurely
+while another candidate's traits are pending. Once every eligible image-bearing
+candidate is ready, scoring uses only its validated model-derived breed, colors,
+markings, and eye color; reporter-entered visual fields are never a scoring
+fallback.
 
 The lost-image consumer derives a separate durable operation from the verified
 `lostPet` envelope ID, or from a stable digest for exact legacy payloads. Reports
