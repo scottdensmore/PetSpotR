@@ -30,7 +30,7 @@ func (s *failingSaveStore) CreateStatesAndOutbox(context.Context, []store.StateW
 }
 
 func TestNewServer_Routes(t *testing.T) {
-	srv := NewServer()
+	srv := NewDemoServer()
 
 	t.Run("GET / returns 200 OK with HTML layout shell", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -475,6 +475,35 @@ func TestNewServer_Routes(t *testing.T) {
 			t.Errorf("expected species filter result to contain cat.jpg, got %s", recCat.Body.String())
 		}
 	})
+}
+
+func TestNewServerStartsWithoutDemoMatches(t *testing.T) {
+	srv := NewServer()
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/matches", nil)
+	recorder := httptest.NewRecorder()
+
+	srv.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("GET /api/v1/matches status = %d, want %d", recorder.Code, http.StatusOK)
+	}
+	if body := strings.TrimSpace(recorder.Body.String()); body != "[]" {
+		t.Fatalf("default matches = %s, want []", body)
+	}
+}
+
+func TestSeedDemoMatchesExplicitly(t *testing.T) {
+	memory := store.NewMemoryStore()
+	if err := SeedDemoMatches(context.Background(), memory); err != nil {
+		t.Fatalf("SeedDemoMatches() error = %v", err)
+	}
+	matches, err := memory.ListState(context.Background(), store.MatchesCollection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 2 {
+		t.Fatalf("seeded matches = %d, want 2", len(matches))
+	}
 }
 
 func TestSecurityHeaders(t *testing.T) {

@@ -61,10 +61,16 @@ type ServerOptions struct {
 	LostPetReporter          LostPetReporter
 }
 
-// NewServer initializes a demo/test Server with seeded in-memory match data.
+// NewServer initializes an empty in-memory Server for tests and local callers.
 func NewServer() *Server {
 	memory := store.NewMemoryStore()
-	if err := seedDemoMatches(context.Background(), memory); err != nil {
+	return NewServerWithOptions(memory, ServerOptions{AllowPrivilegedMutations: true})
+}
+
+// NewDemoServer initializes a demo/test Server with explicit seeded match data.
+func NewDemoServer() *Server {
+	memory := store.NewMemoryStore()
+	if err := SeedDemoMatches(context.Background(), memory); err != nil {
 		panic(fmt.Sprintf("seed demo matches: %v", err))
 	}
 	return NewServerWithOptions(memory, ServerOptions{AllowPrivilegedMutations: true})
@@ -654,7 +660,8 @@ func demoMatchRecords() []MatchRecord {
 	}
 }
 
-func seedDemoMatches(ctx context.Context, stateStore store.StateStore) error {
+// SeedDemoMatches replaces the fixed-ID development match fixtures.
+func SeedDemoMatches(ctx context.Context, stateStore store.StateStore) error {
 	for _, match := range demoMatchRecords() {
 		data, err := json.Marshal(match)
 		if err != nil {

@@ -144,6 +144,93 @@ func TestFirestoreStateCrossesServiceProcessesAndSurvivesRestart(t *testing.T) {
 	assertWebProcessHasPet(t, webPort, petID, restartedWebProcess)
 }
 
+func TestDemoSeedCommandWritesOnlyToLocalFirestoreEmulator(t *testing.T) {
+	firestoreHost := os.Getenv("FIRESTORE_EMULATOR_HOST")
+	if firestoreHost == "" {
+		t.Skip("FIRESTORE_EMULATOR_HOST is not set")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	repositoryRoot := filepath.Clean("..")
+	binary := filepath.Join(t.TempDir(), "demo-seed")
+	buildTestBinary(t, ctx, repositoryRoot, binary, "./cmd/demo-seed")
+
+	for _, mode := range []runtimeconfig.Mode{runtimeconfig.ModeMemory, runtimeconfig.ModeGCP} {
+		command := exec.CommandContext(ctx, binary)
+		command.Env = testServiceEnvironment(map[string]string{
+			"K_SERVICE":               "",
+			"PETSPOTR_RUNTIME_MODE":   string(mode),
+			"GOOGLE_CLOUD_PROJECT":    "petspotr-demo-seed-refusal",
+			"FIRESTORE_EMULATOR_HOST": "",
+		})
+		if output, err := command.CombinedOutput(); err == nil {
+			t.Fatalf("%s demo seed succeeded, want refusal; output = %s", mode, output)
+		} else if !strings.Contains(string(output), "requires local-emulator runtime mode") {
+			t.Fatalf("%s demo seed error omitted mode refusal: %s", mode, output)
+		}
+	}
+
+	projectID := "petspotr-demo-seed-command"
+	emulatorEnvironment := testServiceEnvironment(map[string]string{
+		"K_SERVICE":               "",
+		"PETSPOTR_RUNTIME_MODE":   string(runtimeconfig.ModeLocalEmulator),
+		"GOOGLE_CLOUD_PROJECT":    projectID,
+		"FIRESTORE_EMULATOR_HOST": firestoreHost,
+	})
+	runSeed := func() {
+		t.Helper()
+		command := exec.CommandContext(ctx, binary)
+		command.Env = emulatorEnvironment
+		if output, err := command.CombinedOutput(); err != nil {
+			t.Fatalf("local emulator demo seed failed: %v\n%s", err, output)
+		}
+	}
+	runSeed()
+
+	stateRuntime, err := runtimeconfig.NewStateRuntime(ctx, runtimeconfig.StateConfig{
+		Mode: runtimeconfig.ModeLocalEmulator, ProjectID: projectID,
+		FirestoreEmulatorHost: firestoreHost,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cleanupCancel()
+		_ = stateRuntime.Store.DeleteState(cleanupCtx, store.MatchesCollection, "match-101")
+		_ = stateRuntime.Store.DeleteState(cleanupCtx, store.MatchesCollection, "match-102")
+		_ = stateRuntime.Close()
+	})
+	matches, err := stateRuntime.Store.ListState(ctx, store.MatchesCollection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 2 {
+		t.Fatalf("seeded emulator matches = %d, want 2", len(matches))
+	}
+	var firstSeed domain.MatchRecord
+	if err := json.Unmarshal(matches["match-101"], &firstSeed); err != nil {
+		t.Fatalf("decode first match-101 seed: %v", err)
+	}
+
+	runSeed()
+	reseededMatches, err := stateRuntime.Store.ListState(ctx, store.MatchesCollection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(reseededMatches) != 2 {
+		t.Fatalf("reseeded emulator matches = %d, want 2", len(reseededMatches))
+	}
+	var secondSeed domain.MatchRecord
+	if err := json.Unmarshal(reseededMatches["match-101"], &secondSeed); err != nil {
+		t.Fatalf("decode reseeded match-101: %v", err)
+	}
+	if !secondSeed.MatchedAt.After(firstSeed.MatchedAt) {
+		t.Fatalf("reseeded match-101 timestamp = %s, want after %s", secondSeed.MatchedAt, firstSeed.MatchedAt)
+	}
+}
+
 type testServiceProcess struct {
 	command *exec.Cmd
 	logs    lockedBuffer
