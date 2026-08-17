@@ -57,6 +57,8 @@ type ReportCommand struct {
 	SecondaryColor      string
 	DistinctiveMarkings []string
 	CustodyStatus       domain.CustodyStatus
+	// OwnedBy is trusted transport identity, never a caller-supplied JSON field.
+	OwnedBy *domain.PrincipalRef
 }
 
 // ReportResult identifies the accepted report and its durable event.
@@ -316,6 +318,7 @@ func (s *Service) ReportFoundPet(
 		SecondaryColor:      command.SecondaryColor,
 		DistinctiveMarkings: command.DistinctiveMarkings,
 		CustodyStatus:       command.CustodyStatus,
+		OwnedBy:             command.OwnedBy,
 	})
 	if err := report.Validate(); err != nil {
 		return ReportResult{}, &invalidReportError{cause: err}
@@ -431,6 +434,11 @@ func (s *Service) matchPersistedRetry(
 	if _, isSeparated := shape["finderIdentityRef"]; isSeparated {
 		result, matches, err := s.matchSeparatedRetry(ctx, legacyData, report)
 		return result, true, matches, err
+	}
+	// Pre-ownership records remain readable and anonymously retryable, but an
+	// authenticated caller cannot acquire them merely by replaying their input.
+	if report.OwnedBy != nil {
+		return ReportResult{}, true, false, nil
 	}
 	if _, isCurrent := shape["geocodingStatus"]; isCurrent {
 		var previous domain.FoundPetReport

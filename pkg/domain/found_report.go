@@ -77,10 +77,12 @@ type FoundPetReport struct {
 	DistinctiveMarkings []string        `json:"distinctiveMarkings,omitempty"`
 	CustodyStatus       CustodyStatus   `json:"custodyStatus"`
 	Status              FoundPetStatus  `json:"status"`
+	OwnedBy             *PrincipalRef   `json:"-"`
 }
 
 // FoundPetRecord is the persisted found-pet aggregate. Private finder contact
-// is stored separately and linked by FinderIdentityRef.
+// is stored separately and linked by FinderIdentityRef. OwnedBy identifies the
+// authenticated resource owner when the producer supplied one.
 type FoundPetRecord struct {
 	PetID               string              `json:"petId"`
 	ImageURL            string              `json:"imageUrl,omitempty"`
@@ -98,6 +100,7 @@ type FoundPetRecord struct {
 	CustodyStatus       CustodyStatus       `json:"custodyStatus"`
 	Status              FoundPetStatus      `json:"status"`
 	ImageAnalysis       *ImageTraitAnalysis `json:"imageAnalysis,omitempty"`
+	OwnedBy             *PrincipalRef       `json:"ownedBy,omitempty"`
 }
 
 // FoundPetReportedV2 is the additive payload-v2 integration event. Its legacy
@@ -221,6 +224,7 @@ func NormalizeFoundPetReport(report FoundPetReport) FoundPetReport {
 	}
 	report.Location = strings.TrimSpace(report.Location)
 	report.FinderEmail = strings.ToLower(strings.TrimSpace(report.FinderEmail))
+	report.OwnedBy = normalizePrincipalRef(report.OwnedBy)
 	report.Species = normalizeSpecies(report.Species)
 	report.Breed = strings.TrimSpace(report.Breed)
 	report.PrimaryColor = strings.TrimSpace(report.PrimaryColor)
@@ -251,6 +255,11 @@ func (r FoundPetReport) Validate() error {
 	}
 	if err := legacy.Validate(); err != nil {
 		return err
+	}
+	if r.OwnedBy != nil {
+		if err := r.OwnedBy.Validate(); err != nil {
+			return err
+		}
 	}
 	if r.Location == "" {
 		return errors.New("foundpet: location is required")
@@ -333,6 +342,7 @@ func (r FoundPetReport) Persisted() (FoundPetRecord, ReportContact) {
 			DistinctiveMarkings: append([]string(nil), r.DistinctiveMarkings...),
 			CustodyStatus:       r.CustodyStatus,
 			Status:              r.Status,
+			OwnedBy:             normalizePrincipalRef(r.OwnedBy),
 		}, NormalizeReportContact(ReportContact{
 			IdentityRef: identityRef,
 			Email:       r.FinderEmail,
@@ -357,6 +367,7 @@ func NormalizeFoundPetRecord(record FoundPetRecord) FoundPetRecord {
 		DistinctiveMarkings: record.DistinctiveMarkings,
 		CustodyStatus:       record.CustodyStatus,
 		Status:              record.Status,
+		OwnedBy:             record.OwnedBy,
 	})
 	normalized, _ := report.Persisted()
 	if identityRef := strings.TrimSpace(record.FinderIdentityRef); identityRef != "" {
