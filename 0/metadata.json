@@ -1,0 +1,44 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M091BXN91YK1FF6P46RT7CVA",
+  "session_id": "01a0106b-5c6a-72c3-ad94-2ec2cccbe9fa",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-17T23:37:46.295979189Z",
+  "branch": "feat/lost-report-private-contact",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "e2e/identity_session_test.go",
+    "internal/app/webfrontend/lost_contact_auth_test.go",
+    "internal/app/webfrontend/private_contact.go",
+    "internal/app/webfrontend/server.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "6997676395b3",
+  "checkpoint_transcript_start": 7681,
+  "transcript_lines_at_start": 7681,
+  "compact_transcript_start": 1134,
+  "token_usage": {
+    "input_tokens": 96157,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 12374016,
+    "output_tokens": 17808,
+    "api_call_count": 78
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-17T23:37:42.776400869Z",
+    "agent_lines": 299,
+    "agent_removed": 1,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 299,
+    "total_lines_changed": 300,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
