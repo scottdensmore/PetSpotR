@@ -556,6 +556,19 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var principal *identity.Principal
+	if s.identitySessions != nil {
+		verified, ok := s.verifiedRequestPrincipal(w, r)
+		if !ok {
+			return
+		}
+		if !s.validCSRF(r) {
+			http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+			return
+		}
+		principal = &verified
+	}
+
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
 	var req FoundPetFormRequest
@@ -577,19 +590,26 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 	if foundAt.IsZero() {
 		foundAt = time.Now().UTC()
 	}
+	finderEmail := req.FinderEmail
+	var ownedBy *domain.PrincipalRef
+	if principal != nil {
+		finderEmail = principal.Email
+		ownedBy = &domain.PrincipalRef{Issuer: principal.Issuer, Subject: principal.Subject}
+	}
 
 	command := foundpet.ReportCommand{
 		PetID:               petID,
 		ImageURL:            req.ImageURL,
 		FoundAt:             foundAt,
 		Location:            req.Location,
-		FinderEmail:         req.FinderEmail,
+		FinderEmail:         finderEmail,
 		Species:             req.Species,
 		Breed:               req.Breed,
 		PrimaryColor:        req.PrimaryColor,
 		SecondaryColor:      req.SecondaryColor,
 		DistinctiveMarkings: req.DistinctiveMarkings,
 		CustodyStatus:       req.CustodyStatus,
+		OwnedBy:             ownedBy,
 	}
 
 	result, err := s.foundPetReporter.ReportFoundPet(r.Context(), command, foundpet.ReportMetadata{
