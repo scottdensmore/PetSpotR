@@ -159,3 +159,62 @@ func TestLoadNotificationPushConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadMatcherPushConfig(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		env     map[string]string
+		want    runtimeconfig.MatcherPushConfig
+		wantErr bool
+	}{
+		{
+			name: "binds distinct found and lost pet subscriptions",
+			env: map[string]string{
+				"PUBSUB_PUSH_SUBSCRIPTION": "projects/local/subscriptions/found-pet-matcher",
+				"PUBSUB_LOST_SUBSCRIPTION": "projects/local/subscriptions/lost-pet-matcher-analysis",
+				"PUBSUB_PUSH_DEV_TOKEN":    "local-secret",
+			},
+			want: runtimeconfig.MatcherPushConfig{
+				PushConsumerConfig: runtimeconfig.PushConsumerConfig{
+					Mode:                 runtimeconfig.ModeMemory,
+					ExpectedSubscription: "projects/local/subscriptions/found-pet-matcher",
+					StaticToken:          "local-secret",
+				},
+				ExpectedLostPetSubscription: "projects/local/subscriptions/lost-pet-matcher-analysis",
+			},
+		},
+		{
+			name: "requires lost pet subscription",
+			env: map[string]string{
+				"PUBSUB_PUSH_SUBSCRIPTION": "projects/local/subscriptions/found-pet-matcher",
+				"PUBSUB_PUSH_DEV_TOKEN":    "local-secret",
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects one subscription bound to two matcher routes",
+			env: map[string]string{
+				"PUBSUB_PUSH_SUBSCRIPTION": "projects/local/subscriptions/shared-matcher",
+				"PUBSUB_LOST_SUBSCRIPTION": "projects/local/subscriptions/shared-matcher",
+				"PUBSUB_PUSH_DEV_TOKEN":    "local-secret",
+			},
+			wantErr: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := runtimeconfig.LoadMatcherPushConfig(func(key string) string { return test.env[key] })
+			if test.wantErr {
+				if err == nil {
+					t.Fatal("LoadMatcherPushConfig() error = nil, want non-nil")
+				}
+				return
+			}
+			if err != nil || got != test.want {
+				t.Fatalf("LoadMatcherPushConfig() = %#v, %v; want %#v, nil", got, err, test.want)
+			}
+		})
+	}
+}

@@ -489,6 +489,9 @@ func (s *Service) matchSeparatedRetry(
 		return ReportResult{}, false, nil
 	}
 	previous = domain.NormalizeLostPetRecord(previous)
+	// Image analysis is matcher-owned enrichment added after report creation.
+	// It must not turn an exact reporter retry into a competing create.
+	previous.ImageAnalysis = nil
 	expectedRecord, expectedContact := report.Persisted()
 	previousData, err := json.Marshal(previous)
 	if err != nil {

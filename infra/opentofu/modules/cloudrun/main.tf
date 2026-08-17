@@ -155,6 +155,11 @@ resource "google_cloud_run_v2_service" "pet_matcher" {
       }
 
       env {
+        name  = "PUBSUB_LOST_SUBSCRIPTION"
+        value = "projects/${var.project_id}/subscriptions/lost-pet-matcher-analysis"
+      }
+
+      env {
         name  = "PUBSUB_PUSH_SERVICE_ACCOUNT"
         value = "pubsub-pet-matcher-invoker@${var.project_id}.iam.gserviceaccount.com"
       }

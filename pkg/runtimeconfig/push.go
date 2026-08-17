@@ -21,6 +21,13 @@ type NotificationPushConfig struct {
 	ExpectedLostPetSubscription string
 }
 
+// MatcherPushConfig protects the matcher's independent foundPet matching and
+// lostPet image-analysis subscriptions with one invocation identity.
+type MatcherPushConfig struct {
+	PushConsumerConfig
+	ExpectedLostPetSubscription string
+}
+
 // LoadPushConsumerConfigFromEnv loads push authentication settings.
 func LoadPushConsumerConfigFromEnv() (PushConsumerConfig, error) {
 	return LoadPushConsumerConfig(os.Getenv)
@@ -29,6 +36,11 @@ func LoadPushConsumerConfigFromEnv() (PushConsumerConfig, error) {
 // LoadNotificationPushConfigFromEnv loads notification push settings.
 func LoadNotificationPushConfigFromEnv() (NotificationPushConfig, error) {
 	return LoadNotificationPushConfig(os.Getenv)
+}
+
+// LoadMatcherPushConfigFromEnv loads matcher push settings.
+func LoadMatcherPushConfigFromEnv() (MatcherPushConfig, error) {
+	return LoadMatcherPushConfig(os.Getenv)
 }
 
 // LoadNotificationPushConfig requires a distinct subscription for each
@@ -46,6 +58,26 @@ func LoadNotificationPushConfig(lookup func(string) string) (NotificationPushCon
 		return NotificationPushConfig{}, fmt.Errorf("notification push subscriptions must be distinct")
 	}
 	return NotificationPushConfig{
+		PushConsumerConfig:          base,
+		ExpectedLostPetSubscription: lostPetSubscription,
+	}, nil
+}
+
+// LoadMatcherPushConfig requires a distinct subscription for each matcher
+// route so a delivery cannot cross from matching into image analysis.
+func LoadMatcherPushConfig(lookup func(string) string) (MatcherPushConfig, error) {
+	base, err := LoadPushConsumerConfig(lookup)
+	if err != nil {
+		return MatcherPushConfig{}, err
+	}
+	lostPetSubscription := strings.TrimSpace(lookup("PUBSUB_LOST_SUBSCRIPTION"))
+	if lostPetSubscription == "" {
+		return MatcherPushConfig{}, fmt.Errorf("PUBSUB_LOST_SUBSCRIPTION is required in %q mode", base.Mode)
+	}
+	if lostPetSubscription == base.ExpectedSubscription {
+		return MatcherPushConfig{}, fmt.Errorf("matcher push subscriptions must be distinct")
+	}
+	return MatcherPushConfig{
 		PushConsumerConfig:          base,
 		ExpectedLostPetSubscription: lostPetSubscription,
 	}, nil

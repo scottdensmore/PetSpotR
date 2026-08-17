@@ -64,7 +64,7 @@ func main() {
 			log.Printf("Failed to close storage runtime: %v", err)
 		}
 	}()
-	pushConfig, err := runtimeconfig.LoadPushConsumerConfigFromEnv()
+	pushConfig, err := runtimeconfig.LoadMatcherPushConfigFromEnv()
 	if err != nil {
 		log.Fatalf("Invalid push consumer configuration: %v", err)
 	}
@@ -89,22 +89,14 @@ func main() {
 	} else {
 		authorizer = pubsub.NewStaticPushAuthorizer(pushConfig.StaticToken)
 	}
-	pushHandler := pubsub.NewPushHandler(authorizer, pushConfig.ExpectedSubscription, func(handlerCtx context.Context, data []byte) error {
-		if err := worker.ProcessFoundPet(handlerCtx, data); err != nil {
-			log.Printf("Pet Matcher foundPet processing failed: %v", err)
-			return err
-		}
-		return nil
-	})
-	mux := http.NewServeMux()
-	mux.Handle("/pubsub/found-pet", pushHandler)
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("OK"))
-	})
 	httpServer := &http.Server{
-		Addr:              ":" + port,
-		Handler:           mux,
+		Addr: ":" + port,
+		Handler: petmatcher.NewHTTPHandler(
+			worker,
+			authorizer,
+			pushConfig.ExpectedSubscription,
+			pushConfig.ExpectedLostPetSubscription,
+		),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

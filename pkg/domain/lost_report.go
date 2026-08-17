@@ -59,19 +59,20 @@ type LostPetReport struct {
 // LostPetRecord is the persisted lost-pet aggregate. Private owner contact is
 // stored separately and linked by OwnerIdentityRef.
 type LostPetRecord struct {
-	PetID            string          `json:"petId"`
-	PetName          string          `json:"petName,omitempty"`
-	Species          string          `json:"species,omitempty"`
-	Breed            string          `json:"breed,omitempty"`
-	PrimaryColor     string          `json:"primaryColor,omitempty"`
-	Description      string          `json:"description,omitempty"`
-	OwnerIdentityRef string          `json:"ownerIdentityRef"`
-	ImageObject      string          `json:"imageObject,omitempty"`
-	ReportedAt       time.Time       `json:"reportedAt"`
-	Location         string          `json:"location"`
-	GeocodingStatus  GeocodingStatus `json:"geocodingStatus"`
-	Coordinates      *LocationPoint  `json:"coordinates,omitempty"`
-	Status           LostPetStatus   `json:"status"`
+	PetID            string              `json:"petId"`
+	PetName          string              `json:"petName,omitempty"`
+	Species          string              `json:"species,omitempty"`
+	Breed            string              `json:"breed,omitempty"`
+	PrimaryColor     string              `json:"primaryColor,omitempty"`
+	Description      string              `json:"description,omitempty"`
+	OwnerIdentityRef string              `json:"ownerIdentityRef"`
+	ImageObject      string              `json:"imageObject,omitempty"`
+	ReportedAt       time.Time           `json:"reportedAt"`
+	Location         string              `json:"location"`
+	GeocodingStatus  GeocodingStatus     `json:"geocodingStatus"`
+	Coordinates      *LocationPoint      `json:"coordinates,omitempty"`
+	Status           LostPetStatus       `json:"status"`
+	ImageAnalysis    *ImageTraitAnalysis `json:"imageAnalysis,omitempty"`
 }
 
 // LostPetReportedV2 is the additive payload-v2 integration event. Its legacy
@@ -475,6 +476,7 @@ func NormalizeLostPetRecord(record LostPetRecord) LostPetRecord {
 	if identityRef := strings.TrimSpace(record.OwnerIdentityRef); identityRef != "" {
 		normalized.OwnerIdentityRef = identityRef
 	}
+	normalized.ImageAnalysis = NormalizeImageTraitAnalysis(record.ImageAnalysis)
 	return normalized
 }
 

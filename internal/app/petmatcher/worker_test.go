@@ -416,11 +416,20 @@ func TestMatcherWorker_Start(t *testing.T) {
 	oc := ollama.NewClient()
 	worker := NewWorker(st, ps, oc)
 
-	t.Run("Start registers foundPet subscription successfully", func(t *testing.T) {
+	t.Run("Start registers foundPet and lostPet subscriptions successfully", func(t *testing.T) {
 		ctx := context.Background()
 		if err := worker.Start(ctx); err != nil {
 			t.Fatalf("worker.Start failed: %v", err)
 		}
+		data, eventID := encodeLostAnalysisEvent(t, domain.LostPetReportedV4{
+			PetID: "lost-in-process-no-image", ReportedAt: time.Now().UTC(),
+			Location: "Seattle, WA", GeocodingStatus: domain.GeocodingPending,
+			Status: domain.LostPetStatusLost,
+		})
+		if err := ps.Publish(ctx, "lostPet", data); err != nil {
+			t.Fatalf("publish lostPet after Start: %v", err)
+		}
+		assertCompletedLostAnalysisOperation(t, st, eventID, "lost-in-process-no-image")
 	})
 
 	t.Run("Start returns error on cancelled context", func(t *testing.T) {

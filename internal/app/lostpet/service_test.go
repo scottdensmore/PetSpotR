@@ -274,6 +274,49 @@ func TestLostPetServiceRejectsFoundPetUploadPurpose(t *testing.T) {
 	}
 }
 
+func TestLostPetServiceRetryIgnoresMatcherOwnedImageAnalysis(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	service := NewService(stateStore, pubsub.NewMemoryPubSub())
+	reportedAt := time.Date(2026, time.August, 17, 22, 0, 0, 0, time.UTC)
+	command := ReportCommand{
+		PetID: "lost-analysis-retry", PetName: "Buddy", Species: "Dog",
+		ReporterEmail: "owner@example.com",
+		ImageObject:   "images/lost-pets/lost-analysis-retry/image.jpg",
+		ReportedAt:    reportedAt, Location: "Seattle, WA",
+		GeocodingStatus: domain.GeocodingPending,
+	}
+	first, err := service.ReportLostPet(ctx, command, ReportMetadata{})
+	if err != nil {
+		t.Fatalf("first ReportLostPet() error = %v", err)
+	}
+	err = stateStore.UpdateState(ctx, store.LostPetsCollection, command.PetID, func(current []byte) ([]byte, error) {
+		var record domain.LostPetRecord
+		if err := json.Unmarshal(current, &record); err != nil {
+			return nil, err
+		}
+		record.ImageAnalysis = &domain.ImageTraitAnalysis{
+			Status: domain.ImageTraitsVerified,
+			Traits: domain.PetImageTraits{Breed: "Golden Retriever", PrimaryColor: "Golden"},
+			Model:  "gemma4:e2b", AnalysisVersion: "pet-image-traits-v1",
+			SourceEventID: "evt-analysis", SourceImageObject: command.ImageObject,
+			VerifiedAt: reportedAt.Add(time.Minute),
+		}
+		return json.Marshal(record)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	retry, err := service.ReportLostPet(ctx, command, ReportMetadata{})
+	if err != nil {
+		t.Fatalf("retry ReportLostPet() error = %v", err)
+	}
+	if retry != first {
+		t.Fatalf("retry result = %#v, want %#v", retry, first)
+	}
+}
+
 func encodedLostServiceImage(t *testing.T) []byte {
 	t.Helper()
 	return []byte{
