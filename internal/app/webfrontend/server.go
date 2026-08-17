@@ -125,6 +125,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/report-found", s.handleReportFound)
 	s.mux.HandleFunc("/matches", s.handleMatches)
 	s.mux.HandleFunc("/api/v1/lost-pets", s.handleApiLostPets)
+	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/contact", s.handleApiLostPetContact)
 	s.mux.HandleFunc("/api/v1/found-pets/extract-features", s.handleApiExtractFeatures)
 	s.mux.HandleFunc("/api/v1/found-pets", s.handleApiFoundPets)
 	s.mux.HandleFunc("/api/v1/matches", s.handleApiMatches)
