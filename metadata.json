@@ -1,0 +1,47 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M08C4C8MK9JFHBBFAQ7NRTFX",
+  "strategy": "manual-commit",
+  "branch": "feat/lost-pet-image-analysis",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/pet-matcher/main.go",
+    "deploy/cloudrun/pet-matcher.yaml",
+    "docker-compose.yml",
+    "docs/DEVELOPMENT.md",
+    "infra/opentofu/modules/cloudrun/main.tf",
+    "infra/opentofu/modules/pubsub/main.tf",
+    "internal/app/lostpet/service.go",
+    "internal/app/lostpet/service_test.go",
+    "internal/app/petmatcher/firestore_integration_test.go",
+    "internal/app/petmatcher/lost_analysis.go",
+    "internal/app/petmatcher/lost_analysis_test.go",
+    "internal/app/petmatcher/server.go",
+    "internal/app/petmatcher/server_test.go",
+    "internal/app/petmatcher/worker.go",
+    "internal/app/petmatcher/worker_test.go",
+    "pkg/blob/blob.go",
+    "pkg/blob/blob_test.go",
+    "pkg/domain/image_analysis.go",
+    "pkg/domain/image_analysis_test.go",
+    "pkg/domain/lost_report.go",
+    "pkg/runtimeconfig/push.go",
+    "pkg/runtimeconfig/push_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 203867,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 13242368,
+    "output_tokens": 43687,
+    "api_call_count": 106
+  }
+}
