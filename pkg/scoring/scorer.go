@@ -9,12 +9,13 @@ import (
 )
 
 const (
-	WeightBreed          = 0.40
-	WeightPrimaryColor   = 0.20
-	WeightSecondaryColor = 0.10
-	WeightMarkings       = 0.20
-	WeightEyeColor       = 0.10
-	MatchThreshold       = 0.70
+	WeightBreed           = 0.40
+	WeightPrimaryColor    = 0.20
+	WeightSecondaryColor  = 0.10
+	WeightMarkings        = 0.20
+	WeightEyeColor        = 0.10
+	MatchThreshold        = 0.70
+	MatchThresholdVersion = "visual-spatial-v1"
 )
 
 // CalculateMatchScore computes a weighted similarity score between 0.0 and 1.0.
@@ -85,6 +86,7 @@ func ComparePetsGeo(lostPetID, foundPetID, lostLocation, foundLocation string, l
 	p2 := domain.ParseLocationCoordinates(foundLocation)
 	distMiles := domain.HaversineDistanceMiles(p1, p2)
 	spatialScore := CalculateDistanceScore(distMiles, 15.0)
+	colorScore := calculateColorScore(lostTraits, foundTraits)
 
 	combinedScore := CalculateCombinedMatchScore(visualScore, spatialScore)
 	isMatch := combinedScore >= MatchThreshold
@@ -98,6 +100,14 @@ func ComparePetsGeo(lostPetID, foundPetID, lostLocation, foundLocation string, l
 		Score:        combinedScore,
 		IsMatch:      isMatch,
 		Details:      details,
+		Scores: &domain.MatchScoreBreakdown{
+			Visual:        visualScore,
+			Color:         colorScore,
+			Spatial:       spatialScore,
+			DistanceMiles: distMiles,
+			Threshold:     MatchThreshold,
+		},
+		ThresholdVersion: MatchThresholdVersion,
 	}
 
 	if err := res.Validate(); err != nil {
@@ -105,6 +115,30 @@ func ComparePetsGeo(lostPetID, foundPetID, lostLocation, foundLocation string, l
 	}
 
 	return res
+}
+
+func calculateColorScore(first, second *PetTraits) float64 {
+	if first == nil || second == nil {
+		return 0
+	}
+	compared := 0
+	matched := 0
+	for _, colors := range [][2]string{
+		{first.PrimaryColor, second.PrimaryColor},
+		{first.SecondaryColor, second.SecondaryColor},
+	} {
+		if strings.TrimSpace(colors[0]) == "" || strings.TrimSpace(colors[1]) == "" {
+			continue
+		}
+		compared++
+		if compareStrings(colors[0], colors[1]) {
+			matched++
+		}
+	}
+	if compared == 0 {
+		return 0
+	}
+	return float64(matched) / float64(compared)
 }
 
 func compareStrings(s1, s2 string) bool {

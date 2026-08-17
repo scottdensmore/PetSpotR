@@ -207,6 +207,31 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 		if matchFoundEnvelope == nil || matchFoundEnvelope.AggregateID != "found-202:lost-101" {
 			t.Fatalf("match envelope = %#v", matchFoundEnvelope)
 		}
+		matches, err := st.ListState(context.Background(), store.MatchesCollection)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(matches) != 1 {
+			t.Fatalf("persisted match count = %d, want 1", len(matches))
+		}
+		var persisted domain.MatchRecord
+		for _, data := range matches {
+			if err := json.Unmarshal(data, &persisted); err != nil {
+				t.Fatalf("decode persisted match: %v", err)
+			}
+		}
+		if err := persisted.Validate(); err != nil {
+			t.Fatalf("persisted match validation: %v", err)
+		}
+		if persisted.MatchID == "" || persisted.MatchID != matchFoundEvent.MatchID ||
+			persisted.FoundPetID != "found-202" || persisted.MatchedPetID != "lost-101" ||
+			persisted.Status != domain.MatchStatusPendingReview || persisted.SourceEventID == "" ||
+			persisted.Model != "gemma2:2b" || persisted.Model != matchFoundEvent.Model ||
+			persisted.ThresholdVersion == "" || persisted.ThresholdVersion != matchFoundEvent.ThresholdVersion ||
+			persisted.MatchedAt.IsZero() ||
+			persisted.Scores.Visual <= 0 || persisted.Scores.Spatial <= 0 || persisted.Explanation == "" {
+			t.Fatalf("persisted match = %#v; event = %#v", persisted, matchFoundEvent)
+		}
 		firstEventID := matchFoundEnvelope.ID
 		if err := worker.ProcessFoundPet(context.Background(), foundData); err != nil {
 			t.Fatalf("duplicate ProcessFoundPet failed: %v", err)
@@ -219,6 +244,13 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 		}
 		if got := matchPublications.Load(); got != 1 {
 			t.Fatalf("matchFound publications after duplicate = %d, want 1", got)
+		}
+		matches, err = st.ListState(context.Background(), store.MatchesCollection)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(matches) != 1 {
+			t.Fatalf("persisted match count after duplicate = %d, want 1", len(matches))
 		}
 	})
 

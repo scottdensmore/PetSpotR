@@ -94,10 +94,24 @@ func TestFirestoreMatcherRecoversPersistedResultAcrossWorkers(t *testing.T) {
 	if err := json.Unmarshal(storedResult, &result); err != nil {
 		t.Fatal(err)
 	}
+	if result.MatchID == "" {
+		t.Fatal("persisted matcher result omitted match ID")
+	}
 	t.Cleanup(func() {
 		_ = firstStore.DeleteState(context.Background(), store.OutboxCollection, result.OutboxID)
+		_ = firstStore.DeleteState(context.Background(), store.MatchesCollection, result.MatchID)
 	})
-
+	matchData, err := firstStore.GetState(ctx, store.MatchesCollection, result.MatchID)
+	if err != nil {
+		t.Fatalf("GetState(match record) error = %v", err)
+	}
+	var match domain.MatchRecord
+	if err := json.Unmarshal(matchData, &match); err != nil {
+		t.Fatal(err)
+	}
+	if err := match.Validate(); err != nil {
+		t.Fatalf("persisted match validation: %v", err)
+	}
 	if err := NewWorker(secondStore, publisher, client).ProcessFoundPet(ctx, foundData); err != nil {
 		t.Fatalf("second ProcessFoundPet() error = %v", err)
 	}

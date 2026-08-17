@@ -65,77 +65,93 @@ func TestWebFrontendFullEventCascadeJourney(t *testing.T) {
 	}
 	lostReports := lostpet.NewService(st, ps)
 	foundReports := foundpet.NewService(st, ps, bs)
+	frontend := webfrontend.NewServerWithOptions(st, webfrontend.ServerOptions{
+		AllowPrivilegedMutations: true,
+		FoundPetReporter:         foundReports,
+		LostPetReporter:          lostReports,
+	})
 
-	lostEvent := domain.LostPetEvent{
-		PetID:         "lost-101",
-		ReporterEmail: "owner@example.com",
-		ReportedAt:    time.Now().UTC(),
-		Location:      "Capitol Hill, Seattle, WA",
-	}
-	lostBody, err := lostEvent.ToJSON()
-	if err != nil {
-		t.Fatalf("encode lost-pet event: %v", err)
-	}
-	lostRequest := httptest.NewRequest(http.MethodPost, "/lostPet", bytes.NewReader(lostBody))
+	lostBody := []byte(`{"petId":"lost-101","petName":"Buddy","species":"Dog","breed":"Golden Retriever","primaryColor":"Golden","description":"White chest patch","reporterEmail":"owner@example.com","reportedAt":"2026-08-16T12:00:00Z","location":"Capitol Hill, Seattle, WA"}`)
+	lostRequest := httptest.NewRequest(http.MethodPost, "/api/v1/lost-pets", bytes.NewReader(lostBody))
 	lostRecorder := httptest.NewRecorder()
-	lostReports.HandleLostPet(lostRecorder, lostRequest)
+	frontend.ServeHTTP(lostRecorder, lostRequest)
 	if lostRecorder.Code != http.StatusCreated {
 		t.Fatalf("lost-pet report status = %d, want %d; body = %s", lostRecorder.Code, http.StatusCreated, lostRecorder.Body.String())
 	}
 
-	foundEvent := domain.FoundPetEvent{
-		PetID:    "found-999",
-		ImageURL: "https://storage.petspotr.io/images/found-999.jpg",
-		FoundAt:  time.Now().UTC(),
-		Location: "Capitol Hill, Seattle, WA",
-	}
-	foundBody, err := foundEvent.ToJSON()
-	if err != nil {
-		t.Fatalf("encode found-pet event: %v", err)
-	}
-	foundRequest := httptest.NewRequest(http.MethodPost, "/foundPet", bytes.NewReader(foundBody))
+	foundBody := []byte(`{"petId":"found-999","imageUrl":"https://storage.petspotr.io/images/found-999.jpg","finderEmail":"finder@example.com","foundAt":"2026-08-16T12:05:00Z","location":"Capitol Hill, Seattle, WA","species":"Dog","breed":"Golden Retriever","primaryColor":"Golden","secondaryColor":"Cream","distinctiveMarkings":["White chest patch"],"custodyStatus":"Finder Home"}`)
+	foundRequest := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets", bytes.NewReader(foundBody))
 	foundRecorder := httptest.NewRecorder()
-	foundReports.HandleFoundPet(foundRecorder, foundRequest)
+	frontend.ServeHTTP(foundRecorder, foundRequest)
 	if foundRecorder.Code != http.StatusCreated {
 		t.Fatalf("found-pet report status = %d, want %d; body = %s", foundRecorder.Code, http.StatusCreated, foundRecorder.Body.String())
 	}
 
+	var generatedMatch domain.MatchResult
 	select {
 	case match := <-matchResults:
-		if match.MatchedPetID != lostEvent.PetID || match.FoundPetID != foundEvent.PetID {
-			t.Fatalf("match pet IDs = %s/%s, want %s/%s", match.MatchedPetID, match.FoundPetID, lostEvent.PetID, foundEvent.PetID)
+		if match.MatchedPetID != "lost-101" || match.FoundPetID != "found-999" || match.MatchID == "" {
+			t.Fatalf("generated match = %#v", match)
 		}
 		if match.Score < 0.70 {
 			t.Fatalf("match score = %f, want at least 0.70", match.Score)
 		}
+		generatedMatch = match
 	case <-time.After(2 * time.Second):
 		t.Fatal("timed out waiting for matchFound event")
 	}
 
-	frontend := webfrontend.NewServer()
+	matchesRequest := httptest.NewRequest(http.MethodGet, "/api/v1/matches", nil)
+	matchesRecorder := httptest.NewRecorder()
+	frontend.ServeHTTP(matchesRecorder, matchesRequest)
+	if matchesRecorder.Code != http.StatusOK {
+		t.Fatalf("match list status = %d, want %d; body = %s", matchesRecorder.Code, http.StatusOK, matchesRecorder.Body.String())
+	}
+	var matches []domain.MatchRecord
+	if err := json.Unmarshal(matchesRecorder.Body.Bytes(), &matches); err != nil {
+		t.Fatalf("decode match list: %v", err)
+	}
+	if len(matches) != 1 || matches[0].MatchID != generatedMatch.MatchID || matches[0].FoundPetID != "found-999" ||
+		matches[0].MatchedPetID != "lost-101" || matches[0].Status != domain.MatchStatusPendingReview {
+		t.Fatalf("durable browser-visible matches = %#v", matches)
+	}
+
+	actionBody, err := json.Marshal(map[string]string{"matchId": generatedMatch.MatchID, "action": "confirm"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	actionRequest := httptest.NewRequest(
 		http.MethodPost,
 		"/api/v1/matches/action",
-		strings.NewReader(`{"matchId":"match-101","action":"confirm"}`),
+		bytes.NewReader(actionBody),
 	)
 	actionRecorder := httptest.NewRecorder()
 	frontend.ServeHTTP(actionRecorder, actionRequest)
 	if actionRecorder.Code != http.StatusOK {
 		t.Fatalf("match action status = %d, want %d; body = %s", actionRecorder.Code, http.StatusOK, actionRecorder.Body.String())
 	}
-	assertFrontendMatchStatus(t, frontend, "match-101", "CONFIRMED")
+	assertFrontendMatchStatus(t, frontend, generatedMatch.MatchID, domain.MatchStatusConfirmed)
 
+	resolveBody, err := json.Marshal(map[string]any{
+		"matchId":  generatedMatch.MatchID,
+		"petId":    "lost-101",
+		"rating":   5,
+		"feedback": "Reunited via Gemma 4 AI!",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	resolveRequest := httptest.NewRequest(
 		http.MethodPost,
 		"/api/v1/reunions/resolve",
-		strings.NewReader(`{"matchId":"match-101","petId":"lost-101","rating":5,"feedback":"Reunited via Gemma 4 AI!"}`),
+		bytes.NewReader(resolveBody),
 	)
 	resolveRecorder := httptest.NewRecorder()
 	frontend.ServeHTTP(resolveRecorder, resolveRequest)
 	if resolveRecorder.Code != http.StatusOK {
 		t.Fatalf("reunion resolution status = %d, want %d; body = %s", resolveRecorder.Code, http.StatusOK, resolveRecorder.Body.String())
 	}
-	assertFrontendMatchStatus(t, frontend, "match-101", "REUNITED")
+	assertFrontendMatchStatus(t, frontend, generatedMatch.MatchID, domain.MatchStatusReunited)
 }
 
 func TestWebFrontendLostPetSubmissionUsesCanonicalService(t *testing.T) {
@@ -784,7 +800,7 @@ func TestFoundPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 	}
 }
 
-func assertFrontendMatchStatus(t *testing.T, frontend http.Handler, matchID, wantStatus string) {
+func assertFrontendMatchStatus(t *testing.T, frontend http.Handler, matchID string, wantStatus domain.MatchStatus) {
 	t.Helper()
 
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/matches", nil)
