@@ -1,0 +1,44 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M08598MBJFDREQRB7CAKGGG7",
+  "strategy": "manual-commit",
+  "branch": "feat/matcher-active-candidates",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "cmd/pet-matcher/main.go",
+    "docs/DEVELOPMENT.md",
+    "e2e/e2e_test.go",
+    "e2e/web_frontend_cascade_test.go",
+    "infra/opentofu/modules/firestore/main.tf",
+    "internal/app/petmatcher/candidates.go",
+    "internal/app/petmatcher/candidates_test.go",
+    "internal/app/petmatcher/firestore_integration_test.go",
+    "internal/app/petmatcher/index_migration.go",
+    "internal/app/petmatcher/index_migration_test.go",
+    "internal/app/petmatcher/worker.go",
+    "internal/app/petmatcher/worker_test.go",
+    "pkg/scoring/scorer.go",
+    "pkg/scoring/scorer_test.go",
+    "pkg/store/candidates.go",
+    "pkg/store/candidates_test.go",
+    "pkg/store/firestore.go",
+    "pkg/store/firestore_candidates.go",
+    "pkg/store/firestore_candidates_integration_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 478509,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 29145856,
+    "output_tokens": 78536,
+    "api_call_count": 213
+  }
+}
