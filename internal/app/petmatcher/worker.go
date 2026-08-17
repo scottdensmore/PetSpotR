@@ -31,6 +31,7 @@ const (
 type Store interface {
 	store.StateStore
 	store.DeliveryOperationStore
+	store.LostPetCandidateStore
 }
 
 type matcherResultRecord struct {
@@ -152,6 +153,13 @@ func (w *Worker) processClaimedFoundPet(
 	} else if exists {
 		return w.publishMatcherResult(ctx, result)
 	}
+	candidates, err := w.eligibleLostPetCandidates(ctx, foundEvt)
+	if err != nil {
+		return err
+	}
+	if len(candidates) == 0 {
+		return nil
+	}
 
 	// 1. Analyze found pet image with Ollama + Gemma 4
 	prompt := scoring.BuildGemmaPrompt("Pet", "")
@@ -182,37 +190,30 @@ func (w *Worker) processClaimedFoundPet(
 		return fmt.Errorf("pet-matcher: failed to parse traits from Gemma response: %w", err)
 	}
 
-	// 2. Fetch lost pets state candidate
-	// Note: In memory store testing, lost pets are queried directly or retrieved by key.
-	// For current vertical slice, attempt matching against stored candidate or default lost pet traits.
-	lostStateBytes, err := w.store.GetState(ctx, store.LostPetsCollection, "lost-101")
-	if errors.Is(err, store.ErrNotFound) {
-		return nil
+	// 2. Score every eligible candidate and choose a deterministic winner.
+	var winner *rankedCandidate
+	for index := range candidates {
+		candidate := candidates[index]
+		result := scoring.ComparePetsAtDistance(
+			candidate.record.PetID,
+			foundEvt.PetID,
+			candidate.distanceMiles,
+			candidate.traits,
+			foundTraits,
+		)
+		if result == nil || !result.IsMatch {
+			continue
+		}
+		challenger := rankedCandidate{candidate: candidate, result: result}
+		if winner == nil || outranks(challenger, *winner) {
+			winner = &challenger
+		}
 	}
-	if err != nil {
-		return fmt.Errorf("pet-matcher: load lost-pet candidate: %w", err)
-	}
-	var lostTraits *scoring.PetTraits
-	lostPetID := "lost-101"
-	var lostRecord domain.LostPetRecord
-	if err := json.Unmarshal(lostStateBytes, &lostRecord); err != nil {
-		return fmt.Errorf("pet-matcher: decode lost-pet candidate: %w", err)
-	}
-	lostRecord = domain.NormalizeLostPetRecord(lostRecord)
-	if lostRecord.PetID != "" {
-		lostPetID = lostRecord.PetID
-	}
-	lostTraits = &scoring.PetTraits{
-		Breed:               "Golden Retriever",
-		PrimaryColor:        "Golden",
-		SecondaryColor:      "Cream",
-		DistinctiveMarkings: []string{"White chest patch"},
-		EyeColor:            "Brown",
-	}
-
-	// 3. Compute distance-weighted combined similarity score
-	matchResult := scoring.ComparePetsGeo(lostPetID, foundEvt.PetID, lostRecord.Location, foundEvt.Location, lostTraits, foundTraits)
-	if matchResult != nil && matchResult.IsMatch {
+	if winner != nil {
+		matchResult := winner.result
+		lostRecord := winner.candidate.record
+		lostTraits := winner.candidate.traits
+		lostPetID := lostRecord.PetID
 		matchResult.SourceEventID = inputEventID
 		matchResult.Model = genResp.Model
 		if strings.TrimSpace(matchResult.Model) == "" {

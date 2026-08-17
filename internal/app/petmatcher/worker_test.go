@@ -59,22 +59,17 @@ func TestMatcherWorker_ReadsPrivateFoundPetImage(t *testing.T) {
 	}))
 	defer server.Close()
 
-	lost := domain.LostPetEvent{
-		PetID: "lost-101", ReporterEmail: "owner@example.com", Location: "Seattle, WA",
-	}
-	lostData, _ := lost.ToJSON()
-	if err := st.SaveState(ctx, store.LostPetsCollection, lost.PetID, lostData); err != nil {
-		t.Fatal(err)
-	}
+	seedMatcherLostPet(t, st)
 	worker := NewWorkerWithImageStore(
 		st,
 		ps,
 		ollama.NewClient(ollama.WithBaseURL(server.URL)),
 		images,
 	)
-	foundData, _ := (&domain.FoundPetEvent{
-		PetID: grant.ReportID, ImageObject: finalized.ObjectName, Location: "Seattle, WA",
-	}).ToJSON()
+	foundData := verifiedFoundEventData(t, domain.FoundPetReportedV2{
+		PetID: grant.ReportID, ImageObject: finalized.ObjectName, FoundAt: time.Now().UTC(),
+		Location: "Seattle, WA",
+	})
 	if err := worker.ProcessFoundPet(ctx, foundData); err != nil {
 		t.Fatalf("ProcessFoundPet() error = %v", err)
 	}
@@ -130,6 +125,17 @@ func (s *getStateFailingStore) GetState(context.Context, string, string) ([]byte
 	return nil, s.err
 }
 
+func (s *getStateFailingStore) ListState(context.Context, string) (map[string][]byte, error) {
+	return nil, s.err
+}
+
+func (s *getStateFailingStore) QueryLostPetCandidates(
+	context.Context,
+	store.LostPetCandidateQuery,
+) (map[string][]byte, error) {
+	return nil, s.err
+}
+
 func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 	st := store.NewMemoryStore()
 	ps := pubsub.NewMemoryPubSub()
@@ -158,15 +164,7 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 	ollamaClient := ollama.NewClient(ollama.WithBaseURL(ts.URL))
 	worker := NewWorker(st, ps, ollamaClient)
 
-	// Save lost pet in store
-	lostEvt := domain.LostPetEvent{
-		PetID:         "lost-101",
-		ReporterEmail: "owner@example.com",
-		ReportedAt:    time.Now().UTC(),
-		Location:      "Seattle, WA",
-	}
-	lostData, _ := lostEvt.ToJSON()
-	_ = st.SaveState(context.Background(), store.LostPetsCollection, "lost-101", lostData)
+	seedMatcherLostPet(t, st)
 
 	var matchFoundEvent domain.MatchResult
 	var matchFoundEnvelope *domain.EventEnvelope
@@ -180,13 +178,13 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 	})
 
 	t.Run("found pet matching lost pet publishes matchFound event", func(t *testing.T) {
-		foundEvt := domain.FoundPetEvent{
+		foundEvt := domain.FoundPetReportedV2{
 			PetID:    "found-202",
 			ImageURL: "https://storage.petspotr.io/found-202.jpg",
 			FoundAt:  time.Now().UTC(),
 			Location: "Seattle, WA",
 		}
-		foundData, _ := foundEvt.ToJSON()
+		foundData := verifiedFoundEventData(t, foundEvt)
 
 		err := worker.ProcessFoundPet(context.Background(), foundData)
 		if err != nil {
@@ -255,6 +253,8 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 	})
 
 	t.Run("versioned found pet envelope remains consumable", func(t *testing.T) {
+		publicationsBefore := matchPublications.Load()
+		ollamaCallsBefore := ollamaCalls.Load()
 		foundEvt := domain.FoundPetEvent{
 			PetID:    "found-envelope-202",
 			ImageURL: "https://storage.petspotr.io/found-envelope-202.jpg",
@@ -277,8 +277,11 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 		if err := worker.ProcessFoundPet(context.Background(), data); err != nil {
 			t.Fatalf("ProcessFoundPet(envelope) error = %v", err)
 		}
-		if matchFoundEvent.FoundPetID != foundEvt.PetID {
-			t.Fatalf("match found pet ID = %q, want %q", matchFoundEvent.FoundPetID, foundEvt.PetID)
+		if got := matchPublications.Load(); got != publicationsBefore {
+			t.Fatalf("matchFound publications = %d, want unchanged %d for unverified legacy event", got, publicationsBefore)
+		}
+		if got := ollamaCalls.Load(); got != ollamaCallsBefore {
+			t.Fatalf("Ollama calls = %d, want unchanged %d for unverified legacy event", got, ollamaCallsBefore)
 		}
 	})
 
@@ -342,11 +345,13 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 		}
 		emptyWorker := NewWorker(emptyStore, ps, ollamaClient)
 
-		foundEvt := domain.FoundPetEvent{
+		foundEvt := domain.FoundPetReportedV2{
 			PetID:    "found-203",
 			ImageURL: "https://storage.petspotr.io/found-203.jpg",
+			FoundAt:  time.Now().UTC(),
+			Location: "Seattle, WA",
 		}
-		data, _ := foundEvt.ToJSON()
+		data := verifiedFoundEventData(t, foundEvt)
 		err := emptyWorker.ProcessFoundPet(context.Background(), data)
 		if err != nil {
 			t.Errorf("expected nil error when no candidate available, got %v", err)
@@ -357,31 +362,33 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 		transientErr := errors.New("firestore unavailable")
 		failingStore := &getStateFailingStore{Store: st, err: transientErr}
 		failingWorker := NewWorker(failingStore, ps, ollamaClient)
-		foundEvt := domain.FoundPetEvent{
+		foundEvt := domain.FoundPetReportedV2{
 			PetID:    "found-store-error",
 			ImageURL: "https://storage.petspotr.io/found-store-error.jpg",
 			FoundAt:  time.Now().UTC(),
+			Location: "Seattle, WA",
 		}
-		data, _ := foundEvt.ToJSON()
+		data := verifiedFoundEventData(t, foundEvt)
 		if err := failingWorker.ProcessFoundPet(context.Background(), data); !errors.Is(err, transientErr) {
 			t.Fatalf("ProcessFoundPet() error = %v, want transient store error", err)
 		}
 	})
 
-	t.Run("invalid candidate state requests redelivery", func(t *testing.T) {
+	t.Run("invalid candidate state is isolated from other reports", func(t *testing.T) {
 		invalidStore := store.NewMemoryStore()
 		if err := invalidStore.SaveState(context.Background(), store.LostPetsCollection, "lost-101", []byte(`{invalid`)); err != nil {
 			t.Fatal(err)
 		}
 		invalidWorker := NewWorker(invalidStore, ps, ollamaClient)
-		foundEvt := domain.FoundPetEvent{
+		foundEvt := domain.FoundPetReportedV2{
 			PetID:    "found-invalid-candidate",
 			ImageURL: "https://storage.petspotr.io/found-invalid-candidate.jpg",
 			FoundAt:  time.Now().UTC(),
+			Location: "Seattle, WA",
 		}
-		data, _ := foundEvt.ToJSON()
-		if err := invalidWorker.ProcessFoundPet(context.Background(), data); err == nil {
-			t.Fatal("ProcessFoundPet() error = nil, want invalid stored candidate error")
+		data := verifiedFoundEventData(t, foundEvt)
+		if err := invalidWorker.ProcessFoundPet(context.Background(), data); err != nil {
+			t.Fatalf("ProcessFoundPet() error = %v, want malformed candidate to be skipped", err)
 		}
 	})
 
@@ -389,11 +396,13 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 		badOllama := ollama.NewClient(ollama.WithBaseURL("http://invalid-host-12345"))
 		badWorker := NewWorker(st, ps, badOllama)
 
-		foundEvt := domain.FoundPetEvent{
+		foundEvt := domain.FoundPetReportedV2{
 			PetID:    "found-204",
 			ImageURL: "https://storage.petspotr.io/found-204.jpg",
+			FoundAt:  time.Now().UTC(),
+			Location: "Seattle, WA",
 		}
-		data, _ := foundEvt.ToJSON()
+		data := verifiedFoundEventData(t, foundEvt)
 		err := badWorker.ProcessFoundPet(context.Background(), data)
 		if err == nil {
 			t.Error("expected error when Ollama client fails, got nil")
@@ -435,19 +444,7 @@ func TestMatcherWorker_RetryPublishesPersistedResultWithoutRerunningOllama(t *te
 	}))
 	t.Cleanup(server.Close)
 
-	lostEvent := domain.LostPetEvent{
-		PetID:         "lost-101",
-		ReporterEmail: "owner@example.com",
-		ReportedAt:    time.Now().UTC(),
-		Location:      "Seattle, WA",
-	}
-	lostData, err := lostEvent.ToJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := st.SaveState(context.Background(), store.LostPetsCollection, lostEvent.PetID, lostData); err != nil {
-		t.Fatal(err)
-	}
+	seedMatcherLostPet(t, st)
 
 	var published atomic.Int32
 	if err := ps.Subscribe("matchFound", func(context.Context, []byte) error {
@@ -457,16 +454,13 @@ func TestMatcherWorker_RetryPublishesPersistedResultWithoutRerunningOllama(t *te
 		t.Fatal(err)
 	}
 	worker := NewWorker(st, publisher, ollama.NewClient(ollama.WithBaseURL(server.URL)))
-	foundEvent := domain.FoundPetEvent{
+	foundEvent := domain.FoundPetReportedV2{
 		PetID:    "found-publish-retry",
 		ImageURL: "https://storage.petspotr.io/found-publish-retry.jpg",
 		FoundAt:  time.Now().UTC(),
 		Location: "Seattle, WA",
 	}
-	foundData, err := foundEvent.ToJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
+	foundData := verifiedFoundEventData(t, foundEvent)
 
 	if err := worker.ProcessFoundPet(context.Background(), foundData); err == nil {
 		t.Fatal("first ProcessFoundPet() error = nil, want publish failure")
@@ -500,16 +494,13 @@ func TestMatcherWorker_CompletionRetryDoesNotRepeatPublishedMatch(t *testing.T) 
 		t.Fatal(err)
 	}
 	worker := NewWorker(st, ps, ollama.NewClient(ollama.WithBaseURL(server.URL)))
-	foundEvent := domain.FoundPetEvent{
+	foundEvent := domain.FoundPetReportedV2{
 		PetID:    "found-completion-retry",
 		ImageURL: "https://storage.petspotr.io/found-completion-retry.jpg",
 		FoundAt:  time.Now().UTC(),
 		Location: "Seattle, WA",
 	}
-	foundData, err := foundEvent.ToJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
+	foundData := verifiedFoundEventData(t, foundEvent)
 
 	if err := worker.ProcessFoundPet(context.Background(), foundData); err == nil {
 		t.Fatal("first ProcessFoundPet() error = nil, want completion failure")
@@ -544,16 +535,13 @@ func TestMatcherWorker_ConcurrentDuplicateHasOneModelCallAndWinner(t *testing.T)
 		t.Fatal(err)
 	}
 	worker := NewWorker(st, ps, ollama.NewClient(ollama.WithBaseURL(server.URL)))
-	foundEvent := domain.FoundPetEvent{
+	foundEvent := domain.FoundPetReportedV2{
 		PetID:    "found-concurrent",
 		ImageURL: "https://storage.petspotr.io/found-concurrent.jpg",
 		FoundAt:  time.Now().UTC(),
 		Location: "Seattle, WA",
 	}
-	foundData, err := foundEvent.ToJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
+	foundData := verifiedFoundEventData(t, foundEvent)
 
 	firstResult := make(chan error, 1)
 	go func() {
@@ -601,13 +589,17 @@ func TestMatcherWorker_DistinctInputsWithSameScoreHaveDistinctResults(t *testing
 	worker := NewWorker(st, ps, ollama.NewClient(ollama.WithBaseURL(server.URL)))
 	baseTime := time.Now().UTC()
 	for index := range 2 {
-		foundEvent := domain.FoundPetEvent{
-			PetID:    "found-same-score",
-			ImageURL: "https://storage.petspotr.io/found-same-score.jpg",
-			FoundAt:  baseTime.Add(time.Duration(index) * time.Second),
-			Location: "Seattle, WA",
+		foundEvent := domain.FoundPetReportedV2{
+			PetID:           "found-same-score",
+			ImageURL:        "https://storage.petspotr.io/found-same-score.jpg",
+			FoundAt:         baseTime.Add(time.Duration(index) * time.Second),
+			Location:        "Seattle, WA",
+			GeocodingStatus: domain.GeocodingVerified,
+			Coordinates:     matcherTestPoint(),
+			CustodyStatus:   domain.CustodyFinderHome,
+			Status:          domain.FoundPetStatusFound,
 		}
-		payload, err := foundEvent.ToJSON()
+		payload, err := json.Marshal(foundEvent)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -616,7 +608,7 @@ func TestMatcherWorker_DistinctInputsWithSameScoreHaveDistinctResults(t *testing
 			OccurredAt:       foundEvent.FoundAt,
 			AggregateID:      foundEvent.PetID,
 			AggregateVersion: int64(index + 1),
-			PayloadVersion:   1,
+			PayloadVersion:   domain.FoundPetReportedPayloadVersion,
 			Payload:          payload,
 		})
 		if err != nil {
@@ -669,24 +661,63 @@ func newMatcherOllamaServer(
 
 func seedMatcherLostPet(t *testing.T, st store.StateStore) {
 	t.Helper()
-	lostEvent := domain.LostPetEvent{
-		PetID:         "lost-101",
-		ReporterEmail: "owner@example.com",
-		ReportedAt:    time.Now().UTC(),
-		Location:      "Seattle, WA",
+	record := domain.LostPetRecord{
+		PetID:            "lost-101",
+		PetName:          "Buddy",
+		Species:          "Dog",
+		Breed:            "Golden Retriever",
+		PrimaryColor:     "Golden",
+		Description:      "White chest patch",
+		OwnerIdentityRef: "identity-lost-101",
+		ReportedAt:       time.Now().UTC(),
+		Location:         "Seattle, WA",
+		GeocodingStatus:  domain.GeocodingVerified,
+		Coordinates:      matcherTestPoint(),
+		Status:           domain.LostPetStatusLost,
 	}
-	data, err := lostEvent.ToJSON()
+	data, err := json.Marshal(record)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := st.SaveState(context.Background(), store.LostPetsCollection, lostEvent.PetID, data); err != nil {
+	if err := st.SaveState(context.Background(), store.LostPetsCollection, record.PetID, data); err != nil {
 		t.Fatal(err)
 	}
 }
 
+func verifiedFoundEventData(t *testing.T, event domain.FoundPetReportedV2) []byte {
+	t.Helper()
+	if event.FoundAt.IsZero() {
+		event.FoundAt = time.Now().UTC()
+	}
+	if event.Location == "" {
+		event.Location = "Seattle, WA"
+	}
+	event.GeocodingStatus = domain.GeocodingVerified
+	event.Coordinates = matcherTestPoint()
+	if event.CustodyStatus == "" {
+		event.CustodyStatus = domain.CustodyUnknown
+	}
+	if event.Status == "" {
+		event.Status = domain.FoundPetStatusFound
+	}
+	return encodeFoundCandidateEvent(t, event)
+}
+
+func matcherTestPoint() *domain.LocationPoint {
+	return &domain.LocationPoint{Latitude: 47.6150, Longitude: -122.3200}
+}
+
 func assertCompletedMatcherOperation(t *testing.T, st store.DeliveryOperationStore, input []byte, petID string) {
 	t.Helper()
-	eventID, err := delivery.ResolveEventID("", domain.EventTypeFoundPetReported, input)
+	_, envelope, err := domain.DecodeFoundPetReported(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelopeID := ""
+	if envelope != nil {
+		envelopeID = envelope.ID
+	}
+	eventID, err := delivery.ResolveEventID(envelopeID, domain.EventTypeFoundPetReported, input)
 	if err != nil {
 		t.Fatal(err)
 	}

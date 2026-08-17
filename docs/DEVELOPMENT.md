@@ -397,6 +397,36 @@ ten-minute transactional lease admits only one concurrent model invocation.
 Completed inputs are no-ops, while failed and expired attempts can be reclaimed
 without allowing a stale attempt to record completion.
 
+Matching begins only after the found report has verified coordinates. The
+worker queries Firestore's lost-pet candidate indexes for active reports within
+30 days of the found timestamp and the latitude/longitude bounding box around
+its 15-mile radius. It includes unknown species but excludes mismatched known
+species in the indexed query, then applies exact Haversine filtering. It never
+parses a user-entered location into fallback coordinates. It sorts eligible
+candidates by ID before scoring, then chooses the highest score with distance
+and candidate ID as deterministic tie-breakers. Pending or unavailable
+geocoding completes without invoking the model or creating a match. The current
+lost-side visual inputs come from canonical reported breed, primary color, and
+description fields; persisted image-derived lost traits remain a separate
+matcher rollout step.
+
+Lost-pet writes now duplicate only query metadata beside the opaque state blob:
+status, geocoding status, normalized species, report timestamp, and verified
+coordinates. On startup, `pet-matcher` completes a cursor-backed migration of
+legacy `lostPets` documents before accepting Pub/Sub deliveries. During a
+rolling deployment, deploy the lost-pet producers before the matcher so new
+writes carry those fields while the compatibility migration catches prior
+records. The OpenTofu Firestore module owns both candidate composite indexes;
+apply them before deploying the matcher revision.
+
+Run the indexed-query and legacy-migration contract against a Firestore
+emulator with:
+
+```bash
+GOTOOLCHAIN=go1.26.5 go test ./pkg/store -count=1 -v \
+  -run '^TestFirestoreQueriesAndBackfillsBoundedLostPetCandidates$'
+```
+
 When scoring produces a match, the additive `sourceEventId` field keeps ordered
 input versions distinct. The worker derives a stable match ID from that source
 event and the two report IDs, then atomically creates the canonical `matches`
@@ -469,7 +499,8 @@ Infrastructure is defined as code under `infra/opentofu`:
 - Cloud Pub/Sub topics, authenticated `lostPet`, `foundPet`, and `matchFound`
   push subscriptions, retry and dead-letter policies, and a dedicated
   invocation identity for each consumer (`modules/pubsub`)
-- Cloud Firestore database and pending-outbox composite index
+- Cloud Firestore database plus pending-outbox and matcher-candidate composite
+  indexes
   (`modules/firestore`)
 - Cloud Run v2 services, including private matcher and notification ingress,
   push identity configuration, and always-CPU lost- and found-report relay

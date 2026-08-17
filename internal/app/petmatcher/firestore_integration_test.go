@@ -39,30 +39,19 @@ func TestFirestoreMatcherRecoversPersistedResultAcrossWorkers(t *testing.T) {
 		_ = firstStore.DeleteState(context.Background(), store.LostPetsCollection, "lost-101")
 	})
 
-	foundEvent := domain.FoundPetEvent{
+	foundEvent := domain.FoundPetReportedV2{
 		PetID:    "found-firestore-recovery",
 		ImageURL: "https://storage.petspotr.io/found-firestore-recovery.jpg",
 		FoundAt:  time.Now().UTC(),
 		Location: "Seattle, WA",
 	}
-	payload, err := foundEvent.ToJSON()
+	foundData := verifiedFoundEventData(t, foundEvent)
+	_, envelope, err := domain.DecodeFoundPetReported(foundData)
 	if err != nil {
 		t.Fatal(err)
 	}
-	envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
-		Type:             domain.EventTypeFoundPetReported,
-		OccurredAt:       foundEvent.FoundAt,
-		AggregateID:      foundEvent.PetID,
-		AggregateVersion: 1,
-		PayloadVersion:   1,
-		Payload:          payload,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	foundData, err := json.Marshal(envelope)
-	if err != nil {
-		t.Fatal(err)
+	if envelope == nil {
+		t.Fatal("verified found-pet fixture omitted event envelope")
 	}
 	operation, err := delivery.NewOperation(envelope.ID, foundEvent.PetID, matcherDeliveryChannel, time.Now().UTC())
 	if err != nil {

@@ -74,15 +74,16 @@ func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 	}
 
 	// --- Step A: Report Lost Pet ---
-	lostEvt := domain.LostPetEvent{
-		PetID:         "lost-101",
-		ReporterEmail: "owner@example.com",
-		ReportedAt:    time.Now().UTC(),
-		Location:      "Seattle, WA",
+	verifiedPoint := &domain.LocationPoint{Latitude: 47.6150, Longitude: -122.3200}
+	lostReport := domain.LostPetReport{
+		PetID: "lost-101", PetName: "Buddy", Species: "Dog", Breed: "Golden Retriever",
+		PrimaryColor: "Golden", Description: "White chest patch", ReporterEmail: "owner@example.com",
+		ReportedAt: time.Now().UTC(), Location: "Seattle, WA",
+		GeocodingStatus: domain.GeocodingVerified, Coordinates: verifiedPoint, Status: domain.LostPetStatusLost,
 	}
-	lostBody, err := lostEvt.ToJSON()
+	lostBody, err := json.Marshal(lostReport)
 	if err != nil {
-		t.Fatalf("failed to serialize LostPetEvent: %v", err)
+		t.Fatalf("failed to serialize LostPetReport: %v", err)
 	}
 	reqLost := httptest.NewRequest(http.MethodPost, "/lostPet", bytes.NewReader(lostBody))
 	recLost := httptest.NewRecorder()
@@ -93,15 +94,17 @@ func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 	}
 
 	// --- Step B: Report Found Pet ---
-	foundEvt := domain.FoundPetEvent{
-		PetID:    "found-888",
-		ImageURL: "https://storage.petspotr.io/images/found-888.jpg",
-		FoundAt:  time.Now().UTC(),
-		Location: "Seattle, WA",
+	foundReport := domain.FoundPetReport{
+		PetID: "found-888", ImageURL: "https://storage.petspotr.io/images/found-888.jpg",
+		FoundAt: time.Now().UTC(), Location: "Seattle, WA",
+		GeocodingStatus: domain.GeocodingVerified, Coordinates: verifiedPoint,
+		FinderEmail: "finder@example.com", Species: "Dog", Breed: "Golden Retriever",
+		PrimaryColor: "Golden", SecondaryColor: "Cream", DistinctiveMarkings: []string{"White chest patch"},
+		CustodyStatus: domain.CustodyFinderHome, Status: domain.FoundPetStatusFound,
 	}
-	foundBody, err := foundEvt.ToJSON()
+	foundBody, err := json.Marshal(foundReport)
 	if err != nil {
-		t.Fatalf("failed to serialize FoundPetEvent: %v", err)
+		t.Fatalf("failed to serialize FoundPetReport: %v", err)
 	}
 	reqFound := httptest.NewRequest(http.MethodPost, "/foundPet", bytes.NewReader(foundBody))
 	recFound := httptest.NewRecorder()
@@ -125,7 +128,7 @@ func TestEndToEndPetSpotRWorkflow(t *testing.T) {
 	if ownerMessage.Subject != "Match Found for Your Pet (lost-101)" {
 		t.Errorf("notification subject mismatch: got %q", ownerMessage.Subject)
 	}
-	if !strings.Contains(ownerMessage.Body, "<strong>100%</strong>") {
-		t.Errorf("expected rendered 100%% match confidence, got %q", ownerMessage.Body)
+	if !strings.Contains(ownerMessage.Body, "<strong>85%</strong>") {
+		t.Errorf("expected rendered 85%% match confidence from persisted lost traits, got %q", ownerMessage.Body)
 	}
 }

@@ -31,11 +31,17 @@ const DetectFirestoreProjectID = firestore.DetectProjectID
 var ErrInvalidPath = errors.New("store: invalid Firestore path")
 
 type firestoreRecord struct {
-	Key       string    `firestore:"key"`
-	Data      []byte    `firestore:"data"`
-	Topic     string    `firestore:"topic,omitempty"`
-	Status    string    `firestore:"status,omitempty"`
-	CreatedAt time.Time `firestore:"createdAt,omitempty"`
+	Key                 string    `firestore:"key"`
+	Data                []byte    `firestore:"data"`
+	Topic               string    `firestore:"topic,omitempty"`
+	Status              string    `firestore:"status,omitempty"`
+	CreatedAt           time.Time `firestore:"createdAt,omitempty"`
+	LostStatus          string    `firestore:"lostStatus,omitempty"`
+	LostGeocodingStatus string    `firestore:"lostGeocodingStatus,omitempty"`
+	LostSpecies         *string   `firestore:"lostSpecies,omitempty"`
+	LostReportedAt      time.Time `firestore:"lostReportedAt,omitempty"`
+	LostLatitude        *float64  `firestore:"lostLatitude,omitempty"`
+	LostLongitude       *float64  `firestore:"lostLongitude,omitempty"`
 }
 
 type outboxIndexMigration struct {
@@ -713,6 +719,21 @@ func firestoreDocumentID(key string) string {
 
 func newFirestoreRecord(storeName, key string, data []byte) (firestoreRecord, error) {
 	record := firestoreRecord{Key: key, Data: bytes.Clone(data)}
+	if storeName == LostPetsCollection {
+		state, ok := decodeLostPetCandidateState(key, data)
+		if ok {
+			latitude := state.Coordinates.Latitude
+			longitude := state.Coordinates.Longitude
+			species := state.Species
+			record.LostStatus = state.Status
+			record.LostGeocodingStatus = state.GeocodingStatus
+			record.LostSpecies = &species
+			record.LostReportedAt = state.ReportedAt
+			record.LostLatitude = &latitude
+			record.LostLongitude = &longitude
+		}
+		return record, nil
+	}
 	if storeName != OutboxCollection {
 		return record, nil
 	}
