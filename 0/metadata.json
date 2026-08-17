@@ -1,0 +1,44 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M08YHRM4ZG28J11DWDTECTXQ",
+  "session_id": "01a0106b-5c6a-72c3-ad94-2ec2cccbe9fa",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-17T22:48:32.967078844Z",
+  "branch": "feat/authenticated-lost-reports",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "e2e/identity_session_test.go",
+    "internal/app/webfrontend/lost_report_auth_test.go",
+    "internal/app/webfrontend/server.go",
+    "internal/app/webfrontend/session.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "6997676395b3",
+  "checkpoint_transcript_start": 6571,
+  "transcript_lines_at_start": 6571,
+  "compact_transcript_start": 970,
+  "token_usage": {
+    "input_tokens": 168822,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 11369728,
+    "output_tokens": 19997,
+    "api_call_count": 109
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-17T22:48:29.92320667Z",
+    "agent_lines": 286,
+    "agent_removed": 10,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 286,
+    "total_lines_changed": 296,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}

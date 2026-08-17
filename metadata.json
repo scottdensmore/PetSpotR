@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M08YHRM4ZG28J11DWDTECTXQ",
+  "strategy": "manual-commit",
+  "branch": "feat/authenticated-lost-reports",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "e2e/identity_session_test.go",
+    "internal/app/webfrontend/lost_report_auth_test.go",
+    "internal/app/webfrontend/server.go",
+    "internal/app/webfrontend/session.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 168822,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 11369728,
+    "output_tokens": 19997,
+    "api_call_count": 109
+  }
+}
