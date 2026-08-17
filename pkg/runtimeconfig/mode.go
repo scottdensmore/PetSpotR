@@ -27,3 +27,21 @@ func resolveRuntimeMode(lookup func(string) string) (Mode, bool, error) {
 	}
 	return mode, cloudRun, nil
 }
+
+func resolveComponentMode(lookup func(string) string, environmentKey string) (Mode, bool, error) {
+	rawMode := strings.TrimSpace(lookup(environmentKey))
+	if rawMode == "" {
+		return resolveRuntimeMode(lookup)
+	}
+	cloudRun := strings.TrimSpace(lookup("K_SERVICE")) != ""
+	mode := Mode(rawMode)
+	switch mode {
+	case ModeMemory, ModeLocalEmulator, ModeGCP:
+	default:
+		return mode, cloudRun, fmt.Errorf("unsupported %s %q", environmentKey, rawMode)
+	}
+	if cloudRun && mode != ModeGCP {
+		return mode, true, fmt.Errorf("runtime mode %q is not allowed on Cloud Run", mode)
+	}
+	return mode, cloudRun, nil
+}

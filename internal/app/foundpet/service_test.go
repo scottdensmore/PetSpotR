@@ -467,6 +467,24 @@ func TestFoundPetService_SecureImageLifecycle(t *testing.T) {
 	}
 }
 
+func TestFoundPetServiceRejectsLostPetUploadPurpose(t *testing.T) {
+	svc := NewService(
+		store.NewMemoryStore(),
+		pubsub.NewMemoryPubSub(),
+		blob.NewMemoryBlobStore("https://storage.petspotr.invalid"),
+	)
+
+	request := httptest.NewRequest(http.MethodPost, "/foundPet/uploads", bytes.NewBufferString(
+		`{"purpose":"lost-pet","fileName":"stray.jpg","contentType":"image/jpeg"}`,
+	))
+	recorder := httptest.NewRecorder()
+	svc.HandleBeginImageUpload(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("upload grant status = %d, want 400; body = %s", recorder.Code, recorder.Body.String())
+	}
+}
+
 func TestFoundPetService_SecureModeRejectsExternalImageURL(t *testing.T) {
 	st := store.NewMemoryStore()
 	svc := NewServiceWithOptions(

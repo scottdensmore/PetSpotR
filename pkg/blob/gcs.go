@@ -114,7 +114,8 @@ func (s *GCSImageStore) BeginImageUpload(ctx context.Context, intent ImageUpload
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if intent.Purpose != ImagePurposeFoundPet {
+	purposePath, ok := imagePathForPurpose(intent.Purpose)
+	if !ok {
 		return nil, fmt.Errorf("%w: unsupported purpose %q", ErrInvalidImage, intent.Purpose)
 	}
 	contentType, extension, ok := supportedImageType(intent.ContentType)
@@ -125,12 +126,12 @@ func (s *GCSImageStore) BeginImageUpload(ctx context.Context, intent ImageUpload
 	if err != nil {
 		return nil, err
 	}
-	reportID := "found-" + token
+	reportID := purposePath.reportPrefix + token
 	finalizeToken, err := randomHex(32)
 	if err != nil {
 		return nil, err
 	}
-	objectName := fmt.Sprintf("uploads/found-pets/%s/image%s", reportID, extension)
+	objectName := fmt.Sprintf("uploads/%s/%s/image%s", purposePath.objectSegment, reportID, extension)
 	expiresAt := s.now().UTC().Add(uploadExpiry)
 	policy, err := s.backend.GenerateSignedPostPolicyV4(objectName, &storage.PostPolicyV4Options{
 		Expires: expiresAt,
@@ -139,7 +140,7 @@ func (s *GCSImageStore) BeginImageUpload(ctx context.Context, intent ImageUpload
 			StatusCodeOnSuccess: http.StatusCreated,
 			Metadata: map[string]string{
 				metadataReportIDField:    reportID,
-				metadataPurposeField:     string(ImagePurposeFoundPet),
+				metadataPurposeField:     string(intent.Purpose),
 				metadataUploadTokenField: tokenDigest(finalizeToken),
 				metadataFinalizeField:    strconv.FormatInt(expiresAt.Unix(), 10),
 			},
@@ -170,6 +171,10 @@ func (s *GCSImageStore) FinalizeImage(ctx context.Context, reportID, objectName,
 	if err != nil {
 		return nil, err
 	}
+	purpose, _, ok := imagePurposeForPath(reportID, objectName, "uploads")
+	if !ok {
+		return nil, ErrUploadMismatch
+	}
 
 	if attrs, attrsErr := s.backend.Attrs(ctx, finalName); attrsErr == nil {
 		if !tokenMatches(attrs.Metadata[metadataUploadToken], finalizeToken) {
@@ -189,7 +194,7 @@ func (s *GCSImageStore) FinalizeImage(ctx context.Context, reportID, objectName,
 	}
 	if attrs.Name != objectName || attrs.ContentType != contentType ||
 		attrs.Metadata[metadataReportID] != reportID ||
-		attrs.Metadata[metadataPurpose] != string(ImagePurposeFoundPet) {
+		attrs.Metadata[metadataPurpose] != string(purpose) {
 		return nil, ErrUploadMismatch
 	}
 	if !tokenMatches(attrs.Metadata[metadataUploadToken], finalizeToken) {
@@ -217,7 +222,7 @@ func (s *GCSImageStore) FinalizeImage(ctx context.Context, reportID, objectName,
 		Size:        attrs.Size,
 		Metadata: map[string]string{
 			metadataReportID:       reportID,
-			metadataPurpose:        string(ImagePurposeFoundPet),
+			metadataPurpose:        string(purpose),
 			metadataWidth:          strconv.Itoa(width),
 			metadataHeight:         strconv.Itoa(height),
 			metadataUploadToken:    attrs.Metadata[metadataUploadToken],
@@ -242,6 +247,20 @@ func (s *GCSImageStore) FinalizeImage(ctx context.Context, reportID, objectName,
 		return nil, fmt.Errorf("blob: delete temporary GCS image: %w", err)
 	}
 	return finalizedFromAttrs(reportID, finalAttrs)
+}
+
+// FinalizeImageForPurpose rejects a valid capability issued for a different
+// report workflow before finalizing it.
+func (s *GCSImageStore) FinalizeImageForPurpose(
+	ctx context.Context,
+	purpose ImagePurpose,
+	reportID, objectName, finalizeToken string,
+) (*FinalizedImage, error) {
+	gotPurpose, _, ok := imagePurposeForPath(reportID, objectName, "uploads")
+	if !ok || gotPurpose != purpose {
+		return nil, ErrUploadMismatch
+	}
+	return s.FinalizeImage(ctx, reportID, objectName, finalizeToken)
 }
 
 // GenerateImageReadURL creates a private, short-lived V4 GET capability.
@@ -308,8 +327,26 @@ func (s *GCSImageStore) CleanupOrphanedFinalizedImages(
 	limit int,
 	referenced FinalizedImageReferenceChecker,
 ) (int, error) {
+	return s.CleanupOrphanedFinalizedImagesForPurpose(
+		ctx, ImagePurposeFoundPet, createdBefore, limit, referenced,
+	)
+}
+
+// CleanupOrphanedFinalizedImagesForPurpose scopes reconciliation to one report
+// workflow's private namespace.
+func (s *GCSImageStore) CleanupOrphanedFinalizedImagesForPurpose(
+	ctx context.Context,
+	purpose ImagePurpose,
+	createdBefore time.Time,
+	limit int,
+	referenced FinalizedImageReferenceChecker,
+) (int, error) {
 	if referenced == nil {
 		return 0, errors.New("blob: finalized image reference checker is required")
+	}
+	purposePath, ok := imagePathForPurpose(purpose)
+	if !ok {
+		return 0, fmt.Errorf("%w: unsupported purpose %q", ErrInvalidImage, purpose)
 	}
 	if limit <= 0 || limit > MaxOrphanCleanupBatch {
 		limit = MaxOrphanCleanupBatch
@@ -317,7 +354,7 @@ func (s *GCSImageStore) CleanupOrphanedFinalizedImages(
 	s.cleanupMu.Lock()
 	defer s.cleanupMu.Unlock()
 
-	objects, nextCursor, err := s.backend.List(ctx, "images/found-pets/", s.cleanupCursor, limit)
+	objects, nextCursor, err := s.backend.List(ctx, "images/"+purposePath.objectSegment+"/", s.cleanupCursor, limit)
 	if err != nil {
 		return 0, fmt.Errorf("blob: list finalized GCS images: %w", err)
 	}
@@ -381,10 +418,11 @@ func validateUploadBinding(reportID, objectName string) (string, string, error) 
 	if strings.TrimSpace(reportID) == "" || strings.Contains(reportID, "/") {
 		return "", "", ErrUploadMismatch
 	}
-	prefix := "uploads/found-pets/" + reportID + "/image"
-	if !strings.HasPrefix(objectName, prefix) {
+	_, purposePath, ok := imagePurposeForPath(reportID, objectName, "uploads")
+	if !ok {
 		return "", "", ErrUploadMismatch
 	}
+	prefix := "uploads/" + purposePath.objectSegment + "/" + reportID + "/image"
 	extension := strings.TrimPrefix(objectName, prefix)
 	var contentType string
 	switch extension {
@@ -395,17 +433,21 @@ func validateUploadBinding(reportID, objectName string) (string, string, error) 
 	default:
 		return "", "", ErrUploadMismatch
 	}
-	return contentType, "images/found-pets/" + reportID + "/image" + extension, nil
+	return contentType, "images/" + purposePath.objectSegment + "/" + reportID + "/image" + extension, nil
 }
 
 func finalizedFromAttrs(reportID string, attrs gcsObjectAttrs) (*FinalizedImage, error) {
-	wantJPEG := "images/found-pets/" + reportID + "/image.jpg"
-	wantPNG := "images/found-pets/" + reportID + "/image.png"
+	purpose, purposePath, ok := imagePurposeForPath(reportID, attrs.Name, "images")
+	if !ok {
+		return nil, ErrNotFinalized
+	}
+	wantJPEG := "images/" + purposePath.objectSegment + "/" + reportID + "/image.jpg"
+	wantPNG := "images/" + purposePath.objectSegment + "/" + reportID + "/image.png"
 	validNameAndType := attrs.Name == wantJPEG && attrs.ContentType == "image/jpeg" ||
 		attrs.Name == wantPNG && attrs.ContentType == "image/png"
 	if reportID == "" || !validNameAndType || attrs.Size <= 0 || attrs.Size > MaxImageBytes ||
 		attrs.Metadata[metadataReportID] != reportID ||
-		attrs.Metadata[metadataPurpose] != string(ImagePurposeFoundPet) ||
+		attrs.Metadata[metadataPurpose] != string(purpose) ||
 		len(attrs.Metadata[metadataUploadToken]) != sha256.Size*2 {
 		return nil, ErrNotFinalized
 	}

@@ -42,7 +42,7 @@ func TestGeoBroadcastEngine(t *testing.T) {
 		emailSender.Reset()
 		smsSender.Reset()
 
-		evt := &domain.LostPetReportedV3{
+		evt := &domain.LostPetReportedV4{
 			PetID:           "lost-buddy",
 			ReportedAt:      time.Now().UTC(),
 			Location:        "Capitol Hill, Seattle, WA",
@@ -70,7 +70,7 @@ func TestGeoBroadcastEngine(t *testing.T) {
 		emailSender.Reset()
 		smsSender.Reset()
 
-		evt := &domain.LostPetReportedV3{
+		evt := &domain.LostPetReportedV4{
 			PetID:           "lost-pending-location",
 			ReportedAt:      time.Now().UTC(),
 			Location:        "Capitol Hill, Seattle, WA",
@@ -199,7 +199,7 @@ func TestWorker_ProcessLostPetBroadcast(t *testing.T) {
 			OccurredAt:       evt.ReportedAt,
 			AggregateID:      evt.PetID,
 			AggregateVersion: 1,
-			PayloadVersion:   domain.LostPetReportedPayloadVersion,
+			PayloadVersion:   domain.LostPetReportedRedactedPayloadVersion,
 			Payload:          payload,
 		})
 		if err != nil {

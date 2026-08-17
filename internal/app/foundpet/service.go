@@ -148,6 +148,10 @@ func (s *Service) HandleBeginImageUpload(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid JSON payload: %v", err))
 		return
 	}
+	if intent.Purpose != blob.ImagePurposeFoundPet {
+		respondWithError(w, http.StatusBadRequest, "Upload purpose must be found-pet")
+		return
+	}
 	grant, err := s.imageStore.BeginImageUpload(r.Context(), intent)
 	if errors.Is(err, blob.ErrInvalidImage) {
 		respondWithError(w, http.StatusBadRequest, err.Error())
@@ -230,8 +234,9 @@ func (s *Service) HandleFoundPet(w http.ResponseWriter, r *http.Request) {
 			respondWithError(w, http.StatusBadRequest, "A generated private image upload is required")
 			return
 		}
-		finalized, err := s.imageStore.FinalizeImage(
-			r.Context(), request.PetID, request.ImageObject, r.Header.Get("X-PetSpotR-Upload-Token"),
+		finalized, err := s.imageStore.FinalizeImageForPurpose(
+			r.Context(), blob.ImagePurposeFoundPet, request.PetID, request.ImageObject,
+			r.Header.Get("X-PetSpotR-Upload-Token"),
 		)
 		if errors.Is(err, blob.ErrInvalidImage) || errors.Is(err, blob.ErrUploadMismatch) ||
 			errors.Is(err, blob.ErrUploadExpired) ||

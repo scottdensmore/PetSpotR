@@ -57,13 +57,13 @@ func DefaultSubscribers() []CommunitySubscriber {
 }
 
 // BroadcastLostPetAlert computes distance between lost pet location and subscribers, broadcasting urgent alerts to nearby residents.
-func (g *GeoBroadcastEngine) BroadcastLostPetAlert(ctx context.Context, evt *domain.LostPetReportedV3, maxRadiusMiles float64) ([]DispatchResult, error) {
+func (g *GeoBroadcastEngine) BroadcastLostPetAlert(ctx context.Context, evt *domain.LostPetReportedV4, maxRadiusMiles float64) ([]DispatchResult, error) {
 	return g.broadcastLostPetAlert(ctx, evt, maxRadiusMiles, g.dispatcher.Dispatch)
 }
 
 func (g *GeoBroadcastEngine) broadcastLostPetAlert(
 	ctx context.Context,
-	evt *domain.LostPetReportedV3,
+	evt *domain.LostPetReportedV4,
 	maxRadiusMiles float64,
 	dispatch notificationDispatch,
 ) ([]DispatchResult, error) {

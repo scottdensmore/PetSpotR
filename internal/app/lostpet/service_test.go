@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/outbox"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
@@ -166,6 +167,128 @@ func TestLostPetService_HandleLostPet(t *testing.T) {
 	})
 }
 
+func TestLostPetServiceFinalizesOptionalPrivateImageAndPublishesV4(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	broker := pubsub.NewMemoryPubSub()
+	images := blob.NewMemoryBlobStore("https://storage.petspotr.invalid")
+	service := NewServiceWithImageStore(stateStore, broker, images)
+
+	grantRequest := httptest.NewRequest(http.MethodPost, "/lostPet/uploads", strings.NewReader(
+		`{"purpose":"lost-pet","fileName":"buddy.png","contentType":"image/png"}`,
+	))
+	grantRecorder := httptest.NewRecorder()
+	service.HandleBeginImageUpload(grantRecorder, grantRequest)
+	if grantRecorder.Code != http.StatusCreated {
+		t.Fatalf("upload grant status = %d, want 201; body = %s", grantRecorder.Code, grantRecorder.Body.String())
+	}
+	var grant blob.ImageUploadGrant
+	if err := json.Unmarshal(grantRecorder.Body.Bytes(), &grant); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := images.UploadImage(ctx, grant.ObjectName, encodedLostServiceImage(t)); err != nil {
+		t.Fatal(err)
+	}
+
+	published := make(chan []byte, 1)
+	if err := broker.Subscribe("lostPet", func(_ context.Context, data []byte) error {
+		published <- append([]byte(nil), data...)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	reportedAt := time.Date(2026, time.August, 17, 16, 30, 0, 0, time.UTC)
+	body, err := json.Marshal(map[string]any{
+		"petId": grant.ReportID, "petName": "Buddy", "species": "Dog",
+		"reporterEmail": "owner@example.com", "reportedAt": reportedAt,
+		"location": "Seattle, WA", "imageObject": grant.ObjectName,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	report := func(token string) *httptest.ResponseRecorder {
+		request := httptest.NewRequest(http.MethodPost, "/lostPet", bytes.NewReader(body))
+		request.Header.Set("X-PetSpotR-Upload-Token", token)
+		recorder := httptest.NewRecorder()
+		service.HandleLostPet(recorder, request)
+		return recorder
+	}
+	if recorder := report(grant.FinalizeToken); recorder.Code != http.StatusCreated {
+		t.Fatalf("report status = %d, want 201; body = %s", recorder.Code, recorder.Body.String())
+	}
+
+	stateData, err := stateStore.GetState(ctx, store.LostPetsCollection, grant.ReportID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var saved domain.LostPetRecord
+	if err := json.Unmarshal(stateData, &saved); err != nil {
+		t.Fatal(err)
+	}
+	wantObject := "images/lost-pets/" + grant.ReportID + "/image.png"
+	if saved.ImageObject != wantObject {
+		t.Fatalf("saved image object = %q, want %q", saved.ImageObject, wantObject)
+	}
+
+	select {
+	case data := <-published:
+		event, envelope, err := domain.DecodeLostPetReported(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if envelope == nil || envelope.PayloadVersion != 4 || event.ImageObject != wantObject {
+			t.Fatalf("published event/envelope = %#v / %#v", event, envelope)
+		}
+		if strings.Contains(string(data), "owner@example.com") {
+			t.Fatalf("published payload exposed contact: %s", data)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("lostPet event was not published")
+	}
+
+	if recorder := report(grant.FinalizeToken); recorder.Code != http.StatusCreated {
+		t.Fatalf("exact retry status = %d, want 201; body = %s", recorder.Code, recorder.Body.String())
+	}
+	select {
+	case <-published:
+		t.Fatal("exact retry republished the event")
+	default:
+	}
+}
+
+func TestLostPetServiceRejectsFoundPetUploadPurpose(t *testing.T) {
+	service := NewServiceWithImageStore(
+		store.NewMemoryStore(),
+		pubsub.NewMemoryPubSub(),
+		blob.NewMemoryBlobStore("https://storage.petspotr.invalid"),
+	)
+
+	request := httptest.NewRequest(http.MethodPost, "/lostPet/uploads", strings.NewReader(
+		`{"purpose":"found-pet","fileName":"buddy.png","contentType":"image/png"}`,
+	))
+	recorder := httptest.NewRecorder()
+	service.HandleBeginImageUpload(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("upload grant status = %d, want 400; body = %s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func encodedLostServiceImage(t *testing.T) []byte {
+	t.Helper()
+	return []byte{
+		0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+		0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+		0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4,
+		0x89, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x44, 0x41,
+		0x54, 0x08, 0xd7, 0x63, 0xf8, 0xcf, 0xc0, 0xf0,
+		0x1f, 0x00, 0x05, 0x00, 0x01, 0xff, 0x89, 0x99,
+		0x3d, 0x1d, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45,
+		0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+	}
+}
+
 func TestLostPetServicePersistsPrivateContactSeparately(t *testing.T) {
 	ctx := context.Background()
 	stateStore := store.NewMemoryStore()
@@ -249,7 +372,7 @@ func TestLostPetServicePublishesContactRedactedPayloadV3(t *testing.T) {
 		if err != nil {
 			t.Fatalf("DecodeLostPetReported() error = %v", err)
 		}
-		if envelope == nil || envelope.PayloadVersion != 3 || event.PetID != "lost-redacted-event" {
+		if envelope == nil || envelope.PayloadVersion != domain.LostPetReportedPayloadVersion || event.PetID != "lost-redacted-event" {
 			t.Fatalf("published event/envelope = %#v / %#v", event, envelope)
 		}
 	case <-time.After(time.Second):
@@ -530,6 +653,70 @@ func TestLostPetServiceSeparatedPayloadV2StateRemainsRetryableAfterV3Upgrade(t *
 	command.Phone = "(555) 010-9999"
 	if _, err := service.ReportLostPet(ctx, command, ReportMetadata{}); !errors.Is(err, store.ErrConflict) {
 		t.Fatalf("changed separated contact error = %v, want ErrConflict", err)
+	}
+}
+
+func TestLostPetServiceSeparatedPayloadV3StateRemainsRetryableAfterV4Upgrade(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	previous := domain.NormalizeLostPetReport(domain.LostPetReport{
+		PetID:         "lost-separated-before-v4",
+		PetName:       "Buddy",
+		Species:       "Dog",
+		ReporterEmail: "owner@example.com",
+		Phone:         "(555) 019-2834",
+		ReportedAt:    time.Date(2026, time.August, 16, 12, 0, 0, 0, time.UTC),
+		Location:      "Seattle, WA",
+	})
+	record, contact := previous.Persisted()
+	stateData, err := json.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	contactData, err := json.Marshal(contact)
+	if err != nil {
+		t.Fatal(err)
+	}
+	eventData, err := json.Marshal(previous.ReportedEventV3())
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+		Type: domain.EventTypeLostPetReported, OccurredAt: previous.ReportedAt,
+		AggregateID: previous.PetID, AggregateVersion: 1,
+		PayloadVersion: domain.LostPetReportedRedactedPayloadVersion, Payload: eventData,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelopeData, err := json.Marshal(envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outboxData, err := outbox.MarshalRecord(outbox.NewRecord(envelope.ID, "lostPet", envelopeData, previous.ReportedAt))
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := stateStore.CreateStatesAndOutbox(ctx, []store.StateWrite{
+		{StoreName: store.LostPetsCollection, Key: record.PetID, Data: stateData},
+		{StoreName: store.ReportContactsCollection, Key: contact.IdentityRef, Data: contactData},
+	}, store.StateWrite{StoreName: store.OutboxCollection, Key: envelope.ID, Data: outboxData})
+	if err != nil || !created {
+		t.Fatalf("seed payload-v3 state = %t, %v", created, err)
+	}
+
+	service := NewService(stateStore, pubsub.NewMemoryPubSub())
+	result, err := service.ReportLostPet(ctx, ReportCommand{
+		PetID: previous.PetID, PetName: previous.PetName, Species: previous.Species,
+		ReporterEmail: previous.ReporterEmail, Phone: previous.Phone,
+		ReportedAt: previous.ReportedAt, Location: previous.Location,
+	}, ReportMetadata{})
+	if err != nil || result.EventID != envelope.ID {
+		t.Fatalf("ReportLostPet() = %#v, %v; want payload-v3 event %s", result, err, envelope.ID)
+	}
+	outboxRecords, err := stateStore.ListState(ctx, store.OutboxCollection)
+	if err != nil || len(outboxRecords) != 1 {
+		t.Fatalf("outbox records = %d, %v; want 1", len(outboxRecords), err)
 	}
 }
 

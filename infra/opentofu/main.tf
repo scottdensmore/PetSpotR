@@ -71,6 +71,12 @@ resource "google_storage_bucket_iam_member" "foundpet_objects" {
   member = "serviceAccount:${module.cloudrun.foundpet_runtime_service_account}"
 }
 
+resource "google_storage_bucket_iam_member" "lostpet_objects" {
+  bucket = module.storage.bucket_name
+  role   = "roles/storage.objectUser"
+  member = "serviceAccount:${module.cloudrun.lostpet_runtime_service_account}"
+}
+
 resource "google_storage_bucket_iam_member" "pet_matcher_reader" {
   bucket = module.storage.bucket_name
   role   = "roles/storage.objectViewer"

@@ -1,6 +1,7 @@
 package blob_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -192,6 +193,61 @@ func TestMemoryBlobStoreSecureImageLifecycle(t *testing.T) {
 	again, err := bs.FinalizeImage(ctx, grant.ReportID, grant.ObjectName, grant.FinalizeToken)
 	if err != nil || again.ObjectName != finalized.ObjectName {
 		t.Fatalf("idempotent FinalizeImage() = %#v, %v", again, err)
+	}
+}
+
+func TestMemoryBlobStoreScopesLostPetImageLifecycle(t *testing.T) {
+	ctx := context.Background()
+	images := blob.NewMemoryBlobStore("https://storage.petspotr.io")
+	grant, err := images.BeginImageUpload(ctx, blob.ImageUploadIntent{
+		Purpose: blob.ImagePurposeLostPet, ContentType: "image/png",
+	})
+	if err != nil {
+		t.Fatalf("BeginImageUpload() error = %v", err)
+	}
+	wantUploadPrefix := "uploads/lost-pets/" + grant.ReportID + "/"
+	if !strings.HasPrefix(grant.ReportID, "lost-") || !strings.HasPrefix(grant.ObjectName, wantUploadPrefix) {
+		t.Fatalf("lost-pet grant = %#v, want prefix %q", grant, wantUploadPrefix)
+	}
+	if got := grant.FormFields["x-goog-meta-petspotr-purpose"]; got != string(blob.ImagePurposeLostPet) {
+		t.Fatalf("purpose metadata = %q, want %q", got, blob.ImagePurposeLostPet)
+	}
+	data := encodedImage(t, "png")
+	if _, err := images.UploadImage(ctx, grant.ObjectName, data); err != nil {
+		t.Fatal(err)
+	}
+	finalized, err := images.FinalizeImage(ctx, grant.ReportID, grant.ObjectName, grant.FinalizeToken)
+	if err != nil {
+		t.Fatalf("FinalizeImage() error = %v", err)
+	}
+	wantFinal := "images/lost-pets/" + grant.ReportID + "/image.png"
+	if finalized.ObjectName != wantFinal {
+		t.Fatalf("finalized object = %q, want %q", finalized.ObjectName, wantFinal)
+	}
+	if got, err := images.ReadFinalizedImage(ctx, finalized.ObjectName); err != nil || !bytes.Equal(got, data) {
+		t.Fatalf("ReadFinalizedImage() = %d bytes, %v", len(got), err)
+	}
+}
+
+func TestMemoryBlobStoreRejectsCrossPurposeFinalization(t *testing.T) {
+	ctx := context.Background()
+	images := blob.NewMemoryBlobStore("https://storage.petspotr.io")
+	grant, err := images.BeginImageUpload(ctx, blob.ImageUploadIntent{
+		Purpose: blob.ImagePurposeFoundPet, ContentType: "image/jpeg",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := images.UploadImage(ctx, grant.ObjectName, encodedImage(t, "jpeg")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := images.FinalizeImageForPurpose(
+		ctx, blob.ImagePurposeLostPet, grant.ReportID, grant.ObjectName, grant.FinalizeToken,
+	); !errors.Is(err, blob.ErrUploadMismatch) {
+		t.Fatalf("FinalizeImageForPurpose() error = %v, want ErrUploadMismatch", err)
+	}
+	if _, err := images.GetImage(ctx, grant.ObjectName); err != nil {
+		t.Fatalf("cross-purpose rejection mutated temporary object: %v", err)
 	}
 }
 

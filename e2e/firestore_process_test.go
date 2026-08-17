@@ -185,6 +185,8 @@ func startTestService(t *testing.T, binary, port, projectID, firestoreHost, pubs
 		"PORT":                    port,
 		"K_SERVICE":               "",
 		"PETSPOTR_RUNTIME_MODE":   string(runtimeconfig.ModeLocalEmulator),
+		"PETSPOTR_STORAGE_MODE":   string(runtimeconfig.ModeMemory),
+		"PETSPOTR_IMAGE_BASE_URL": "http://127.0.0.1:" + port + "/images",
 		"GOOGLE_CLOUD_PROJECT":    projectID,
 		"FIRESTORE_EMULATOR_HOST": firestoreHost,
 		"PUBSUB_EMULATOR_HOST":    pubsubHost,

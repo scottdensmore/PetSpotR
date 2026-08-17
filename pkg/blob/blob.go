@@ -50,8 +50,12 @@ const (
 // ImagePurpose scopes a generated object key to an application workflow.
 type ImagePurpose string
 
-// ImagePurposeFoundPet identifies an image for a found-pet report.
-const ImagePurposeFoundPet ImagePurpose = "found-pet"
+const (
+	// ImagePurposeFoundPet identifies an image for a found-pet report.
+	ImagePurposeFoundPet ImagePurpose = "found-pet"
+	// ImagePurposeLostPet identifies an image for a lost-pet report.
+	ImagePurposeLostPet ImagePurpose = "lost-pet"
+)
 
 // ImageUploadIntent contains the trusted attributes needed to create a direct-upload grant.
 // FileName is advisory only and is never used in the generated object key.
@@ -87,6 +91,7 @@ type FinalizedImage struct {
 type ImageStore interface {
 	BeginImageUpload(ctx context.Context, intent ImageUploadIntent) (*ImageUploadGrant, error)
 	FinalizeImage(ctx context.Context, reportID, objectName, finalizeToken string) (*FinalizedImage, error)
+	FinalizeImageForPurpose(ctx context.Context, purpose ImagePurpose, reportID, objectName, finalizeToken string) (*FinalizedImage, error)
 	ReadFinalizedImage(ctx context.Context, objectName string) ([]byte, error)
 	GenerateImageReadURL(ctx context.Context, objectName string, expiry time.Duration) (string, error)
 }
@@ -100,6 +105,18 @@ type FinalizedImageReferenceChecker func(ctx context.Context, reportID, objectNa
 type OrphanCleaner interface {
 	CleanupOrphanedFinalizedImages(
 		ctx context.Context,
+		createdBefore time.Time,
+		limit int,
+		referenced FinalizedImageReferenceChecker,
+	) (int, error)
+}
+
+// ScopedOrphanCleaner reconciles finalized images for one report workflow so
+// another workflow cannot mistake a referenced object for an orphan.
+type ScopedOrphanCleaner interface {
+	CleanupOrphanedFinalizedImagesForPurpose(
+		ctx context.Context,
+		purpose ImagePurpose,
 		createdBefore time.Time,
 		limit int,
 		referenced FinalizedImageReferenceChecker,
@@ -221,7 +238,8 @@ func (m *MemoryBlobStore) BeginImageUpload(ctx context.Context, intent ImageUplo
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if intent.Purpose != ImagePurposeFoundPet {
+	purposePath, ok := imagePathForPurpose(intent.Purpose)
+	if !ok {
 		return nil, fmt.Errorf("%w: unsupported purpose %q", ErrInvalidImage, intent.Purpose)
 	}
 
@@ -241,9 +259,9 @@ func (m *MemoryBlobStore) BeginImageUpload(ctx context.Context, intent ImageUplo
 	if err != nil {
 		return nil, err
 	}
-	reportID := "found-" + reportToken
-	objectName := fmt.Sprintf("uploads/found-pets/%s/image%s", reportID, extension)
-	finalName := fmt.Sprintf("images/found-pets/%s/image%s", reportID, extension)
+	reportID := purposePath.reportPrefix + reportToken
+	objectName := fmt.Sprintf("uploads/%s/%s/image%s", purposePath.objectSegment, reportID, extension)
+	finalName := fmt.Sprintf("images/%s/%s/image%s", purposePath.objectSegment, reportID, extension)
 	expiresAt := m.now().UTC().Add(uploadExpiry)
 
 	m.mu.Lock()
@@ -262,7 +280,7 @@ func (m *MemoryBlobStore) BeginImageUpload(ctx context.Context, intent ImageUplo
 			"key":                            objectName,
 			"content-type":                   contentType,
 			"x-goog-meta-petspotr-report-id": reportID,
-			"x-goog-meta-petspotr-purpose":   string(ImagePurposeFoundPet),
+			"x-goog-meta-petspotr-purpose":   string(intent.Purpose),
 			"x-goog-meta-petspotr-upload-token-sha256": tokenDigest(finalizeToken),
 			"x-goog-meta-petspotr-finalize-before":     strconv.FormatInt(expiresAt.Unix(), 10),
 		},
@@ -326,6 +344,20 @@ func (m *MemoryBlobStore) FinalizeImage(ctx context.Context, reportID, objectNam
 	m.finalizeTokens[objectName] = pending.tokenDigest
 	m.finalizeBefore[objectName] = pending.expiresAt
 	return cloneFinalized(finalized), nil
+}
+
+// FinalizeImageForPurpose rejects a valid capability issued for a different
+// report workflow before finalizing it.
+func (m *MemoryBlobStore) FinalizeImageForPurpose(
+	ctx context.Context,
+	purpose ImagePurpose,
+	reportID, objectName, finalizeToken string,
+) (*FinalizedImage, error) {
+	gotPurpose, _, ok := imagePurposeForPath(reportID, objectName, "uploads")
+	if !ok || gotPurpose != purpose {
+		return nil, ErrUploadMismatch
+	}
+	return m.FinalizeImage(ctx, reportID, objectName, finalizeToken)
 }
 
 // GenerateImageReadURL returns a short-lived capability for a finalized private object.
@@ -421,10 +453,37 @@ func tokenMatches(wantDigest, token string) bool {
 
 func finalizedReportID(objectName string) string {
 	parts := strings.Split(objectName, "/")
-	if len(parts) == 4 && parts[0] == "images" && parts[1] == "found-pets" {
+	if len(parts) == 4 && parts[0] == "images" && (parts[1] == "found-pets" || parts[1] == "lost-pets") {
 		return parts[2]
 	}
 	return ""
+}
+
+type imagePurposePath struct {
+	reportPrefix  string
+	objectSegment string
+}
+
+func imagePathForPurpose(purpose ImagePurpose) (imagePurposePath, bool) {
+	switch purpose {
+	case ImagePurposeFoundPet:
+		return imagePurposePath{reportPrefix: "found-", objectSegment: "found-pets"}, true
+	case ImagePurposeLostPet:
+		return imagePurposePath{reportPrefix: "lost-", objectSegment: "lost-pets"}, true
+	default:
+		return imagePurposePath{}, false
+	}
+}
+
+func imagePurposeForPath(reportID, objectName, namespace string) (ImagePurpose, imagePurposePath, bool) {
+	for _, purpose := range []ImagePurpose{ImagePurposeFoundPet, ImagePurposeLostPet} {
+		path, _ := imagePathForPurpose(purpose)
+		prefix := namespace + "/" + path.objectSegment + "/" + reportID + "/image"
+		if strings.HasPrefix(reportID, path.reportPrefix) && strings.HasPrefix(objectName, prefix) {
+			return purpose, path, true
+		}
+	}
+	return "", imagePurposePath{}, false
 }
 
 func cloneFinalized(value FinalizedImage) *FinalizedImage {

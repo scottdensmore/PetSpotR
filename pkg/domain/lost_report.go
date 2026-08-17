@@ -10,11 +10,13 @@ import (
 )
 
 // LostPetReportedPayloadVersion is the current contact-redacted integration
-// payload. Versions 1 and 2 remain readable for in-flight compatibility.
+// payload with an optional private image object. Versions 1 through 3 remain
+// readable for in-flight compatibility.
 const (
-	LostPetReportedLegacyPayloadVersion  = 1
-	LostPetReportedContactPayloadVersion = 2
-	LostPetReportedPayloadVersion        = 3
+	LostPetReportedLegacyPayloadVersion   = 1
+	LostPetReportedContactPayloadVersion  = 2
+	LostPetReportedRedactedPayloadVersion = 3
+	LostPetReportedPayloadVersion         = 4
 )
 
 // LostPetStatus is the persisted lifecycle state of a lost-pet report.
@@ -46,6 +48,7 @@ type LostPetReport struct {
 	Description     string          `json:"description,omitempty"`
 	ReporterEmail   string          `json:"reporterEmail"`
 	Phone           string          `json:"phone,omitempty"`
+	ImageObject     string          `json:"imageObject,omitempty"`
 	ReportedAt      time.Time       `json:"reportedAt"`
 	Location        string          `json:"location"`
 	GeocodingStatus GeocodingStatus `json:"geocodingStatus"`
@@ -63,6 +66,7 @@ type LostPetRecord struct {
 	PrimaryColor     string          `json:"primaryColor,omitempty"`
 	Description      string          `json:"description,omitempty"`
 	OwnerIdentityRef string          `json:"ownerIdentityRef"`
+	ImageObject      string          `json:"imageObject,omitempty"`
 	ReportedAt       time.Time       `json:"reportedAt"`
 	Location         string          `json:"location"`
 	GeocodingStatus  GeocodingStatus `json:"geocodingStatus"`
@@ -74,7 +78,7 @@ type LostPetRecord struct {
 // fields retain their original JSON names so payload-v1 readers can continue
 // decoding the fields they understand. ReporterEmail remains only so prior
 // payload-v2 events can be reconstructed and decoded; phone was never
-// published. New producers use LostPetReportedV3.
+// published. New producers use LostPetReportedV4.
 type LostPetReportedV2 struct {
 	PetID           string          `json:"petId"`
 	PetName         string          `json:"petName,omitempty"`
@@ -106,31 +110,49 @@ type LostPetReportedV3 struct {
 	Status          LostPetStatus   `json:"status"`
 }
 
+// LostPetReportedV4 carries an optional finalized private image object without
+// exposing owner contact. Internal consumers may use the object through their
+// own storage identity; public lost-pet DTOs deliberately omit it.
+type LostPetReportedV4 struct {
+	PetID           string          `json:"petId"`
+	PetName         string          `json:"petName,omitempty"`
+	Species         string          `json:"species,omitempty"`
+	Breed           string          `json:"breed,omitempty"`
+	PrimaryColor    string          `json:"primaryColor,omitempty"`
+	Description     string          `json:"description,omitempty"`
+	ImageObject     string          `json:"imageObject,omitempty"`
+	ReportedAt      time.Time       `json:"reportedAt"`
+	Location        string          `json:"location"`
+	GeocodingStatus GeocodingStatus `json:"geocodingStatus"`
+	Coordinates     *LocationPoint  `json:"coordinates,omitempty"`
+	Status          LostPetStatus   `json:"status"`
+}
+
 // DecodeLostPetReported reads every lost-pet payload shape published by the
 // application and returns the normalized canonical integration event. Raw
 // payloads predate envelopes and are therefore interpreted as payload v1.
-func DecodeLostPetReported(data []byte) (LostPetReportedV3, *EventEnvelope, error) {
+func DecodeLostPetReported(data []byte) (LostPetReportedV4, *EventEnvelope, error) {
 	var payload json.RawMessage
 	envelope, err := DecodeEventPayload(data, EventTypeLostPetReported, &payload)
 	if err != nil {
-		return LostPetReportedV3{}, nil, err
+		return LostPetReportedV4{}, nil, err
 	}
 
 	payloadVersion := LostPetReportedLegacyPayloadVersion
 	if envelope != nil {
 		payloadVersion = envelope.PayloadVersion
 	}
-	var event LostPetReportedV3
+	var event LostPetReportedV4
 	switch payloadVersion {
 	case LostPetReportedLegacyPayloadVersion:
 		var legacy LostPetEvent
 		if err := json.Unmarshal(payload, &legacy); err != nil {
-			return LostPetReportedV3{}, nil, fmt.Errorf("domain: decode lost-pet payload v1: %w", err)
+			return LostPetReportedV4{}, nil, fmt.Errorf("domain: decode lost-pet payload v1: %w", err)
 		}
 		if err := legacy.Validate(); err != nil {
-			return LostPetReportedV3{}, nil, fmt.Errorf("domain: invalid lost-pet payload v1: %w", err)
+			return LostPetReportedV4{}, nil, fmt.Errorf("domain: invalid lost-pet payload v1: %w", err)
 		}
-		event = normalizeLostPetReportedV3(LostPetReportedV3{
+		event = normalizeLostPetReportedV4(LostPetReportedV4{
 			PetID:      legacy.PetID,
 			ReportedAt: legacy.ReportedAt,
 			Location:   legacy.Location,
@@ -138,25 +160,34 @@ func DecodeLostPetReported(data []byte) (LostPetReportedV3, *EventEnvelope, erro
 	case LostPetReportedContactPayloadVersion:
 		var prior LostPetReportedV2
 		if err := json.Unmarshal(payload, &prior); err != nil {
-			return LostPetReportedV3{}, nil, fmt.Errorf("domain: decode lost-pet payload v2: %w", err)
+			return LostPetReportedV4{}, nil, fmt.Errorf("domain: decode lost-pet payload v2: %w", err)
 		}
 		if err := prior.Validate(); err != nil {
-			return LostPetReportedV3{}, nil, fmt.Errorf("domain: invalid lost-pet payload v2: %w", err)
+			return LostPetReportedV4{}, nil, fmt.Errorf("domain: invalid lost-pet payload v2: %w", err)
 		}
-		event = normalizeLostPetReportedV3(prior.redacted())
+		event = normalizeLostPetReportedV4(prior.redacted().current())
+	case LostPetReportedRedactedPayloadVersion:
+		var prior LostPetReportedV3
+		if err := json.Unmarshal(payload, &prior); err != nil {
+			return LostPetReportedV4{}, nil, fmt.Errorf("domain: decode lost-pet payload v3: %w", err)
+		}
+		if err := prior.Validate(); err != nil {
+			return LostPetReportedV4{}, nil, fmt.Errorf("domain: invalid lost-pet payload v3: %w", err)
+		}
+		event = normalizeLostPetReportedV4(prior.current())
 	case LostPetReportedPayloadVersion:
 		if err := json.Unmarshal(payload, &event); err != nil {
-			return LostPetReportedV3{}, nil, fmt.Errorf("domain: decode lost-pet payload v3: %w", err)
+			return LostPetReportedV4{}, nil, fmt.Errorf("domain: decode lost-pet payload v4: %w", err)
 		}
 		if err := event.Validate(); err != nil {
-			return LostPetReportedV3{}, nil, fmt.Errorf("domain: invalid lost-pet payload v3: %w", err)
+			return LostPetReportedV4{}, nil, fmt.Errorf("domain: invalid lost-pet payload v4: %w", err)
 		}
-		event = normalizeLostPetReportedV3(event)
+		event = normalizeLostPetReportedV4(event)
 	default:
-		return LostPetReportedV3{}, nil, fmt.Errorf("domain: unsupported lost-pet payload version %d", payloadVersion)
+		return LostPetReportedV4{}, nil, fmt.Errorf("domain: unsupported lost-pet payload version %d", payloadVersion)
 	}
 	if envelope != nil && strings.TrimSpace(envelope.AggregateID) != event.PetID {
-		return LostPetReportedV3{}, nil, errors.New("domain: lost-pet aggregate ID does not match payload")
+		return LostPetReportedV4{}, nil, errors.New("domain: lost-pet aggregate ID does not match payload")
 	}
 	return event, envelope, nil
 }
@@ -214,6 +245,30 @@ func (e LostPetReportedV3) Validate() error {
 	})
 }
 
+// Validate checks the contact-independent payload-v4 integration contract.
+func (e LostPetReportedV4) Validate() error {
+	if strings.TrimSpace(e.PetID) == "" {
+		return errors.New("domain: petId is required")
+	}
+	if e.ReportedAt.IsZero() {
+		return errors.New("domain: reportedAt is required")
+	}
+	return validateLostPetCanonicalFields(LostPetReport{
+		PetID:           e.PetID,
+		PetName:         e.PetName,
+		Species:         e.Species,
+		Breed:           e.Breed,
+		PrimaryColor:    e.PrimaryColor,
+		Description:     e.Description,
+		ImageObject:     e.ImageObject,
+		ReportedAt:      e.ReportedAt,
+		Location:        e.Location,
+		GeocodingStatus: e.GeocodingStatus,
+		Coordinates:     e.Coordinates,
+		Status:          e.Status,
+	})
+}
+
 // PublicLostPetReport is the unauthenticated lost-pet listing DTO. It cannot
 // serialize reporter contact details because those fields are absent by type.
 type PublicLostPetReport struct {
@@ -241,6 +296,7 @@ func NormalizeLostPetReport(report LostPetReport) LostPetReport {
 	report.Description = strings.TrimSpace(report.Description)
 	report.ReporterEmail = strings.ToLower(strings.TrimSpace(report.ReporterEmail))
 	report.Phone = strings.TrimSpace(report.Phone)
+	report.ImageObject = strings.TrimSpace(report.ImageObject)
 	report.Location = strings.TrimSpace(report.Location)
 	if !report.ReportedAt.IsZero() {
 		report.ReportedAt = report.ReportedAt.UTC()
@@ -307,7 +363,7 @@ func validateLostPetCanonicalFields(r LostPetReport) error {
 	return nil
 }
 
-func normalizeLostPetReportedV3(event LostPetReportedV3) LostPetReportedV3 {
+func normalizeLostPetReportedV4(event LostPetReportedV4) LostPetReportedV4 {
 	report := NormalizeLostPetReport(LostPetReport{
 		PetID:           event.PetID,
 		PetName:         event.PetName,
@@ -315,6 +371,7 @@ func normalizeLostPetReportedV3(event LostPetReportedV3) LostPetReportedV3 {
 		Breed:           event.Breed,
 		PrimaryColor:    event.PrimaryColor,
 		Description:     event.Description,
+		ImageObject:     event.ImageObject,
 		ReportedAt:      event.ReportedAt,
 		Location:        event.Location,
 		GeocodingStatus: event.GeocodingStatus,
@@ -322,6 +379,22 @@ func normalizeLostPetReportedV3(event LostPetReportedV3) LostPetReportedV3 {
 		Status:          event.Status,
 	})
 	return report.ReportedEvent()
+}
+
+func (e LostPetReportedV3) current() LostPetReportedV4 {
+	return LostPetReportedV4{
+		PetID:           e.PetID,
+		PetName:         e.PetName,
+		Species:         e.Species,
+		Breed:           e.Breed,
+		PrimaryColor:    e.PrimaryColor,
+		Description:     e.Description,
+		ReportedAt:      e.ReportedAt,
+		Location:        e.Location,
+		GeocodingStatus: e.GeocodingStatus,
+		Coordinates:     cloneLocationPoint(e.Coordinates),
+		Status:          e.Status,
+	}
 }
 
 func (e LostPetReportedV2) redacted() LostPetReportedV3 {
@@ -368,6 +441,7 @@ func (r LostPetReport) Persisted() (LostPetRecord, ReportContact) {
 			PrimaryColor:     r.PrimaryColor,
 			Description:      r.Description,
 			OwnerIdentityRef: identityRef,
+			ImageObject:      r.ImageObject,
 			ReportedAt:       r.ReportedAt,
 			Location:         r.Location,
 			GeocodingStatus:  r.GeocodingStatus,
@@ -390,6 +464,7 @@ func NormalizeLostPetRecord(record LostPetRecord) LostPetRecord {
 		Breed:           record.Breed,
 		PrimaryColor:    record.PrimaryColor,
 		Description:     record.Description,
+		ImageObject:     record.ImageObject,
 		ReportedAt:      record.ReportedAt,
 		Location:        record.Location,
 		GeocodingStatus: record.GeocodingStatus,
@@ -421,7 +496,26 @@ func (r LostPetRecord) Public() PublicLostPetReport {
 }
 
 // ReportedEvent returns the contact-redacted current integration event.
-func (r LostPetReport) ReportedEvent() LostPetReportedV3 {
+func (r LostPetReport) ReportedEvent() LostPetReportedV4 {
+	return LostPetReportedV4{
+		PetID:           r.PetID,
+		PetName:         r.PetName,
+		Species:         r.Species,
+		Breed:           r.Breed,
+		PrimaryColor:    r.PrimaryColor,
+		Description:     r.Description,
+		ImageObject:     r.ImageObject,
+		ReportedAt:      r.ReportedAt,
+		Location:        r.Location,
+		GeocodingStatus: r.GeocodingStatus,
+		Coordinates:     cloneLocationPoint(r.Coordinates),
+		Status:          r.Status,
+	}
+}
+
+// ReportedEventV3 reconstructs the prior contact-redacted event for stable
+// retry compatibility. New producers must publish ReportedEvent instead.
+func (r LostPetReport) ReportedEventV3() LostPetReportedV3 {
 	return LostPetReportedV3{
 		PetID:           r.PetID,
 		PetName:         r.PetName,
@@ -485,6 +579,7 @@ func validateLostPetLengths(r LostPetReport) error {
 		{name: "description", value: r.Description, limit: 2000},
 		{name: "reporterEmail", value: r.ReporterEmail, limit: 320},
 		{name: "phone", value: r.Phone, limit: 64},
+		{name: "imageObject", value: r.ImageObject, limit: 1024},
 		{name: "location", value: r.Location, limit: 500},
 	}
 	for _, field := range fields {

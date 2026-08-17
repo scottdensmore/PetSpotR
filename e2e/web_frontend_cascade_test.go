@@ -171,7 +171,7 @@ func TestWebFrontendLostPetSubmissionUsesCanonicalService(t *testing.T) {
 	type publishedLostPet struct {
 		data     []byte
 		envelope *domain.EventEnvelope
-		event    domain.LostPetReportedV3
+		event    domain.LostPetReportedV4
 	}
 	published := make(chan publishedLostPet, 1)
 	if err := ps.Subscribe("lostPet", func(_ context.Context, data []byte) error {
@@ -353,7 +353,7 @@ func TestLostPetHTTPAdaptersShareCanonicalContract(t *testing.T) {
 				LostPetReporter: lostReports,
 			})
 
-			published := make(chan domain.LostPetReportedV3, 4)
+			published := make(chan domain.LostPetReportedV4, 4)
 			if err := ps.Subscribe("lostPet", func(_ context.Context, data []byte) error {
 				event, _, err := domain.DecodeLostPetReported(data)
 				if err != nil {

@@ -51,13 +51,44 @@ func main() {
 			log.Printf("Failed to close messaging runtime: %v", err)
 		}
 	}()
+	storageConfig, err := runtimeconfig.LoadStorageConfigFromEnv()
+	if err != nil {
+		log.Fatalf("Invalid storage configuration: %v", err)
+	}
+	if storageConfig.Mode == runtimeconfig.ModeMemory && storageConfig.MemoryBaseURL == "" {
+		storageConfig.MemoryBaseURL = "http://localhost:" + port + "/images"
+	}
+	storageRuntime, err := runtimeconfig.NewStorageRuntime(ctx, storageConfig)
+	if err != nil {
+		log.Fatalf("Failed to initialize storage runtime: %v", err)
+	}
+	defer func() {
+		if err := storageRuntime.Close(); err != nil {
+			log.Printf("Failed to close storage runtime: %v", err)
+		}
+	}()
 
-	svc := lostpet.NewService(stateRuntime.Store, messagingRuntime.Publisher)
+	svc := lostpet.NewServiceWithImageStore(stateRuntime.Store, messagingRuntime.Publisher, storageRuntime.Images)
+	nextImageCleanupAt := time.Time{}
 	backfiller, _ := stateRuntime.Store.(store.OutboxIndexBackfiller)
 	recoveryRunner, err := outboxrecovery.New(outboxrecovery.Config{
 		Service:    "LostPet",
 		Backfiller: backfiller,
 		Recover:    svc.RecoverOutbox,
+		BeforeCycle: func(ctx context.Context, now time.Time) {
+			if !now.Before(nextImageCleanupAt) {
+				deleted, err := svc.CleanupOrphanedImages(ctx, now)
+				if err != nil && ctx.Err() == nil {
+					log.Printf("LostPet finalized-image cleanup deferred: %v", err)
+					nextImageCleanupAt = now.Add(5 * time.Minute)
+				} else {
+					nextImageCleanupAt = now.Add(time.Hour)
+				}
+				if deleted > 0 {
+					log.Printf("LostPet finalized-image cleanup removed %d orphaned objects", deleted)
+				}
+			}
+		},
 	})
 	if err != nil {
 		log.Fatalf("Invalid outbox recovery configuration: %v", err)
@@ -66,6 +97,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/lostPet", svc.HandleLostPet)
+	mux.HandleFunc("/lostPet/uploads", svc.HandleBeginImageUpload)
 	httpServer := &http.Server{
 		Addr:              ":" + port,
 		Handler:           mux,

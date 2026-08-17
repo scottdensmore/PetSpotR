@@ -20,19 +20,19 @@ func TestLostPetReportedV3RedactsContactAndReadsEveryPublishedVersion(t *testing
 		ReportedAt:    reportedAt,
 		Location:      "Seattle, WA",
 	})
-	v3Payload, err := json.Marshal(report.ReportedEvent())
+	v3Payload, err := json.Marshal(report.ReportedEventV3())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if domain.LostPetReportedPayloadVersion != 3 {
-		t.Fatalf("current lost-pet payload version = %d, want 3", domain.LostPetReportedPayloadVersion)
+	if domain.LostPetReportedRedactedPayloadVersion != 3 {
+		t.Fatalf("redacted lost-pet payload version = %d, want 3", domain.LostPetReportedRedactedPayloadVersion)
 	}
 	if strings.Contains(string(v3Payload), "owner@example.com") || strings.Contains(string(v3Payload), "reporterEmail") ||
 		strings.Contains(string(v3Payload), report.Phone) || strings.Contains(string(v3Payload), "phone") {
 		t.Fatalf("payload-v3 exposed private contact: %s", v3Payload)
 	}
 
-	v3Envelope := lostEnvelope(t, report.PetID, reportedAt, domain.LostPetReportedPayloadVersion, v3Payload)
+	v3Envelope := lostEnvelope(t, report.PetID, reportedAt, domain.LostPetReportedRedactedPayloadVersion, v3Payload)
 	legacy := domain.LostPetEvent{
 		PetID:         "lost-v1",
 		ReporterEmail: "legacy@example.com",
@@ -123,7 +123,7 @@ func TestDecodeLostPetReportedRejectsIncompletePayloadV3(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			data := lostEnvelope(t, event.PetID, reportedAt, domain.LostPetReportedPayloadVersion, payload)
+			data := lostEnvelope(t, event.PetID, reportedAt, domain.LostPetReportedRedactedPayloadVersion, payload)
 			if _, _, err := domain.DecodeLostPetReported(data); err == nil {
 				t.Fatal("DecodeLostPetReported() error = nil, want incomplete payload-v3 rejection")
 			}

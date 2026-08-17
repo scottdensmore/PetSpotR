@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/outbox"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
@@ -20,8 +21,10 @@ import (
 
 // Service coordinates LostPet event persistence and publishing.
 type Service struct {
-	store store.StateStore
-	relay *outbox.Relay
+	store                  store.StateStore
+	imageStore             blob.ImageStore
+	relay                  *outbox.Relay
+	reportOperationTimeout time.Duration
 }
 
 // ReportMetadata carries transport metadata into the durable event envelope.
@@ -41,6 +44,7 @@ type ReportCommand struct {
 	Description     string
 	ReporterEmail   string
 	Phone           string
+	ImageObject     string
 	ReportedAt      time.Time
 	Location        string
 	GeocodingStatus domain.GeocodingStatus
@@ -82,11 +86,21 @@ func InvalidReportCause(err error) error {
 	return nil
 }
 
-// NewService constructs a LostPet Service instance.
+const defaultReportOperationTimeout = 2 * time.Minute
+
+// NewService constructs a LostPet Service instance without an upload adapter.
 func NewService(st store.StateStore, br pubsub.Publisher) *Service {
+	return NewServiceWithImageStore(st, br, nil)
+}
+
+// NewServiceWithImageStore constructs a LostPet Service that owns the secure
+// private-image upload and finalization lifecycle.
+func NewServiceWithImageStore(st store.StateStore, br pubsub.Publisher, images blob.ImageStore) *Service {
 	return &Service{
-		store: st,
-		relay: outbox.NewRelay(st, br),
+		store:                  st,
+		imageStore:             images,
+		relay:                  outbox.NewRelay(st, br),
+		reportOperationTimeout: defaultReportOperationTimeout,
 	}
 }
 
@@ -105,6 +119,71 @@ func respondWithError(w http.ResponseWriter, code int, message string) {
 	_ = json.NewEncoder(w).Encode(ErrorResponse{Error: message})
 }
 
+// HandleBeginImageUpload handles POST /lostPet/uploads requests.
+func (s *Service) HandleBeginImageUpload(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		respondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+	if s.imageStore == nil {
+		respondWithError(w, http.StatusServiceUnavailable, "Private image uploads are unavailable")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 16*1024)
+	var intent blob.ImageUploadIntent
+	if err := json.NewDecoder(r.Body).Decode(&intent); err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid JSON payload: %v", err))
+		return
+	}
+	if intent.Purpose != blob.ImagePurposeLostPet {
+		respondWithError(w, http.StatusBadRequest, "Upload purpose must be lost-pet")
+		return
+	}
+	grant, err := s.imageStore.BeginImageUpload(r.Context(), intent)
+	if errors.Is(err, blob.ErrInvalidImage) {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err != nil {
+		log.Printf("LostPet image upload grant failed: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "Failed to create image upload")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(grant)
+}
+
+// CleanupOrphanedImages removes old finalized lost-pet images that remain
+// unreferenced after the report transaction's recovery window.
+func (s *Service) CleanupOrphanedImages(ctx context.Context, now time.Time) (int, error) {
+	cleaner, ok := s.imageStore.(blob.ScopedOrphanCleaner)
+	if !ok {
+		return 0, nil
+	}
+	referenced := func(checkCtx context.Context, reportID, objectName string) (bool, error) {
+		data, err := s.store.GetState(checkCtx, store.LostPetsCollection, reportID)
+		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		var record domain.LostPetRecord
+		if err := json.Unmarshal(data, &record); err != nil {
+			return false, fmt.Errorf("decode lost-pet state %q: %w", reportID, err)
+		}
+		return record.PetID == reportID && record.ImageObject == objectName, nil
+	}
+	return cleaner.CleanupOrphanedFinalizedImagesForPurpose(
+		ctx,
+		blob.ImagePurposeLostPet,
+		now.UTC().Add(-blob.DefaultOrphanGracePeriod),
+		blob.MaxOrphanCleanupBatch,
+		referenced,
+	)
+}
+
 // HandleLostPet handles POST /lostPet HTTP requests.
 func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -112,6 +191,9 @@ func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(r.Context(), s.reportOperationTimeout)
+	defer cancel()
+	r = r.WithContext(ctx)
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
 	var request struct {
@@ -123,6 +205,7 @@ func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 		Description     string                 `json:"description"`
 		ReporterEmail   string                 `json:"reporterEmail"`
 		Phone           string                 `json:"phone"`
+		ImageObject     string                 `json:"imageObject"`
 		ReportedAt      time.Time              `json:"reportedAt"`
 		Location        string                 `json:"location"`
 		GeocodingStatus domain.GeocodingStatus `json:"geocodingStatus"`
@@ -131,6 +214,28 @@ func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid JSON payload: %v", err))
 		return
+	}
+	if strings.TrimSpace(request.ImageObject) != "" {
+		if s.imageStore == nil {
+			respondWithError(w, http.StatusBadRequest, "A generated private image upload is required")
+			return
+		}
+		finalized, err := s.imageStore.FinalizeImageForPurpose(
+			r.Context(), blob.ImagePurposeLostPet, request.PetID, request.ImageObject,
+			r.Header.Get("X-PetSpotR-Upload-Token"),
+		)
+		if errors.Is(err, blob.ErrInvalidImage) || errors.Is(err, blob.ErrUploadMismatch) ||
+			errors.Is(err, blob.ErrUploadExpired) || errors.Is(err, blob.ErrNotFound) ||
+			errors.Is(err, blob.ErrNotFinalized) {
+			respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Image finalization failed: %v", err))
+			return
+		}
+		if err != nil {
+			log.Printf("LostPet image finalization failed: %v", err)
+			respondWithError(w, http.StatusInternalServerError, "Image finalization failed")
+			return
+		}
+		request.ImageObject = finalized.ObjectName
 	}
 
 	result, err := s.ReportLostPet(r.Context(), ReportCommand{
@@ -142,6 +247,7 @@ func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 		Description:     request.Description,
 		ReporterEmail:   request.ReporterEmail,
 		Phone:           request.Phone,
+		ImageObject:     request.ImageObject,
 		ReportedAt:      request.ReportedAt,
 		Location:        request.Location,
 		GeocodingStatus: request.GeocodingStatus,
@@ -187,6 +293,7 @@ func (s *Service) ReportLostPet(
 		Description:     command.Description,
 		ReporterEmail:   command.ReporterEmail,
 		Phone:           command.Phone,
+		ImageObject:     command.ImageObject,
 		ReportedAt:      command.ReportedAt,
 		Location:        command.Location,
 		GeocodingStatus: command.GeocodingStatus,
@@ -303,7 +410,7 @@ func (s *Service) matchPersistedRetry(
 		return ReportResult{}, true, false, nil
 	}
 	if _, isSeparated := shape["ownerIdentityRef"]; isSeparated {
-		result, matches, err := s.matchSeparatedPayloadV2Retry(ctx, legacyData, report)
+		result, matches, err := s.matchSeparatedRetry(ctx, legacyData, report)
 		return result, true, matches, err
 	}
 	if _, isCurrent := shape["geocodingStatus"]; isCurrent {
@@ -372,7 +479,7 @@ func (s *Service) matchPersistedRetry(
 	return result, true, matches, err
 }
 
-func (s *Service) matchSeparatedPayloadV2Retry(
+func (s *Service) matchSeparatedRetry(
 	ctx context.Context,
 	stateData []byte,
 	report domain.LostPetReport,
@@ -419,22 +526,36 @@ func (s *Service) matchSeparatedPayloadV2Retry(
 		return ReportResult{}, false, nil
 	}
 
-	payload, err := json.Marshal(report.ReportedEventV2())
-	if err != nil {
-		return ReportResult{}, false, err
+	variants := []struct {
+		version int
+		payload any
+	}{
+		{version: domain.LostPetReportedPayloadVersion, payload: report.ReportedEvent()},
+		{version: domain.LostPetReportedRedactedPayloadVersion, payload: report.ReportedEventV3()},
+		{version: domain.LostPetReportedContactPayloadVersion, payload: report.ReportedEventV2()},
 	}
-	envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
-		Type:             domain.EventTypeLostPetReported,
-		OccurredAt:       report.ReportedAt,
-		AggregateID:      report.PetID,
-		AggregateVersion: 1,
-		PayloadVersion:   domain.LostPetReportedContactPayloadVersion,
-		Payload:          payload,
-	})
-	if err != nil {
-		return ReportResult{}, false, nil
+	for _, variant := range variants {
+		payload, err := json.Marshal(variant.payload)
+		if err != nil {
+			return ReportResult{}, false, err
+		}
+		envelope, err := domain.NewEventEnvelope(domain.EventEnvelopeInput{
+			Type:             domain.EventTypeLostPetReported,
+			OccurredAt:       report.ReportedAt,
+			AggregateID:      report.PetID,
+			AggregateVersion: 1,
+			PayloadVersion:   variant.version,
+			Payload:          payload,
+		})
+		if err != nil {
+			continue
+		}
+		result, matches, err := s.matchPersistedOutbox(ctx, previous.PetID, envelope)
+		if err != nil || matches {
+			return result, matches, err
+		}
 	}
-	return s.matchPersistedOutbox(ctx, previous.PetID, envelope)
+	return ReportResult{}, false, nil
 }
 
 func (s *Service) matchPersistedOutbox(
