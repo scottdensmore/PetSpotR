@@ -25,7 +25,33 @@ type LostPetStatus string
 const (
 	// LostPetStatusLost identifies an active report for a pet that is still lost.
 	LostPetStatusLost LostPetStatus = "lost"
+	// LostPetStatusReunited identifies a terminal report whose pet was reunited.
+	LostPetStatusReunited LostPetStatus = "reunited"
+	// LostPetStatusExpired identifies a terminal report that aged out.
+	LostPetStatusExpired LostPetStatus = "expired"
+	// LostPetStatusClosed identifies a terminal report closed without a reunion.
+	LostPetStatusClosed LostPetStatus = "closed"
 )
+
+// IsActive reports whether the status remains eligible for lost-pet matching.
+func (s LostPetStatus) IsActive() bool {
+	return s == LostPetStatusLost
+}
+
+// IsTerminal reports whether no further lost-pet lifecycle transition is valid.
+func (s LostPetStatus) IsTerminal() bool {
+	switch s {
+	case LostPetStatusReunited, LostPetStatusExpired, LostPetStatusClosed:
+		return true
+	default:
+		return false
+	}
+}
+
+// CanTransitionTo reports whether next is a valid one-way lifecycle transition.
+func (s LostPetStatus) CanTransitionTo(next LostPetStatus) bool {
+	return s.IsActive() && next.IsTerminal()
+}
 
 // GeocodingStatus records whether a user-supplied location has verified
 // coordinates. Pending locations must never receive invented coordinates.

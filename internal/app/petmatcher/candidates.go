@@ -79,7 +79,7 @@ func (w *Worker) eligibleLostPetCandidates(
 			log.Printf("[Pet Matcher] Skipping lost-pet candidate %q with mismatched identity", key)
 			continue
 		}
-		if record.Status != domain.LostPetStatusLost || record.GeocodingStatus != domain.GeocodingVerified ||
+		if !record.Status.IsActive() || record.GeocodingStatus != domain.GeocodingVerified ||
 			record.Coordinates == nil || record.ReportedAt.IsZero() {
 			continue
 		}
