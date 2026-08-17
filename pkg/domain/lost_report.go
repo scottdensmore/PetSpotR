@@ -80,10 +80,12 @@ type LostPetReport struct {
 	GeocodingStatus GeocodingStatus `json:"geocodingStatus"`
 	Coordinates     *LocationPoint  `json:"coordinates,omitempty"`
 	Status          LostPetStatus   `json:"status"`
+	OwnedBy         *PrincipalRef   `json:"-"`
 }
 
 // LostPetRecord is the persisted lost-pet aggregate. Private owner contact is
-// stored separately and linked by OwnerIdentityRef.
+// stored separately and linked by OwnerIdentityRef. OwnedBy identifies the
+// authenticated resource owner when the producer supplied one.
 type LostPetRecord struct {
 	PetID            string              `json:"petId"`
 	PetName          string              `json:"petName,omitempty"`
@@ -99,6 +101,7 @@ type LostPetRecord struct {
 	Coordinates      *LocationPoint      `json:"coordinates,omitempty"`
 	Status           LostPetStatus       `json:"status"`
 	ImageAnalysis    *ImageTraitAnalysis `json:"imageAnalysis,omitempty"`
+	OwnedBy          *PrincipalRef       `json:"ownedBy,omitempty"`
 }
 
 // LostPetReportedV2 is the additive payload-v2 integration event. Its legacy
@@ -325,6 +328,7 @@ func NormalizeLostPetReport(report LostPetReport) LostPetReport {
 	report.Phone = strings.TrimSpace(report.Phone)
 	report.ImageObject = strings.TrimSpace(report.ImageObject)
 	report.Location = strings.TrimSpace(report.Location)
+	report.OwnedBy = normalizePrincipalRef(report.OwnedBy)
 	if !report.ReportedAt.IsZero() {
 		report.ReportedAt = report.ReportedAt.UTC()
 	}
@@ -351,6 +355,11 @@ func (r LostPetReport) Validate() error {
 	}
 	if err := legacy.Validate(); err != nil {
 		return err
+	}
+	if r.OwnedBy != nil {
+		if err := r.OwnedBy.Validate(); err != nil {
+			return err
+		}
 	}
 	return validateLostPetCanonicalFields(r)
 }
@@ -474,6 +483,7 @@ func (r LostPetReport) Persisted() (LostPetRecord, ReportContact) {
 			GeocodingStatus:  r.GeocodingStatus,
 			Coordinates:      cloneLocationPoint(r.Coordinates),
 			Status:           r.Status,
+			OwnedBy:          normalizePrincipalRef(r.OwnedBy),
 		}, NormalizeReportContact(ReportContact{
 			IdentityRef: identityRef,
 			Email:       r.ReporterEmail,
@@ -497,6 +507,7 @@ func NormalizeLostPetRecord(record LostPetRecord) LostPetRecord {
 		GeocodingStatus: record.GeocodingStatus,
 		Coordinates:     record.Coordinates,
 		Status:          record.Status,
+		OwnedBy:         record.OwnedBy,
 	})
 	normalized, _ := report.Persisted()
 	if identityRef := strings.TrimSpace(record.OwnerIdentityRef); identityRef != "" {

@@ -168,6 +168,46 @@ func TestFoundPetServicePersistsPrivateContactSeparately(t *testing.T) {
 	}
 }
 
+func TestFoundPetServicePersistsOwnershipAndRejectsCompetingPrincipal(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	service := NewReportService(stateStore, pubsub.NewMemoryPubSub())
+	command := ReportCommand{
+		PetID: "found-owned-report", ImageURL: "https://images.invalid/found-owned.jpg",
+		FoundAt:  time.Date(2026, time.August, 17, 22, 0, 0, 0, time.UTC),
+		Location: "Portland, OR",
+		OwnedBy: &domain.PrincipalRef{
+			Issuer: "https://securetoken.google.com/petspotr-test", Subject: "finder-101",
+		},
+	}
+
+	first, err := service.ReportFoundPet(ctx, command, ReportMetadata{})
+	if err != nil {
+		t.Fatalf("first ReportFoundPet() error = %v", err)
+	}
+	retry, err := service.ReportFoundPet(ctx, command, ReportMetadata{})
+	if err != nil || retry != first {
+		t.Fatalf("same-owner retry = %#v, %v; want %#v", retry, err, first)
+	}
+	data, err := stateStore.GetState(ctx, store.FoundPetsCollection, command.PetID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var record domain.FoundPetRecord
+	if err := json.Unmarshal(data, &record); err != nil {
+		t.Fatal(err)
+	}
+	if record.OwnedBy == nil || *record.OwnedBy != *command.OwnedBy {
+		t.Fatalf("persisted owner = %#v, want %#v", record.OwnedBy, command.OwnedBy)
+	}
+
+	competing := command
+	competing.OwnedBy = &domain.PrincipalRef{Issuer: command.OwnedBy.Issuer, Subject: "finder-202"}
+	if _, err := service.ReportFoundPet(ctx, competing, ReportMetadata{}); !errors.Is(err, store.ErrConflict) {
+		t.Fatalf("different-owner retry error = %v, want ErrConflict", err)
+	}
+}
+
 func TestFoundPetService_PayloadV1RetryRemainsIdempotentAfterSchemaUpgrade(t *testing.T) {
 	petIDs := []string{"found-before-v2", " found-before-v2-spaced "}
 	for _, petID := range petIDs {
@@ -340,6 +380,13 @@ func TestFoundPetServiceContactBearingPayloadV2StateRemainsRetryable(t *testing.
 	_, contact := previous.Persisted()
 	if _, err := stateStore.GetState(ctx, store.ReportContactsCollection, contact.IdentityRef); !errors.Is(err, store.ErrNotFound) && !errors.Is(err, store.ErrStoreNotFound) {
 		t.Fatalf("compatibility retry contact lookup error = %v, want not found", err)
+	}
+	claim := command
+	claim.OwnedBy = &domain.PrincipalRef{
+		Issuer: "https://securetoken.google.com/petspotr-test", Subject: "finder-101",
+	}
+	if _, err := service.ReportFoundPet(ctx, claim, ReportMetadata{}); !errors.Is(err, store.ErrConflict) {
+		t.Fatalf("authenticated legacy claim error = %v, want ErrConflict", err)
 	}
 
 	command.FinderEmail = "other@example.com"

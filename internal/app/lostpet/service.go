@@ -49,6 +49,8 @@ type ReportCommand struct {
 	Location        string
 	GeocodingStatus domain.GeocodingStatus
 	Coordinates     *domain.LocationPoint
+	// OwnedBy is trusted transport identity, never a caller-supplied JSON field.
+	OwnedBy *domain.PrincipalRef
 }
 
 // ReportResult identifies the accepted report and its durable event.
@@ -298,6 +300,7 @@ func (s *Service) ReportLostPet(
 		Location:        command.Location,
 		GeocodingStatus: command.GeocodingStatus,
 		Coordinates:     command.Coordinates,
+		OwnedBy:         command.OwnedBy,
 	})
 	if err := report.Validate(); err != nil {
 		return ReportResult{}, &invalidReportError{cause: err}
@@ -412,6 +415,11 @@ func (s *Service) matchPersistedRetry(
 	if _, isSeparated := shape["ownerIdentityRef"]; isSeparated {
 		result, matches, err := s.matchSeparatedRetry(ctx, legacyData, report)
 		return result, true, matches, err
+	}
+	// Pre-ownership records remain readable and anonymously retryable, but an
+	// authenticated caller cannot acquire them merely by replaying their input.
+	if report.OwnedBy != nil {
+		return ReportResult{}, true, false, nil
 	}
 	if _, isCurrent := shape["geocodingStatus"]; isCurrent {
 		var previous domain.LostPetReport

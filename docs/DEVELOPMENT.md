@@ -147,6 +147,16 @@ PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
   -run TestFirestoreStateCrossesServiceProcessesAndSurvivesRestart
 ```
 
+The report-ownership contract uses two independent application-service and
+Firestore runtime instances to verify durable owner identity, idempotent
+same-owner retries, and rejection of a competing principal:
+
+```bash
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
+  go test ./e2e -count=1 -v \
+  -run '^TestFirestoreReportOwnershipSurvivesIndependentServiceRuntimes$'
+```
+
 ### Human Identity Sessions
 
 The web frontend has a provider-neutral human session boundary backed by
@@ -155,6 +165,12 @@ consumer-first and defaults to `disabled`, including on Cloud Run, until the
 later infrastructure and sign-in UI slices activate it. Existing report and
 demo routes do not use the session yet, and pet lifecycle mutation routes
 remain unexposed.
+
+Lost- and found-report application commands can already persist an optional
+provider-neutral `issuer` plus opaque `subject` owner. The owner is private
+durable state: public DTOs and integration events omit it. Pre-ownership
+records remain readable and anonymously retryable, but an authenticated retry
+cannot acquire a legacy record merely by replaying its report fields.
 
 | `PETSPOTR_IDENTITY_MODE` | Required configuration | Cookie policy |
 | --- | --- | --- |
