@@ -315,14 +315,15 @@ The always-on `go test -race -cover ./...` command includes `e2e/`. Its
 in-memory cascade tests need no Compose, Ollama, or GCP credentials.
 
 Emulator-gated contracts across `pkg/store`, `pkg/outbox`, `pkg/runtimeconfig`,
-`internal/app/petmatcher`, `internal/app/notification`, and `e2e/` **skip silently**
+`pkg/identity`, `internal/app/petmatcher`, `internal/app/notification`, and `e2e/` **skip silently**
 unless the emulator host variable for that area — `FIRESTORE_EMULATOR_HOST`,
-`PUBSUB_EMULATOR_HOST`, or both — is set. The package still reports `ok`, so a
-green run is not evidence that those contracts ran, and they are what covers the
-redelivery idempotency rule in [Code Review Rules](#code-review-rules). When
+`PUBSUB_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST`, or the documented
+combination — is set. The package still reports `ok`, so a green run is not
+evidence that those contracts ran. When human identity changes, run the pinned
+Firebase Authentication emulator journey in `docs/DEVELOPMENT.md`. When
 durable state, the outbox, Pub/Sub delivery, or idempotency changes, start the
-emulators and run the contracts named for that area in `docs/DEVELOPMENT.md`;
-otherwise report them `NOT RUN` with the reason.
+emulators and run the contracts named for that area in `docs/DEVELOPMENT.md`.
+Otherwise report emulator contracts `NOT RUN` with the reason.
 
 Playwright journey coverage — when HTTP service behavior, rendered pages, or
 contracts change. It needs only the three HTTP services exercised by the suite;

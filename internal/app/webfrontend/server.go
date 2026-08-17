@@ -20,6 +20,7 @@ import (
 	"github.com/scottdensmore/petspotr/internal/app/lostpet"
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/identity"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/store"
@@ -39,6 +40,8 @@ type Server struct {
 	foundPetReporter         FoundPetReporter
 	lostPetReporter          LostPetReporter
 	allowPrivilegedMutations bool
+	identitySessions         identity.SessionManager
+	secureSessionCookie      bool
 }
 
 // LostPetReporter is the canonical lost-pet command consumed by the browser
@@ -59,6 +62,8 @@ type ServerOptions struct {
 	AllowPrivilegedMutations bool
 	FoundPetReporter         FoundPetReporter
 	LostPetReporter          LostPetReporter
+	IdentitySessions         identity.SessionManager
+	SecureSessionCookie      bool
 }
 
 // NewServer initializes an empty in-memory Server for tests and local callers.
@@ -99,6 +104,8 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		foundPetReporter:         foundPetReporter,
 		lostPetReporter:          lostPetReporter,
 		allowPrivilegedMutations: options.AllowPrivilegedMutations,
+		identitySessions:         options.IdentitySessions,
+		secureSessionCookie:      options.SecureSessionCookie,
 	}
 	s.routes()
 	return s
@@ -127,6 +134,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/push/subscribe", s.handleApiPushSubscribe)
 	s.mux.HandleFunc("/api/v1/push/test", s.handleApiPushTest)
 	s.mux.HandleFunc("/api/v1/uploads/presigned-url", s.handleApiPresignedURL)
+	s.mux.HandleFunc("/api/v1/session/csrf", s.handleApiSessionCSRF)
+	s.mux.HandleFunc("/api/v1/session", s.handleApiSession)
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	s.mux.HandleFunc("/healthz", s.handleHealthz)
 }

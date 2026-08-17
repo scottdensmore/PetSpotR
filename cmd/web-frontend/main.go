@@ -53,6 +53,14 @@ func main() {
 			log.Printf("Failed to close messaging runtime: %v", err)
 		}
 	}()
+	identityConfig, err := runtimeconfig.LoadIdentityConfigFromEnv()
+	if err != nil {
+		log.Fatalf("Invalid identity configuration: %v", err)
+	}
+	identityRuntime, err := runtimeconfig.NewIdentityRuntime(ctx, identityConfig)
+	if err != nil {
+		log.Fatalf("Failed to initialize identity runtime: %v", err)
+	}
 
 	lostReports := lostpet.NewService(stateRuntime.Store, messagingRuntime.Publisher)
 	foundReports := foundpet.NewReportService(stateRuntime.Store, messagingRuntime.Publisher)
@@ -75,6 +83,8 @@ func main() {
 		AllowPrivilegedMutations: config.Mode == runtimeconfig.ModeMemory,
 		FoundPetReporter:         foundReports,
 		LostPetReporter:          lostReports,
+		IdentitySessions:         identityRuntime.Sessions,
+		SecureSessionCookie:      identityRuntime.SecureCookies,
 	})
 	httpSrv := &http.Server{
 		Addr:         ":" + port,
