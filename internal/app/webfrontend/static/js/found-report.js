@@ -133,6 +133,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const location = document.getElementById('foundLocation')?.value || '';
       const finderEmail = document.getElementById('finderEmail')?.value || '';
 
+      let identityState = null;
+      if (window.petspotrIdentity) {
+        try {
+          identityState = await window.petspotrIdentity.requireSession();
+        } catch (error) {
+          if (error.code === 'identity-required') {
+            window.petspotrIdentity.focusSignIn();
+            alert('Sign in with Google before submitting your report.');
+            return;
+          }
+          console.error('Identity error:', error);
+          alert('Identity services are temporarily unavailable. Please try again.');
+          return;
+        }
+      }
+
       if (!location.trim() || !finderEmail.trim()) {
         alert('Please enter found location and finder contact email.');
         return;
@@ -158,9 +174,13 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (identityState?.enabled) {
+          headers['X-CSRF-Token'] = identityState.csrfToken;
+        }
         const resp = await fetch('/api/v1/found-pets', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(payload)
         });
 

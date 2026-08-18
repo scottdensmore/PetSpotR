@@ -41,6 +41,18 @@
         <p class="text-secondary">Upload a photo and Gemma 4 AI will instantly extract pet attributes to find matching owners.</p>
       </div>
 
+      <section id="identity-panel" class="identity-panel" aria-labelledby="identity-title" aria-busy="false" hidden>
+        <div class="identity-copy">
+          <h2 id="identity-title" class="identity-title">Protect your report</h2>
+          <p id="identity-status" class="identity-status" role="status" aria-live="polite">Checking sign-in status...</p>
+          <p id="identity-error" class="identity-error" role="alert" hidden></p>
+        </div>
+        <div class="identity-actions">
+          <button type="button" class="btn btn-primary" id="google-sign-in">Continue with Google</button>
+          <button type="button" class="btn btn-secondary" id="identity-sign-out" hidden>Sign out</button>
+        </div>
+      </section>
+
       <form id="found-pet-form">
         <!-- Step A: Instant Photo Upload & AI Tag Extraction -->
         <div class="form-section">
@@ -132,7 +144,8 @@
           <h2 class="section-title">4. Finder Contact Info</h2>
           <div class="form-field">
             <label for="finderEmail" class="form-label">Finder Email *</label>
-            <input class="form-control" type="email" id="finderEmail" name="finderEmail" required placeholder="finder@example.com">
+            <input class="form-control" type="email" id="finderEmail" name="finderEmail" required placeholder="finder@example.com" aria-describedby="finder-email-help" data-identity-email>
+            <p id="finder-email-help" class="form-help">When sign-in is enabled, PetSpotR uses the verified email on your Google account.</p>
           </div>
         </div>
 
@@ -164,6 +177,7 @@
   </footer>
 
   <script src="/static/js/theme.js"></script>
+  <script src="/static/js/identity-session.js"></script>
   <script src="/static/js/found-report.js"></script>
 </body>
 </html>
