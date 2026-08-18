@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -30,11 +31,16 @@ func (n *OwnerNotification) RenderEmailBody() string {
 	if strings.TrimSpace(n.Body) != "" {
 		return n.Body
 	}
-	pct := int(n.MatchScore * 100)
 	return fmt.Sprintf(
 		"<h1>🎉 New Match Found for %s!</h1><p>We found a potential match with <strong>%d%%</strong> confidence score.</p>",
-		n.PetName, pct,
+		n.PetName, MatchConfidencePercent(n.MatchScore),
 	)
+}
+
+// MatchConfidencePercent converts a normalized match score to the nearest
+// whole percentage for user-facing presentation.
+func MatchConfidencePercent(score float64) int {
+	return int(math.Round(score * 100))
 }
 
 // ToJSON serializes OwnerNotification to JSON.
