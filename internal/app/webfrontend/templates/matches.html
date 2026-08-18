@@ -66,6 +66,8 @@
         </div>
       </section>
 
+      <p id="match-decision-status" class="text-secondary" role="status" aria-live="polite" hidden></p>
+
       <!-- Match Comparison List Container -->
       <div id="matches-list-container" class="matches-list">
         <!-- Dynamic Match Cards Injected Here via JS -->
@@ -81,7 +83,7 @@
     </div>
 
     <!-- Action Confirmation Modal -->
-    <div id="match-action-modal" class="modal-overlay" hidden>
+    <div id="match-action-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="action-modal-title" aria-describedby="action-modal-desc" hidden>
       <div class="glass-card modal-panel modal-panel-compact">
         <div id="action-modal-icon" class="modal-icon modal-icon-success">
           <svg width="36" height="36" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
