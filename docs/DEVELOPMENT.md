@@ -149,12 +149,14 @@ PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
 
 The report-ownership contract uses two independent application-service and
 Firestore runtime instances to verify durable owner identity, idempotent
-same-owner retries, and rejection of a competing principal:
+same-owner retries, and rejection of a competing principal. The match-list
+contract uses independent writer and web-reader runtimes to verify bilateral
+participant filtering through the product HTTP boundary:
 
 ```bash
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
   go test ./e2e -count=1 -v \
-  -run '^TestFirestoreReportOwnershipSurvivesIndependentServiceRuntimes$'
+  -run '^TestFirestore(ReportOwnershipSurvivesIndependentServiceRuntimes|MatchListFiltersParticipantsAcrossServiceRuntimes)$'
 ```
 
 ### Human Identity Sessions
@@ -164,9 +166,10 @@ Google Identity Platform through the Firebase Admin Go SDK. It is deployed
 consumer-first and defaults to `disabled`, including on Cloud Run, until the
 later infrastructure and sign-in UI slices activate it. When configured, the
 web frontend requires a verified session and double-submit CSRF token for
-`POST /api/v1/lost-pets` and `POST /api/v1/found-pets`; when disabled, the
-existing anonymous demo flow is preserved. Other demo routes do not use the
-session yet, and pet lifecycle mutation routes remain unexposed.
+`POST /api/v1/lost-pets` and `POST /api/v1/found-pets`, and a verified session
+for participant-filtered match reads. When disabled, the existing anonymous
+demo flow is preserved. Match mutation routes do not use the session yet, and
+pet lifecycle mutation routes remain unexposed.
 
 Lost- and found-report application commands can already persist an optional
 provider-neutral `issuer` plus opaque `subject` owner. The owner is private
@@ -193,6 +196,15 @@ finder email from the verified session. Caller-supplied `reporterEmail` and
 `finderEmail` values cannot override that email. The owner remains private
 durable state, and both report-listing endpoints remain public, contact- and
 identity-redacted views.
+
+When identity is enabled, `GET /api/v1/matches` requires a verified session and
+returns only matches whose private `matchParticipants` record names the caller
+as either the lost-pet reporter or found-pet finder. Reporter and finder receive
+the same public, principal-free match representation with `Cache-Control:
+no-store`. Anonymous requests return `401 Unauthorized`; ownerless legacy
+matches, malformed participant records, mismatched match/report bindings, and
+matches owned only by other users are omitted. Identity-disabled demo runtimes
+retain the existing public match list.
 
 `GET /api/v1/lost-pets/{petId}/contact` and
 `GET /api/v1/found-pets/{petId}/contact` return only the authenticated report
@@ -229,8 +241,10 @@ the real web server, and creates owned lost and found reports. It proves
 anonymous and post-logout submissions are rejected, a caller cannot spoof the
 reporter or finder email, and the public listings omit owner identity and
 contact. It also proves each report owner can read their private contact, while
-anonymous and independently authenticated wrong-owner requests cannot. It then
-logs out and confirms the session no longer authenticates.
+anonymous and independently authenticated wrong-owner requests cannot. The two
+authenticated users can both read a shared match as reporter and finder while
+unrelated matches remain hidden. It then logs out and confirms the session no
+longer authenticates.
 Use the `demo-` project exactly as shown so an accidentally missing emulator
 cannot reach a billable Firebase project.
 

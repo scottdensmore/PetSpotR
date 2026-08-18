@@ -731,6 +731,21 @@ func (s *Server) handleApiMatches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var authorized map[string]domain.MatchParticipantRecord
+	if s.identitySessions != nil {
+		w.Header().Set("Cache-Control", "no-store")
+		principal, ok := s.verifiedRequestPrincipal(w, r)
+		if !ok {
+			return
+		}
+		var err error
+		authorized, err = s.authorizedMatches(r.Context(), principal)
+		if err != nil {
+			http.Error(w, "Failed to authorize matches", http.StatusInternalServerError)
+			return
+		}
+	}
+
 	rawMatches, err := s.stateStore.ListState(r.Context(), store.MatchesCollection)
 	if err != nil {
 		http.Error(w, "Failed to query matches from state store", http.StatusInternalServerError)
@@ -738,16 +753,46 @@ func (s *Server) handleApiMatches(w http.ResponseWriter, r *http.Request) {
 	}
 
 	matches := make([]MatchRecord, 0, len(rawMatches))
-	for _, b := range rawMatches {
+	for key, b := range rawMatches {
 		var m MatchRecord
-		if err := json.Unmarshal(b, &m); err == nil {
-			matches = append(matches, m)
+		if err := json.Unmarshal(b, &m); err != nil {
+			continue
 		}
+		if authorized != nil {
+			participants, ok := authorized[key]
+			if !ok || m.MatchID != key || participants.MatchID != key ||
+				participants.LostPetID != m.MatchedPetID || participants.FoundPetID != m.FoundPetID {
+				continue
+			}
+		}
+		matches = append(matches, m)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(matches)
+}
+
+func (s *Server) authorizedMatches(
+	ctx context.Context,
+	principal identity.Principal,
+) (map[string]domain.MatchParticipantRecord, error) {
+	rawParticipants, err := s.stateStore.ListState(ctx, store.MatchParticipantsCollection)
+	if err != nil {
+		return nil, err
+	}
+	authorized := make(map[string]domain.MatchParticipantRecord)
+	for key, data := range rawParticipants {
+		var participants domain.MatchParticipantRecord
+		if err := json.Unmarshal(data, &participants); err != nil || participants.MatchID != key ||
+			participants.Validate() != nil {
+			continue
+		}
+		if principalMatchesRef(principal, participants.Reporter) || principalMatchesRef(principal, participants.Finder) {
+			authorized[key] = participants
+		}
+	}
+	return authorized, nil
 }
 
 type MatchActionRequest struct {
