@@ -6,6 +6,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const zoomedImage = document.getElementById('zoomed-image');
 
   let allMatches = [];
+  let identityEnabled = false;
+  let matchLoadRevision = 0;
+  let lastIdentityState = '';
   const matchStatuses = new Set(['PENDING_REVIEW', 'CONFIRMED', 'REJECTED', 'REUNITED']);
   const allowedImageHosts = new Set(['storage.petspotr.io']);
 
@@ -22,6 +25,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (options.className) element.className = options.className;
     if (options.text !== undefined) element.textContent = options.text;
     return element;
+  }
+
+  function replaceMatchState(message, className) {
+    allMatches = [];
+    matchLoadRevision += 1;
+    if (!container) return;
+    if (!message) {
+      container.replaceChildren();
+      return;
+    }
+    const stateMessage = createElement('p', { text: message, className });
+    stateMessage.setAttribute('role', 'status');
+    container.replaceChildren(stateMessage);
   }
 
   function validString(value, allowEmpty = false) {
@@ -112,15 +128,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function fetchMatches() {
+    const loadRevision = ++matchLoadRevision;
+    allMatches = [];
     try {
       const resp = await fetch('/api/v1/matches');
-      if (resp.ok) {
-        const payload = await resp.json();
-        if (!Array.isArray(payload)) throw new Error('Match API returned a non-array payload');
-        allMatches = payload.map(normalizeMatch).filter(match => match !== null);
-        renderMatches();
-      }
+      if (!resp.ok) throw new Error(`Match API returned status ${resp.status}`);
+      const payload = await resp.json();
+      if (!Array.isArray(payload)) throw new Error('Match API returned a non-array payload');
+      if (loadRevision !== matchLoadRevision) return;
+      allMatches = payload.map(normalizeMatch).filter(match => match !== null);
+      renderMatches();
     } catch (err) {
+      if (loadRevision !== matchLoadRevision) return;
       console.error('Failed to fetch matches:', err);
       if (container) {
         container.replaceChildren(createElement('p', {
@@ -302,19 +321,21 @@ document.addEventListener('DOMContentLoaded', () => {
     createScore(scoreGrid, `Geospatial Proximity (${m.scores.distanceMiles} mi):`, m.scores.spatial, 'score-spatial');
     scores.append(scoreGrid);
 
-    const controls = createElement('div', {
-      className: 'match-controls',
-    });
-    controls.append(
-      createActionButton('💬 Contact Finder / Owner', 'btn btn-secondary contact-btn', m.matchId),
-      createActionButton('Reject Match', 'btn btn-secondary action-btn', m.matchId, 'reject'),
-      createActionButton('Confirm Reunion Match', 'btn btn-primary action-btn', m.matchId, 'confirm'),
-    );
-    const reunionButton = createActionButton('🎉 Mark as Reunited', 'btn btn-primary reunion-btn', m.matchId);
-    reunionButton.dataset.petId = m.lostPet.petId;
-    controls.append(reunionButton);
-
-    card.append(summary, comparison, scores, controls);
+    card.append(summary, comparison, scores);
+    if (!identityEnabled) {
+      const controls = createElement('div', {
+        className: 'match-controls',
+      });
+      controls.append(
+        createActionButton('💬 Contact Finder / Owner', 'btn btn-secondary contact-btn', m.matchId),
+        createActionButton('Reject Match', 'btn btn-secondary action-btn', m.matchId, 'reject'),
+        createActionButton('Confirm Reunion Match', 'btn btn-primary action-btn', m.matchId, 'confirm'),
+      );
+      const reunionButton = createActionButton('🎉 Mark as Reunited', 'btn btn-primary reunion-btn', m.matchId);
+      reunionButton.dataset.petId = m.lostPet.petId;
+      controls.append(reunionButton);
+      card.append(controls);
+    }
     return card;
   }
 
@@ -469,5 +490,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  fetchMatches();
+  async function applyIdentityState(stateSnapshot) {
+    identityEnabled = Boolean(stateSnapshot.enabled);
+    if (!identityEnabled) {
+      await fetchMatches();
+      return;
+    }
+    if (stateSnapshot.unavailable || stateSnapshot.busy || !stateSnapshot.principal) {
+      replaceMatchState('', 'match-auth-required');
+      return;
+    }
+    await fetchMatches();
+  }
+
+  function scheduleIdentityState(stateSnapshot) {
+    const principalKey = stateSnapshot.principal
+      ? `${stateSnapshot.principal.issuer}\u0000${stateSnapshot.principal.subject}`
+      : '';
+    const stateKey = [
+      stateSnapshot.enabled,
+      stateSnapshot.unavailable,
+      stateSnapshot.busy,
+      principalKey,
+      stateSnapshot.csrfToken,
+    ].join('|');
+    if (stateKey === lastIdentityState) return;
+    lastIdentityState = stateKey;
+    void applyIdentityState(stateSnapshot);
+  }
+
+  if (window.petspotrIdentity) {
+    document.addEventListener('petspotr:identity-changed', (event) => {
+      scheduleIdentityState(event.detail);
+    });
+    window.petspotrIdentity.ready.then(scheduleIdentityState);
+  } else {
+    void fetchMatches();
+  }
 });

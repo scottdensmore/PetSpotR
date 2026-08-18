@@ -175,6 +175,8 @@
     const signIn = document.getElementById('google-sign-in');
     const signOut = document.getElementById('identity-sign-out');
     const contactEmail = document.querySelector('[data-identity-email]');
+    const signedOutMessage = panel.dataset.identityPrompt ||
+      'Sign in with Google before submitting this private report.';
     const focusWasOnSignIn = document.activeElement === signIn;
     const focusWasOnSignOut = document.activeElement === signOut;
     panel.setAttribute('aria-busy', String(stateSnapshot.busy));
@@ -187,7 +189,7 @@
         ? 'Signing in with Google...'
         : stateSnapshot.principal
         ? `Signed in as ${stateSnapshot.principal.email}`
-        : 'Sign in with Google before submitting this private report.';
+        : signedOutMessage;
     }
     if (error) {
       error.textContent = stateSnapshot.error;

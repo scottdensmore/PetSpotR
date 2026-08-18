@@ -54,6 +54,18 @@
         </div>
       </div>
 
+      <section id="identity-panel" class="identity-panel" aria-labelledby="identity-title" aria-busy="false" data-identity-prompt="Sign in with Google to view your private matches." hidden>
+        <div class="identity-copy">
+          <h2 id="identity-title" class="identity-title">Protect your matches</h2>
+          <p id="identity-status" class="identity-status" role="status" aria-live="polite">Checking sign-in status...</p>
+          <p id="identity-error" class="identity-error" role="alert" hidden></p>
+        </div>
+        <div class="identity-actions">
+          <button type="button" class="btn btn-primary" id="google-sign-in">Continue with Google</button>
+          <button type="button" class="btn btn-secondary" id="identity-sign-out" hidden>Sign out</button>
+        </div>
+      </section>
+
       <!-- Match Comparison List Container -->
       <div id="matches-list-container" class="matches-list">
         <!-- Dynamic Match Cards Injected Here via JS -->
@@ -146,6 +158,7 @@
   </footer>
 
   <script src="/static/js/theme.js"></script>
+  <script src="/static/js/identity-session.js"></script>
   <script src="/static/js/match-dashboard.js"></script>
 </body>
 </html>
