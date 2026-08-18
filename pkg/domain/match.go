@@ -84,14 +84,15 @@ type MatchRecord struct {
 // separately from MatchRecord so public match responses cannot expose identity
 // provider subjects. Legacy or mixed-auth matches may have only one owner.
 type MatchParticipantRecord struct {
-	MatchID          string               `json:"matchId"`
-	LostPetID        string               `json:"lostPetId"`
-	FoundPetID       string               `json:"foundPetId"`
-	Reporter         *PrincipalRef        `json:"reporter,omitempty"`
-	Finder           *PrincipalRef        `json:"finder,omitempty"`
-	ReporterDecision MatchDecision        `json:"reporterDecision,omitempty"`
-	FinderDecision   MatchDecision        `json:"finderDecision,omitempty"`
-	DecisionAudit    []MatchDecisionAudit `json:"decisionAudit,omitempty"`
+	MatchID          string                 `json:"matchId"`
+	LostPetID        string                 `json:"lostPetId"`
+	FoundPetID       string                 `json:"foundPetId"`
+	Reporter         *PrincipalRef          `json:"reporter,omitempty"`
+	Finder           *PrincipalRef          `json:"finder,omitempty"`
+	ReporterDecision MatchDecision          `json:"reporterDecision,omitempty"`
+	FinderDecision   MatchDecision          `json:"finderDecision,omitempty"`
+	DecisionAudit    []MatchDecisionAudit   `json:"decisionAudit,omitempty"`
+	Messages         []MediatedMatchMessage `json:"messages,omitempty"`
 }
 
 // MatchDecisionAudit records the first accepted decision for one participant
@@ -146,6 +147,9 @@ func (r MatchParticipantRecord) Validate() error {
 	if (r.ReporterDecision != "") != seenAudit[MatchParticipantRoleReporter] ||
 		(r.FinderDecision != "") != seenAudit[MatchParticipantRoleFinder] {
 		return errors.New("domain: every match decision requires one audit record")
+	}
+	if err := validateMediatedMatchMessages(r.Reporter, r.Finder, r.Messages); err != nil {
+		return err
 	}
 	return nil
 }

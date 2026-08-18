@@ -455,6 +455,90 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 	}
 	closeResponse(t, conflictingAction)
 
+	threadURL := srv.URL + "/api/v1/reunions/contact"
+	reporterMessageBody := `{"matchId":"match-shared","senderEmail":"spoofed@example.com","message":"Can we compare identifying marks?"}`
+	anonymousMessage := mediatedProductRequest(
+		t, publicClient, http.MethodPost, threadURL, reporterMessageBody, "", "request-101",
+	)
+	if anonymousMessage.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("anonymous mediated-message status = %d, want %d", anonymousMessage.StatusCode, http.StatusUnauthorized)
+	}
+	closeResponse(t, anonymousMessage)
+	wrongOwnerMessage := mediatedProductRequest(
+		t, client, http.MethodPost, threadURL,
+		`{"matchId":"match-unrelated","message":"hello"}`, csrfToken, "request-wrong-owner",
+	)
+	wrongOwnerMessageBody, err := io.ReadAll(wrongOwnerMessage.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = wrongOwnerMessage.Body.Close()
+	missingMessage := mediatedProductRequest(
+		t, client, http.MethodPost, threadURL,
+		`{"matchId":"match-missing","message":"hello"}`, csrfToken, "request-missing",
+	)
+	missingMessageBody, err := io.ReadAll(missingMessage.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = missingMessage.Body.Close()
+	if wrongOwnerMessage.StatusCode != http.StatusNotFound || missingMessage.StatusCode != http.StatusNotFound ||
+		!bytes.Equal(wrongOwnerMessageBody, missingMessageBody) {
+		t.Fatalf("non-enumerating mediated messages = %d %q / %d %q",
+			wrongOwnerMessage.StatusCode, wrongOwnerMessageBody, missingMessage.StatusCode, missingMessageBody)
+	}
+
+	reporterMessage := mediatedProductRequest(
+		t, client, http.MethodPost, threadURL, reporterMessageBody, csrfToken, "request-101",
+	)
+	if reporterMessage.StatusCode != http.StatusCreated || reporterMessage.Header.Get("Cache-Control") != "no-store" {
+		t.Fatalf("reporter mediated-message response = %d Cache-Control %q",
+			reporterMessage.StatusCode, reporterMessage.Header.Get("Cache-Control"))
+	}
+	var acceptedReporterMessage map[string]any
+	decodeResponseJSON(t, reporterMessage, &acceptedReporterMessage)
+	retryMessage := mediatedProductRequest(
+		t, client, http.MethodPost, threadURL, reporterMessageBody, csrfToken, "request-101",
+	)
+	if retryMessage.StatusCode != http.StatusOK {
+		t.Fatalf("mediated-message exact retry status = %d, want %d", retryMessage.StatusCode, http.StatusOK)
+	}
+	closeResponse(t, retryMessage)
+	changedMessage := mediatedProductRequest(
+		t, client, http.MethodPost, threadURL,
+		`{"matchId":"match-shared","message":"Different body"}`, csrfToken, "request-101",
+	)
+	if changedMessage.StatusCode != http.StatusConflict {
+		t.Fatalf("mediated-message changed retry status = %d, want %d", changedMessage.StatusCode, http.StatusConflict)
+	}
+	closeResponse(t, changedMessage)
+	finderMessage := mediatedProductRequest(
+		t, otherClient, http.MethodPost, threadURL,
+		`{"matchId":"match-shared","message":"Yes, there is a white spot on the left paw."}`,
+		otherCSRFToken, "request-202",
+	)
+	if finderMessage.StatusCode != http.StatusCreated {
+		t.Fatalf("finder mediated-message status = %d, want %d", finderMessage.StatusCode, http.StatusCreated)
+	}
+	closeResponse(t, finderMessage)
+	for name, participantClient := range map[string]*http.Client{"reporter": client, "finder": otherClient} {
+		thread := productRequest(t, participantClient, http.MethodGet, threadURL+"?matchId=match-shared", "", "")
+		if thread.StatusCode != http.StatusOK || thread.Header.Get("Cache-Control") != "no-store" {
+			t.Fatalf("%s mediated-thread response = %d Cache-Control %q",
+				name, thread.StatusCode, thread.Header.Get("Cache-Control"))
+		}
+		threadBody, err := io.ReadAll(thread.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = thread.Body.Close()
+		if bytes.Contains(threadBody, []byte(email)) || bytes.Contains(threadBody, []byte(otherEmail)) ||
+			bytes.Contains(threadBody, []byte(loggedIn.Subject)) || bytes.Contains(threadBody, []byte(otherPrincipal.Subject)) ||
+			bytes.Count(threadBody, []byte(`"messageId"`)) != 2 {
+			t.Fatalf("%s mediated thread exposed identity or omitted messages: %s", name, threadBody)
+		}
+	}
+
 	storedMatchData, err := state.GetState(ctx, store.MatchesCollection, sharedMatch.MatchID)
 	if err != nil {
 		t.Fatal(err)
@@ -473,8 +557,12 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 	}
 	if storedMatch.Status != domain.MatchStatusConfirmed ||
 		storedParticipants.ReporterDecision != domain.MatchDecisionConfirm ||
-		storedParticipants.FinderDecision != domain.MatchDecisionConfirm || len(storedParticipants.DecisionAudit) != 2 {
+		storedParticipants.FinderDecision != domain.MatchDecisionConfirm || len(storedParticipants.DecisionAudit) != 2 ||
+		len(storedParticipants.Messages) != 2 {
 		t.Fatalf("stored bilateral decision = %#v / %#v", storedMatch, storedParticipants)
+	}
+	if bytes.Contains(storedParticipantsData, []byte("spoofed@example.com")) {
+		t.Fatalf("mediated thread persisted caller-supplied contact: %s", storedParticipantsData)
 	}
 
 	logout := productRequest(t, client, http.MethodDelete, srv.URL+"/api/v1/session", "", csrfToken)
@@ -508,6 +596,11 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("post-logout match-action status = %d, want %d", afterLogoutAction.StatusCode, http.StatusUnauthorized)
 	}
 	closeResponse(t, afterLogoutAction)
+	afterLogoutThread := productRequest(t, client, http.MethodGet, threadURL+"?matchId=match-shared", "", "")
+	if afterLogoutThread.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("post-logout mediated-thread status = %d, want %d", afterLogoutThread.StatusCode, http.StatusUnauthorized)
+	}
+	closeResponse(t, afterLogoutThread)
 	afterLogoutReport := productRequest(
 		t, client, http.MethodPost, srv.URL+"/api/v1/lost-pets",
 		`{"petId":"lost-after-logout","petName":"Buddy","reporterEmail":"spoofed@example.com","location":"Seattle, WA"}`, csrfToken,
@@ -651,6 +744,32 @@ func productRequest(t *testing.T, client *http.Client, method, url, body, csrfTo
 	response, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("execute product request: %v", err)
+	}
+	return response
+}
+
+func mediatedProductRequest(
+	t *testing.T,
+	client *http.Client,
+	method, url, body, csrfToken, idempotencyKey string,
+) *http.Response {
+	t.Helper()
+	req, err := http.NewRequest(method, url, strings.NewReader(body))
+	if err != nil {
+		t.Fatalf("create mediated product request: %v", err)
+	}
+	if body != "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if csrfToken != "" {
+		req.Header.Set("X-CSRF-Token", csrfToken)
+	}
+	if idempotencyKey != "" {
+		req.Header.Set("Idempotency-Key", idempotencyKey)
+	}
+	response, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("execute mediated product request: %v", err)
 	}
 	return response
 }

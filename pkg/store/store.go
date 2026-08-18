@@ -44,11 +44,14 @@ type StateUpdater func(current []byte) (next []byte, err error)
 // when a transaction is retried.
 type MatchStateUpdater func(match, participants []byte) (nextMatch, nextParticipants []byte, err error)
 
-// MatchDecisionStore atomically updates the two documents that comprise one
-// authorized match decision.
-type MatchDecisionStore interface {
+// MatchStateStore atomically updates the public and private documents that
+// comprise one authorized match operation.
+type MatchStateStore interface {
 	UpdateMatchAndParticipants(ctx context.Context, matchID string, update MatchStateUpdater) error
 }
+
+// MatchDecisionStore preserves the name introduced with bilateral decisions.
+type MatchDecisionStore = MatchStateStore
 
 // StateStore defines key-value state store persistence operations.
 type StateStore interface {
