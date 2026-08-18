@@ -294,7 +294,7 @@ Then run the real ID-token-to-session journey from another terminal:
 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
 GOTOOLCHAIN=go1.26.5 \
   go test ./e2e -count=1 -v \
-  -run '^Test(GoogleIdentityPlatform|IdentityPlatform)SessionJourneyWithAuthEmulator$'
+  -run '^Test((Google)?IdentityPlatformSessionJourney|ExpiredIdentityPlatformSessionRejectsProtectedReport)WithAuthEmulator$'
 ```
 
 The Google contract signs in with a mock Google credential through the Auth
@@ -314,6 +314,10 @@ confirmation, idempotent retry, immutable-decision conflict, private audit
 persistence, plus idempotent participant-only mediated messages and private
 thread reads without identity disclosure. It then logs out and confirms the
 session no longer authenticates.
+The expiration contract obtains a real emulator-issued session through the
+product endpoint, safely ages only its unsigned demo-emulator timestamp, and
+proves a protected report rejects it, clears the cookie, hides provider detail,
+and persists no report, private contact, or outbox record.
 Use the `demo-` project exactly as shown so an accidentally missing emulator
 cannot reach a billable Firebase project.
 
