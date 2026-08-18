@@ -313,6 +313,118 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     expect(body.status).toBe('success');
   });
 
+  test('should sign in with Google, submit an owned found report, and log out', async ({ page }) => {
+    const principal = {
+      issuer: 'https://securetoken.google.com/demo-petspotr-auth',
+      subject: 'google-finder-202',
+      email: 'verified-finder@example.com',
+      emailVerified: true,
+      signInProvider: 'google.com',
+    };
+    let signedIn = false;
+    let csrfCount = 0;
+    let submittedReport: Record<string, unknown> | undefined;
+
+    await page.addInitScript(() => {
+      const browserWindow = window as typeof window & {
+        petspotrFirebaseAuthAdapterFactory?: () => Promise<{
+          signInWithGoogle: () => Promise<string>;
+          signOut: () => Promise<void>;
+        }>;
+      };
+      browserWindow.petspotrFirebaseAuthAdapterFactory = async () => ({
+        signInWithGoogle: async () => 'firebase-google-finder-token',
+        signOut: async () => {},
+      });
+    });
+    await page.route('**/api/v1/session/client-config', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          enabled: true,
+          provider: 'google.com',
+          apiKey: 'fake-api-key',
+          authDomain: 'demo-petspotr-auth.firebaseapp.com',
+          projectId: 'demo-petspotr-auth',
+        }),
+      });
+    });
+    await page.route('**/api/v1/session/csrf', async (route) => {
+      csrfCount += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ csrfToken: `found-csrf-${csrfCount}` }),
+      });
+    });
+    await page.route('**/api/v1/session', async (route) => {
+      const request = route.request();
+      if (request.method() === 'GET') {
+        await route.fulfill(signedIn
+          ? { status: 200, contentType: 'application/json', body: JSON.stringify(principal) }
+          : { status: 401, body: 'Authentication required' });
+        return;
+      }
+      if (request.method() === 'POST') {
+        expect(request.headers()['x-csrf-token']).toBe('found-csrf-1');
+        expect(request.postDataJSON()).toEqual({ idToken: 'firebase-google-finder-token' });
+        signedIn = true;
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(principal) });
+        return;
+      }
+      expect(request.method()).toBe('DELETE');
+      expect(request.headers()['x-csrf-token']).toBe('found-csrf-3');
+      signedIn = false;
+      await route.fulfill({ status: 204 });
+    });
+    await page.route('**/api/v1/found-pets', async (route) => {
+      expect(route.request().headers()['x-csrf-token']).toBe('found-csrf-2');
+      submittedReport = route.request().postDataJSON() as Record<string, unknown>;
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'success', petId: submittedReport.petId }),
+      });
+    });
+
+    await page.goto(`${WEB_FRONTEND_URL}/report-found`);
+    await expect(page.locator('#identity-panel')).toBeVisible();
+    await page.locator('#foundLocation').fill('Green Lake Park, Seattle, WA');
+    await page.locator('#finderEmail').fill('spoofed-finder@example.com');
+    let signInDialogMessage = '';
+    const signInDialogHandled = page.waitForEvent('dialog').then(async (dialog) => {
+      signInDialogMessage = dialog.message();
+      await dialog.accept();
+    });
+    await Promise.all([
+      signInDialogHandled,
+      page.locator('#btn-submit-found').click(),
+    ]);
+    expect(signInDialogMessage).toContain('Sign in with Google');
+    expect(submittedReport).toBeUndefined();
+    await expect(page.locator('#google-sign-in')).toBeFocused();
+
+    await page.locator('#google-sign-in').click();
+    await expect(page.locator('#identity-status')).toContainText('verified-finder@example.com');
+    await expect(page.locator('#finderEmail')).toHaveValue('verified-finder@example.com');
+    await expect(page.locator('#finderEmail')).toHaveAttribute('readonly', '');
+
+    await page.locator('#btn-submit-found').click();
+    await expect(page.locator('#found-success-modal')).toBeVisible();
+    expect(submittedReport).toMatchObject({
+      finderEmail: 'verified-finder@example.com',
+      location: 'Green Lake Park, Seattle, WA',
+    });
+
+    await page.reload();
+    await expect(page.locator('#identity-status')).toContainText('verified-finder@example.com');
+    await page.locator('#identity-sign-out').click();
+    await expect(page.locator('#identity-status')).toContainText('Sign in');
+    await expect(page.locator('#finderEmail')).toHaveValue('');
+    await expect(page.locator('#finderEmail')).not.toHaveAttribute('readonly', '');
+  });
+
   test('should reuse the found report identity after a transient browser retry', async ({ page }) => {
     const submissions: Array<Record<string, unknown>> = [];
     await page.route('**/api/v1/found-pets/extract-features', async (route) => {

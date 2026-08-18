@@ -174,7 +174,7 @@
     const error = document.getElementById('identity-error');
     const signIn = document.getElementById('google-sign-in');
     const signOut = document.getElementById('identity-sign-out');
-    const reporterEmail = document.getElementById('reporterEmail');
+    const contactEmail = document.querySelector('[data-identity-email]');
     const focusWasOnSignIn = document.activeElement === signIn;
     const focusWasOnSignOut = document.activeElement === signOut;
     panel.setAttribute('aria-busy', String(stateSnapshot.busy));
@@ -201,13 +201,13 @@
       signOut.hidden = !stateSnapshot.principal;
       signOut.setAttribute('aria-disabled', String(stateSnapshot.busy));
     }
-    if (reporterEmail) {
+    if (contactEmail) {
       if (stateSnapshot.principal) {
-        reporterEmail.value = stateSnapshot.principal.email;
-        reporterEmail.setAttribute('readonly', '');
+        contactEmail.value = stateSnapshot.principal.email;
+        contactEmail.setAttribute('readonly', '');
       } else {
-        reporterEmail.value = '';
-        reporterEmail.removeAttribute('readonly');
+        contactEmail.value = '';
+        contactEmail.removeAttribute('readonly');
       }
     }
     if (!stateSnapshot.busy && stateSnapshot.principal && focusWasOnSignIn) {

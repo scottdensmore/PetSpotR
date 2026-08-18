@@ -165,8 +165,8 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
 The web frontend has a provider-neutral human session boundary backed by
 Google Identity Platform through the Firebase Admin Go SDK. It is deployed
 consumer-first and defaults to `disabled`, including on Cloud Run, until the
-later infrastructure slice activates it. The lost-report page now supports
-Google sign-in when the optional public browser configuration is present.
+later infrastructure slice activates it. The lost- and found-report pages now
+support Google sign-in when the optional public browser configuration is present.
 When configured, the web frontend requires a verified session and
 double-submit CSRF token for
 `POST /api/v1/lost-pets`, `POST /api/v1/found-pets`, and match decisions, and a
@@ -215,13 +215,13 @@ session cookies are never returned in JSON.
 `GET /api/v1/session/client-config` returns only the validated public browser
 configuration with `Cache-Control: no-store`. It returns
 `{"enabled":false}` when browser sign-in is unavailable, including when the
-server session boundary is disabled. When enabled, the lost-report page loads
+server session boundary is disabled. When enabled, the report pages load
 the pinned Firebase Web SDK from Google's CDN, uses the Google provider with
 in-memory client persistence, obtains a fresh ID token, clears the temporary
 Firebase client state, and exchanges the token for the existing `HttpOnly`
 server session. It refreshes the double-submit token before submitting the
-owned report and again after login. Logout clears the server session. The
-identity-disabled anonymous demo flow remains unchanged.
+owned lost or found report and again after login. Logout clears the server
+session. The identity-disabled anonymous demo flows remain unchanged.
 
 Authenticated lost and found reports derive their owner key and reporter or
 finder email from the verified session. Caller-supplied `reporterEmail` and
