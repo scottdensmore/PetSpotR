@@ -1,0 +1,44 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0AWDRRJQEB0E1PGQ3QSNX01",
+  "session_id": "01a0106b-5c6a-72c3-ad94-2ec2cccbe9fa",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-18T16:50:23.546150059Z",
+  "branch": "feat/google-sign-in-match-dashboard",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "internal/app/webfrontend/static/js/identity-session.js",
+    "internal/app/webfrontend/static/js/match-dashboard.js",
+    "internal/app/webfrontend/templates/matches.html",
+    "tests/playwright/e2e/match-dashboard-security.spec.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "ee1ecab41565",
+  "checkpoint_transcript_start": 14739,
+  "transcript_lines_at_start": 14739,
+  "compact_transcript_start": 2182,
+  "token_usage": {
+    "input_tokens": 185923,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 16846336,
+    "output_tokens": 27541,
+    "api_call_count": 169
+  },
+  "session_metrics": {
+    "turn_count": 8
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-18T16:50:17.927692998Z",
+    "agent_lines": 235,
+    "agent_removed": 22,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 235,
+    "total_lines_changed": 257,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
