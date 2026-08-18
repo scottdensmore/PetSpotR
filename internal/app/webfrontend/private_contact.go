@@ -66,7 +66,7 @@ func (s *Server) handleApiReportContact(
 		http.Error(w, "Failed to load private contact", http.StatusInternalServerError)
 		return
 	}
-	if !principalOwnsReport(principal, owner) || identityRef == "" {
+	if !principalMatchesRef(principal, owner) || identityRef == "" {
 		http.NotFound(w, r)
 		return
 	}
@@ -113,6 +113,6 @@ func foundPetContactOwner(data []byte) (*domain.PrincipalRef, string, error) {
 	return report.OwnedBy, report.FinderIdentityRef, nil
 }
 
-func principalOwnsReport(principal identity.Principal, owner *domain.PrincipalRef) bool {
-	return owner != nil && owner.Issuer == principal.Issuer && owner.Subject == principal.Subject
+func principalMatchesRef(principal identity.Principal, ref *domain.PrincipalRef) bool {
+	return ref != nil && ref.Issuer == principal.Issuer && ref.Subject == principal.Subject
 }

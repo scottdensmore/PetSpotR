@@ -221,7 +221,7 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 	closeResponse(t, anonymousPrivateContact)
 
 	otherEmail := fmt.Sprintf("other-%d@example.com", time.Now().UnixNano())
-	otherClient := createAuthenticatedEmulatorClient(t, ctx, setupAuth, host, srv.URL, otherEmail, password)
+	otherClient, otherPrincipal := createAuthenticatedEmulatorClient(t, ctx, setupAuth, host, srv.URL, otherEmail, password)
 	wrongOwnerContact := productRequest(t, otherClient, http.MethodGet, privateContactURL, "", "")
 	if wrongOwnerContact.StatusCode != http.StatusNotFound {
 		t.Fatalf("wrong-owner private-contact status = %d, want %d", wrongOwnerContact.StatusCode, http.StatusNotFound)
@@ -343,6 +343,47 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("missing found-contact response = %d %q, want non-enumerating %d %q", missingFoundContact.StatusCode, missingFoundContactBody, http.StatusNotFound, wrongOwnerFoundBody)
 	}
 
+	sharedMatch := domain.MatchRecord{
+		MatchID: "match-shared", FoundPetID: foundReportID, MatchedPetID: reportID,
+	}
+	seedIdentityMatch(t, state, sharedMatch, &domain.MatchParticipantRecord{
+		MatchID: sharedMatch.MatchID, FoundPetID: sharedMatch.FoundPetID, LostPetID: sharedMatch.MatchedPetID,
+		Reporter: &wantOwner,
+		Finder: &domain.PrincipalRef{
+			Issuer: otherPrincipal.Issuer, Subject: otherPrincipal.Subject,
+		},
+	})
+	unrelatedMatch := domain.MatchRecord{
+		MatchID: "match-unrelated", FoundPetID: "found-unrelated", MatchedPetID: "lost-unrelated",
+	}
+	unrelatedOwner := &domain.PrincipalRef{Issuer: loggedIn.Issuer, Subject: "unrelated-user"}
+	seedIdentityMatch(t, state, unrelatedMatch, &domain.MatchParticipantRecord{
+		MatchID: unrelatedMatch.MatchID, FoundPetID: unrelatedMatch.FoundPetID,
+		LostPetID: unrelatedMatch.MatchedPetID, Reporter: unrelatedOwner,
+	})
+	for name, participantClient := range map[string]*http.Client{
+		"reporter": client,
+		"finder":   otherClient,
+	} {
+		response := productRequest(t, participantClient, http.MethodGet, srv.URL+"/api/v1/matches", "", "")
+		if response.StatusCode != http.StatusOK {
+			t.Fatalf("%s match-list status = %d, want %d", name, response.StatusCode, http.StatusOK)
+		}
+		if response.Header.Get("Cache-Control") != "no-store" {
+			t.Fatalf("%s match-list Cache-Control = %q, want no-store", name, response.Header.Get("Cache-Control"))
+		}
+		var matches []domain.MatchRecord
+		decodeResponseJSON(t, response, &matches)
+		if len(matches) != 1 || matches[0].MatchID != sharedMatch.MatchID {
+			t.Fatalf("%s matches = %#v, want only %s", name, matches, sharedMatch.MatchID)
+		}
+	}
+	anonymousMatches := productRequest(t, publicClient, http.MethodGet, srv.URL+"/api/v1/matches", "", "")
+	if anonymousMatches.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("anonymous match-list status = %d, want %d", anonymousMatches.StatusCode, http.StatusUnauthorized)
+	}
+	closeResponse(t, anonymousMatches)
+
 	logout := productRequest(t, client, http.MethodDelete, srv.URL+"/api/v1/session", "", csrfToken)
 	if logout.StatusCode != http.StatusNoContent {
 		t.Fatalf("logout status = %d, want %d", logout.StatusCode, http.StatusNoContent)
@@ -364,6 +405,11 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("post-logout found-contact status = %d, want %d", afterLogoutFoundContact.StatusCode, http.StatusUnauthorized)
 	}
 	closeResponse(t, afterLogoutFoundContact)
+	afterLogoutMatches := productRequest(t, client, http.MethodGet, srv.URL+"/api/v1/matches", "", "")
+	if afterLogoutMatches.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("post-logout match-list status = %d, want %d", afterLogoutMatches.StatusCode, http.StatusUnauthorized)
+	}
+	closeResponse(t, afterLogoutMatches)
 	afterLogoutReport := productRequest(
 		t, client, http.MethodPost, srv.URL+"/api/v1/lost-pets",
 		`{"petId":"lost-after-logout","petName":"Buddy","reporterEmail":"spoofed@example.com","location":"Seattle, WA"}`, csrfToken,
@@ -390,7 +436,7 @@ func createAuthenticatedEmulatorClient(
 	baseURL string,
 	email string,
 	password string,
-) *http.Client {
+) (*http.Client, identity.Principal) {
 	t.Helper()
 	created, err := setupAuth.CreateUser(ctx, (&auth.UserToCreate{}).
 		Email(email).
@@ -424,8 +470,37 @@ func createAuthenticatedEmulatorClient(
 		_ = login.Body.Close()
 		t.Fatalf("additional session login status = %d, want %d; body = %s", login.StatusCode, http.StatusCreated, body)
 	}
-	closeResponse(t, login)
-	return client
+	var principal identity.Principal
+	decodeResponseJSON(t, login, &principal)
+	return client, principal
+}
+
+func seedIdentityMatch(
+	t *testing.T,
+	state store.StateStore,
+	match domain.MatchRecord,
+	participants *domain.MatchParticipantRecord,
+) {
+	t.Helper()
+	matchData, err := json.Marshal(match)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := state.SaveState(context.Background(), store.MatchesCollection, match.MatchID, matchData); err != nil {
+		t.Fatal(err)
+	}
+	if participants == nil {
+		return
+	}
+	participantData, err := json.Marshal(participants)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := state.SaveState(
+		context.Background(), store.MatchParticipantsCollection, participants.MatchID, participantData,
+	); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func signInToAuthEmulator(t *testing.T, ctx context.Context, host, email, password string) string {
