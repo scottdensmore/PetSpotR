@@ -54,6 +54,18 @@ func TestOwnerNotification_RenderBody(t *testing.T) {
 		}
 	})
 
+	t.Run("rounds fractional percentages to the nearest whole percent", func(t *testing.T) {
+		n := domain.OwnerNotification{
+			PetName:    "Max",
+			MatchScore: 0.855,
+		}
+
+		body := n.RenderEmailBody()
+		if !strings.Contains(body, "86%") {
+			t.Errorf("rendered body expected rounded percentage '86%%', got: %s", body)
+		}
+	})
+
 	t.Run("pre-set custom body", func(t *testing.T) {
 		customBody := "<p>Custom notification content</p>"
 		n := domain.OwnerNotification{
