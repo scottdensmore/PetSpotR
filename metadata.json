@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M09Q1VHXMHP310Q6YKF8Z9YN",
+  "strategy": "manual-commit",
+  "branch": "feat/google-sign-in-lost-report",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/web-frontend/main.go",
+    "docs/DEVELOPMENT.md",
+    "e2e/identity_session_test.go",
+    "internal/app/webfrontend/identity_client_test.go",
+    "internal/app/webfrontend/server.go",
+    "internal/app/webfrontend/session.go",
+    "internal/app/webfrontend/static/css/styles.css",
+    "internal/app/webfrontend/static/js/identity-session.js",
+    "internal/app/webfrontend/static/js/lost-wizard.js",
+    "internal/app/webfrontend/templates/report-lost.html",
+    "pkg/identity/web.go",
+    "pkg/identity/web_test.go",
+    "pkg/runtimeconfig/identity.go",
+    "pkg/runtimeconfig/identity_test.go",
+    "tests/playwright/e2e/web-frontend-api.spec.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 399377,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 37561088,
+    "output_tokens": 65239,
+    "api_call_count": 287
+  }
+}

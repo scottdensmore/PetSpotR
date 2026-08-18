@@ -1,0 +1,63 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M09Q1VHXMHP310Q6YKF8Z9YN",
+  "session_id": "01a0106b-5c6a-72c3-ad94-2ec2cccbe9fa",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-18T05:57:14.268187289Z",
+  "branch": "feat/google-sign-in-lost-report",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/web-frontend/main.go",
+    "docs/DEVELOPMENT.md",
+    "e2e/identity_session_test.go",
+    "internal/app/webfrontend/identity_client_test.go",
+    "internal/app/webfrontend/server.go",
+    "internal/app/webfrontend/session.go",
+    "internal/app/webfrontend/static/css/styles.css",
+    "internal/app/webfrontend/static/js/identity-session.js",
+    "internal/app/webfrontend/static/js/lost-wizard.js",
+    "internal/app/webfrontend/templates/report-lost.html",
+    "pkg/identity/web.go",
+    "pkg/identity/web_test.go",
+    "pkg/runtimeconfig/identity.go",
+    "pkg/runtimeconfig/identity_test.go",
+    "tests/playwright/e2e/web-frontend-api.spec.ts"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "3efb891503ac",
+  "checkpoint_transcript_start": 12169,
+  "transcript_lines_at_start": 12169,
+  "compact_transcript_start": 1805,
+  "token_usage": {
+    "input_tokens": 399377,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 37561088,
+    "output_tokens": 65239,
+    "api_call_count": 287
+  },
+  "session_metrics": {
+    "turn_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-18T05:57:08.119061214Z",
+    "agent_lines": 1191,
+    "agent_removed": 10,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1191,
+    "total_lines_changed": 1201,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
