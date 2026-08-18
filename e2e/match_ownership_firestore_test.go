@@ -121,7 +121,7 @@ func TestFirestoreMatchListFiltersParticipantsAcrossServiceRuntimes(t *testing.T
 	}
 }
 
-func TestFirestoreMatchDecisionIsAtomicAcrossServiceRuntimes(t *testing.T) {
+func TestFirestoreMatchDecisionsAndMediatedThreadAreAtomicAcrossServiceRuntimes(t *testing.T) {
 	firestoreHost := os.Getenv("FIRESTORE_EMULATOR_HOST")
 	if firestoreHost == "" {
 		t.Skip("FIRESTORE_EMULATOR_HOST is not set")
@@ -176,6 +176,10 @@ func TestFirestoreMatchDecisionIsAtomicAcrossServiceRuntimes(t *testing.T) {
 	sessions := &firestoreMatchSessions{principals: map[string]identity.Principal{
 		"reporter-session": reporter,
 		"finder-session":   finder,
+		"stranger-session": {
+			Issuer: reporter.Issuer, Subject: "stranger-" + suffix,
+			Email: "stranger@example.com", EmailVerified: true,
+		},
 	}}
 	firstServer := httptest.NewServer(webfrontend.NewServerWithOptions(firstRuntime.Store, webfrontend.ServerOptions{
 		IdentitySessions: sessions,
@@ -216,6 +220,47 @@ func TestFirestoreMatchDecisionIsAtomicAcrossServiceRuntimes(t *testing.T) {
 		t.Fatalf("finder result = %#v", finderResult)
 	}
 
+	reporterMessage := requestFirestoreMediatedMessage(
+		t, secondServer.URL, match.MatchID, "Can we compare identifying marks?", "reporter-session", csrfToken, "request-101",
+	)
+	if reporterMessage.StatusCode != http.StatusCreated || reporterMessage.Header.Get("Cache-Control") != "no-store" {
+		t.Fatalf("reporter mediated message = %d Cache-Control %q",
+			reporterMessage.StatusCode, reporterMessage.Header.Get("Cache-Control"))
+	}
+	_ = reporterMessage.Body.Close()
+	messageRetry := requestFirestoreMediatedMessage(
+		t, firstServer.URL, match.MatchID, "Can we compare identifying marks?", "reporter-session", csrfToken, "request-101",
+	)
+	if messageRetry.StatusCode != http.StatusOK {
+		t.Fatalf("cross-runtime message retry = %d", messageRetry.StatusCode)
+	}
+	_ = messageRetry.Body.Close()
+	finderMessage := requestFirestoreMediatedMessage(
+		t, firstServer.URL, match.MatchID, "Yes, there is a white spot on the left paw.", "finder-session", csrfToken, "request-202",
+	)
+	if finderMessage.StatusCode != http.StatusCreated {
+		t.Fatalf("finder mediated message = %d", finderMessage.StatusCode)
+	}
+	_ = finderMessage.Body.Close()
+	for name, session := range map[string]string{"reporter": "reporter-session", "finder": "finder-session"} {
+		thread := requestFirestoreMediatedThread(t, secondServer.URL, match.MatchID, session)
+		if thread.StatusCode != http.StatusOK || thread.Header.Get("Cache-Control") != "no-store" {
+			t.Fatalf("%s mediated thread = %d Cache-Control %q", name, thread.StatusCode, thread.Header.Get("Cache-Control"))
+		}
+		var response struct {
+			Messages []domain.MediatedMatchMessage `json:"messages"`
+		}
+		decodeOwnershipResponse(t, thread, &response)
+		if len(response.Messages) != 2 {
+			t.Fatalf("%s mediated messages = %#v", name, response.Messages)
+		}
+	}
+	strangerThread := requestFirestoreMediatedThread(t, firstServer.URL, match.MatchID, "stranger-session")
+	if strangerThread.StatusCode != http.StatusNotFound {
+		t.Fatalf("stranger mediated thread = %d, want %d", strangerThread.StatusCode, http.StatusNotFound)
+	}
+	_ = strangerThread.Body.Close()
+
 	storedMatchData, err := firstRuntime.Store.GetState(ctx, store.MatchesCollection, match.MatchID)
 	if err != nil {
 		t.Fatal(err)
@@ -234,11 +279,12 @@ func TestFirestoreMatchDecisionIsAtomicAcrossServiceRuntimes(t *testing.T) {
 	}
 	if storedMatch.Status != domain.MatchStatusConfirmed ||
 		storedParticipants.ReporterDecision != domain.MatchDecisionConfirm ||
-		storedParticipants.FinderDecision != domain.MatchDecisionConfirm || len(storedParticipants.DecisionAudit) != 2 {
+		storedParticipants.FinderDecision != domain.MatchDecisionConfirm || len(storedParticipants.DecisionAudit) != 2 ||
+		len(storedParticipants.Messages) != 2 {
 		t.Fatalf("durable decision = %#v / %#v", storedMatch, storedParticipants)
 	}
 	if bytes.Contains(storedMatchData, []byte(reporter.Subject)) || bytes.Contains(storedMatchData, []byte(finder.Subject)) ||
-		bytes.Contains(storedMatchData, []byte("decisionAudit")) {
+		bytes.Contains(storedMatchData, []byte("decisionAudit")) || bytes.Contains(storedMatchData, []byte("messages")) {
 		t.Fatalf("public match exposed private decision data: %s", storedMatchData)
 	}
 }
@@ -298,6 +344,47 @@ func requestFirestoreMatchAction(
 	request.Header.Set("X-CSRF-Token", csrfToken)
 	request.AddCookie(&http.Cookie{Name: "petspotr_session", Value: session})
 	request.AddCookie(&http.Cookie{Name: "petspotr_csrf", Value: csrfToken})
+	response, err := (&http.Client{Timeout: 5 * time.Second}).Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return response
+}
+
+func requestFirestoreMediatedMessage(
+	t *testing.T,
+	baseURL, matchID, message, session, csrfToken, idempotencyKey string,
+) *http.Response {
+	t.Helper()
+	body, err := json.Marshal(map[string]string{"matchId": matchID, "message": message})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request, err := http.NewRequest(http.MethodPost, baseURL+"/api/v1/reunions/contact", bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-CSRF-Token", csrfToken)
+	request.Header.Set("Idempotency-Key", idempotencyKey)
+	request.AddCookie(&http.Cookie{Name: "petspotr_session", Value: session})
+	request.AddCookie(&http.Cookie{Name: "petspotr_csrf", Value: csrfToken})
+	response, err := (&http.Client{Timeout: 5 * time.Second}).Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return response
+}
+
+func requestFirestoreMediatedThread(t *testing.T, baseURL, matchID, session string) *http.Response {
+	t.Helper()
+	request, err := http.NewRequest(
+		http.MethodGet, baseURL+"/api/v1/reunions/contact?matchId="+matchID, nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.AddCookie(&http.Cookie{Name: "petspotr_session", Value: session})
 	response, err := (&http.Client{Timeout: 5 * time.Second}).Do(request)
 	if err != nil {
 		t.Fatal(err)

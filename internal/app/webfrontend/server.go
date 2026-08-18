@@ -893,7 +893,7 @@ func (s *Server) handleAuthenticatedMatchAction(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	decisionStore, ok := s.stateStore.(store.MatchDecisionStore)
+	decisionStore, ok := s.stateStore.(store.MatchStateStore)
 	if !ok {
 		http.Error(w, "Match decision storage is unavailable", http.StatusInternalServerError)
 		return
@@ -972,6 +972,10 @@ type ReunionContactRequest struct {
 }
 
 func (s *Server) handleApiReunionContact(w http.ResponseWriter, r *http.Request) {
+	if s.identitySessions != nil {
+		s.handleAuthenticatedMediatedContact(w, r)
+		return
+	}
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return

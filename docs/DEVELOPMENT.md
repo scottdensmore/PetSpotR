@@ -149,15 +149,15 @@ PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
 
 The report-ownership contract uses two independent application-service and
 Firestore runtime instances to verify durable owner identity, idempotent
-same-owner retries, and rejection of a competing principal. The match-list and
-match-decision contracts use independent writer and web runtimes to verify
-bilateral authorization plus atomic public/private decision persistence through
-the product HTTP boundary:
+same-owner retries, and rejection of a competing principal. The match-list,
+match-decision, and mediated-thread contracts use independent writer and web
+runtimes to verify bilateral authorization plus atomic private state
+persistence through the product HTTP boundary:
 
 ```bash
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
   go test ./e2e -count=1 -v \
-  -run '^TestFirestore(ReportOwnershipSurvivesIndependentServiceRuntimes|MatchListFiltersParticipantsAcrossServiceRuntimes|MatchDecisionIsAtomicAcrossServiceRuntimes)$'
+  -run '^TestFirestore(ReportOwnershipSurvivesIndependentServiceRuntimes|MatchListFiltersParticipantsAcrossServiceRuntimes|MatchDecisionsAndMediatedThreadAreAtomicAcrossServiceRuntimes)$'
 ```
 
 ### Human Identity Sessions
@@ -219,6 +219,24 @@ recorded in a private audit list. Missing, incomplete, legacy, and wrong-owner
 matches all return `404 Not Found`. Identity-disabled demo runtimes retain the
 existing explicitly enabled single-action behavior.
 
+Authenticated participants use `POST /api/v1/reunions/contact` to add a
+role-labeled message to their private match thread and `GET
+/api/v1/reunions/contact?matchId={matchId}` to read it. Creation requires
+double-submit CSRF plus an `Idempotency-Key` header; an exact key-and-message
+retry returns the accepted message without duplicating it, while reusing the
+key for different content returns `409 Conflict`. Messages contain only the
+sender's `reporter` or `finder` role, bounded plain text, server time, and an
+opaque message ID. Caller-supplied `senderEmail` is ignored, and neither API
+returns or persists profile contact details in the thread. Each message is
+limited to 1,000 Unicode characters, and both participants can read up to 100
+messages per match. New messages are accepted only while the match is pending
+or confirmed; rejected and reunited threads remain readable but become
+read-only. A match whose two roles have the same principal has no
+distinct mediation recipient and returns `409 Conflict`. Missing, incomplete,
+legacy, and wrong-owner matches return the same `404 Not Found`. The explicit
+identity-disabled demo route retains its existing response and does not expose
+the authenticated thread API.
+
 `GET /api/v1/lost-pets/{petId}/contact` and
 `GET /api/v1/found-pets/{petId}/contact` return only the authenticated report
 owner's stored email and optional phone with `Cache-Control: no-store`. Missing
@@ -258,8 +276,9 @@ anonymous and independently authenticated wrong-owner requests cannot. The two
 authenticated users can both read a shared match as reporter and finder while
 unrelated matches remain hidden. They exercise CSRF-protected bilateral match
 confirmation, idempotent retry, immutable-decision conflict, private audit
-persistence, and non-enumerating wrong-owner behavior. It then logs out and
-confirms the session no longer authenticates.
+persistence, plus idempotent participant-only mediated messages and private
+thread reads without identity disclosure. It then logs out and confirms the
+session no longer authenticates.
 Use the `demo-` project exactly as shown so an accidentally missing emulator
 cannot reach a billable Firebase project.
 
