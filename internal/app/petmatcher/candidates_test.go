@@ -39,6 +39,9 @@ func TestMatcherWorkerSelectsEligibleCandidateDeterministically(t *testing.T) {
 			PrimaryColor: "Golden", OwnerIdentityRef: "identity-" + petID, ReportedAt: now.Add(-2 * time.Hour),
 			Location: "Capitol Hill, Seattle, WA", GeocodingStatus: domain.GeocodingVerified, Coordinates: &nearPoint,
 			Status: domain.LostPetStatusLost,
+			OwnedBy: &domain.PrincipalRef{
+				Issuer: "https://securetoken.google.com/petspotr-test", Subject: "reporter-" + petID,
+			},
 		})
 	}
 	seedCandidateRecord(t, st, domain.LostPetRecord{
@@ -86,12 +89,30 @@ func TestMatcherWorkerSelectsEligibleCandidateDeterministically(t *testing.T) {
 	worker := NewWorker(st, ps, ollama.NewClient(ollama.WithBaseURL(server.URL)))
 	worker.now = func() time.Time { return now }
 
-	foundData := encodeFoundCandidateEvent(t, domain.FoundPetReportedV2{
+	foundEvent := domain.FoundPetReportedV2{
 		PetID: "found-candidate", ImageURL: "https://storage.petspotr.io/found-candidate.jpg",
 		FoundAt: now, Location: "Capitol Hill, Seattle, WA", GeocodingStatus: domain.GeocodingVerified,
 		Coordinates: &foundPoint, Species: "Dog", Breed: "Golden Retriever", PrimaryColor: "Golden",
 		CustodyStatus: domain.CustodyFinderHome, Status: domain.FoundPetStatusFound,
-	})
+	}
+	foundOwner := &domain.PrincipalRef{
+		Issuer: "https://securetoken.google.com/petspotr-test", Subject: "finder-found-candidate",
+	}
+	foundRecord, _ := domain.NormalizeFoundPetReport(domain.FoundPetReport{
+		PetID: foundEvent.PetID, ImageURL: foundEvent.ImageURL, FoundAt: foundEvent.FoundAt,
+		Location: foundEvent.Location, GeocodingStatus: foundEvent.GeocodingStatus,
+		Coordinates: foundEvent.Coordinates, Species: foundEvent.Species, Breed: foundEvent.Breed,
+		PrimaryColor: foundEvent.PrimaryColor, CustodyStatus: foundEvent.CustodyStatus,
+		Status: foundEvent.Status, OwnedBy: foundOwner,
+	}).Persisted()
+	foundRecordData, err := json.Marshal(foundRecord)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SaveState(context.Background(), store.FoundPetsCollection, foundRecord.PetID, foundRecordData); err != nil {
+		t.Fatal(err)
+	}
+	foundData := encodeFoundCandidateEvent(t, foundEvent)
 	if err := worker.ProcessFoundPet(context.Background(), foundData); err != nil {
 		t.Fatalf("ProcessFoundPet() error = %v", err)
 	}
@@ -107,6 +128,10 @@ func TestMatcherWorkerSelectsEligibleCandidateDeterministically(t *testing.T) {
 	}
 	var persisted domain.MatchRecord
 	for _, data := range matches {
+		if bytes.Contains(data, []byte("reporter-lost-alpha")) ||
+			bytes.Contains(data, []byte(foundOwner.Subject)) {
+			t.Fatalf("public match record leaked participant identity: %s", data)
+		}
 		if err := json.Unmarshal(data, &persisted); err != nil {
 			t.Fatal(err)
 		}
@@ -114,6 +139,23 @@ func TestMatcherWorkerSelectsEligibleCandidateDeterministically(t *testing.T) {
 	if persisted.MatchedPetID != "lost-alpha" || persisted.LostPet.PetName != "lost-alpha" ||
 		persisted.Scores.DistanceMiles != domain.HaversineDistanceMiles(foundPoint, nearPoint) {
 		t.Fatalf("persisted deterministic winner = %#v", persisted)
+	}
+	participantsData, err := st.GetState(context.Background(), store.MatchParticipantsCollection, persisted.MatchID)
+	if err != nil {
+		t.Fatalf("GetState(match participants) error = %v", err)
+	}
+	var participants domain.MatchParticipantRecord
+	if err := json.Unmarshal(participantsData, &participants); err != nil {
+		t.Fatal(err)
+	}
+	if err := participants.Validate(); err != nil {
+		t.Fatalf("persisted match participants validation: %v", err)
+	}
+	if participants.MatchID != persisted.MatchID || participants.LostPetID != "lost-alpha" ||
+		participants.FoundPetID != foundEvent.PetID || participants.Reporter == nil ||
+		participants.Reporter.Subject != "reporter-lost-alpha" || participants.Finder == nil ||
+		participants.Finder.Subject != foundOwner.Subject {
+		t.Fatalf("persisted match participants = %#v", participants)
 	}
 	if got := ollamaCalls.Load(); got != 1 {
 		t.Fatalf("Ollama calls = %d, want 1", got)

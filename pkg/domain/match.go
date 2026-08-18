@@ -57,6 +57,40 @@ type MatchRecord struct {
 	Explanation      string              `json:"explanation,omitempty"`
 }
 
+// MatchParticipantRecord is the private authorization link between a match
+// and the trusted principals that own its lost and found reports. It is stored
+// separately from MatchRecord so public match responses cannot expose identity
+// provider subjects. Legacy or mixed-auth matches may have only one owner.
+type MatchParticipantRecord struct {
+	MatchID    string        `json:"matchId"`
+	LostPetID  string        `json:"lostPetId"`
+	FoundPetID string        `json:"foundPetId"`
+	Reporter   *PrincipalRef `json:"reporter,omitempty"`
+	Finder     *PrincipalRef `json:"finder,omitempty"`
+}
+
+// Validate requires a match identity and at least one valid participant.
+func (r MatchParticipantRecord) Validate() error {
+	if strings.TrimSpace(r.MatchID) == "" || strings.TrimSpace(r.LostPetID) == "" ||
+		strings.TrimSpace(r.FoundPetID) == "" {
+		return errors.New("domain: match participant IDs are required")
+	}
+	if r.Reporter == nil && r.Finder == nil {
+		return errors.New("domain: at least one match participant is required")
+	}
+	if r.Reporter != nil {
+		if err := r.Reporter.Validate(); err != nil {
+			return fmt.Errorf("domain: invalid match reporter: %w", err)
+		}
+	}
+	if r.Finder != nil {
+		if err := r.Finder.Validate(); err != nil {
+			return fmt.Errorf("domain: invalid match finder: %w", err)
+		}
+	}
+	return nil
+}
+
 // StableMatchID derives one idempotency key for a source report and candidate.
 func StableMatchID(sourceEventID, foundPetID, lostPetID string) (string, error) {
 	sourceEventID = strings.TrimSpace(sourceEventID)

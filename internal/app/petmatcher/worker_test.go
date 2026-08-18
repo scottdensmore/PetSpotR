@@ -442,6 +442,13 @@ func TestMatcherWorker_ProcessFoundPet(t *testing.T) {
 		if len(matches) != 1 {
 			t.Fatalf("persisted match count = %d, want 1", len(matches))
 		}
+		participants, err := st.ListState(context.Background(), store.MatchParticipantsCollection)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(participants) != 0 {
+			t.Fatalf("legacy ownerless match participants = %d, want 0", len(participants))
+		}
 		var persisted domain.MatchRecord
 		for _, data := range matches {
 			if err := json.Unmarshal(data, &persisted); err != nil {
@@ -899,6 +906,10 @@ func newMatcherOllamaServer(
 }
 
 func seedMatcherLostPet(t *testing.T, st store.StateStore) {
+	seedMatcherLostPetWithOwner(t, st, nil)
+}
+
+func seedMatcherLostPetWithOwner(t *testing.T, st store.StateStore, ownedBy *domain.PrincipalRef) {
 	t.Helper()
 	record := domain.LostPetRecord{
 		PetID:            "lost-101",
@@ -913,6 +924,7 @@ func seedMatcherLostPet(t *testing.T, st store.StateStore) {
 		GeocodingStatus:  domain.GeocodingVerified,
 		Coordinates:      matcherTestPoint(),
 		Status:           domain.LostPetStatusLost,
+		OwnedBy:          ownedBy,
 	}
 	record.ImageObject = "images/lost-pets/" + record.PetID + "/image.jpg"
 	record.ImageAnalysis = verifiedCandidateAnalysis(record.PetID, record.ImageObject, domain.PetImageTraits{
@@ -929,6 +941,15 @@ func seedMatcherLostPet(t *testing.T, st store.StateStore) {
 }
 
 func seedMatcherFoundPet(t *testing.T, st store.StateStore, event domain.FoundPetReportedV2) {
+	seedMatcherFoundPetWithOwner(t, st, event, nil)
+}
+
+func seedMatcherFoundPetWithOwner(
+	t *testing.T,
+	st store.StateStore,
+	event domain.FoundPetReportedV2,
+	ownedBy *domain.PrincipalRef,
+) {
 	t.Helper()
 	report := domain.NormalizeFoundPetReport(domain.FoundPetReport{
 		PetID: event.PetID, ImageURL: event.ImageURL, ImageObject: event.ImageObject,
@@ -936,7 +957,7 @@ func seedMatcherFoundPet(t *testing.T, st store.StateStore, event domain.FoundPe
 		GeocodingStatus: event.GeocodingStatus, Coordinates: event.Coordinates,
 		Species: event.Species, Breed: event.Breed, PrimaryColor: event.PrimaryColor,
 		SecondaryColor: event.SecondaryColor, DistinctiveMarkings: event.DistinctiveMarkings,
-		CustodyStatus: event.CustodyStatus, Status: event.Status,
+		CustodyStatus: event.CustodyStatus, Status: event.Status, OwnedBy: ownedBy,
 	})
 	record, _ := report.Persisted()
 	data, err := json.Marshal(record)
