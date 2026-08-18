@@ -41,6 +41,18 @@
         <p class="text-secondary">Help our AI vision matcher identify your missing companion.</p>
       </div>
 
+      <section id="identity-panel" class="identity-panel" aria-labelledby="identity-title" aria-busy="false" hidden>
+        <div class="identity-copy">
+          <h2 id="identity-title" class="identity-title">Protect your report</h2>
+          <p id="identity-status" class="identity-status" role="status" aria-live="polite">Checking sign-in status...</p>
+          <p id="identity-error" class="identity-error" role="alert" hidden></p>
+        </div>
+        <div class="identity-actions">
+          <button type="button" class="btn btn-primary" id="google-sign-in">Continue with Google</button>
+          <button type="button" class="btn btn-secondary" id="identity-sign-out" hidden>Sign out</button>
+        </div>
+      </section>
+
       <!-- Step Indicator Bar -->
       <div class="wizard-progress">
         <div class="wizard-step-badge active" id="step-badge-1">1. Pet Info</div>
@@ -124,7 +136,8 @@
           <h2 class="section-title">Owner Contact Details</h2>
           <div class="form-field">
             <label for="reporterEmail" class="form-label">Contact Email *</label>
-            <input class="form-control" type="email" id="reporterEmail" name="reporterEmail" required placeholder="owner@example.com">
+            <input class="form-control" type="email" id="reporterEmail" name="reporterEmail" required placeholder="owner@example.com" aria-describedby="reporter-email-help">
+            <p id="reporter-email-help" class="form-help">When sign-in is enabled, PetSpotR uses the verified email on your Google account.</p>
           </div>
           <div class="form-field">
             <label for="phone" class="form-label">Phone Number (Optional)</label>
@@ -161,6 +174,7 @@
   </footer>
 
   <script src="/static/js/theme.js"></script>
+  <script src="/static/js/identity-session.js"></script>
   <script src="/static/js/lost-wizard.js"></script>
 </body>
 </html>

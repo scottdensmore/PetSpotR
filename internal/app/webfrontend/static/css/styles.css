@@ -12,6 +12,7 @@
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
+  --text-error: #fca5a5;
   
   --brand-primary: #6366f1;
   --brand-primary-hover: #4f46e5;
@@ -50,6 +51,7 @@
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #94a3b8;
+  --text-error: #b91c1c;
   
   --border-color: rgba(0, 0, 0, 0.08);
   --border-color-hover: rgba(99, 102, 241, 0.4);
@@ -237,6 +239,15 @@ a {
   border-color: var(--brand-primary);
 }
 
+.btn[aria-disabled="true"] {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.btn[aria-disabled="true"]:hover {
+  transform: none;
+}
+
 .theme-toggle {
   background: transparent;
   border: 1px solid var(--border-color);
@@ -275,6 +286,46 @@ a {
 .dashboard-heading h1 {
   margin-bottom: 0.5rem;
   font-size: 2rem;
+}
+
+.identity-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border-color-hover);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+}
+
+.identity-title {
+  margin-bottom: 0.25rem;
+  font-size: 1.1rem;
+}
+
+.identity-status,
+.form-help {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.identity-error {
+  margin-top: 0.5rem;
+  color: var(--text-error);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.identity-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.75rem;
+}
+
+.form-help {
+  margin-top: 0.5rem;
 }
 
 .form-section {
@@ -332,6 +383,11 @@ a {
 .score-filter select:focus-visible {
   outline: 2px solid var(--brand-primary);
   outline-offset: 2px;
+}
+
+.form-control[readonly] {
+  color: var(--text-secondary);
+  cursor: not-allowed;
 }
 
 .ai-badge {
@@ -1057,6 +1113,12 @@ footer {
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .identity-panel,
+  .identity-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .wizard-progress {

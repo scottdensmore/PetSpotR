@@ -29,6 +29,17 @@ type sessionLoginRequest struct {
 	IDToken string `json:"idToken"`
 }
 
+func (s *Server) handleApiIdentityClientConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(s.identityClientConfig)
+}
+
 func (s *Server) handleApiSessionCSRF(w http.ResponseWriter, r *http.Request) {
 	if s.identitySessions == nil {
 		http.NotFound(w, r)

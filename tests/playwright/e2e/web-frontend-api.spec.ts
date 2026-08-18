@@ -66,6 +66,239 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     expect(submissions[1].reportedAt).toBe(submissions[0].reportedAt);
   });
 
+  test('should sign in with Google, submit an owned lost report, and log out', async ({ page }) => {
+    const principal = {
+      issuer: 'https://securetoken.google.com/demo-petspotr-auth',
+      subject: 'google-owner-101',
+      email: 'verified-owner@example.com',
+      emailVerified: true,
+      signInProvider: 'google.com',
+    };
+    let signedIn = false;
+    let csrfCount = 0;
+    let submittedReport: Record<string, unknown> | undefined;
+    let logoutCount = 0;
+
+    await page.addInitScript(() => {
+      const browserWindow = window as typeof window & {
+        releasePetspotrGoogleSignIn?: () => void;
+        petspotrFirebaseAuthAdapterFactory?: () => Promise<{
+          signInWithGoogle: () => Promise<string>;
+          signOut: () => Promise<void>;
+        }>;
+      };
+      browserWindow.petspotrFirebaseAuthAdapterFactory = async () => ({
+        signInWithGoogle: () => new Promise((resolve) => {
+          browserWindow.releasePetspotrGoogleSignIn = () => resolve('firebase-google-id-token');
+        }),
+        signOut: async () => {},
+      });
+    });
+    await page.route('**/api/v1/session/client-config', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          enabled: true,
+          provider: 'google.com',
+          apiKey: 'fake-api-key',
+          authDomain: 'demo-petspotr-auth.firebaseapp.com',
+          projectId: 'demo-petspotr-auth',
+          authEmulatorUrl: 'http://127.0.0.1:9099',
+        }),
+      });
+    });
+    await page.route('**/api/v1/session/csrf', async (route) => {
+      csrfCount += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ csrfToken: `csrf-${csrfCount}` }),
+      });
+    });
+    await page.route('**/api/v1/session', async (route) => {
+      const request = route.request();
+      if (request.method() === 'GET') {
+        await route.fulfill(signedIn
+          ? { status: 200, contentType: 'application/json', body: JSON.stringify(principal) }
+          : { status: 401, body: 'Authentication required' });
+        return;
+      }
+      if (request.method() === 'POST') {
+        expect(request.headers()['x-csrf-token']).toBe('csrf-1');
+        expect(request.postDataJSON()).toEqual({ idToken: 'firebase-google-id-token' });
+        signedIn = true;
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(principal) });
+        return;
+      }
+      expect(request.method()).toBe('DELETE');
+      expect(request.headers()['x-csrf-token']).toBe('csrf-3');
+      logoutCount += 1;
+      signedIn = false;
+      await route.fulfill({ status: 204 });
+    });
+    await page.route('**/api/v1/lost-pets', async (route) => {
+      expect(route.request().headers()['x-csrf-token']).toBe('csrf-2');
+      submittedReport = route.request().postDataJSON() as Record<string, unknown>;
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'success', petId: submittedReport.petId }),
+      });
+    });
+
+    await page.goto(`${WEB_FRONTEND_URL}/report-lost`);
+    await expect(page.locator('#identity-panel')).toBeVisible();
+    await expect(page.locator('#identity-status')).toContainText('Sign in');
+    const signInButton = page.locator('#google-sign-in');
+    await signInButton.click();
+    await expect(page.locator('#identity-status')).toContainText('Signing in');
+    await expect(signInButton).toBeFocused();
+    await page.evaluate(() => {
+      const browserWindow = window as typeof window & { releasePetspotrGoogleSignIn?: () => void };
+      browserWindow.releasePetspotrGoogleSignIn?.();
+    });
+    await expect(page.locator('#identity-status')).toContainText('verified-owner@example.com');
+    await expect(page.locator('#identity-sign-out')).toBeFocused();
+    await expect(page.locator('#reporterEmail')).toHaveValue('verified-owner@example.com');
+    await expect(page.locator('#reporterEmail')).toHaveAttribute('readonly', '');
+
+    await page.locator('#petName').fill('Buddy');
+    await page.locator('#btn-next').click();
+    await page.locator('#btn-next').click();
+    await page.locator('#location').fill('Seattle, WA');
+    await page.locator('#btn-next').click();
+    await page.locator('#btn-submit').click();
+    await expect(page.locator('#success-modal')).toBeVisible();
+    expect(submittedReport).toMatchObject({
+      reporterEmail: 'verified-owner@example.com',
+      petName: 'Buddy',
+      location: 'Seattle, WA',
+    });
+
+    await page.reload();
+    await expect(page.locator('#identity-status')).toContainText('verified-owner@example.com');
+    await page.locator('#identity-sign-out').click();
+    await expect(page.locator('#identity-status')).toContainText('Sign in');
+    await expect(page.locator('#google-sign-in')).toBeFocused();
+    expect(logoutCount).toBe(1);
+  });
+
+  test('should block identity-enabled submission when session configuration is unavailable', async ({ page }) => {
+    await page.route('**/api/v1/session/client-config', async (route) => {
+      await route.fulfill({ status: 503, body: 'temporarily unavailable' });
+    });
+
+    await page.goto(`${WEB_FRONTEND_URL}/report-lost`);
+    await expect(page.locator('#identity-panel')).toBeVisible();
+    await expect(page.locator('#identity-error')).toContainText('temporarily unavailable');
+    await expect(page.locator('#google-sign-in')).toBeHidden();
+    const errorCode = await page.evaluate(async () => {
+      const identityWindow = window as typeof window & {
+        petspotrIdentity: { requireSession: () => Promise<unknown> };
+      };
+      try {
+        await identityWindow.petspotrIdentity.requireSession();
+        return '';
+      } catch (error) {
+        return (error as Error & { code?: string }).code ?? '';
+      }
+    });
+    expect(errorCode).toBe('identity-unavailable');
+  });
+
+  test('should wait for the Firebase adapter before enabling Google sign-in', async ({ page }) => {
+    await page.addInitScript(() => {
+      type Adapter = {
+        signInWithGoogle: () => Promise<string>;
+        signOut: () => Promise<void>;
+      };
+      const browserWindow = window as typeof window & {
+        releasePetspotrFirebaseAdapter?: () => void;
+        petspotrFirebaseAuthAdapterFactory?: () => Promise<Adapter>;
+      };
+      browserWindow.petspotrFirebaseAuthAdapterFactory = () => new Promise((resolve) => {
+        browserWindow.releasePetspotrFirebaseAdapter = () => resolve({
+          signInWithGoogle: async () => 'unused-token',
+          signOut: async () => {},
+        });
+      });
+    });
+    await page.route('**/api/v1/session/client-config', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          enabled: true,
+          provider: 'google.com',
+          apiKey: 'fake-api-key',
+          authDomain: 'demo-petspotr-auth.firebaseapp.com',
+          projectId: 'demo-petspotr-auth',
+        }),
+      });
+    });
+    await page.route('**/api/v1/session', async (route) => {
+      await route.fulfill({ status: 401, body: 'Authentication required' });
+    });
+
+    await page.goto(`${WEB_FRONTEND_URL}/report-lost`);
+    await expect.poll(() => page.evaluate(() => {
+      const browserWindow = window as typeof window & { releasePetspotrFirebaseAdapter?: () => void };
+      return typeof browserWindow.releasePetspotrFirebaseAdapter;
+    })).toBe('function');
+    await expect(page.locator('#identity-panel')).toBeHidden();
+    await page.evaluate(() => {
+      const browserWindow = window as typeof window & { releasePetspotrFirebaseAdapter?: () => void };
+      browserWindow.releasePetspotrFirebaseAdapter?.();
+    });
+    await expect(page.locator('#identity-panel')).toBeVisible();
+    await expect(page.locator('#google-sign-in')).toBeVisible();
+  });
+
+  test('should disable Google sign-in when the Firebase adapter cannot initialize', async ({ page }) => {
+    await page.addInitScript(() => {
+      const browserWindow = window as typeof window & {
+        petspotrFirebaseAuthAdapterFactory?: () => Promise<never>;
+      };
+      browserWindow.petspotrFirebaseAuthAdapterFactory = async () => {
+        throw new Error('Firebase SDK unavailable');
+      };
+    });
+    await page.route('**/api/v1/session/client-config', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          enabled: true,
+          provider: 'google.com',
+          apiKey: 'fake-api-key',
+          authDomain: 'demo-petspotr-auth.firebaseapp.com',
+          projectId: 'demo-petspotr-auth',
+        }),
+      });
+    });
+    await page.route('**/api/v1/session', async (route) => {
+      await route.fulfill({ status: 401, body: 'Authentication required' });
+    });
+
+    await page.goto(`${WEB_FRONTEND_URL}/report-lost`);
+    await expect(page.locator('#identity-panel')).toBeVisible();
+    await expect(page.locator('#identity-error')).toContainText('temporarily unavailable');
+    await expect(page.locator('#google-sign-in')).toBeHidden();
+    const errorCode = await page.evaluate(async () => {
+      const identityWindow = window as typeof window & {
+        petspotrIdentity: { requireSession: () => Promise<unknown> };
+      };
+      try {
+        await identityWindow.petspotrIdentity.requireSession();
+        return '';
+      } catch (error) {
+        return (error as Error & { code?: string }).code ?? '';
+      }
+    });
+    expect(errorCode).toBe('identity-unavailable');
+  });
+
   test('should handle Found Pet submission via POST /api/v1/found-pets', async ({ request }) => {
     const payload = {
       petId: `found-pw-api-${Date.now()}`,
