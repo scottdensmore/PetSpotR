@@ -221,7 +221,9 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 	closeResponse(t, anonymousPrivateContact)
 
 	otherEmail := fmt.Sprintf("other-%d@example.com", time.Now().UnixNano())
-	otherClient, otherPrincipal := createAuthenticatedEmulatorClient(t, ctx, setupAuth, host, srv.URL, otherEmail, password)
+	otherClient, otherPrincipal, otherCSRFToken := createAuthenticatedEmulatorClient(
+		t, ctx, setupAuth, host, srv.URL, otherEmail, password,
+	)
 	wrongOwnerContact := productRequest(t, otherClient, http.MethodGet, privateContactURL, "", "")
 	if wrongOwnerContact.StatusCode != http.StatusNotFound {
 		t.Fatalf("wrong-owner private-contact status = %d, want %d", wrongOwnerContact.StatusCode, http.StatusNotFound)
@@ -345,6 +347,7 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 
 	sharedMatch := domain.MatchRecord{
 		MatchID: "match-shared", FoundPetID: foundReportID, MatchedPetID: reportID,
+		Status: domain.MatchStatusPendingReview,
 	}
 	seedIdentityMatch(t, state, sharedMatch, &domain.MatchParticipantRecord{
 		MatchID: sharedMatch.MatchID, FoundPetID: sharedMatch.FoundPetID, LostPetID: sharedMatch.MatchedPetID,
@@ -384,6 +387,96 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 	}
 	closeResponse(t, anonymousMatches)
 
+	matchActionURL := srv.URL + "/api/v1/matches/action"
+	actionBody := `{"matchId":"match-shared","action":"confirm"}`
+	anonymousAction := productRequest(t, publicClient, http.MethodPost, matchActionURL, actionBody, "")
+	if anonymousAction.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("anonymous match-action status = %d, want %d", anonymousAction.StatusCode, http.StatusUnauthorized)
+	}
+	closeResponse(t, anonymousAction)
+	missingActionCSRF := productRequest(t, client, http.MethodPost, matchActionURL, actionBody, "")
+	if missingActionCSRF.StatusCode != http.StatusForbidden {
+		t.Fatalf("match action without CSRF status = %d, want %d", missingActionCSRF.StatusCode, http.StatusForbidden)
+	}
+	closeResponse(t, missingActionCSRF)
+
+	wrongOwnerAction := productRequest(
+		t, client, http.MethodPost, matchActionURL, `{"matchId":"match-unrelated","action":"confirm"}`, csrfToken,
+	)
+	wrongOwnerActionBody, err := io.ReadAll(wrongOwnerAction.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = wrongOwnerAction.Body.Close()
+	missingAction := productRequest(
+		t, client, http.MethodPost, matchActionURL, `{"matchId":"match-missing","action":"confirm"}`, csrfToken,
+	)
+	missingActionBody, err := io.ReadAll(missingAction.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = missingAction.Body.Close()
+	if wrongOwnerAction.StatusCode != http.StatusNotFound || missingAction.StatusCode != http.StatusNotFound ||
+		!bytes.Equal(wrongOwnerActionBody, missingActionBody) {
+		t.Fatalf("non-enumerating match actions = %d %q / %d %q",
+			wrongOwnerAction.StatusCode, wrongOwnerActionBody, missingAction.StatusCode, missingActionBody)
+	}
+
+	reporterAction := productRequest(t, client, http.MethodPost, matchActionURL, actionBody, csrfToken)
+	if reporterAction.StatusCode != http.StatusOK || reporterAction.Header.Get("Cache-Control") != "no-store" {
+		t.Fatalf("reporter match-action response = %d Cache-Control %q",
+			reporterAction.StatusCode, reporterAction.Header.Get("Cache-Control"))
+	}
+	var reporterActionResult map[string]string
+	decodeResponseJSON(t, reporterAction, &reporterActionResult)
+	if reporterActionResult["status"] != string(domain.MatchStatusPendingReview) {
+		t.Fatalf("reporter match-action result = %#v", reporterActionResult)
+	}
+	exactRetry := productRequest(t, client, http.MethodPost, matchActionURL, actionBody, csrfToken)
+	if exactRetry.StatusCode != http.StatusOK {
+		t.Fatalf("exact match-action retry status = %d, want %d", exactRetry.StatusCode, http.StatusOK)
+	}
+	closeResponse(t, exactRetry)
+
+	finderAction := productRequest(t, otherClient, http.MethodPost, matchActionURL, actionBody, otherCSRFToken)
+	if finderAction.StatusCode != http.StatusOK {
+		t.Fatalf("finder match-action status = %d, want %d", finderAction.StatusCode, http.StatusOK)
+	}
+	var finderActionResult map[string]string
+	decodeResponseJSON(t, finderAction, &finderActionResult)
+	if finderActionResult["status"] != string(domain.MatchStatusConfirmed) {
+		t.Fatalf("finder match-action result = %#v", finderActionResult)
+	}
+	conflictingAction := productRequest(
+		t, client, http.MethodPost, matchActionURL, `{"matchId":"match-shared","action":"reject"}`, csrfToken,
+	)
+	if conflictingAction.StatusCode != http.StatusConflict {
+		t.Fatalf("changed match-action status = %d, want %d", conflictingAction.StatusCode, http.StatusConflict)
+	}
+	closeResponse(t, conflictingAction)
+
+	storedMatchData, err := state.GetState(ctx, store.MatchesCollection, sharedMatch.MatchID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	storedParticipantsData, err := state.GetState(ctx, store.MatchParticipantsCollection, sharedMatch.MatchID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var storedMatch domain.MatchRecord
+	var storedParticipants domain.MatchParticipantRecord
+	if err := json.Unmarshal(storedMatchData, &storedMatch); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(storedParticipantsData, &storedParticipants); err != nil {
+		t.Fatal(err)
+	}
+	if storedMatch.Status != domain.MatchStatusConfirmed ||
+		storedParticipants.ReporterDecision != domain.MatchDecisionConfirm ||
+		storedParticipants.FinderDecision != domain.MatchDecisionConfirm || len(storedParticipants.DecisionAudit) != 2 {
+		t.Fatalf("stored bilateral decision = %#v / %#v", storedMatch, storedParticipants)
+	}
+
 	logout := productRequest(t, client, http.MethodDelete, srv.URL+"/api/v1/session", "", csrfToken)
 	if logout.StatusCode != http.StatusNoContent {
 		t.Fatalf("logout status = %d, want %d", logout.StatusCode, http.StatusNoContent)
@@ -410,6 +503,11 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("post-logout match-list status = %d, want %d", afterLogoutMatches.StatusCode, http.StatusUnauthorized)
 	}
 	closeResponse(t, afterLogoutMatches)
+	afterLogoutAction := productRequest(t, client, http.MethodPost, matchActionURL, actionBody, csrfToken)
+	if afterLogoutAction.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("post-logout match-action status = %d, want %d", afterLogoutAction.StatusCode, http.StatusUnauthorized)
+	}
+	closeResponse(t, afterLogoutAction)
 	afterLogoutReport := productRequest(
 		t, client, http.MethodPost, srv.URL+"/api/v1/lost-pets",
 		`{"petId":"lost-after-logout","petName":"Buddy","reporterEmail":"spoofed@example.com","location":"Seattle, WA"}`, csrfToken,
@@ -436,7 +534,7 @@ func createAuthenticatedEmulatorClient(
 	baseURL string,
 	email string,
 	password string,
-) (*http.Client, identity.Principal) {
+) (*http.Client, identity.Principal, string) {
 	t.Helper()
 	created, err := setupAuth.CreateUser(ctx, (&auth.UserToCreate{}).
 		Email(email).
@@ -472,7 +570,7 @@ func createAuthenticatedEmulatorClient(
 	}
 	var principal identity.Principal
 	decodeResponseJSON(t, login, &principal)
-	return client, principal
+	return client, principal, csrfBody["csrfToken"]
 }
 
 func seedIdentityMatch(

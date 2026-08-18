@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -120,6 +121,128 @@ func TestFirestoreMatchListFiltersParticipantsAcrossServiceRuntimes(t *testing.T
 	}
 }
 
+func TestFirestoreMatchDecisionIsAtomicAcrossServiceRuntimes(t *testing.T) {
+	firestoreHost := os.Getenv("FIRESTORE_EMULATOR_HOST")
+	if firestoreHost == "" {
+		t.Skip("FIRESTORE_EMULATOR_HOST is not set")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	projectID := "petspotr-match-decision-ownership"
+	firstRuntime := newOwnershipStateRuntime(t, ctx, projectID, firestoreHost)
+	secondRuntime := newOwnershipStateRuntime(t, ctx, projectID, firestoreHost)
+	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
+
+	reporter := identity.Principal{
+		Issuer: "https://securetoken.google.com/petspotr-test", Subject: "reporter-" + suffix,
+		Email: "reporter@example.com", EmailVerified: true,
+	}
+	finder := identity.Principal{
+		Issuer: reporter.Issuer, Subject: "finder-" + suffix,
+		Email: "finder@example.com", EmailVerified: true,
+	}
+	match := domain.MatchRecord{
+		MatchID: "match-decision-" + suffix, FoundPetID: "found-decision-" + suffix,
+		MatchedPetID: "lost-decision-" + suffix, Status: domain.MatchStatusPendingReview,
+	}
+	participants := domain.MatchParticipantRecord{
+		MatchID: match.MatchID, FoundPetID: match.FoundPetID, LostPetID: match.MatchedPetID,
+		Reporter: &domain.PrincipalRef{Issuer: reporter.Issuer, Subject: reporter.Subject},
+		Finder:   &domain.PrincipalRef{Issuer: finder.Issuer, Subject: finder.Subject},
+	}
+	matchData, err := json.Marshal(match)
+	if err != nil {
+		t.Fatal(err)
+	}
+	participantsData, err := json.Marshal(participants)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := firstRuntime.Store.SaveState(ctx, store.MatchesCollection, match.MatchID, matchData); err != nil {
+		t.Fatal(err)
+	}
+	if err := firstRuntime.Store.SaveState(
+		ctx, store.MatchParticipantsCollection, match.MatchID, participantsData,
+	); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cleanupCancel()
+		_ = firstRuntime.Store.DeleteState(cleanupCtx, store.MatchesCollection, match.MatchID)
+		_ = firstRuntime.Store.DeleteState(cleanupCtx, store.MatchParticipantsCollection, match.MatchID)
+	})
+
+	sessions := &firestoreMatchSessions{principals: map[string]identity.Principal{
+		"reporter-session": reporter,
+		"finder-session":   finder,
+	}}
+	firstServer := httptest.NewServer(webfrontend.NewServerWithOptions(firstRuntime.Store, webfrontend.ServerOptions{
+		IdentitySessions: sessions,
+	}))
+	defer firstServer.Close()
+	secondServer := httptest.NewServer(webfrontend.NewServerWithOptions(secondRuntime.Store, webfrontend.ServerOptions{
+		IdentitySessions: sessions,
+	}))
+	defer secondServer.Close()
+
+	csrfToken := "0123456789abcdef0123456789abcdef0123456789abcdef"
+	reporterResponse := requestFirestoreMatchAction(
+		t, secondServer.URL, match.MatchID, "confirm", "reporter-session", csrfToken,
+	)
+	if reporterResponse.StatusCode != http.StatusOK || reporterResponse.Header.Get("Cache-Control") != "no-store" {
+		t.Fatalf("reporter action = %d Cache-Control %q", reporterResponse.StatusCode, reporterResponse.Header.Get("Cache-Control"))
+	}
+	var reporterResult map[string]string
+	decodeOwnershipResponse(t, reporterResponse, &reporterResult)
+	if reporterResult["status"] != string(domain.MatchStatusPendingReview) {
+		t.Fatalf("reporter result = %#v", reporterResult)
+	}
+
+	retry := requestFirestoreMatchAction(t, firstServer.URL, match.MatchID, "confirm", "reporter-session", csrfToken)
+	if retry.StatusCode != http.StatusOK {
+		t.Fatalf("cross-runtime exact retry = %d", retry.StatusCode)
+	}
+	_ = retry.Body.Close()
+	finderResponse := requestFirestoreMatchAction(
+		t, secondServer.URL, match.MatchID, "confirm", "finder-session", csrfToken,
+	)
+	if finderResponse.StatusCode != http.StatusOK {
+		t.Fatalf("finder action = %d", finderResponse.StatusCode)
+	}
+	var finderResult map[string]string
+	decodeOwnershipResponse(t, finderResponse, &finderResult)
+	if finderResult["status"] != string(domain.MatchStatusConfirmed) {
+		t.Fatalf("finder result = %#v", finderResult)
+	}
+
+	storedMatchData, err := firstRuntime.Store.GetState(ctx, store.MatchesCollection, match.MatchID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	storedParticipantsData, err := secondRuntime.Store.GetState(ctx, store.MatchParticipantsCollection, match.MatchID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var storedMatch domain.MatchRecord
+	var storedParticipants domain.MatchParticipantRecord
+	if err := json.Unmarshal(storedMatchData, &storedMatch); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(storedParticipantsData, &storedParticipants); err != nil {
+		t.Fatal(err)
+	}
+	if storedMatch.Status != domain.MatchStatusConfirmed ||
+		storedParticipants.ReporterDecision != domain.MatchDecisionConfirm ||
+		storedParticipants.FinderDecision != domain.MatchDecisionConfirm || len(storedParticipants.DecisionAudit) != 2 {
+		t.Fatalf("durable decision = %#v / %#v", storedMatch, storedParticipants)
+	}
+	if bytes.Contains(storedMatchData, []byte(reporter.Subject)) || bytes.Contains(storedMatchData, []byte(finder.Subject)) ||
+		bytes.Contains(storedMatchData, []byte("decisionAudit")) {
+		t.Fatalf("public match exposed private decision data: %s", storedMatchData)
+	}
+}
+
 type firestoreMatchSessions struct {
 	principals map[string]identity.Principal
 }
@@ -156,6 +279,38 @@ func requestFirestoreMatches(t *testing.T, baseURL, session string) []domain.Mat
 		t.Fatal(err)
 	}
 	return matches
+}
+
+func requestFirestoreMatchAction(
+	t *testing.T,
+	baseURL, matchID, action, session, csrfToken string,
+) *http.Response {
+	t.Helper()
+	body, err := json.Marshal(map[string]string{"matchId": matchID, "action": action})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request, err := http.NewRequest(http.MethodPost, baseURL+"/api/v1/matches/action", bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-CSRF-Token", csrfToken)
+	request.AddCookie(&http.Cookie{Name: "petspotr_session", Value: session})
+	request.AddCookie(&http.Cookie{Name: "petspotr_csrf", Value: csrfToken})
+	response, err := (&http.Client{Timeout: 5 * time.Second}).Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return response
+}
+
+func decodeOwnershipResponse(t *testing.T, response *http.Response, target any) {
+	t.Helper()
+	defer response.Body.Close()
+	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
+		t.Fatal(err)
+	}
 }
 
 var _ identity.SessionManager = (*firestoreMatchSessions)(nil)

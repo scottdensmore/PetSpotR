@@ -113,6 +113,60 @@ func firestoreDocumentIDForTest(key string) string {
 	return hex.EncodeToString(digest[:])
 }
 
+func TestFirestoreUpdatesMatchAndParticipantsAtomicallyAcrossRuntimes(t *testing.T) {
+	host := os.Getenv("FIRESTORE_EMULATOR_HOST")
+	if host == "" {
+		t.Skip("FIRESTORE_EMULATOR_HOST is not set")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	const projectID = "petspotr-match-decision-atomic"
+	writer, err := store.NewFirestoreEmulatorStore(ctx, projectID, host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Close()
+	reader, err := store.NewFirestoreEmulatorStore(ctx, projectID, host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+
+	matchID := fmt.Sprintf("match-decision-%d", time.Now().UnixNano())
+	if err := writer.SaveState(ctx, store.MatchesCollection, matchID, []byte("match-before")); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.SaveState(ctx, store.MatchParticipantsCollection, matchID, []byte("participants-before")); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cleanupCancel()
+		_ = writer.DeleteState(cleanupCtx, store.MatchesCollection, matchID)
+		_ = writer.DeleteState(cleanupCtx, store.MatchParticipantsCollection, matchID)
+	})
+
+	if err := writer.UpdateMatchAndParticipants(ctx, matchID, func(match, participants []byte) ([]byte, []byte, error) {
+		if string(match) != "match-before" || string(participants) != "participants-before" {
+			t.Fatalf("transaction inputs = %q/%q", match, participants)
+		}
+		return []byte("match-after"), []byte("participants-after"), nil
+	}); err != nil {
+		t.Fatalf("UpdateMatchAndParticipants() error = %v", err)
+	}
+	assertStoredValue(t, reader, store.MatchesCollection, matchID, "match-after")
+	assertStoredValue(t, reader, store.MatchParticipantsCollection, matchID, "participants-after")
+
+	rejected := errors.New("decision rejected")
+	if err := reader.UpdateMatchAndParticipants(ctx, matchID, func([]byte, []byte) ([]byte, []byte, error) {
+		return []byte("discarded-match"), []byte("discarded-participants"), rejected
+	}); !errors.Is(err, rejected) {
+		t.Fatalf("rejected update error = %v, want %v", err, rejected)
+	}
+	assertStoredValue(t, writer, store.MatchesCollection, matchID, "match-after")
+	assertStoredValue(t, writer, store.MatchParticipantsCollection, matchID, "participants-after")
+}
+
 func TestFirestoreCreateStateAndOutboxTransaction(t *testing.T) {
 	host := os.Getenv("FIRESTORE_EMULATOR_HOST")
 	if host == "" {
