@@ -17,6 +17,21 @@ type privateReportContact struct {
 }
 
 func (s *Server) handleApiLostPetContact(w http.ResponseWriter, r *http.Request) {
+	s.handleApiReportContact(w, r, store.LostPetsCollection, lostPetContactOwner)
+}
+
+func (s *Server) handleApiFoundPetContact(w http.ResponseWriter, r *http.Request) {
+	s.handleApiReportContact(w, r, store.FoundPetsCollection, foundPetContactOwner)
+}
+
+type reportContactOwner func([]byte) (*domain.PrincipalRef, string, error)
+
+func (s *Server) handleApiReportContact(
+	w http.ResponseWriter,
+	r *http.Request,
+	collection string,
+	contactOwner reportContactOwner,
+) {
 	if s.identitySessions == nil {
 		http.NotFound(w, r)
 		return
@@ -37,7 +52,7 @@ func (s *Server) handleApiLostPetContact(w http.ResponseWriter, r *http.Request)
 		http.NotFound(w, r)
 		return
 	}
-	reportData, err := s.stateStore.GetState(r.Context(), store.LostPetsCollection, petID)
+	reportData, err := s.stateStore.GetState(r.Context(), collection, petID)
 	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
 		http.NotFound(w, r)
 		return
@@ -46,18 +61,17 @@ func (s *Server) handleApiLostPetContact(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Failed to load private contact", http.StatusInternalServerError)
 		return
 	}
-	var report domain.LostPetRecord
-	if err := json.Unmarshal(reportData, &report); err != nil {
+	owner, identityRef, err := contactOwner(reportData)
+	if err != nil {
 		http.Error(w, "Failed to load private contact", http.StatusInternalServerError)
 		return
 	}
-	report = domain.NormalizeLostPetRecord(report)
-	if !principalOwnsReport(principal, report.OwnedBy) || report.OwnerIdentityRef == "" {
+	if !principalOwnsReport(principal, owner) || identityRef == "" {
 		http.NotFound(w, r)
 		return
 	}
 
-	contactData, err := s.stateStore.GetState(r.Context(), store.ReportContactsCollection, report.OwnerIdentityRef)
+	contactData, err := s.stateStore.GetState(r.Context(), store.ReportContactsCollection, identityRef)
 	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
 		http.NotFound(w, r)
 		return
@@ -72,13 +86,31 @@ func (s *Server) handleApiLostPetContact(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	contact = domain.NormalizeReportContact(contact)
-	if contact.IdentityRef != report.OwnerIdentityRef || contact.Validate() != nil {
+	if contact.IdentityRef != identityRef || contact.Validate() != nil {
 		http.Error(w, "Failed to load private contact", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(privateReportContact{Email: contact.Email, Phone: contact.Phone})
+}
+
+func lostPetContactOwner(data []byte) (*domain.PrincipalRef, string, error) {
+	var report domain.LostPetRecord
+	if err := json.Unmarshal(data, &report); err != nil {
+		return nil, "", err
+	}
+	report = domain.NormalizeLostPetRecord(report)
+	return report.OwnedBy, report.OwnerIdentityRef, nil
+}
+
+func foundPetContactOwner(data []byte) (*domain.PrincipalRef, string, error) {
+	var report domain.FoundPetRecord
+	if err := json.Unmarshal(data, &report); err != nil {
+		return nil, "", err
+	}
+	report = domain.NormalizeFoundPetRecord(report)
+	return report.OwnedBy, report.FinderIdentityRef, nil
 }
 
 func principalOwnsReport(principal identity.Principal, owner *domain.PrincipalRef) bool {
