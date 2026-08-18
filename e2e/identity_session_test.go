@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -22,6 +23,71 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
+
+func TestGoogleIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
+	host := strings.TrimSpace(os.Getenv("FIREBASE_AUTH_EMULATOR_HOST"))
+	if host == "" {
+		t.Skip("FIREBASE_AUTH_EMULATOR_HOST is not set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	const projectID = "demo-petspotr-auth"
+	email := fmt.Sprintf("google-owner-%d@example.com", time.Now().UnixNano())
+	idToken := signInWithGoogleToAuthEmulator(t, ctx, host, email)
+
+	identityRuntime, err := runtimeconfig.NewIdentityRuntime(ctx, runtimeconfig.IdentityConfig{
+		Mode: runtimeconfig.IdentityModeLocalEmulator, ProjectID: projectID, AuthEmulatorHost: host,
+	})
+	if err != nil {
+		t.Fatalf("NewIdentityRuntime() error = %v", err)
+	}
+	srv := httptest.NewServer(webfrontend.NewServerWithOptions(store.NewMemoryStore(), webfrontend.ServerOptions{
+		IdentitySessions: identityRuntime.Sessions, SecureSessionCookie: identityRuntime.SecureCookies,
+	}))
+	defer srv.Close()
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatalf("create cookie jar: %v", err)
+	}
+	client := &http.Client{Jar: jar, Timeout: 10 * time.Second}
+
+	csrfResponse := productRequest(t, client, http.MethodGet, srv.URL+"/api/v1/session/csrf", "", "")
+	if csrfResponse.StatusCode != http.StatusOK {
+		t.Fatalf("CSRF status = %d, want %d", csrfResponse.StatusCode, http.StatusOK)
+	}
+	var csrfBody map[string]string
+	decodeResponseJSON(t, csrfResponse, &csrfBody)
+	csrfToken := csrfBody["csrfToken"]
+
+	loginBody, err := json.Marshal(map[string]string{"idToken": idToken})
+	if err != nil {
+		t.Fatalf("marshal Google session request: %v", err)
+	}
+	login := productRequest(t, client, http.MethodPost, srv.URL+"/api/v1/session", string(loginBody), csrfToken)
+	if login.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(login.Body)
+		_ = login.Body.Close()
+		t.Fatalf("Google session status = %d, want %d; body = %s", login.StatusCode, http.StatusCreated, body)
+	}
+	var principal identity.Principal
+	decodeResponseJSON(t, login, &principal)
+	if principal.Subject == "" || principal.Email != email || !principal.EmailVerified ||
+		principal.SignInProvider != identity.ProviderGoogle {
+		t.Fatalf("Google principal = %#v, want verified google.com identity for %q", principal, email)
+	}
+
+	logout := productRequest(t, client, http.MethodDelete, srv.URL+"/api/v1/session", "", csrfToken)
+	if logout.StatusCode != http.StatusNoContent {
+		t.Fatalf("Google logout status = %d, want %d", logout.StatusCode, http.StatusNoContent)
+	}
+	closeResponse(t, logout)
+	afterLogout := productRequest(t, client, http.MethodGet, srv.URL+"/api/v1/session", "", "")
+	if afterLogout.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("Google post-logout status = %d, want %d", afterLogout.StatusCode, http.StatusUnauthorized)
+	}
+	closeResponse(t, afterLogout)
+}
 
 func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 	host := strings.TrimSpace(os.Getenv("FIREBASE_AUTH_EMULATOR_HOST"))
@@ -725,6 +791,54 @@ func signInToAuthEmulator(t *testing.T, ctx context.Context, host, email, passwo
 	}
 	if signedIn.IDToken == "" {
 		t.Fatal("Auth emulator returned an empty ID token")
+	}
+	return signedIn.IDToken
+}
+
+func signInWithGoogleToAuthEmulator(t *testing.T, ctx context.Context, host, email string) string {
+	t.Helper()
+	credential, err := json.Marshal(map[string]interface{}{
+		"sub":            "google-" + strings.ReplaceAll(email, "@", "-"),
+		"email":          email,
+		"email_verified": true,
+	})
+	if err != nil {
+		t.Fatalf("marshal Google emulator credential: %v", err)
+	}
+	postBody := url.Values{
+		"id_token":   []string{string(credential)},
+		"providerId": []string{identity.ProviderGoogle},
+	}.Encode()
+	body, err := json.Marshal(map[string]interface{}{
+		"postBody": postBody, "requestUri": "http://localhost",
+		"returnIdpCredential": true, "returnSecureToken": true,
+	})
+	if err != nil {
+		t.Fatalf("marshal Google emulator sign-in: %v", err)
+	}
+	endpoint := "http://" + host + "/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=fake-api-key"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("create Google emulator sign-in request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("sign in with Google through Auth emulator: %v", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		responseBody, _ := io.ReadAll(response.Body)
+		t.Fatalf("Google Auth emulator sign-in status = %d; body = %s", response.StatusCode, responseBody)
+	}
+	var signedIn struct {
+		IDToken string `json:"idToken"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&signedIn); err != nil {
+		t.Fatalf("decode Google Auth emulator sign-in: %v", err)
+	}
+	if signedIn.IDToken == "" {
+		t.Fatal("Google Auth emulator returned an empty ID token")
 	}
 	return signedIn.IDToken
 }

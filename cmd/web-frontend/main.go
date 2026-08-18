@@ -84,6 +84,7 @@ func main() {
 		FoundPetReporter:         foundReports,
 		LostPetReporter:          lostReports,
 		IdentitySessions:         identityRuntime.Sessions,
+		IdentityClientConfig:     identityRuntime.ClientConfig,
 		SecureSessionCookie:      identityRuntime.SecureCookies,
 	})
 	httpSrv := &http.Server{

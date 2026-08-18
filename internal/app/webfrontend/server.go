@@ -41,6 +41,7 @@ type Server struct {
 	lostPetReporter          LostPetReporter
 	allowPrivilegedMutations bool
 	identitySessions         identity.SessionManager
+	identityClientConfig     identity.WebClientConfig
 	secureSessionCookie      bool
 }
 
@@ -63,6 +64,7 @@ type ServerOptions struct {
 	FoundPetReporter         FoundPetReporter
 	LostPetReporter          LostPetReporter
 	IdentitySessions         identity.SessionManager
+	IdentityClientConfig     identity.WebClientConfig
 	SecureSessionCookie      bool
 }
 
@@ -97,6 +99,10 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 	if lostPetReporter == nil {
 		lostPetReporter = lostpet.NewService(st, pubsub.NewMemoryPubSub())
 	}
+	identityClientConfig := options.IdentityClientConfig
+	if options.IdentitySessions == nil || identityClientConfig.Validate() != nil {
+		identityClientConfig = identity.WebClientConfig{}
+	}
 	s := &Server{
 		mux:                      http.NewServeMux(),
 		metrics:                  telemetry.NewMetricsRegistry("web-frontend"),
@@ -105,6 +111,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		lostPetReporter:          lostPetReporter,
 		allowPrivilegedMutations: options.AllowPrivilegedMutations,
 		identitySessions:         options.IdentitySessions,
+		identityClientConfig:     identityClientConfig,
 		secureSessionCookie:      options.SecureSessionCookie,
 	}
 	s.routes()
@@ -137,6 +144,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/push/test", s.handleApiPushTest)
 	s.mux.HandleFunc("/api/v1/uploads/presigned-url", s.handleApiPresignedURL)
 	s.mux.HandleFunc("/api/v1/session/csrf", s.handleApiSessionCSRF)
+	s.mux.HandleFunc("/api/v1/session/client-config", s.handleApiIdentityClientConfig)
 	s.mux.HandleFunc("/api/v1/session", s.handleApiSession)
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	s.mux.HandleFunc("/healthz", s.handleHealthz)
@@ -1192,10 +1200,27 @@ func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
 
 // ServeHTTP satisfies the http.Handler interface.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Security-Policy", contentSecurityPolicy)
+	w.Header().Set("Content-Security-Policy", s.securityPolicy())
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(), microphone=()")
 	w.Header().Set("X-Frame-Options", "DENY")
 	s.mux.ServeHTTP(w, r)
+}
+
+func (s *Server) securityPolicy() string {
+	if !s.identityClientConfig.Enabled {
+		return contentSecurityPolicy
+	}
+	connectSources := "'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com"
+	frameSources := "https://" + s.identityClientConfig.AuthDomain
+	if emulatorURL := strings.TrimSpace(s.identityClientConfig.AuthEmulatorURL); emulatorURL != "" {
+		connectSources += " " + emulatorURL
+		frameSources += " " + emulatorURL
+	}
+	return "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; " +
+		"form-action 'self'; script-src 'self' https://www.gstatic.com; " +
+		"style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; " +
+		"img-src 'self' data: blob: https://storage.petspotr.io; connect-src " + connectSources +
+		"; frame-src " + frameSources + "; worker-src 'self'"
 }

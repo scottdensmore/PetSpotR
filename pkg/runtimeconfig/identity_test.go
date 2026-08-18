@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/scottdensmore/petspotr/pkg/identity"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
 )
 
@@ -40,6 +41,28 @@ func TestLoadIdentityConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "enables the Google browser client for the local emulator",
+			env: map[string]string{
+				"PETSPOTR_IDENTITY_MODE":             "local-emulator",
+				"GOOGLE_CLOUD_PROJECT":               "demo-petspotr-auth",
+				"FIREBASE_AUTH_EMULATOR_HOST":        "127.0.0.1:9099",
+				"PETSPOTR_IDENTITY_WEB_API_KEY":      "fake-api-key",
+				"PETSPOTR_IDENTITY_WEB_AUTH_DOMAIN":  "demo-petspotr-auth.firebaseapp.com",
+				"PETSPOTR_IDENTITY_WEB_PROJECT_ID":   "demo-petspotr-auth",
+				"PETSPOTR_IDENTITY_WEB_EMULATOR_URL": "http://127.0.0.1:9099",
+			},
+			want: runtimeconfig.IdentityConfig{
+				Mode:             runtimeconfig.IdentityModeLocalEmulator,
+				ProjectID:        "demo-petspotr-auth",
+				AuthEmulatorHost: "127.0.0.1:9099",
+				ClientConfig: identity.WebClientConfig{
+					Enabled: true, Provider: identity.ProviderGoogle, APIKey: "fake-api-key",
+					AuthDomain: "demo-petspotr-auth.firebaseapp.com", ProjectID: "demo-petspotr-auth",
+					AuthEmulatorURL: "http://127.0.0.1:9099",
+				},
+			},
+		},
+		{
 			name: "loads managed Identity Platform",
 			env: map[string]string{
 				"PETSPOTR_IDENTITY_MODE": "gcp",
@@ -48,6 +71,23 @@ func TestLoadIdentityConfig(t *testing.T) {
 			want: runtimeconfig.IdentityConfig{
 				Mode:      runtimeconfig.IdentityModeGCP,
 				ProjectID: "petspotr-production",
+			},
+		},
+		{
+			name: "enables the managed Google browser client",
+			env: map[string]string{
+				"PETSPOTR_IDENTITY_MODE":            "gcp",
+				"GOOGLE_CLOUD_PROJECT":              "petspotr-production",
+				"PETSPOTR_IDENTITY_WEB_API_KEY":     "public-browser-key",
+				"PETSPOTR_IDENTITY_WEB_AUTH_DOMAIN": "auth.petspotr.example",
+				"PETSPOTR_IDENTITY_WEB_PROJECT_ID":  "petspotr-production",
+			},
+			want: runtimeconfig.IdentityConfig{
+				Mode: runtimeconfig.IdentityModeGCP, ProjectID: "petspotr-production",
+				ClientConfig: identity.WebClientConfig{
+					Enabled: true, Provider: identity.ProviderGoogle, APIKey: "public-browser-key",
+					AuthDomain: "auth.petspotr.example", ProjectID: "petspotr-production",
+				},
 			},
 		},
 		{
@@ -122,6 +162,49 @@ func TestLoadIdentityConfig(t *testing.T) {
 				"FIREBASE_AUTH_EMULATOR_HOST": "127.0.0.1:9099",
 			},
 			wantErr: "must not be set in disabled mode",
+		},
+		{
+			name: "rejects partial browser configuration",
+			env: map[string]string{
+				"PETSPOTR_IDENTITY_MODE":        "gcp",
+				"GOOGLE_CLOUD_PROJECT":          "petspotr-production",
+				"PETSPOTR_IDENTITY_WEB_API_KEY": "public-browser-key",
+			},
+			wantErr: "browser identity configuration requires",
+		},
+		{
+			name: "rejects a managed browser emulator URL",
+			env: map[string]string{
+				"PETSPOTR_IDENTITY_MODE":             "gcp",
+				"GOOGLE_CLOUD_PROJECT":               "petspotr-production",
+				"PETSPOTR_IDENTITY_WEB_API_KEY":      "public-browser-key",
+				"PETSPOTR_IDENTITY_WEB_AUTH_DOMAIN":  "auth.petspotr.example",
+				"PETSPOTR_IDENTITY_WEB_PROJECT_ID":   "petspotr-production",
+				"PETSPOTR_IDENTITY_WEB_EMULATOR_URL": "http://127.0.0.1:9099",
+			},
+			wantErr: "must not be set in \"gcp\" identity mode",
+		},
+		{
+			name: "rejects a browser project that differs from the session project",
+			env: map[string]string{
+				"PETSPOTR_IDENTITY_MODE":            "gcp",
+				"GOOGLE_CLOUD_PROJECT":              "petspotr-production",
+				"PETSPOTR_IDENTITY_WEB_API_KEY":     "public-browser-key",
+				"PETSPOTR_IDENTITY_WEB_AUTH_DOMAIN": "auth.petspotr.example",
+				"PETSPOTR_IDENTITY_WEB_PROJECT_ID":  "different-project",
+			},
+			wantErr: "must match GOOGLE_CLOUD_PROJECT",
+		},
+		{
+			name: "requires an explicit session project for Cloud Run browser identity",
+			env: map[string]string{
+				"PETSPOTR_IDENTITY_MODE":            "gcp",
+				"K_SERVICE":                         "web-frontend",
+				"PETSPOTR_IDENTITY_WEB_API_KEY":     "public-browser-key",
+				"PETSPOTR_IDENTITY_WEB_AUTH_DOMAIN": "auth.petspotr.example",
+				"PETSPOTR_IDENTITY_WEB_PROJECT_ID":  "petspotr-production",
+			},
+			wantErr: "GOOGLE_CLOUD_PROJECT is required for browser identity",
 		},
 	}
 
