@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0ARYGAF5NTPX1NZD4SH06BF",
+  "strategy": "manual-commit",
+  "branch": "feat/google-sign-in-found-report",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "internal/app/webfrontend/static/js/found-report.js",
+    "internal/app/webfrontend/static/js/identity-session.js",
+    "internal/app/webfrontend/templates/report-found.html",
+    "internal/app/webfrontend/templates/report-lost.html",
+    "tests/playwright/e2e/web-frontend-api.spec.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 314277,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 21290496,
+    "output_tokens": 19246,
+    "api_call_count": 134
+  }
+}
