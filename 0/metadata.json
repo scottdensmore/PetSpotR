@@ -1,0 +1,78 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M09GV87H8MHTC22H3E0EED43",
+  "session_id": "01a0106b-5c6a-72c3-ad94-2ec2cccbe9fa",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-18T04:08:28.640919838Z",
+  "branch": "feat/mediated-match-thread",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "e2e/identity_session_test.go",
+    "e2e/match_ownership_firestore_test.go",
+    "internal/app/webfrontend/mediated_contact.go",
+    "internal/app/webfrontend/mediated_contact_auth_test.go",
+    "internal/app/webfrontend/server.go",
+    "pkg/domain/match.go",
+    "pkg/domain/match_thread.go",
+    "pkg/domain/match_thread_test.go",
+    "pkg/store/store.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "b5a770481d83",
+  "checkpoint_transcript_start": 10617,
+  "transcript_lines_at_start": 10617,
+  "compact_transcript_start": 1561,
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": -10539008,
+    "output_tokens": -33438,
+    "api_call_count": 223
+  },
+  "session_metrics": {
+    "turn_count": 6
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-18T04:08:24.624068457Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 23,
+    "total_committed": 0,
+    "total_lines_changed": 23,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 990,
+      "user_lines_removed": 23,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "docs/DEVELOPMENT.md": 26,
+        "e2e/identity_session_test.go": 120,
+        "e2e/match_ownership_firestore_test.go": 90,
+        "internal/app/webfrontend/mediated_contact.go": 213,
+        "internal/app/webfrontend/mediated_contact_auth_test.go": 274,
+        "internal/app/webfrontend/server.go": 5,
+        "pkg/domain/match.go": 12,
+        "pkg/domain/match_thread.go": 149,
+        "pkg/domain/match_thread_test.go": 95,
+        "pkg/store/store.go": 6
+      },
+      "user_removed_per_file": {
+        "docs/DEVELOPMENT.md": 7,
+        "e2e/identity_session_test.go": 1,
+        "e2e/match_ownership_firestore_test.go": 3,
+        "internal/app/webfrontend/server.go": 1,
+        "pkg/domain/match.go": 8,
+        "pkg/store/store.go": 3
+      }
+    }
+  ]
+}
