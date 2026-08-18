@@ -162,6 +162,88 @@ func (s *FirestoreStore) UpdateState(ctx context.Context, storeName, key string,
 	return nil
 }
 
+// UpdateMatchAndParticipants atomically replaces an existing public match and
+// private participant record in one Firestore transaction.
+func (s *FirestoreStore) UpdateMatchAndParticipants(
+	ctx context.Context,
+	matchID string,
+	update MatchStateUpdater,
+) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if strings.TrimSpace(matchID) == "" {
+		return errors.New("store: match ID is required")
+	}
+	if update == nil {
+		return errors.New("store: match state updater is required")
+	}
+	matchDoc, err := s.document(MatchesCollection, matchID)
+	if err != nil {
+		return err
+	}
+	participantsDoc, err := s.document(MatchParticipantsCollection, matchID)
+	if err != nil {
+		return err
+	}
+	err = s.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		match, err := transactionRecord(tx, matchDoc, MatchesCollection, matchID)
+		if err != nil {
+			return err
+		}
+		participants, err := transactionRecord(tx, participantsDoc, MatchParticipantsCollection, matchID)
+		if err != nil {
+			return err
+		}
+		nextMatch, nextParticipants, err := update(bytes.Clone(match.Data), bytes.Clone(participants.Data))
+		if err != nil {
+			return err
+		}
+		matchRecord, err := newFirestoreRecord(MatchesCollection, matchID, nextMatch)
+		if err != nil {
+			return err
+		}
+		participantsRecord, err := newFirestoreRecord(MatchParticipantsCollection, matchID, nextParticipants)
+		if err != nil {
+			return err
+		}
+		if err := tx.Set(matchDoc, matchRecord); err != nil {
+			return err
+		}
+		return tx.Set(participantsDoc, participantsRecord)
+	})
+	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
+		return fmt.Errorf("store: update match %s: %w", matchID, err)
+	}
+	return nil
+}
+
+func transactionRecord(
+	tx *firestore.Transaction,
+	doc *firestore.DocumentRef,
+	storeName string,
+	key string,
+) (firestoreRecord, error) {
+	snapshot, err := tx.Get(doc)
+	if status.Code(err) == codes.NotFound {
+		return firestoreRecord{}, fmt.Errorf("%w: %s in store %s", ErrNotFound, key, storeName)
+	}
+	if err != nil {
+		return firestoreRecord{}, err
+	}
+	var record firestoreRecord
+	if err := snapshot.DataTo(&record); err != nil {
+		return firestoreRecord{}, err
+	}
+	if record.Key != key {
+		return firestoreRecord{}, fmt.Errorf("store: state key %q does not match %q", record.Key, key)
+	}
+	return record, nil
+}
+
 // ClaimDeliveryOperation transactionally creates, reclaims, or observes one
 // provider-delivery lease. Firestore transaction retries preserve one winner.
 func (s *FirestoreStore) ClaimDeliveryOperation(

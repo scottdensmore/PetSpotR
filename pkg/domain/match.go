@@ -20,6 +20,28 @@ const (
 	MatchStatusReunited      MatchStatus = "REUNITED"
 )
 
+// MatchDecision is one participant's immutable review decision.
+type MatchDecision string
+
+const (
+	MatchDecisionConfirm MatchDecision = "CONFIRM"
+	MatchDecisionReject  MatchDecision = "REJECT"
+)
+
+// MatchParticipantRole identifies which report owner made a match decision.
+type MatchParticipantRole string
+
+const (
+	MatchParticipantRoleReporter MatchParticipantRole = "reporter"
+	MatchParticipantRoleFinder   MatchParticipantRole = "finder"
+)
+
+var (
+	ErrNotMatchParticipant         = errors.New("domain: principal is not a match participant")
+	ErrIncompleteMatchParticipants = errors.New("domain: bilateral match participants are required")
+	ErrMatchDecisionConflict       = errors.New("domain: match decision is immutable")
+)
+
 // MatchScoreBreakdown preserves the components and threshold used to rank a
 // candidate so the combined score remains explainable after model changes.
 type MatchScoreBreakdown struct {
@@ -62,11 +84,22 @@ type MatchRecord struct {
 // separately from MatchRecord so public match responses cannot expose identity
 // provider subjects. Legacy or mixed-auth matches may have only one owner.
 type MatchParticipantRecord struct {
-	MatchID    string        `json:"matchId"`
-	LostPetID  string        `json:"lostPetId"`
-	FoundPetID string        `json:"foundPetId"`
-	Reporter   *PrincipalRef `json:"reporter,omitempty"`
-	Finder     *PrincipalRef `json:"finder,omitempty"`
+	MatchID          string               `json:"matchId"`
+	LostPetID        string               `json:"lostPetId"`
+	FoundPetID       string               `json:"foundPetId"`
+	Reporter         *PrincipalRef        `json:"reporter,omitempty"`
+	Finder           *PrincipalRef        `json:"finder,omitempty"`
+	ReporterDecision MatchDecision        `json:"reporterDecision,omitempty"`
+	FinderDecision   MatchDecision        `json:"finderDecision,omitempty"`
+	DecisionAudit    []MatchDecisionAudit `json:"decisionAudit,omitempty"`
+}
+
+// MatchDecisionAudit records the first accepted decision for one participant
+// role. It remains in the private participant document.
+type MatchDecisionAudit struct {
+	Role      MatchParticipantRole `json:"role"`
+	Decision  MatchDecision        `json:"decision"`
+	DecidedAt time.Time            `json:"decidedAt"`
 }
 
 // Validate requires a match identity and at least one valid participant.
@@ -88,7 +121,112 @@ func (r MatchParticipantRecord) Validate() error {
 			return fmt.Errorf("domain: invalid match finder: %w", err)
 		}
 	}
+	if err := validateStoredMatchDecision(r.Reporter, r.ReporterDecision, MatchParticipantRoleReporter); err != nil {
+		return err
+	}
+	if err := validateStoredMatchDecision(r.Finder, r.FinderDecision, MatchParticipantRoleFinder); err != nil {
+		return err
+	}
+	seenAudit := map[MatchParticipantRole]bool{}
+	for _, audit := range r.DecisionAudit {
+		if audit.Role != MatchParticipantRoleReporter && audit.Role != MatchParticipantRoleFinder {
+			return fmt.Errorf("domain: unsupported match participant role %q", audit.Role)
+		}
+		if seenAudit[audit.Role] || !validMatchDecision(audit.Decision) || audit.DecidedAt.IsZero() {
+			return errors.New("domain: invalid match decision audit")
+		}
+		seenAudit[audit.Role] = true
+		if audit.Role == MatchParticipantRoleReporter && audit.Decision != r.ReporterDecision {
+			return errors.New("domain: reporter decision audit does not match decision")
+		}
+		if audit.Role == MatchParticipantRoleFinder && audit.Decision != r.FinderDecision {
+			return errors.New("domain: finder decision audit does not match decision")
+		}
+	}
+	if (r.ReporterDecision != "") != seenAudit[MatchParticipantRoleReporter] ||
+		(r.FinderDecision != "") != seenAudit[MatchParticipantRoleFinder] {
+		return errors.New("domain: every match decision requires one audit record")
+	}
 	return nil
+}
+
+// ApplyDecision returns a copied participant record with the actor's first
+// decision applied. Exact retries are no-ops and changed decisions conflict.
+func (r MatchParticipantRecord) ApplyDecision(
+	actor PrincipalRef,
+	decision MatchDecision,
+	decidedAt time.Time,
+) (MatchParticipantRecord, MatchStatus, bool, error) {
+	if err := r.Validate(); err != nil {
+		return MatchParticipantRecord{}, "", false, err
+	}
+	if r.Reporter == nil || r.Finder == nil {
+		return MatchParticipantRecord{}, "", false, ErrIncompleteMatchParticipants
+	}
+	if err := actor.Validate(); err != nil {
+		return MatchParticipantRecord{}, "", false, fmt.Errorf("domain: invalid match decision actor: %w", err)
+	}
+	if !validMatchDecision(decision) || decidedAt.IsZero() {
+		return MatchParticipantRecord{}, "", false, errors.New("domain: match decision and decidedAt are required")
+	}
+	reporter := principalRefsEqual(r.Reporter, actor)
+	finder := principalRefsEqual(r.Finder, actor)
+	if !reporter && !finder {
+		return MatchParticipantRecord{}, "", false, ErrNotMatchParticipant
+	}
+	if reporter && r.ReporterDecision != "" && r.ReporterDecision != decision {
+		return MatchParticipantRecord{}, "", false, ErrMatchDecisionConflict
+	}
+	if finder && r.FinderDecision != "" && r.FinderDecision != decision {
+		return MatchParticipantRecord{}, "", false, ErrMatchDecisionConflict
+	}
+
+	next := r
+	next.DecisionAudit = append([]MatchDecisionAudit(nil), r.DecisionAudit...)
+	changed := false
+	if reporter && next.ReporterDecision == "" {
+		next.ReporterDecision = decision
+		next.DecisionAudit = append(next.DecisionAudit, MatchDecisionAudit{
+			Role: MatchParticipantRoleReporter, Decision: decision, DecidedAt: decidedAt,
+		})
+		changed = true
+	}
+	if finder && next.FinderDecision == "" {
+		next.FinderDecision = decision
+		next.DecisionAudit = append(next.DecisionAudit, MatchDecisionAudit{
+			Role: MatchParticipantRoleFinder, Decision: decision, DecidedAt: decidedAt,
+		})
+		changed = true
+	}
+	return next, next.decisionStatus(), changed, nil
+}
+
+func (r MatchParticipantRecord) decisionStatus() MatchStatus {
+	if r.ReporterDecision == MatchDecisionReject || r.FinderDecision == MatchDecisionReject {
+		return MatchStatusRejected
+	}
+	if r.ReporterDecision == MatchDecisionConfirm && r.FinderDecision == MatchDecisionConfirm {
+		return MatchStatusConfirmed
+	}
+	return MatchStatusPendingReview
+}
+
+func validateStoredMatchDecision(owner *PrincipalRef, decision MatchDecision, role MatchParticipantRole) error {
+	if decision == "" {
+		return nil
+	}
+	if owner == nil || !validMatchDecision(decision) {
+		return fmt.Errorf("domain: invalid %s match decision", role)
+	}
+	return nil
+}
+
+func validMatchDecision(decision MatchDecision) bool {
+	return decision == MatchDecisionConfirm || decision == MatchDecisionReject
+}
+
+func principalRefsEqual(expected *PrincipalRef, actual PrincipalRef) bool {
+	return expected != nil && expected.Issuer == actual.Issuer && expected.Subject == actual.Subject
 }
 
 // StableMatchID derives one idempotency key for a source report and candidate.

@@ -149,14 +149,15 @@ PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
 
 The report-ownership contract uses two independent application-service and
 Firestore runtime instances to verify durable owner identity, idempotent
-same-owner retries, and rejection of a competing principal. The match-list
-contract uses independent writer and web-reader runtimes to verify bilateral
-participant filtering through the product HTTP boundary:
+same-owner retries, and rejection of a competing principal. The match-list and
+match-decision contracts use independent writer and web runtimes to verify
+bilateral authorization plus atomic public/private decision persistence through
+the product HTTP boundary:
 
 ```bash
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
   go test ./e2e -count=1 -v \
-  -run '^TestFirestore(ReportOwnershipSurvivesIndependentServiceRuntimes|MatchListFiltersParticipantsAcrossServiceRuntimes)$'
+  -run '^TestFirestore(ReportOwnershipSurvivesIndependentServiceRuntimes|MatchListFiltersParticipantsAcrossServiceRuntimes|MatchDecisionIsAtomicAcrossServiceRuntimes)$'
 ```
 
 ### Human Identity Sessions
@@ -166,10 +167,10 @@ Google Identity Platform through the Firebase Admin Go SDK. It is deployed
 consumer-first and defaults to `disabled`, including on Cloud Run, until the
 later infrastructure and sign-in UI slices activate it. When configured, the
 web frontend requires a verified session and double-submit CSRF token for
-`POST /api/v1/lost-pets` and `POST /api/v1/found-pets`, and a verified session
-for participant-filtered match reads. When disabled, the existing anonymous
-demo flow is preserved. Match mutation routes do not use the session yet, and
-pet lifecycle mutation routes remain unexposed.
+`POST /api/v1/lost-pets`, `POST /api/v1/found-pets`, and match decisions, and a
+verified session for participant-filtered match reads. When disabled, the
+existing anonymous demo flow is preserved. Pet lifecycle mutation routes
+remain unexposed.
 
 Lost- and found-report application commands can already persist an optional
 provider-neutral `issuer` plus opaque `subject` owner. The owner is private
@@ -205,6 +206,18 @@ no-store`. Anonymous requests return `401 Unauthorized`; ownerless legacy
 matches, malformed participant records, mismatched match/report bindings, and
 matches owned only by other users are omitted. Identity-disabled demo runtimes
 retain the existing public match list.
+
+`POST /api/v1/matches/action` accepts `confirm` or `reject` only from the
+authenticated reporter or finder named by a complete private participant
+record and requires double-submit CSRF. Each role's first decision is immutable:
+an exact retry is an idempotent success, while attempting to change it returns
+`409 Conflict`. One rejection immediately rejects the match; confirmation stays
+pending until both roles confirm. When one principal owns both reports, one
+decision satisfies both roles. The public match status and private participant
+decisions update atomically, and the first accepted decision for each role is
+recorded in a private audit list. Missing, incomplete, legacy, and wrong-owner
+matches all return `404 Not Found`. Identity-disabled demo runtimes retain the
+existing explicitly enabled single-action behavior.
 
 `GET /api/v1/lost-pets/{petId}/contact` and
 `GET /api/v1/found-pets/{petId}/contact` return only the authenticated report
@@ -243,8 +256,10 @@ reporter or finder email, and the public listings omit owner identity and
 contact. It also proves each report owner can read their private contact, while
 anonymous and independently authenticated wrong-owner requests cannot. The two
 authenticated users can both read a shared match as reporter and finder while
-unrelated matches remain hidden. It then logs out and confirms the session no
-longer authenticates.
+unrelated matches remain hidden. They exercise CSRF-protected bilateral match
+confirmation, idempotent retry, immutable-decision conflict, private audit
+persistence, and non-enumerating wrong-owner behavior. It then logs out and
+confirms the session no longer authenticates.
 Use the `demo-` project exactly as shown so an accidentally missing emulator
 cannot reach a billable Firebase project.
 

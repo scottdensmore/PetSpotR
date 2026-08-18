@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -37,6 +38,17 @@ type StateWrite struct {
 // StateUpdater computes the next value from an isolated copy of current state.
 // Managed stores may invoke it more than once when a transaction is retried.
 type StateUpdater func(current []byte) (next []byte, err error)
+
+// MatchStateUpdater computes one atomic replacement for the public match and
+// its private participant record. Managed stores may invoke it more than once
+// when a transaction is retried.
+type MatchStateUpdater func(match, participants []byte) (nextMatch, nextParticipants []byte, err error)
+
+// MatchDecisionStore atomically updates the two documents that comprise one
+// authorized match decision.
+type MatchDecisionStore interface {
+	UpdateMatchAndParticipants(ctx context.Context, matchID string, update MatchStateUpdater) error
+}
 
 // StateStore defines key-value state store persistence operations.
 type StateStore interface {
@@ -167,6 +179,51 @@ func (m *MemoryStore) UpdateState(ctx context.Context, storeName, key string, up
 		return err
 	}
 	storeMap[key] = bytes.Clone(next)
+	return nil
+}
+
+// UpdateMatchAndParticipants atomically replaces an existing public match and
+// private participant record under one lock.
+func (m *MemoryStore) UpdateMatchAndParticipants(
+	ctx context.Context,
+	matchID string,
+	update MatchStateUpdater,
+) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if strings.TrimSpace(matchID) == "" {
+		return errors.New("store: match ID is required")
+	}
+	if update == nil {
+		return errors.New("store: match state updater is required")
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	matches, ok := m.items[MatchesCollection]
+	if !ok {
+		return fmt.Errorf("%w: %s", ErrStoreNotFound, MatchesCollection)
+	}
+	match, ok := matches[matchID]
+	if !ok {
+		return fmt.Errorf("%w: %s in store %s", ErrNotFound, matchID, MatchesCollection)
+	}
+	participantsByMatch, ok := m.items[MatchParticipantsCollection]
+	if !ok {
+		return fmt.Errorf("%w: %s", ErrStoreNotFound, MatchParticipantsCollection)
+	}
+	participants, ok := participantsByMatch[matchID]
+	if !ok {
+		return fmt.Errorf("%w: %s in store %s", ErrNotFound, matchID, MatchParticipantsCollection)
+	}
+
+	nextMatch, nextParticipants, err := update(bytes.Clone(match), bytes.Clone(participants))
+	if err != nil {
+		return err
+	}
+	matches[matchID] = bytes.Clone(nextMatch)
+	participantsByMatch[matchID] = bytes.Clone(nextParticipants)
 	return nil
 }
 

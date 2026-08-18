@@ -805,6 +805,10 @@ func (s *Server) handleApiMatchAction(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if s.identitySessions != nil {
+		s.handleAuthenticatedMatchAction(w, r)
+		return
+	}
 	if !s.allowPrivilegedMutations {
 		http.Error(w, "Authentication is required for match actions", http.StatusForbidden)
 		return
@@ -859,6 +863,104 @@ func (s *Server) handleApiMatchAction(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{
 		"matchId": req.MatchID,
 		"status":  status,
+		"message": fmt.Sprintf("Match status updated to %s", status),
+	})
+}
+
+var errMatchActionHidden = errors.New("webfrontend: match is not actionable by principal")
+
+func (s *Server) handleAuthenticatedMatchAction(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	principal, ok := s.verifiedRequestPrincipal(w, r)
+	if !ok {
+		return
+	}
+	if !s.validCSRF(r) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+	var req MatchActionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+	req.MatchID = strings.TrimSpace(req.MatchID)
+	action := domain.MatchDecision(strings.ToUpper(strings.TrimSpace(req.Action)))
+	if req.MatchID == "" || (action != domain.MatchDecisionConfirm && action != domain.MatchDecisionReject) {
+		http.Error(w, "matchId and action (confirm or reject) are required", http.StatusBadRequest)
+		return
+	}
+
+	decisionStore, ok := s.stateStore.(store.MatchDecisionStore)
+	if !ok {
+		http.Error(w, "Match decision storage is unavailable", http.StatusInternalServerError)
+		return
+	}
+	actor := domain.PrincipalRef{Issuer: principal.Issuer, Subject: principal.Subject}
+	decidedAt := time.Now().UTC()
+	status := domain.MatchStatusPendingReview
+	err := decisionStore.UpdateMatchAndParticipants(
+		r.Context(), req.MatchID,
+		func(matchData, participantData []byte) ([]byte, []byte, error) {
+			var match domain.MatchRecord
+			if err := json.Unmarshal(matchData, &match); err != nil {
+				return nil, nil, fmt.Errorf("decode match: %w", err)
+			}
+			var participants domain.MatchParticipantRecord
+			if err := json.Unmarshal(participantData, &participants); err != nil {
+				return nil, nil, errMatchActionHidden
+			}
+			if match.MatchID != req.MatchID || participants.MatchID != req.MatchID ||
+				participants.LostPetID != match.MatchedPetID || participants.FoundPetID != match.FoundPetID ||
+				participants.Validate() != nil {
+				return nil, nil, errMatchActionHidden
+			}
+
+			nextParticipants, nextStatus, changed, err := participants.ApplyDecision(actor, action, decidedAt)
+			if errors.Is(err, domain.ErrNotMatchParticipant) || errors.Is(err, domain.ErrIncompleteMatchParticipants) {
+				return nil, nil, errMatchActionHidden
+			}
+			if err != nil {
+				return nil, nil, err
+			}
+			if match.Status != domain.MatchStatusPendingReview {
+				if changed || match.Status != nextStatus {
+					return nil, nil, domain.ErrMatchDecisionConflict
+				}
+			}
+			match.Status = nextStatus
+			nextMatchData, err := json.Marshal(match)
+			if err != nil {
+				return nil, nil, err
+			}
+			nextParticipantData, err := json.Marshal(nextParticipants)
+			if err != nil {
+				return nil, nil, err
+			}
+			status = nextStatus
+			return nextMatchData, nextParticipantData, nil
+		},
+	)
+	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) || errors.Is(err, errMatchActionHidden) {
+		http.NotFound(w, r)
+		return
+	}
+	if errors.Is(err, domain.ErrMatchDecisionConflict) {
+		http.Error(w, "Match decision conflicts with the accepted decision", http.StatusConflict)
+		return
+	}
+	if err != nil {
+		http.Error(w, "Failed to update match decision", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"matchId": req.MatchID,
+		"status":  string(status),
 		"message": fmt.Sprintf("Match status updated to %s", status),
 	})
 }

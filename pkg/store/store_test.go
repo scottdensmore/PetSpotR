@@ -155,3 +155,43 @@ func TestMemoryStateStore(t *testing.T) {
 		}
 	})
 }
+
+func TestMemoryStoreUpdatesMatchAndParticipantsAtomically(t *testing.T) {
+	ctx := context.Background()
+	state := store.NewMemoryStore()
+	if err := state.SaveState(ctx, store.MatchesCollection, "match-101", []byte("match-before")); err != nil {
+		t.Fatal(err)
+	}
+	if err := state.SaveState(
+		ctx, store.MatchParticipantsCollection, "match-101", []byte("participants-before"),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := state.UpdateMatchAndParticipants(ctx, "match-101", func(match, participants []byte) ([]byte, []byte, error) {
+		match[0] = 'X'
+		participants[0] = 'Y'
+		return []byte("match-after"), []byte("participants-after"), nil
+	}); err != nil {
+		t.Fatalf("UpdateMatchAndParticipants() error = %v", err)
+	}
+	assertStoredValue(t, state, store.MatchesCollection, "match-101", "match-after")
+	assertStoredValue(t, state, store.MatchParticipantsCollection, "match-101", "participants-after")
+
+	rejected := errors.New("decision rejected")
+	if err := state.UpdateMatchAndParticipants(ctx, "match-101", func([]byte, []byte) ([]byte, []byte, error) {
+		return []byte("discarded-match"), []byte("discarded-participants"), rejected
+	}); !errors.Is(err, rejected) {
+		t.Fatalf("rejected update error = %v, want %v", err, rejected)
+	}
+	assertStoredValue(t, state, store.MatchesCollection, "match-101", "match-after")
+	assertStoredValue(t, state, store.MatchParticipantsCollection, "match-101", "participants-after")
+}
+
+func assertStoredValue(t *testing.T, state store.StateStore, collection, key, want string) {
+	t.Helper()
+	got, err := state.GetState(context.Background(), collection, key)
+	if err != nil || string(got) != want {
+		t.Fatalf("%s/%s = %q, %v; want %q", collection, key, got, err, want)
+	}
+}
