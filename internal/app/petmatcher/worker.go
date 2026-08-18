@@ -235,6 +235,10 @@ func (w *Worker) processClaimedFoundPet(
 		if err := matchRecord.Validate(); err != nil {
 			return fmt.Errorf("pet-matcher: validate match record: %w", err)
 		}
+		participants, err := w.matchParticipants(ctx, matchRecord, lostRecord)
+		if err != nil {
+			return err
+		}
 		resultBytes, err := matchResult.ToJSON()
 		if err != nil {
 			return fmt.Errorf("pet-matcher: failed to marshal MatchResult: %w", err)
@@ -263,7 +267,9 @@ func (w *Worker) processClaimedFoundPet(
 		if err != nil {
 			return fmt.Errorf("pet-matcher: failed to marshal matchFound envelope: %w", err)
 		}
-		resultRecord, err := w.persistMatcherResult(ctx, inputEventID, matchRecord, matchEnvelope.ID, envelopeBytes)
+		resultRecord, err := w.persistMatcherResult(
+			ctx, inputEventID, matchRecord, participants, matchEnvelope.ID, envelopeBytes,
+		)
 		if err != nil {
 			return err
 		}
@@ -282,6 +288,7 @@ func (w *Worker) persistMatcherResult(
 	ctx context.Context,
 	inputEventID string,
 	match domain.MatchRecord,
+	participants *domain.MatchParticipantRecord,
 	outboxID string,
 	payload []byte,
 ) (matcherResultRecord, error) {
@@ -299,12 +306,22 @@ func (w *Worker) persistMatcherResult(
 	if err != nil {
 		return matcherResultRecord{}, fmt.Errorf("pet-matcher: marshal match record: %w", err)
 	}
+	states := []store.StateWrite{
+		{StoreName: store.MatcherResultsCollection, Key: inputEventID, Data: stateData},
+		{StoreName: store.MatchesCollection, Key: match.MatchID, Data: matchData},
+	}
+	if participants != nil {
+		participantsData, marshalErr := json.Marshal(participants)
+		if marshalErr != nil {
+			return matcherResultRecord{}, fmt.Errorf("pet-matcher: marshal match participants: %w", marshalErr)
+		}
+		states = append(states, store.StateWrite{
+			StoreName: store.MatchParticipantsCollection, Key: match.MatchID, Data: participantsData,
+		})
+	}
 	_, err = w.store.CreateStatesAndOutbox(
 		ctx,
-		[]store.StateWrite{
-			{StoreName: store.MatcherResultsCollection, Key: inputEventID, Data: stateData},
-			{StoreName: store.MatchesCollection, Key: match.MatchID, Data: matchData},
-		},
+		states,
 		store.StateWrite{StoreName: store.OutboxCollection, Key: outboxID, Data: outboxData},
 	)
 	if err == nil {
@@ -321,6 +338,38 @@ func (w *Worker) persistMatcherResult(
 		return matcherResultRecord{}, fmt.Errorf("pet-matcher: conflicting result has no durable winner: %w", err)
 	}
 	return winner, nil
+}
+
+func (w *Worker) matchParticipants(
+	ctx context.Context,
+	match domain.MatchRecord,
+	lost domain.LostPetRecord,
+) (*domain.MatchParticipantRecord, error) {
+	participants := domain.MatchParticipantRecord{
+		MatchID: match.MatchID, LostPetID: match.MatchedPetID, FoundPetID: match.FoundPetID,
+		Reporter: lost.OwnedBy,
+	}
+	foundData, err := w.store.GetState(ctx, store.FoundPetsCollection, match.FoundPetID)
+	if err == nil {
+		var found domain.FoundPetRecord
+		if unmarshalErr := json.Unmarshal(foundData, &found); unmarshalErr != nil {
+			return nil, fmt.Errorf("pet-matcher: decode found-pet owner state: %w", unmarshalErr)
+		}
+		found = domain.NormalizeFoundPetRecord(found)
+		if found.PetID != match.FoundPetID {
+			return nil, errors.New("pet-matcher: found-pet owner state does not match event")
+		}
+		participants.Finder = found.OwnedBy
+	} else if !errors.Is(err, store.ErrNotFound) && !errors.Is(err, store.ErrStoreNotFound) {
+		return nil, fmt.Errorf("pet-matcher: load found-pet owner state: %w", err)
+	}
+	if participants.Reporter == nil && participants.Finder == nil {
+		return nil, nil
+	}
+	if err := participants.Validate(); err != nil {
+		return nil, fmt.Errorf("pet-matcher: validate match participants: %w", err)
+	}
+	return &participants, nil
 }
 
 func (w *Worker) loadMatcherResult(ctx context.Context, inputEventID string) (matcherResultRecord, bool, error) {

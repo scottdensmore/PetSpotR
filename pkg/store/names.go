@@ -6,6 +6,7 @@ const (
 	FoundPetsCollection              = "foundPets"
 	ReportContactsCollection         = "reportContacts"
 	MatchesCollection                = "matches"
+	MatchParticipantsCollection      = "matchParticipants"
 	PushSubscriptionsCollection      = "pushSubscriptions"
 	OutboxCollection                 = "eventOutbox"
 	NotificationDeliveriesCollection = "notificationDeliveries"

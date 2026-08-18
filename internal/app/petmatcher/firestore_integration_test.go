@@ -232,7 +232,13 @@ func TestFirestoreMatcherRecoversPersistedResultAcrossWorkers(t *testing.T) {
 
 	var ollamaCalls atomic.Int32
 	server := newMatcherOllamaServer(t, &ollamaCalls, nil, nil)
-	seedMatcherLostPet(t, firstStore)
+	reporter := &domain.PrincipalRef{
+		Issuer: "https://securetoken.google.com/petspotr-test", Subject: "reporter-firestore-recovery",
+	}
+	finder := &domain.PrincipalRef{
+		Issuer: "https://securetoken.google.com/petspotr-test", Subject: "finder-firestore-recovery",
+	}
+	seedMatcherLostPetWithOwner(t, firstStore, reporter)
 	t.Cleanup(func() {
 		_ = firstStore.DeleteState(context.Background(), store.LostPetsCollection, "lost-101")
 	})
@@ -243,6 +249,10 @@ func TestFirestoreMatcherRecoversPersistedResultAcrossWorkers(t *testing.T) {
 		FoundAt:  time.Now().UTC(),
 		Location: "Seattle, WA",
 	}
+	seedMatcherFoundPetWithOwner(t, firstStore, foundEvent, finder)
+	t.Cleanup(func() {
+		_ = firstStore.DeleteState(context.Background(), store.FoundPetsCollection, foundEvent.PetID)
+	})
 	foundData := verifiedFoundEventData(t, foundEvent)
 	_, envelope, err := domain.DecodeFoundPetReported(foundData)
 	if err != nil {
@@ -287,6 +297,7 @@ func TestFirestoreMatcherRecoversPersistedResultAcrossWorkers(t *testing.T) {
 	t.Cleanup(func() {
 		_ = firstStore.DeleteState(context.Background(), store.OutboxCollection, result.OutboxID)
 		_ = firstStore.DeleteState(context.Background(), store.MatchesCollection, result.MatchID)
+		_ = firstStore.DeleteState(context.Background(), store.MatchParticipantsCollection, result.MatchID)
 	})
 	matchData, err := firstStore.GetState(ctx, store.MatchesCollection, result.MatchID)
 	if err != nil {
@@ -298,6 +309,21 @@ func TestFirestoreMatcherRecoversPersistedResultAcrossWorkers(t *testing.T) {
 	}
 	if err := match.Validate(); err != nil {
 		t.Fatalf("persisted match validation: %v", err)
+	}
+	participantsData, err := secondStore.GetState(ctx, store.MatchParticipantsCollection, result.MatchID)
+	if err != nil {
+		t.Fatalf("GetState(match participants) error = %v", err)
+	}
+	var participants domain.MatchParticipantRecord
+	if err := json.Unmarshal(participantsData, &participants); err != nil {
+		t.Fatal(err)
+	}
+	if err := participants.Validate(); err != nil {
+		t.Fatalf("persisted match participants validation: %v", err)
+	}
+	if participants.Reporter == nil || *participants.Reporter != *reporter ||
+		participants.Finder == nil || *participants.Finder != *finder {
+		t.Fatalf("persisted match participants = %#v", participants)
 	}
 	if err := NewWorker(secondStore, publisher, client).ProcessFoundPet(ctx, foundData); err != nil {
 		t.Fatalf("second ProcessFoundPet() error = %v", err)

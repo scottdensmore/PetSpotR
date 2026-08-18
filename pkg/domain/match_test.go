@@ -58,3 +58,41 @@ func TestMatchRecordUsesStableIdentityAndValidatedProvenance(t *testing.T) {
 		t.Fatal("Validate() error = nil, want missing threshold rejection")
 	}
 }
+
+func TestMatchParticipantRecordValidatesBilateralOwnership(t *testing.T) {
+	record := domain.MatchParticipantRecord{
+		MatchID:    "match-101",
+		LostPetID:  "lost-101",
+		FoundPetID: "found-202",
+		Reporter: &domain.PrincipalRef{
+			Issuer:  "https://securetoken.google.com/petspotr-test",
+			Subject: "reporter-101",
+		},
+		Finder: &domain.PrincipalRef{
+			Issuer:  "https://securetoken.google.com/petspotr-test",
+			Subject: "finder-202",
+		},
+	}
+	if err := record.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v", err)
+	}
+
+	legacyPartial := record
+	legacyPartial.Finder = nil
+	if err := legacyPartial.Validate(); err != nil {
+		t.Fatalf("Validate() partial legacy ownership error = %v", err)
+	}
+
+	invalid := record
+	invalid.Reporter = &domain.PrincipalRef{Issuer: record.Reporter.Issuer}
+	if err := invalid.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want invalid reporter rejection")
+	}
+
+	missingOwners := record
+	missingOwners.Reporter = nil
+	missingOwners.Finder = nil
+	if err := missingOwners.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want ownerless participant rejection")
+	}
+}

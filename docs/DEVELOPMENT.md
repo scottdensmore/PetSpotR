@@ -599,16 +599,22 @@ GOTOOLCHAIN=go1.26.5 go test ./pkg/store -count=1 -v \
 When scoring produces a match, the additive `sourceEventId` field keeps ordered
 input versions distinct. The worker derives a stable match ID from that source
 event and the two report IDs, then atomically creates the canonical `matches`
-record, its `matcherResults` deduplication record, and the exact `matchFound`
-`eventOutbox` payload before broker I/O. The match record preserves the score
-components, distance, model, threshold version, timestamp, and explanation
-used for the decision without copying private reporter contact. A retry loads
-that winning result and publishes its existing outbox record rather than
-invoking Ollama again. Broker failure releases the outbox lease for an
-immediate retry. A crash after broker acceptance can publish the same stable
-event again after lease expiry; the notification delivery operations below
-deduplicate that expected at-least-once boundary. No-candidate and no-match
-outcomes complete the processing operation without creating an event.
+record, its `matcherResults` deduplication record, the private
+`matchParticipants` authorization record when either report has a trusted
+owner, and the exact `matchFound` `eventOutbox` payload before broker I/O. The
+private record binds the match and both report IDs to the reporter and finder
+principals without adding those provider subjects to the public match record or
+event. Mixed-auth records retain the known participant; legacy ownerless match
+records remain readable and fail closed at later authorization boundaries. The
+match record preserves the score components, distance, model, threshold
+version, timestamp, and explanation used for the decision without copying
+private reporter contact. A retry loads that winning result and publishes its
+existing outbox record rather than invoking Ollama again. Broker failure
+releases the outbox lease for an immediate retry. A crash after broker
+acceptance can publish the same stable event again after lease expiry; the
+notification delivery operations below deduplicate that expected at-least-once
+boundary. No-candidate and no-match outcomes complete the processing operation
+without creating an event.
 
 Focused worker tests cover duplicate inputs, concurrent handlers, broker
 failure after the atomic write, and consumer-completion failure after successful
