@@ -1,9 +1,1 @@
-Yes proceed
-
----
-
-Lets figure out what the best identity platform we should use. What are the pros / cons
-
----
-
 Ok lets go with Google Identigy platform
