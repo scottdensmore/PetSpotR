@@ -33,6 +33,136 @@ function validMatchRecord(matchId: string) {
 }
 
 test.describe('Match dashboard persisted-data boundary', () => {
+  test('requires Google sign-in before rendering participant matches', async ({ page }) => {
+    const principal = {
+      issuer: 'https://securetoken.google.com/demo-petspotr-auth',
+      subject: 'google-match-participant-303',
+      email: 'verified-participant@example.com',
+      emailVerified: true,
+      signInProvider: 'google.com',
+    };
+    let signedIn = false;
+    let csrfCount = 0;
+    let matchRequests = 0;
+
+    await page.addInitScript(() => {
+      const browserWindow = window as typeof window & {
+        petspotrFirebaseAuthAdapterFactory?: () => Promise<{
+          signInWithGoogle: () => Promise<string>;
+          signOut: () => Promise<void>;
+        }>;
+      };
+      browserWindow.petspotrFirebaseAuthAdapterFactory = async () => ({
+        signInWithGoogle: async () => 'firebase-google-match-token',
+        signOut: async () => {},
+      });
+    });
+    await page.route('**/api/v1/session/client-config', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          enabled: true,
+          provider: 'google.com',
+          apiKey: 'fake-api-key',
+          authDomain: 'demo-petspotr-auth.firebaseapp.com',
+          projectId: 'demo-petspotr-auth',
+        }),
+      });
+    });
+    await page.route('**/api/v1/session/csrf', async (route) => {
+      csrfCount += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ csrfToken: `match-csrf-${csrfCount}` }),
+      });
+    });
+    await page.route('**/api/v1/session', async (route) => {
+      const request = route.request();
+      if (request.method() === 'GET') {
+        await route.fulfill(signedIn
+          ? { status: 200, contentType: 'application/json', body: JSON.stringify(principal) }
+          : { status: 401, body: 'Authentication required' });
+        return;
+      }
+      if (request.method() === 'POST') {
+        expect(request.headers()['x-csrf-token']).toBe('match-csrf-1');
+        expect(request.postDataJSON()).toEqual({ idToken: 'firebase-google-match-token' });
+        signedIn = true;
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(principal) });
+        return;
+      }
+      expect(request.method()).toBe('DELETE');
+      expect(request.headers()['x-csrf-token']).toBe('match-csrf-3');
+      signedIn = false;
+      await route.fulfill({ status: 204 });
+    });
+    await page.route('**/api/v1/matches', async (route) => {
+      matchRequests += 1;
+      expect(signedIn).toBe(true);
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([validMatchRecord('participant-match')]),
+      });
+    });
+
+    await page.goto(`${WEB_FRONTEND_URL}/matches`);
+    await expect(page.locator('#identity-panel')).toBeVisible();
+    await expect(page.locator('#identity-status')).toContainText('private matches');
+    await expect(page.locator('#google-sign-in')).toBeVisible();
+    await expect(page.locator('article[data-match-id]')).toHaveCount(0);
+    expect(matchRequests).toBe(0);
+
+    await page.locator('#google-sign-in').click();
+    await expect(page.locator('#identity-status')).toContainText('verified-participant@example.com');
+    await expect(page.locator('article[data-match-id="participant-match"]')).toBeVisible();
+    await expect(page.locator('.action-btn, .contact-btn, .reunion-btn')).toHaveCount(0);
+    expect(matchRequests).toBe(1);
+
+    await page.reload();
+    await expect(page.locator('article[data-match-id="participant-match"]')).toBeVisible();
+    expect(matchRequests).toBe(2);
+    await page.locator('#identity-sign-out').click();
+    await expect(page.locator('article[data-match-id]')).toHaveCount(0);
+    await expect(page.locator('#google-sign-in')).toBeFocused();
+    expect(matchRequests).toBe(2);
+
+    const unavailablePage = await page.context().newPage();
+    let unavailableMatchRequests = 0;
+    await unavailablePage.addInitScript(() => {
+      const browserWindow = window as typeof window & {
+        petspotrFirebaseAuthAdapterFactory?: () => Promise<never>;
+      };
+      browserWindow.petspotrFirebaseAuthAdapterFactory = async () => {
+        throw new Error('adapter unavailable');
+      };
+    });
+    await unavailablePage.route('**/api/v1/session/client-config', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          enabled: true,
+          provider: 'google.com',
+          apiKey: 'fake-api-key',
+          authDomain: 'demo-petspotr-auth.firebaseapp.com',
+          projectId: 'demo-petspotr-auth',
+        }),
+      });
+    });
+    await unavailablePage.route('**/api/v1/matches', async (route) => {
+      unavailableMatchRequests += 1;
+      await route.abort();
+    });
+    await unavailablePage.goto(`${WEB_FRONTEND_URL}/matches`);
+    await expect(unavailablePage.locator('#identity-error')).toContainText('temporarily unavailable');
+    await expect(unavailablePage.locator('article[data-match-id]')).toHaveCount(0);
+    expect(unavailableMatchRequests).toBe(0);
+    await unavailablePage.close();
+  });
+
   test('renders hostile match fields as inert data and rejects unsafe attributes', async ({ page }) => {
     const marker = 'stored-match-injection';
     const textPayload = `<img id="${marker}" src="/missing" onerror="document.body.dataset.storedXss='executed'">`;
