@@ -54,6 +54,20 @@ func TestNewServer_Routes(t *testing.T) {
 		}
 	})
 
+	t.Run("GET /static/favicon.svg returns the declared favicon", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/static/favicon.svg", nil)
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200 OK for favicon, got %d", rec.Code)
+		}
+		if got := rec.Header().Get("Content-Type"); !strings.Contains(got, "image/svg+xml") {
+			t.Errorf("expected SVG favicon content type, got %q", got)
+		}
+	})
+
 	t.Run("GET /healthz returns 200 OK", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 		rec := httptest.NewRecorder()
@@ -475,6 +489,27 @@ func TestNewServer_Routes(t *testing.T) {
 			t.Errorf("expected species filter result to contain cat.jpg, got %s", recCat.Body.String())
 		}
 	})
+}
+
+func TestRenderedPagesDeclareFavicon(t *testing.T) {
+	srv := NewDemoServer()
+	want := `<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">`
+
+	for _, path := range []string{"/", "/report-lost", "/report-found", "/matches"} {
+		t.Run(path, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, path, nil)
+			rec := httptest.NewRecorder()
+
+			srv.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("expected status 200 OK, got %d", rec.Code)
+			}
+			if !strings.Contains(rec.Body.String(), want) {
+				t.Error("expected rendered page to declare the PetSpotR favicon")
+			}
+		})
+	}
 }
 
 func TestNewServerStartsWithoutDemoMatches(t *testing.T) {
