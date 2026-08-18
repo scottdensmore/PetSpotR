@@ -4,11 +4,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const scoreFilter = document.getElementById('scoreFilter');
   const zoomModal = document.getElementById('zoom-modal');
   const zoomedImage = document.getElementById('zoomed-image');
+  const decisionStatus = document.getElementById('match-decision-status');
 
   let allMatches = [];
   let identityEnabled = false;
   let matchLoadRevision = 0;
   let lastIdentityState = '';
+  let decisionReturnTarget = null;
+  let decisionInFlight = false;
+  let identityRevision = 0;
   const matchStatuses = new Set(['PENDING_REVIEW', 'CONFIRMED', 'REJECTED', 'REUNITED']);
   const allowedImageHosts = new Set(['storage.petspotr.io']);
 
@@ -18,6 +22,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function closeModal(modal) {
     if (modal) modal.hidden = true;
+  }
+
+  function setDecisionBusy(button, busy) {
+    container?.querySelectorAll('.action-btn').forEach(actionButton => {
+      actionButton.setAttribute('aria-disabled', String(busy));
+    });
+    button.textContent = busy ? 'Saving decision...' : button.dataset.idleText;
+    if (decisionStatus) {
+      decisionStatus.textContent = busy ? 'Saving match decision...' : '';
+      decisionStatus.hidden = !busy;
+    }
+  }
+
+  function findDecisionReturnButton() {
+    if (!decisionReturnTarget || !container) return null;
+    return Array.from(container.querySelectorAll('.action-btn')).find(button =>
+      button.dataset.matchId === decisionReturnTarget.matchId &&
+      button.dataset.action === decisionReturnTarget.action,
+    ) || null;
+  }
+
+  function closeActionModal() {
+    const modal = document.getElementById('match-action-modal');
+    closeModal(modal);
+    const returnButton = findDecisionReturnButton();
+    decisionReturnTarget = null;
+    (returnButton || scoreFilter)?.focus();
   }
 
   function createElement(tagName, options = {}) {
@@ -322,10 +353,15 @@ document.addEventListener('DOMContentLoaded', () => {
     scores.append(scoreGrid);
 
     card.append(summary, comparison, scores);
-    if (!identityEnabled) {
-      const controls = createElement('div', {
-        className: 'match-controls',
-      });
+    const controls = createElement('div', {
+      className: 'match-controls',
+    });
+    if (identityEnabled) {
+      controls.append(
+        createActionButton('Reject Match', 'btn btn-secondary action-btn', m.matchId, 'reject'),
+        createActionButton('Confirm Match', 'btn btn-primary action-btn', m.matchId, 'confirm'),
+      );
+    } else {
       controls.append(
         createActionButton('💬 Contact Finder / Owner', 'btn btn-secondary contact-btn', m.matchId),
         createActionButton('Reject Match', 'btn btn-secondary action-btn', m.matchId, 'reject'),
@@ -334,8 +370,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const reunionButton = createActionButton('🎉 Mark as Reunited', 'btn btn-primary reunion-btn', m.matchId);
       reunionButton.dataset.petId = m.lostPet.petId;
       controls.append(reunionButton);
-      card.append(controls);
     }
+    card.append(controls);
     return card;
   }
 
@@ -383,23 +419,54 @@ document.addEventListener('DOMContentLoaded', () => {
     // Action Handlers
     container.querySelectorAll('.action-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
-        const matchId = e.currentTarget.getAttribute('data-match-id');
-        const action = e.currentTarget.getAttribute('data-action');
+        const button = e.currentTarget;
+        if (decisionInFlight || button.getAttribute('aria-disabled') === 'true') return;
+        const matchId = button.getAttribute('data-match-id');
+        const action = button.getAttribute('data-action');
+        decisionInFlight = true;
+        const decisionIdentityRevision = identityRevision;
+        const decisionUsesIdentity = identityEnabled;
+        button.dataset.idleText = button.textContent;
+        setDecisionBusy(button, true);
 
         try {
+          let identityState = null;
+          if (identityEnabled && window.petspotrIdentity) {
+            identityState = await window.petspotrIdentity.requireSession();
+          }
+          if (decisionUsesIdentity && decisionIdentityRevision !== identityRevision) return;
+
+          const headers = { 'Content-Type': 'application/json' };
+          if (identityState?.enabled) headers['X-CSRF-Token'] = identityState.csrfToken;
           const resp = await fetch('/api/v1/matches/action', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ matchId: matchId, action: action })
           });
+          if (decisionUsesIdentity && decisionIdentityRevision !== identityRevision) return;
 
-          if (resp.ok) {
-            const res = await resp.json();
-            showActionModal(res.status, action);
-            fetchMatches();
+          if (!resp.ok) {
+            const message = resp.status === 409
+              ? 'A different decision was already recorded for this participant.'
+              : 'Your decision could not be saved. Please try again.';
+            showActionModal('', 'decision-error', message, { matchId, action });
+            return;
           }
+          const res = await resp.json();
+          await fetchMatches();
+          if (decisionUsesIdentity && decisionIdentityRevision !== identityRevision) return;
+          showActionModal(res.status, action, '', { matchId, action });
         } catch (err) {
           console.error('Action error:', err);
+          if (decisionUsesIdentity && decisionIdentityRevision !== identityRevision) return;
+          if (err.code === 'identity-required') window.petspotrIdentity?.focusSignIn();
+          const message = err.code === 'identity-required'
+            ? 'Sign in again before recording a match decision.'
+            : 'Your decision could not be saved. Please try again.';
+          showActionModal('', 'decision-error', message, { matchId, action });
+        } finally {
+          decisionInFlight = false;
+          setDecisionBusy(button, false);
         }
       });
     });
@@ -459,20 +526,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function showActionModal(status, action) {
+  function showActionModal(status, action, errorMessage = '', returnTarget = null) {
     const modal = document.getElementById('match-action-modal');
+    const icon = document.getElementById('action-modal-icon');
     const title = document.getElementById('action-modal-title');
     const desc = document.getElementById('action-modal-desc');
 
     if (title && desc && modal) {
-      if (action === 'confirm') {
-        title.textContent = 'Match Confirmed!';
-        desc.textContent = 'Reunion status updated. Owner and finder notification alert dispatched.';
+      decisionReturnTarget = returnTarget;
+      if (action === 'decision-error') {
+        if (icon) icon.hidden = true;
+        title.textContent = 'Decision not saved';
+        desc.textContent = errorMessage;
+      } else if (action === 'confirm' && status === 'PENDING_REVIEW') {
+        if (icon) icon.hidden = false;
+        title.textContent = 'Decision recorded';
+        desc.textContent = 'Waiting for the other participant to confirm this match.';
+      } else if (action === 'confirm') {
+        if (icon) icon.hidden = false;
+        title.textContent = 'Match confirmed';
+        desc.textContent = 'Both participants confirmed this match.';
       } else {
+        if (icon) icon.hidden = false;
         title.textContent = 'Match Rejected';
         desc.textContent = 'Match candidate removed from active list and feedback logged.';
       }
       openModal(modal);
+      modal.querySelector('.modal-close')?.focus();
     }
   }
 
@@ -486,8 +566,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.modal-close').forEach(button => {
     button.addEventListener('click', (event) => {
-      closeModal(event.currentTarget.closest('.modal-overlay'));
+      const modal = event.currentTarget.closest('.modal-overlay');
+      if (modal?.id === 'match-action-modal') {
+        closeActionModal();
+      } else {
+        closeModal(modal);
+      }
     });
+  });
+
+  const actionModal = document.getElementById('match-action-modal');
+  actionModal?.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeActionModal();
+      return;
+    }
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      actionModal.querySelector('.modal-close')?.focus();
+    }
   });
 
   async function applyIdentityState(stateSnapshot) {
@@ -516,6 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ].join('|');
     if (stateKey === lastIdentityState) return;
     lastIdentityState = stateKey;
+    identityRevision += 1;
     void applyIdentityState(stateSnapshot);
   }
 

@@ -226,9 +226,13 @@ session. The identity-disabled anonymous demo flows remain unchanged.
 The match dashboard uses the same Google session panel. In identity-enabled
 mode it makes no match-list request before authentication, renders only the
 participant-filtered response after sign-in, clears the list on logout, and
-hides decision, mediated-contact, and reunion controls until those browser
-mutation journeys are enabled separately. The identity-disabled demo dashboard
-retains its existing public list and controls.
+offers only Confirm and Reject participant decisions with the current CSRF
+token. Pending confirmation, bilateral confirmation, rejection, and immutable
+decision conflicts receive distinct feedback. One in-flight decision locks the
+dashboard's decision controls, and an identity change such as logout fences its
+completion before refresh or feedback. Mediated-contact and reunion controls
+remain hidden until those browser journeys are enabled separately. The
+identity-disabled demo dashboard retains its existing public list and controls.
 
 Authenticated lost and found reports derive their owner key and reporter or
 finder email from the verified session. Caller-supplied `reporterEmail` and
