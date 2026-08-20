@@ -174,6 +174,12 @@ verified session for participant-filtered match reads. When disabled, the
 existing anonymous demo flow is preserved. Pet lifecycle mutation routes
 remain unexposed.
 
+Identity mode always overrides the memory runtime's demo privilege flag. When
+human sessions are configured, the legacy reunion-resolution, push-subscription,
+and presigned-upload routes remain closed even for an authenticated user; they
+must not become an accidental privilege-escalation path while their authorized
+replacements are incomplete.
+
 Lost- and found-report application commands can already persist an optional
 provider-neutral `issuer` plus opaque `subject` owner. The owner is private
 durable state: public DTOs and integration events omit it. Pre-ownership
@@ -324,8 +330,10 @@ emulator user, obtains an emulator-issued ID token, exercises CSRF rejection,
 establishes and verifies the session through
 the real web server, and creates owned lost and found reports. It proves
 anonymous and post-logout submissions are rejected, a caller cannot spoof the
-reporter or finder email, and the public listings omit owner identity and
-contact. It also proves each report owner can read their private contact, while
+reporter or finder email, an ordinary user cannot invoke the legacy reunion
+mutation even when memory-mode demo privileges were requested, and the public
+listings omit owner identity and contact. It also proves each report owner can
+read their private contact, while
 anonymous and independently authenticated wrong-owner requests cannot. The two
 authenticated users can both read a shared match as reporter and finder while
 unrelated matches remain hidden. They exercise CSRF-protected bilateral match
