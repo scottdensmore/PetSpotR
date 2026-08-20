@@ -1,0 +1,59 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0FYA925VQ159Z5SS04WJ02P",
+  "session_id": "01a0106b-5c6a-72c3-ad94-2ec2cccbe9fa",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-20T16:00:01.43608738Z",
+  "branch": "feat/scoped-operator-role-assignments",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "pkg/domain/role_assignment.go",
+    "pkg/domain/role_assignment_test.go",
+    "pkg/runtimeconfig/config_test.go",
+    "pkg/runtimeconfig/state.go",
+    "pkg/store/firestore.go",
+    "pkg/store/firestore_role_assignment.go",
+    "pkg/store/firestore_role_assignment_integration_test.go",
+    "pkg/store/role_assignment.go",
+    "pkg/store/role_assignment_test.go",
+    "pkg/store/store.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "5c3fccf56b4f",
+  "checkpoint_transcript_start": 19172,
+  "transcript_lines_at_start": 19172,
+  "compact_transcript_start": 2826,
+  "token_usage": {
+    "input_tokens": 11557,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": -14142976,
+    "output_tokens": 17505,
+    "api_call_count": 139
+  },
+  "session_metrics": {
+    "turn_count": 10
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-20T15:59:54.441401881Z",
+    "agent_lines": 1895,
+    "agent_removed": 14,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1895,
+    "total_lines_changed": 1909,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}

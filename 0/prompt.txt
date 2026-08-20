@@ -1,0 +1,5 @@
+ok the usage limit is reset so lets keep going
+
+---
+
+Yes lets continue with the private Firestore role assignment design

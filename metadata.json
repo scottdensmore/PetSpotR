@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0FYA925VQ159Z5SS04WJ02P",
+  "strategy": "manual-commit",
+  "branch": "feat/scoped-operator-role-assignments",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "pkg/domain/role_assignment.go",
+    "pkg/domain/role_assignment_test.go",
+    "pkg/runtimeconfig/config_test.go",
+    "pkg/runtimeconfig/state.go",
+    "pkg/store/firestore.go",
+    "pkg/store/firestore_role_assignment.go",
+    "pkg/store/firestore_role_assignment_integration_test.go",
+    "pkg/store/role_assignment.go",
+    "pkg/store/role_assignment_test.go",
+    "pkg/store/store.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 11557,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": -14142976,
+    "output_tokens": 17505,
+    "api_call_count": 139
+  }
+}
