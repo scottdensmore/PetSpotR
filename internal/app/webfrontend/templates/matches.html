@@ -94,6 +94,34 @@
       </div>
     </div>
 
+    <!-- Private Participant Conversation -->
+    <div id="match-thread-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="match-thread-title" aria-describedby="match-thread-help" hidden>
+      <div class="glass-card modal-panel match-thread-panel">
+        <div class="modal-heading-row">
+          <h2 id="match-thread-title">Private match messages</h2>
+          <button class="icon-button match-thread-close" type="button" aria-label="Close private messages">&times;</button>
+        </div>
+        <p id="match-thread-help" class="text-secondary text-small">Messages are shared only with the reporter and finder for this match. PetSpotR never reveals either participant's contact details here.</p>
+        <p id="match-thread-status" class="text-secondary" role="status" aria-live="polite" hidden></p>
+        <p id="match-thread-error" class="identity-error" role="alert" hidden></p>
+        <ol id="match-thread-messages" class="match-thread-messages" aria-label="Private match conversation"></ol>
+        <p id="match-thread-empty" class="text-secondary" hidden>No private messages yet.</p>
+        <p id="match-thread-readonly" class="text-secondary" hidden>This conversation is read-only because the match is closed.</p>
+        <form id="match-thread-form">
+          <input type="hidden" id="match-thread-match-id" value="">
+          <div class="form-field form-field-last">
+            <label for="match-thread-message" class="form-label">Message</label>
+            <textarea class="form-control" id="match-thread-message" rows="4" maxlength="1000" required aria-describedby="match-thread-message-help"></textarea>
+            <p id="match-thread-message-help" class="text-secondary text-small">Up to 1,000 characters. Do not include private contact details.</p>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary match-thread-close">Close</button>
+            <button type="submit" class="btn btn-primary" id="match-thread-send">Send message</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Secure Contact Modal -->
     <div id="contact-modal" class="modal-overlay" hidden>
       <div class="glass-card modal-panel">

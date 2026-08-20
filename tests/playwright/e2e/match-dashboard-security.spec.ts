@@ -164,6 +164,503 @@ test.describe('Match dashboard persisted-data boundary', () => {
     await unavailablePage.close();
   });
 
+  test('opens and sends a private match conversation without exposing identity', async ({ page }) => {
+    const principal = {
+      issuer: 'https://securetoken.google.com/demo-petspotr-auth',
+      subject: 'google-match-reporter-thread-404',
+      email: 'verified-reporter@example.com',
+      emailVerified: true,
+      signInProvider: 'google.com',
+    };
+    const hostileMessage = '<img id="thread-injection" src=x onerror=alert(1)> compare the left paw';
+    const initialMessage = {
+      messageId: 'message-initial',
+      senderRole: 'finder',
+      message: hostileMessage,
+      sentAt: '2026-08-18T12:00:00Z',
+      senderEmail: 'private-finder@example.com',
+      senderSubject: 'private-provider-subject',
+    };
+    const acceptedMessage = {
+      messageId: 'message-accepted',
+      senderRole: 'reporter',
+      message: 'The white spot matches my photos.',
+      sentAt: '2026-08-18T12:05:00Z',
+    };
+    const posts: Array<{ headers: Record<string, string>; body: Record<string, unknown> }> = [];
+    let threadRequests = 0;
+    let accepted = false;
+    let failNextThreadRefresh = false;
+    let releaseFirstLoad: (() => void) | undefined;
+    const firstLoadGate = new Promise<void>((resolve) => {
+      releaseFirstLoad = resolve;
+    });
+    let releaseFirstPost: (() => void) | undefined;
+    const firstPostGate = new Promise<void>((resolve) => {
+      releaseFirstPost = resolve;
+    });
+
+    await page.addInitScript(() => {
+      const browserWindow = window as typeof window & {
+        petspotrFirebaseAuthAdapterFactory?: () => Promise<{
+          signInWithGoogle: () => Promise<string>;
+          signOut: () => Promise<void>;
+        }>;
+      };
+      browserWindow.petspotrFirebaseAuthAdapterFactory = async () => ({
+        signInWithGoogle: async () => 'unused-token',
+        signOut: async () => {},
+      });
+    });
+    await page.route('**/api/v1/session/client-config', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          enabled: true,
+          provider: 'google.com',
+          apiKey: 'fake-api-key',
+          authDomain: 'demo-petspotr-auth.firebaseapp.com',
+          projectId: 'demo-petspotr-auth',
+        }),
+      });
+    });
+    await page.route('**/api/v1/session', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(principal) });
+    });
+    await page.route('**/api/v1/session/csrf', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ csrfToken: 'match-thread-csrf' }),
+      });
+    });
+    await page.route('**/api/v1/matches', async (route) => {
+      const closedMatch = validMatchRecord('closed-thread');
+      closedMatch.status = 'REJECTED';
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          validMatchRecord('thread-match'),
+          closedMatch,
+          validMatchRecord('error-thread'),
+        ]),
+      });
+    });
+    await page.route('**/api/v1/reunions/contact?*', async (route) => {
+      threadRequests += 1;
+      const matchId = new URL(route.request().url()).searchParams.get('matchId');
+      if (matchId === 'error-thread') {
+        await route.fulfill({ status: 503, body: 'unavailable' });
+        return;
+      }
+      if (matchId === 'thread-match' && failNextThreadRefresh) {
+        failNextThreadRefresh = false;
+        await route.fulfill({ status: 503, body: 'refresh unavailable' });
+        return;
+      }
+      if (matchId === 'thread-match' && threadRequests === 1) await firstLoadGate;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          matchId,
+          messages: matchId === 'thread-match'
+            ? [initialMessage, ...(accepted ? [acceptedMessage] : [])]
+            : [],
+        }),
+      });
+    });
+    await page.route('**/api/v1/reunions/contact', async (route) => {
+      const request = route.request();
+      posts.push({ headers: request.headers(), body: request.postDataJSON() as Record<string, unknown> });
+      if (posts.length === 1) {
+        await firstPostGate;
+        await route.fulfill({ status: 503, body: 'unavailable' });
+        return;
+      }
+      if (posts.length === 2) {
+        accepted = true;
+        await route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({ status: 'accepted', matchId: 'thread-match', message: acceptedMessage }),
+        });
+        return;
+      }
+      if (posts.length === 4) {
+        failNextThreadRefresh = true;
+        await route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({ status: 'accepted', matchId: 'thread-match', message: acceptedMessage }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 409, body: 'conflict' });
+    });
+
+    await page.goto(`${WEB_FRONTEND_URL}/matches`);
+    const card = page.locator('article[data-match-id="thread-match"]');
+    await expect(card).toBeVisible();
+    const openMessages = card.getByRole('button', { name: 'Open private messages' });
+    await expect(openMessages).toBeVisible();
+    expect(threadRequests).toBe(0);
+
+    await openMessages.click();
+    const modal = page.locator('#match-thread-modal');
+    await expect(modal).toBeVisible();
+    await expect(modal).toHaveAttribute('role', 'dialog');
+    await expect(modal).toHaveAttribute('aria-modal', 'true');
+    await expect(page.locator('#match-thread-status')).toHaveText('Loading private messages...');
+    await expect(modal.getByRole('button', { name: 'Close private messages' })).toBeFocused();
+    releaseFirstLoad?.();
+    await expect(page.locator('.match-thread-message')).toHaveCount(1);
+    await expect(page.locator('.match-thread-message')).toContainText(hostileMessage);
+    await expect(page.locator('.match-thread-message')).toContainText('Finder');
+    await expect(page.locator('#thread-injection')).toHaveCount(0);
+    await expect(modal).not.toContainText('private-finder@example.com');
+    await expect(modal).not.toContainText('private-provider-subject');
+    expect(new URL(page.url()).pathname).toBe('/matches');
+
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.locator('#match-thread-send')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(modal.getByRole('button', { name: 'Close private messages' })).toBeFocused();
+
+    const textarea = page.locator('#match-thread-message');
+    const send = page.locator('#match-thread-send');
+    await textarea.fill(acceptedMessage.message);
+    await send.evaluate((button: HTMLButtonElement) => {
+      button.click();
+      button.click();
+    });
+    await expect(send).toHaveAttribute('aria-disabled', 'true');
+    await expect(send).toHaveText('Sending message...');
+    await expect(page.locator('#match-thread-status')).toHaveText('Sending private message...');
+    await expect.poll(() => posts.length).toBe(1);
+    releaseFirstPost?.();
+    await expect(page.locator('#match-thread-error')).toContainText('not sent');
+    await expect(send).toHaveAttribute('aria-disabled', 'false');
+    await expect(textarea).toHaveValue(acceptedMessage.message);
+
+    await send.click();
+    await expect(page.locator('.match-thread-message')).toHaveCount(2);
+    await expect(page.locator('.match-thread-message').last()).toContainText(acceptedMessage.message);
+    await expect(page.locator('#match-thread-status')).toHaveText('Private message sent.');
+    await expect(textarea).toHaveValue('');
+    expect(posts[0].body).toEqual({ matchId: 'thread-match', message: acceptedMessage.message });
+    expect(posts[0].body).not.toHaveProperty('senderEmail');
+    expect(posts[0].headers).toEqual(expect.objectContaining({
+      'x-csrf-token': 'match-thread-csrf',
+      'idempotency-key': expect.stringMatching(/^thread-/),
+    }));
+    expect(posts[1].headers['idempotency-key']).toBe(posts[0].headers['idempotency-key']);
+
+    await textarea.fill('A different message');
+    await send.click();
+    await expect(page.locator('#match-thread-error')).toContainText('conflicts');
+    expect(posts[2].headers['idempotency-key']).not.toBe(posts[1].headers['idempotency-key']);
+
+    await textarea.fill('Accepted before its refresh fails');
+    await send.click();
+    await expect(page.locator('#match-thread-error')).toContainText('was sent');
+    await expect(page.locator('#match-thread-error')).toContainText('could not be refreshed');
+    await expect(page.locator('#match-thread-status')).toBeHidden();
+    await expect(textarea).toHaveValue('');
+    await page.keyboard.press('Escape');
+    await expect(modal).toBeHidden();
+    await expect(openMessages).toBeFocused();
+
+    const closedCard = page.locator('article[data-match-id="closed-thread"]');
+    await closedCard.getByRole('button', { name: 'Open private messages' }).click();
+    await expect(page.locator('#match-thread-empty')).toBeVisible();
+    await expect(page.locator('#match-thread-readonly')).toBeVisible();
+    await expect(page.locator('#match-thread-form')).toBeHidden();
+    await modal.getByRole('button', { name: 'Close private messages' }).click();
+
+    const errorCard = page.locator('article[data-match-id="error-thread"]');
+    await errorCard.getByRole('button', { name: 'Open private messages' }).click();
+    await expect(page.locator('#match-thread-error')).toContainText('could not be loaded');
+    await expect(page.locator('.match-thread-message')).toHaveCount(0);
+  });
+
+  test('fences stale private thread loads and sends across dialog reuse', async ({ page }) => {
+    const principal = {
+      issuer: 'https://securetoken.google.com/demo-petspotr-auth',
+      subject: 'google-match-thread-race-606',
+      email: 'verified-race@example.com',
+      emailVerified: true,
+      signInProvider: 'google.com',
+    };
+    const posts: Array<Record<string, unknown>> = [];
+    let releaseOldSend: (() => void) | undefined;
+    const oldSendGate = new Promise<void>((resolve) => {
+      releaseOldSend = resolve;
+    });
+    let releaseNewSend: (() => void) | undefined;
+    const newSendGate = new Promise<void>((resolve) => {
+      releaseNewSend = resolve;
+    });
+
+    await page.addInitScript(() => {
+      const browserWindow = window as typeof window & {
+        __releaseStaleThreadBody?: () => void;
+        __staleThreadBodyWaiting?: boolean;
+        petspotrFirebaseAuthAdapterFactory?: () => Promise<{
+          signInWithGoogle: () => Promise<string>;
+          signOut: () => Promise<void>;
+        }>;
+      };
+      browserWindow.petspotrFirebaseAuthAdapterFactory = async () => ({
+        signInWithGoogle: async () => 'unused-token',
+        signOut: async () => {},
+      });
+      const originalFetch = window.fetch.bind(window);
+      let releaseBody: (() => void) | undefined;
+      const bodyGate = new Promise<void>((resolve) => {
+        releaseBody = resolve;
+      });
+      browserWindow.__releaseStaleThreadBody = () => releaseBody?.();
+      browserWindow.__staleThreadBodyWaiting = false;
+      window.fetch = async (...args) => {
+        const response = await originalFetch(...args);
+        const requestURL = typeof args[0] === 'string' ? args[0] : args[0].url;
+        if (!requestURL.includes('matchId=stale-thread-a')) return response;
+        return {
+          ok: response.ok,
+          status: response.status,
+          json: async () => {
+            browserWindow.__staleThreadBodyWaiting = true;
+            await bodyGate;
+            return response.json();
+          },
+        } as Response;
+      };
+    });
+    await page.route('**/api/v1/session/client-config', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          enabled: true,
+          provider: 'google.com',
+          apiKey: 'fake-api-key',
+          authDomain: 'demo-petspotr-auth.firebaseapp.com',
+          projectId: 'demo-petspotr-auth',
+        }),
+      });
+    });
+    await page.route('**/api/v1/session', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(principal) });
+    });
+    await page.route('**/api/v1/session/csrf', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ csrfToken: 'match-thread-race-csrf' }),
+      });
+    });
+    await page.route('**/api/v1/matches', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          validMatchRecord('stale-thread-a'),
+          validMatchRecord('stale-thread-b'),
+        ]),
+      });
+    });
+    await page.route('**/api/v1/reunions/contact?*', async (route) => {
+      const matchId = new URL(route.request().url()).searchParams.get('matchId');
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          matchId,
+          messages: [{
+            messageId: `message-${matchId}`,
+            senderRole: matchId === 'stale-thread-a' ? 'reporter' : 'finder',
+            message: matchId === 'stale-thread-a' ? 'Old thread body' : 'New thread body',
+            sentAt: '2026-08-18T12:20:00Z',
+          }],
+        }),
+      });
+    });
+    await page.route('**/api/v1/reunions/contact', async (route) => {
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      posts.push(body);
+      if (body.matchId === 'stale-thread-a') {
+        await oldSendGate;
+        await route.fulfill({ status: 503, body: 'old send failed' });
+        return;
+      }
+      await newSendGate;
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: 'accepted',
+          matchId: 'stale-thread-b',
+          message: {
+            messageId: 'message-new-send',
+            senderRole: 'finder',
+            message: body.message,
+            sentAt: '2026-08-18T12:25:00Z',
+          },
+        }),
+      });
+    });
+
+    await page.goto(`${WEB_FRONTEND_URL}/matches`);
+    const modal = page.locator('#match-thread-modal');
+    const oldCard = page.locator('article[data-match-id="stale-thread-a"]');
+    const newCard = page.locator('article[data-match-id="stale-thread-b"]');
+    await oldCard.getByRole('button', { name: 'Open private messages' }).click();
+    await expect.poll(() => page.evaluate(() => (
+      window as typeof window & { __staleThreadBodyWaiting?: boolean }
+    ).__staleThreadBodyWaiting)).toBe(true);
+    await page.keyboard.press('Escape');
+    await newCard.getByRole('button', { name: 'Open private messages' }).click();
+    await expect(page.locator('.match-thread-message')).toContainText('New thread body');
+    await page.evaluate(() => (
+      window as typeof window & { __releaseStaleThreadBody?: () => void }
+    ).__releaseStaleThreadBody?.());
+    await expect(page.locator('.match-thread-message')).toContainText('New thread body');
+    await expect(modal).not.toContainText('Old thread body');
+
+    await page.keyboard.press('Escape');
+    await oldCard.getByRole('button', { name: 'Open private messages' }).click();
+    await expect(page.locator('.match-thread-message')).toContainText('Old thread body');
+    await page.locator('#match-thread-message').fill('Old pending send');
+    await page.locator('#match-thread-send').click();
+    await expect.poll(() => posts.length).toBe(1);
+    await page.keyboard.press('Escape');
+
+    await newCard.getByRole('button', { name: 'Open private messages' }).click();
+    await page.locator('#match-thread-message').fill('New pending send');
+    await page.locator('#match-thread-send').click();
+    await expect.poll(() => posts.length).toBe(2);
+    await expect(page.locator('#match-thread-send')).toHaveAttribute('aria-disabled', 'true');
+    releaseOldSend?.();
+    await expect(page.locator('#match-thread-send')).toHaveAttribute('aria-disabled', 'true');
+    await page.locator('#match-thread-send').evaluate((button: HTMLButtonElement) => button.click());
+    await expect.poll(() => posts.length).toBe(2);
+    releaseNewSend?.();
+    await expect(page.locator('#match-thread-status')).toHaveText('Private message sent.');
+  });
+
+  test('discards a pending private message when the participant logs out', async ({ page }) => {
+    const principal = {
+      issuer: 'https://securetoken.google.com/demo-petspotr-auth',
+      subject: 'google-match-finder-thread-505',
+      email: 'verified-finder@example.com',
+      emailVerified: true,
+      signInProvider: 'google.com',
+    };
+    let signedIn = true;
+    let threadRequests = 0;
+    let postRequests = 0;
+    let releasePost: (() => void) | undefined;
+    const postGate = new Promise<void>((resolve) => {
+      releasePost = resolve;
+    });
+
+    await page.addInitScript(() => {
+      const browserWindow = window as typeof window & {
+        petspotrFirebaseAuthAdapterFactory?: () => Promise<{
+          signInWithGoogle: () => Promise<string>;
+          signOut: () => Promise<void>;
+        }>;
+      };
+      browserWindow.petspotrFirebaseAuthAdapterFactory = async () => ({
+        signInWithGoogle: async () => 'unused-token',
+        signOut: async () => {},
+      });
+    });
+    await page.route('**/api/v1/session/client-config', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          enabled: true,
+          provider: 'google.com',
+          apiKey: 'fake-api-key',
+          authDomain: 'demo-petspotr-auth.firebaseapp.com',
+          projectId: 'demo-petspotr-auth',
+        }),
+      });
+    });
+    await page.route('**/api/v1/session/csrf', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ csrfToken: 'thread-logout-csrf' }),
+      });
+    });
+    await page.route('**/api/v1/session', async (route) => {
+      const request = route.request();
+      if (request.method() === 'GET') {
+        await route.fulfill(signedIn
+          ? { status: 200, contentType: 'application/json', body: JSON.stringify(principal) }
+          : { status: 401, body: 'Authentication required' });
+        return;
+      }
+      expect(request.method()).toBe('DELETE');
+      signedIn = false;
+      await route.fulfill({ status: 204 });
+    });
+    await page.route('**/api/v1/matches', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([validMatchRecord('thread-logout-match')]),
+      });
+    });
+    await page.route('**/api/v1/reunions/contact?*', async (route) => {
+      threadRequests += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ matchId: 'thread-logout-match', messages: [] }),
+      });
+    });
+    await page.route('**/api/v1/reunions/contact', async (route) => {
+      postRequests += 1;
+      await postGate;
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: 'accepted',
+          matchId: 'thread-logout-match',
+          message: {
+            messageId: 'message-after-logout',
+            senderRole: 'finder',
+            message: 'This completion must be ignored.',
+            sentAt: '2026-08-18T12:10:00Z',
+          },
+        }),
+      });
+    });
+
+    await page.goto(`${WEB_FRONTEND_URL}/matches`);
+    await page.getByRole('button', { name: 'Open private messages' }).click();
+    await expect(page.locator('#match-thread-empty')).toBeVisible();
+    await page.locator('#match-thread-message').fill('This completion must be ignored.');
+    await page.locator('#match-thread-send').click();
+    await expect.poll(() => postRequests).toBe(1);
+    await page.locator('#identity-sign-out').evaluate((button: HTMLButtonElement) => button.click());
+    await expect(page.locator('#match-thread-modal')).toBeHidden();
+    await expect(page.locator('article[data-match-id]')).toHaveCount(0);
+    await expect(page.locator('#google-sign-in')).toBeFocused();
+    releasePost?.();
+    await expect.poll(() => threadRequests).toBe(1);
+    await expect(page.locator('#match-thread-modal')).toBeHidden();
+    await expect(page.locator('#google-sign-in')).toBeFocused();
+  });
+
   test('submits participant match decisions with CSRF and accurate feedback', async ({ page }) => {
     const principal = {
       issuer: 'https://securetoken.google.com/demo-petspotr-auth',

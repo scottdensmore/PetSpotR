@@ -230,9 +230,17 @@ offers only Confirm and Reject participant decisions with the current CSRF
 token. Pending confirmation, bilateral confirmation, rejection, and immutable
 decision conflicts receive distinct feedback. One in-flight decision locks the
 dashboard's decision controls, and an identity change such as logout fences its
-completion before refresh or feedback. Mediated-contact and reunion controls
-remain hidden until those browser journeys are enabled separately. The
-identity-disabled demo dashboard retains its existing public list and controls.
+completion before refresh or feedback. Participants can also open their private
+match conversation from a card. The dialog loads only that match's role-labeled
+thread, renders message content as inert text, and never displays provider or
+contact identity fields. Pending and confirmed matches accept a bounded message
+with the current CSRF token and a stable per-attempt idempotency key; rejected
+and reunited conversations remain readable but become read-only. One in-flight
+send locks duplicate submission, and closing the dialog or changing identity
+fences stale loads and sends before rendering, refreshing, or moving focus.
+Reunion controls remain hidden until that authorized browser journey is enabled
+separately. The identity-disabled demo dashboard retains its existing public
+list and controls.
 
 Authenticated lost and found reports derive their owner key and reporter or
 finder email from the verified session. Caller-supplied `reporterEmail` and
