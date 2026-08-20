@@ -747,7 +747,7 @@ func TestManagedServerRejectsPrivilegedMutations(t *testing.T) {
 	}
 }
 
-func TestIdentityModeDisablesLegacyPrivilegedRoutes(t *testing.T) {
+func TestIdentityModeClosesPrivilegedRoutesToUnauthorizedCallers(t *testing.T) {
 	t.Parallel()
 
 	const (
@@ -834,8 +834,12 @@ func TestIdentityModeDisablesLegacyPrivilegedRoutes(t *testing.T) {
 
 				srv.ServeHTTP(rec, req)
 
-				if rec.Code != http.StatusForbidden {
-					t.Fatalf("status = %d, want %d; body = %s", rec.Code, http.StatusForbidden, rec.Body.String())
+				wantStatus := http.StatusForbidden
+				if tt.name == "reunion resolution" && !caller.authenticated {
+					wantStatus = http.StatusUnauthorized
+				}
+				if rec.Code != wantStatus {
+					t.Fatalf("status = %d, want %d; body = %s", rec.Code, wantStatus, rec.Body.String())
 				}
 				if tt.verify != nil {
 					tt.verify(t, memory)

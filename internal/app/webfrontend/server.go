@@ -1028,6 +1028,10 @@ func (s *Server) handleApiReunionResolve(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if s.identitySessions != nil {
+		s.handleGlobalOperatorReunionResolve(w, r)
+		return
+	}
 	if !s.allowPrivilegedMutations {
 		http.Error(w, "Authentication is required for reunion resolution", http.StatusForbidden)
 		return
@@ -1079,6 +1083,124 @@ func (s *Server) handleApiReunionResolve(w http.ResponseWriter, r *http.Request)
 		"status":   "REUNITED",
 		"rating":   req.Rating,
 		"feedback": req.Feedback,
+		"message":  "Pet status successfully updated to REUNITED",
+	})
+}
+
+var errOperatorReunionHidden = errors.New("webfrontend: operator reunion target is unavailable")
+
+func (s *Server) handleGlobalOperatorReunionResolve(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	principal, ok := s.verifiedRequestPrincipal(w, r)
+	if !ok {
+		return
+	}
+	if !s.validCSRF(r) {
+		http.Error(w, "Invalid CSRF token", http.StatusForbidden)
+		return
+	}
+	actor := domain.PrincipalRef{Issuer: principal.Issuer, Subject: principal.Subject}
+	globalScope := domain.RoleScope{Kind: domain.RoleScopeGlobal}
+	assignments, ok := s.stateStore.(store.RoleAssignmentStore)
+	if !ok {
+		http.Error(w, "Operator authorization is unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	assignment, err := assignments.GetRoleAssignment(r.Context(), actor, domain.RoleOperator, globalScope)
+	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) ||
+		(err == nil && assignment.Status != domain.RoleAssignmentStatusActive) {
+		http.Error(w, "Operator authorization required", http.StatusForbidden)
+		return
+	}
+	if err != nil {
+		http.Error(w, "Operator authorization is unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	operationID := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	if operationID == "" {
+		http.Error(w, "Idempotency-Key is required", http.StatusBadRequest)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+	var req ReunionResolveRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+	req.MatchID = strings.TrimSpace(req.MatchID)
+	req.PetID = strings.TrimSpace(req.PetID)
+	if req.MatchID == "" || req.PetID == "" {
+		http.Error(w, "matchId and petId are required", http.StatusBadRequest)
+		return
+	}
+
+	roleStore, ok := s.stateStore.(store.RoleAuthorizedMatchStateStore)
+	if !ok {
+		http.Error(w, "Operator authorization is unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	resolvedAt := time.Now().UTC()
+	err = roleStore.UpdateMatchAndParticipantsAsRole(
+		r.Context(),
+		actor,
+		domain.RoleOperator,
+		globalScope,
+		req.MatchID,
+		func(authorization domain.RoleAssignment, matchData, participantData []byte) ([]byte, []byte, error) {
+			var match domain.MatchRecord
+			if err := json.Unmarshal(matchData, &match); err != nil {
+				return nil, nil, errOperatorReunionHidden
+			}
+			var participants domain.MatchParticipantRecord
+			if err := json.Unmarshal(participantData, &participants); err != nil {
+				return nil, nil, errOperatorReunionHidden
+			}
+			if match.MatchID != req.MatchID || match.MatchedPetID != req.PetID {
+				return nil, nil, errOperatorReunionHidden
+			}
+			nextMatch, nextParticipants, _, err := domain.ApplyGlobalOperatorReunion(
+				match, participants, actor, authorization, operationID, req.Rating, req.Feedback, resolvedAt,
+			)
+			if err != nil {
+				return nil, nil, err
+			}
+			nextMatchData, err := json.Marshal(nextMatch)
+			if err != nil {
+				return nil, nil, err
+			}
+			nextParticipantData, err := json.Marshal(nextParticipants)
+			if err != nil {
+				return nil, nil, err
+			}
+			return nextMatchData, nextParticipantData, nil
+		},
+	)
+	switch {
+	case errors.Is(err, store.ErrRoleDenied):
+		http.Error(w, "Operator authorization required", http.StatusForbidden)
+		return
+	case errors.Is(err, store.ErrNotFound), errors.Is(err, store.ErrStoreNotFound), errors.Is(err, errOperatorReunionHidden):
+		http.NotFound(w, r)
+		return
+	case errors.Is(err, domain.ErrMatchReunionConflict):
+		http.Error(w, "Reunion resolution conflicts with persisted state", http.StatusConflict)
+		return
+	case errors.Is(err, domain.ErrInvalidMatchReunion):
+		http.Error(w, "Invalid reunion resolution", http.StatusBadRequest)
+		return
+	case err != nil:
+		http.Error(w, "Failed to resolve reunion", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"matchId":  req.MatchID,
+		"petId":    req.PetID,
+		"status":   string(domain.MatchStatusReunited),
+		"rating":   req.Rating,
+		"feedback": strings.TrimSpace(req.Feedback),
 		"message":  "Pet status successfully updated to REUNITED",
 	})
 }

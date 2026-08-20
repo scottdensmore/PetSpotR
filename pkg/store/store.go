@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/delivery"
+	"github.com/scottdensmore/petspotr/pkg/domain"
 )
 
 type outboxIndexRecord struct {
@@ -26,6 +27,7 @@ var (
 	ErrStoreNotFound = errors.New("store: state store not found")
 	ErrNotFound      = errors.New("store: key not found")
 	ErrConflict      = errors.New("store: conflicting aggregate state")
+	ErrRoleDenied    = errors.New("store: active role assignment required")
 )
 
 // StateWrite describes one state document written as part of an atomic unit.
@@ -44,10 +46,32 @@ type StateUpdater func(current []byte) (next []byte, err error)
 // when a transaction is retried.
 type MatchStateUpdater func(match, participants []byte) (nextMatch, nextParticipants []byte, err error)
 
+// RoleAuthorizedMatchStateUpdater receives the exact active assignment read in
+// the same transaction as the match update. Managed stores may invoke it more
+// than once when a transaction is retried, so it must remain side-effect-free.
+type RoleAuthorizedMatchStateUpdater func(
+	assignment domain.RoleAssignment,
+	match, participants []byte,
+) (nextMatch, nextParticipants []byte, err error)
+
 // MatchStateStore atomically updates the public and private documents that
 // comprise one authorized match operation.
 type MatchStateStore interface {
 	UpdateMatchAndParticipants(ctx context.Context, matchID string, update MatchStateUpdater) error
+}
+
+// RoleAuthorizedMatchStateStore atomically requires one active role assignment
+// and updates a match plus its private participant record. This prevents a
+// grant revocation from racing a privileged mutation.
+type RoleAuthorizedMatchStateStore interface {
+	UpdateMatchAndParticipantsAsRole(
+		ctx context.Context,
+		principal domain.PrincipalRef,
+		role domain.Role,
+		scope domain.RoleScope,
+		matchID string,
+		update RoleAuthorizedMatchStateUpdater,
+	) error
 }
 
 // MatchDecisionStore preserves the name introduced with bilateral decisions.
@@ -213,7 +237,47 @@ func (m *MemoryStore) UpdateMatchAndParticipants(
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	return m.updateMatchAndParticipantsLocked(matchID, update)
+}
 
+// UpdateMatchAndParticipantsAsRole authorizes and mutates under one lock.
+func (m *MemoryStore) UpdateMatchAndParticipantsAsRole(
+	ctx context.Context,
+	principal domain.PrincipalRef,
+	role domain.Role,
+	scope domain.RoleScope,
+	matchID string,
+	update RoleAuthorizedMatchStateUpdater,
+) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if strings.TrimSpace(matchID) == "" || update == nil {
+		return errors.New("store: match ID and state updater are required")
+	}
+	assignmentID, err := domain.RoleAssignmentID(principal, role, scope)
+	if err != nil {
+		return err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	assignmentData, exists := m.roleAssignments[assignmentID]
+	if !exists {
+		return ErrRoleDenied
+	}
+	assignment, err := decodeRoleAssignment(assignmentData)
+	if err != nil {
+		return err
+	}
+	if assignment.AssignmentID != assignmentID || assignment.Status != domain.RoleAssignmentStatusActive {
+		return ErrRoleDenied
+	}
+	return m.updateMatchAndParticipantsLocked(matchID, func(match, participants []byte) ([]byte, []byte, error) {
+		return update(assignment, match, participants)
+	})
+}
+
+func (m *MemoryStore) updateMatchAndParticipantsLocked(matchID string, update MatchStateUpdater) error {
 	matches, ok := m.items[MatchesCollection]
 	if !ok {
 		return fmt.Errorf("%w: %s", ErrStoreNotFound, MatchesCollection)
@@ -230,7 +294,6 @@ func (m *MemoryStore) UpdateMatchAndParticipants(
 	if !ok {
 		return fmt.Errorf("%w: %s in store %s", ErrNotFound, matchID, MatchParticipantsCollection)
 	}
-
 	nextMatch, nextParticipants, err := update(bytes.Clone(match), bytes.Clone(participants))
 	if err != nil {
 		return err

@@ -212,9 +212,9 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load legacy match before privilege attempt: %v", err)
 	}
-	legacyReunion := productRequest(
+	legacyReunion := mediatedProductRequest(
 		t, client, http.MethodPost, srv.URL+"/api/v1/reunions/resolve",
-		`{"matchId":"match-legacy-reunion","petId":"lost-legacy","rating":5}`, csrfToken,
+		`{"matchId":"match-legacy-reunion","petId":"lost-legacy","rating":5}`, csrfToken, "ordinary-reunion-denied",
 	)
 	if legacyReunion.StatusCode != http.StatusForbidden {
 		t.Fatalf("ordinary-user reunion status = %d, want %d", legacyReunion.StatusCode, http.StatusForbidden)
@@ -658,6 +658,62 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("mediated thread persisted caller-supplied contact: %s", storedParticipantsData)
 	}
 
+	operatorMatch, operatorParticipants := identityReunionFixture(
+		t, reportID, foundReportID, &wantOwner,
+		&domain.PrincipalRef{Issuer: otherPrincipal.Issuer, Subject: otherPrincipal.Subject},
+	)
+	seedIdentityMatch(t, state, operatorMatch, &operatorParticipants)
+	operatorRef := domain.PrincipalRef{Issuer: loggedIn.Issuer, Subject: loggedIn.Subject}
+	operatorScope := domain.RoleScope{Kind: domain.RoleScopeGlobal}
+	grantAt := time.Now().UTC()
+	grantedAssignment, changed, err := state.GrantRoleAssignment(ctx, domain.RoleAssignmentChange{
+		Target: operatorRef, Role: domain.RoleOperator, Scope: operatorScope,
+		Actor:       domain.PrincipalRef{Issuer: loggedIn.Issuer, Subject: "emulator-bootstrap-admin"},
+		OperationID: "grant-emulator-global-operator", OccurredAt: grantAt,
+	})
+	if err != nil || !changed {
+		t.Fatalf("grant emulator global operator = changed %t, error %v", changed, err)
+	}
+	resolutionBody := `{"matchId":"` + operatorMatch.MatchID + `","petId":"` + reportID + `","rating":5,"feedback":"Reunited safely"}`
+	operatorResolution := mediatedProductRequest(
+		t, client, http.MethodPost, srv.URL+"/api/v1/reunions/resolve",
+		resolutionBody, csrfToken, "resolve-emulator-shared",
+	)
+	if operatorResolution.StatusCode != http.StatusOK || operatorResolution.Header.Get("Cache-Control") != "no-store" {
+		body, _ := io.ReadAll(operatorResolution.Body)
+		_ = operatorResolution.Body.Close()
+		t.Fatalf("global operator reunion response = %d Cache-Control %q; body = %s",
+			operatorResolution.StatusCode, operatorResolution.Header.Get("Cache-Control"), body)
+	}
+	var resolutionResult map[string]interface{}
+	decodeResponseJSON(t, operatorResolution, &resolutionResult)
+	if resolutionResult["status"] != string(domain.MatchStatusReunited) {
+		t.Fatalf("global operator reunion result = %#v", resolutionResult)
+	}
+	resolvedMatch, resolvedParticipants := loadIdentityMatch(t, state, operatorMatch.MatchID)
+	if resolvedMatch.Status != domain.MatchStatusReunited || resolvedParticipants.ReunionAudit == nil ||
+		resolvedParticipants.ReunionAudit.Role != domain.RoleOperator ||
+		resolvedParticipants.ReunionAudit.Scope != operatorScope ||
+		resolvedParticipants.ReunionAudit.AssignmentID != grantedAssignment.AssignmentID ||
+		resolvedParticipants.ReunionAudit.AssignmentRevision != grantedAssignment.Revision {
+		t.Fatalf("persisted operator reunion = %#v / %#v", resolvedMatch, resolvedParticipants.ReunionAudit)
+	}
+	operatorKey, err := domain.RolePrincipalKey(operatorRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolvedParticipants.ReunionAudit.ActorKey != operatorKey {
+		t.Fatalf("operator audit actor = %q, want opaque key %q", resolvedParticipants.ReunionAudit.ActorKey, operatorKey)
+	}
+	exactResolutionRetry := mediatedProductRequest(
+		t, client, http.MethodPost, srv.URL+"/api/v1/reunions/resolve",
+		resolutionBody, csrfToken, "resolve-emulator-shared",
+	)
+	if exactResolutionRetry.StatusCode != http.StatusOK {
+		t.Fatalf("exact operator reunion retry status = %d, want %d", exactResolutionRetry.StatusCode, http.StatusOK)
+	}
+	closeResponse(t, exactResolutionRetry)
+
 	logout := productRequest(t, client, http.MethodDelete, srv.URL+"/api/v1/session", "", csrfToken)
 	if logout.StatusCode != http.StatusNoContent {
 		t.Fatalf("logout status = %d, want %d", logout.StatusCode, http.StatusNoContent)
@@ -785,6 +841,65 @@ func seedIdentityMatch(
 	); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func identityReunionFixture(
+	t *testing.T,
+	lostPetID, foundPetID string,
+	reporter, finder *domain.PrincipalRef,
+) (domain.MatchRecord, domain.MatchParticipantRecord) {
+	t.Helper()
+	const sourceEventID = "event-identity-operator-reunion"
+	matchID, err := domain.StableMatchID(sourceEventID, foundPetID, lostPetID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decidedAt := time.Now().UTC().Add(-time.Minute)
+	return domain.MatchRecord{
+			MatchID: matchID, FoundPetID: foundPetID, MatchedPetID: lostPetID,
+			Score: 0.93, Status: domain.MatchStatusConfirmed, MatchedAt: decidedAt.Add(-time.Minute),
+			Scores: domain.MatchScoreBreakdown{
+				Visual: 0.96, Color: 1, Spatial: 0.84, DistanceMiles: 1.2, Threshold: 0.7,
+			},
+			LostPet:       domain.MatchPetDetail{PetID: lostPetID, Breed: "Golden Retriever"},
+			FoundPet:      domain.MatchPetDetail{PetID: foundPetID, Breed: "Golden Retriever"},
+			SourceEventID: sourceEventID, Model: "gemma4:e2b", ThresholdVersion: "visual-spatial-v1",
+			Explanation: "High visual and geographic similarity",
+		}, domain.MatchParticipantRecord{
+			MatchID: matchID, LostPetID: lostPetID, FoundPetID: foundPetID,
+			Reporter: reporter, Finder: finder,
+			ReporterDecision: domain.MatchDecisionConfirm,
+			FinderDecision:   domain.MatchDecisionConfirm,
+			DecisionAudit: []domain.MatchDecisionAudit{
+				{Role: domain.MatchParticipantRoleReporter, Decision: domain.MatchDecisionConfirm, DecidedAt: decidedAt},
+				{Role: domain.MatchParticipantRoleFinder, Decision: domain.MatchDecisionConfirm, DecidedAt: decidedAt},
+			},
+		}
+}
+
+func loadIdentityMatch(
+	t *testing.T,
+	state store.StateStore,
+	matchID string,
+) (domain.MatchRecord, domain.MatchParticipantRecord) {
+	t.Helper()
+	matchData, err := state.GetState(context.Background(), store.MatchesCollection, matchID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	participantData, err := state.GetState(context.Background(), store.MatchParticipantsCollection, matchID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var match domain.MatchRecord
+	if err := json.Unmarshal(matchData, &match); err != nil {
+		t.Fatal(err)
+	}
+	var participants domain.MatchParticipantRecord
+	if err := json.Unmarshal(participantData, &participants); err != nil {
+		t.Fatal(err)
+	}
+	return match, participants
 }
 
 func signInToAuthEmulator(t *testing.T, ctx context.Context, host, email, password string) string {
