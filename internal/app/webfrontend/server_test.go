@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/scottdensmore/petspotr/pkg/identity"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
@@ -743,6 +744,104 @@ func TestManagedServerRejectsPrivilegedMutations(t *testing.T) {
 	}
 	if string(got) != string(record) {
 		t.Fatalf("managed match was mutated: got %s, want %s", got, record)
+	}
+}
+
+func TestIdentityModeDisablesLegacyPrivilegedRoutes(t *testing.T) {
+	t.Parallel()
+
+	const (
+		matchID      = "identity-match"
+		pushEndpoint = "https://push.example.test/send/identity-user"
+		csrfToken    = "0123456789abcdef0123456789abcdef0123456789abcdef"
+	)
+	originalMatch := []byte(`{"matchId":"identity-match","status":"PENDING_REVIEW"}`)
+
+	tests := []struct {
+		name    string
+		path    string
+		payload string
+		verify  func(*testing.T, *store.MemoryStore)
+	}{
+		{
+			name:    "reunion resolution",
+			path:    "/api/v1/reunions/resolve",
+			payload: `{"matchId":"identity-match","petId":"lost-1","rating":5}`,
+			verify: func(t *testing.T, memory *store.MemoryStore) {
+				t.Helper()
+				got, err := memory.GetState(context.Background(), store.MatchesCollection, matchID)
+				if err != nil {
+					t.Fatalf("load match: %v", err)
+				}
+				if string(got) != string(originalMatch) {
+					t.Fatalf("identity-mode match was mutated: got %s, want %s", got, originalMatch)
+				}
+			},
+		},
+		{
+			name:    "push subscription",
+			path:    "/api/v1/push/subscribe",
+			payload: `{"endpoint":"https://push.example.test/send/identity-user","keys":{"p256dh":"key","auth":"auth"}}`,
+			verify: func(t *testing.T, memory *store.MemoryStore) {
+				t.Helper()
+				_, err := memory.GetState(context.Background(), store.PushSubscriptionsCollection, pushEndpoint)
+				if !errors.Is(err, store.ErrNotFound) && !errors.Is(err, store.ErrStoreNotFound) {
+					t.Fatalf("push subscription lookup error = %v, want not found", err)
+				}
+			},
+		},
+		{
+			name:    "legacy upload grant",
+			path:    "/api/v1/uploads/presigned-url",
+			payload: `{"fileName":"caller.jpg","contentType":"image/jpeg"}`,
+		},
+	}
+
+	callers := []struct {
+		name          string
+		authenticated bool
+	}{
+		{name: "anonymous"},
+		{name: "ordinary user", authenticated: true},
+	}
+	for _, tt := range tests {
+		tt := tt
+		for _, caller := range callers {
+			caller := caller
+			t.Run(tt.name+"/"+caller.name, func(t *testing.T) {
+				t.Parallel()
+
+				memory := store.NewMemoryStore()
+				if err := memory.SaveState(context.Background(), store.MatchesCollection, matchID, originalMatch); err != nil {
+					t.Fatalf("seed match: %v", err)
+				}
+				srv := NewServerWithOptions(memory, ServerOptions{
+					AllowPrivilegedMutations: true,
+					IdentitySessions: &stubSessionManager{verified: identity.Principal{
+						Issuer:  "https://securetoken.google.com/petspotr-test",
+						Subject: "ordinary-user",
+						Email:   "ordinary@example.com", EmailVerified: true,
+					}},
+				})
+				req := httptest.NewRequest(http.MethodPost, tt.path, strings.NewReader(tt.payload))
+				req.Header.Set("Content-Type", "application/json")
+				if caller.authenticated {
+					req.Header.Set(csrfHeaderName, csrfToken)
+					req.AddCookie(&http.Cookie{Name: localSessionCookieName, Value: "ordinary-session"})
+					req.AddCookie(&http.Cookie{Name: localCSRFCookieName, Value: csrfToken})
+				}
+				rec := httptest.NewRecorder()
+
+				srv.ServeHTTP(rec, req)
+
+				if rec.Code != http.StatusForbidden {
+					t.Fatalf("status = %d, want %d; body = %s", rec.Code, http.StatusForbidden, rec.Body.String())
+				}
+				if tt.verify != nil {
+					tt.verify(t, memory)
+				}
+			})
+		}
 	}
 }
 

@@ -103,13 +103,14 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 	if options.IdentitySessions == nil || identityClientConfig.Validate() != nil {
 		identityClientConfig = identity.WebClientConfig{}
 	}
+	allowPrivilegedMutations := options.AllowPrivilegedMutations && options.IdentitySessions == nil
 	s := &Server{
 		mux:                      http.NewServeMux(),
 		metrics:                  telemetry.NewMetricsRegistry("web-frontend"),
 		stateStore:               st,
 		foundPetReporter:         foundPetReporter,
 		lostPetReporter:          lostPetReporter,
-		allowPrivilegedMutations: options.AllowPrivilegedMutations,
+		allowPrivilegedMutations: allowPrivilegedMutations,
 		identitySessions:         options.IdentitySessions,
 		identityClientConfig:     identityClientConfig,
 		secureSessionCookie:      options.SecureSessionCookie,

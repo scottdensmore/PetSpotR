@@ -131,7 +131,9 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 	}
 	state := store.NewMemoryStore()
 	srv := httptest.NewServer(webfrontend.NewServerWithOptions(state, webfrontend.ServerOptions{
-		IdentitySessions: identityRuntime.Sessions, SecureSessionCookie: identityRuntime.SecureCookies,
+		AllowPrivilegedMutations: true,
+		IdentitySessions:         identityRuntime.Sessions,
+		SecureSessionCookie:      identityRuntime.SecureCookies,
 	}))
 	defer srv.Close()
 	jar, err := cookiejar.New(nil)
@@ -199,6 +201,31 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 	decodeResponseJSON(t, current, &verified)
 	if verified != loggedIn {
 		t.Fatalf("verified principal = %#v, want %#v", verified, loggedIn)
+	}
+
+	legacyMatch := domain.MatchRecord{
+		MatchID: "match-legacy-reunion", FoundPetID: "found-legacy", MatchedPetID: "lost-legacy",
+		Status: domain.MatchStatusPendingReview,
+	}
+	seedIdentityMatch(t, state, legacyMatch, nil)
+	legacyMatchBefore, err := state.GetState(ctx, store.MatchesCollection, legacyMatch.MatchID)
+	if err != nil {
+		t.Fatalf("load legacy match before privilege attempt: %v", err)
+	}
+	legacyReunion := productRequest(
+		t, client, http.MethodPost, srv.URL+"/api/v1/reunions/resolve",
+		`{"matchId":"match-legacy-reunion","petId":"lost-legacy","rating":5}`, csrfToken,
+	)
+	if legacyReunion.StatusCode != http.StatusForbidden {
+		t.Fatalf("ordinary-user reunion status = %d, want %d", legacyReunion.StatusCode, http.StatusForbidden)
+	}
+	closeResponse(t, legacyReunion)
+	legacyMatchAfter, err := state.GetState(ctx, store.MatchesCollection, legacyMatch.MatchID)
+	if err != nil {
+		t.Fatalf("load legacy match after privilege attempt: %v", err)
+	}
+	if !bytes.Equal(legacyMatchAfter, legacyMatchBefore) {
+		t.Fatalf("ordinary user mutated legacy match: got %s, want %s", legacyMatchAfter, legacyMatchBefore)
 	}
 
 	missingReportCSRF := productRequest(
