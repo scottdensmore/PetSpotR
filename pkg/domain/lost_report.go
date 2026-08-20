@@ -87,21 +87,22 @@ type LostPetReport struct {
 // stored separately and linked by OwnerIdentityRef. OwnedBy identifies the
 // authenticated resource owner when the producer supplied one.
 type LostPetRecord struct {
-	PetID            string              `json:"petId"`
-	PetName          string              `json:"petName,omitempty"`
-	Species          string              `json:"species,omitempty"`
-	Breed            string              `json:"breed,omitempty"`
-	PrimaryColor     string              `json:"primaryColor,omitempty"`
-	Description      string              `json:"description,omitempty"`
-	OwnerIdentityRef string              `json:"ownerIdentityRef"`
-	ImageObject      string              `json:"imageObject,omitempty"`
-	ReportedAt       time.Time           `json:"reportedAt"`
-	Location         string              `json:"location"`
-	GeocodingStatus  GeocodingStatus     `json:"geocodingStatus"`
-	Coordinates      *LocationPoint      `json:"coordinates,omitempty"`
-	Status           LostPetStatus       `json:"status"`
-	ImageAnalysis    *ImageTraitAnalysis `json:"imageAnalysis,omitempty"`
-	OwnedBy          *PrincipalRef       `json:"ownedBy,omitempty"`
+	PetID            string                 `json:"petId"`
+	PetName          string                 `json:"petName,omitempty"`
+	Species          string                 `json:"species,omitempty"`
+	Breed            string                 `json:"breed,omitempty"`
+	PrimaryColor     string                 `json:"primaryColor,omitempty"`
+	Description      string                 `json:"description,omitempty"`
+	OwnerIdentityRef string                 `json:"ownerIdentityRef"`
+	ImageObject      string                 `json:"imageObject,omitempty"`
+	ReportedAt       time.Time              `json:"reportedAt"`
+	Location         string                 `json:"location"`
+	GeocodingStatus  GeocodingStatus        `json:"geocodingStatus"`
+	Coordinates      *LocationPoint         `json:"coordinates,omitempty"`
+	Status           LostPetStatus          `json:"status"`
+	ImageAnalysis    *ImageTraitAnalysis    `json:"imageAnalysis,omitempty"`
+	OwnedBy          *PrincipalRef          `json:"ownedBy,omitempty"`
+	LifecycleAudit   *LostPetLifecycleAudit `json:"lifecycleAudit,omitempty"`
 }
 
 // LostPetReportedV2 is the additive payload-v2 integration event. Its legacy
@@ -514,6 +515,10 @@ func NormalizeLostPetRecord(record LostPetRecord) LostPetRecord {
 		normalized.OwnerIdentityRef = identityRef
 	}
 	normalized.ImageAnalysis = NormalizeImageTraitAnalysis(record.ImageAnalysis)
+	if record.LifecycleAudit != nil {
+		audit := *record.LifecycleAudit
+		normalized.LifecycleAudit = &audit
+	}
 	return normalized
 }
 

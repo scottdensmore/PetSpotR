@@ -70,8 +70,9 @@ func main() {
 		Backfiller: backfiller,
 		Recover: func(ctx context.Context) (int, error) {
 			lostCount, lostErr := lostReports.RecoverOutbox(ctx)
+			lifecycleCount, lifecycleErr := lostReports.RecoverLifecycleOutbox(ctx)
 			foundCount, foundErr := foundReports.RecoverOutbox(ctx)
-			return lostCount + foundCount, errors.Join(lostErr, foundErr)
+			return lostCount + lifecycleCount + foundCount, errors.Join(lostErr, lifecycleErr, foundErr)
 		},
 	})
 	if err != nil {

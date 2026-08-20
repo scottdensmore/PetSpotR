@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scottdensmore/petspotr/pkg/outbox"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
@@ -103,6 +104,43 @@ func TestMemoryStoreCreateStatesAndOutboxIsAtomicAndIdempotent(t *testing.T) {
 	if _, err := stateStore.GetState(ctx, partialOutbox.StoreName, partialOutbox.Key); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("partial transaction outbox error = %v, want ErrNotFound", err)
 	}
+}
+
+func TestMemoryStoreUpdatesStateAndCreatesOutboxAtomically(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	if err := stateStore.SaveState(ctx, store.LostPetsCollection, "lost-update", []byte("before")); err != nil {
+		t.Fatal(err)
+	}
+	outboxRecord := outbox.NewRecord("evt-update", "petStatusChanged", []byte(`{"status":"reunited"}`), time.Now().UTC())
+	outboxData, err := outbox.MarshalRecord(outboxRecord)
+	if err != nil {
+		t.Fatal(err)
+	}
+	atomicStore := store.StateAndOutboxStore(stateStore)
+	if err := atomicStore.UpdateStateAndCreateOutbox(ctx, store.LostPetsCollection, "lost-update",
+		func(current []byte) (store.StateWrite, store.StateWrite, error) {
+			if string(current) != "before" {
+				t.Fatalf("current state = %q", current)
+			}
+			return store.StateWrite{StoreName: store.LostPetsCollection, Key: "lost-update", Data: []byte("after")},
+				store.StateWrite{StoreName: store.OutboxCollection, Key: outboxRecord.ID, Data: outboxData}, nil
+		}); err != nil {
+		t.Fatal(err)
+	}
+	assertStoredValue(t, stateStore, store.LostPetsCollection, "lost-update", "after")
+	if record, err := outbox.GetRecord(ctx, stateStore, outboxRecord.ID); err != nil || record.Topic != "petStatusChanged" {
+		t.Fatalf("outbox record = %#v, %v", record, err)
+	}
+
+	rejected := errors.New("reject atomic update")
+	if err := atomicStore.UpdateStateAndCreateOutbox(ctx, store.LostPetsCollection, "lost-update",
+		func([]byte) (store.StateWrite, store.StateWrite, error) {
+			return store.StateWrite{}, store.StateWrite{}, rejected
+		}); !errors.Is(err, rejected) {
+		t.Fatalf("rejected update error = %v", err)
+	}
+	assertStoredValue(t, stateStore, store.LostPetsCollection, "lost-update", "after")
 }
 
 func TestMemoryStoreListsBoundedPendingOutboxByTopic(t *testing.T) {
