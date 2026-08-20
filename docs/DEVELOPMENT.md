@@ -807,9 +807,13 @@ When a found event references a finalized private object, the same matching
 operation validates that object against the durable found record, persists its
 bounded analysis and provenance before scoring, and reuses those verified
 traits after a failed delivery attempt or worker restart. Exact reporter
-retries ignore but preserve this matcher-owned enrichment. Legacy found events
-that carry only `imageUrl` remain readable and use the prior inline analysis
-path without treating an external URL as verified private-object provenance.
+retries ignore but preserve this matcher-owned enrichment. Raw pre-envelope and
+payload-v1 found events remain readable and are durably acknowledged as safe
+no-ops when they have no prior result. The matcher does not fetch their
+caller-controlled `imageUrl`, invoke Ollama, persist match state, or publish
+`matchFound`. A retry still publishes a result already persisted by an older
+worker before completing its delivery. Payload-v2 URL-only events temporarily
+retain the prior inline-analysis path until the current-contract migration.
 
 Lost-pet writes now duplicate only query metadata beside the opaque state blob:
 status, geocoding status, normalized species, report timestamp, and verified
