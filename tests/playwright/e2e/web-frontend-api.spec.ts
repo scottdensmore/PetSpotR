@@ -366,6 +366,26 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     await fileChooser;
   });
 
+  test('should make the lost-photo upload keyboard accessible', async ({ page }) => {
+    await page.goto(`${WEB_FRONTEND_URL}/report-lost`);
+    await page.locator('#petName').fill('Buddy');
+    await page.getByRole('button', { name: 'Next Step' }).click();
+
+    const upload = page.getByRole('button', {
+      name: 'Drag & drop photo here, or click to browse Supports JPG, PNG, WEBP up to 10MB',
+    });
+    await expect(upload).toHaveAttribute('id', 'dropzone');
+
+    await page.locator('#theme-toggle').focus();
+    await page.keyboard.press('Tab');
+    await expect(upload).toBeFocused();
+    expect(await upload.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
+
+    const fileChooser = page.waitForEvent('filechooser');
+    await upload.press('Enter');
+    await fileChooser;
+  });
+
   test('should sign in with Google, submit an owned found report, and log out', async ({ page }) => {
     const principal = {
       issuer: 'https://securetoken.google.com/demo-petspotr-auth',
