@@ -1,0 +1,9 @@
+ok lets pick up the next vertical slice
+
+---
+
+Yep lets do the next slice
+
+---
+
+Ok lets merge and delete... then pick up the next slice
