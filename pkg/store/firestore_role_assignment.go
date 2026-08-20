@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
@@ -54,6 +55,93 @@ func (s *FirestoreStore) GetRoleAssignment(
 		return domain.RoleAssignment{}, fmt.Errorf("store: get role assignment %s: %w", assignmentID, err)
 	}
 	return assignment, nil
+}
+
+// UpdateMatchAndParticipantsAsRole reads the private assignment and updates
+// both match records in one Firestore transaction. A concurrent revocation is
+// serialized before or after the privileged write, never between its check and
+// commit.
+func (s *FirestoreStore) UpdateMatchAndParticipantsAsRole(
+	ctx context.Context,
+	principal domain.PrincipalRef,
+	role domain.Role,
+	scope domain.RoleScope,
+	matchID string,
+	update RoleAuthorizedMatchStateUpdater,
+) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if strings.TrimSpace(matchID) == "" || update == nil {
+		return errors.New("store: match ID and state updater are required")
+	}
+	assignmentID, err := domain.RoleAssignmentID(principal, role, scope)
+	if err != nil {
+		return err
+	}
+	assignmentDoc, err := s.document(roleAssignmentsCollection, assignmentID)
+	if err != nil {
+		return err
+	}
+	matchDoc, err := s.document(MatchesCollection, matchID)
+	if err != nil {
+		return err
+	}
+	participantsDoc, err := s.document(MatchParticipantsCollection, matchID)
+	if err != nil {
+		return err
+	}
+
+	err = s.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		assignmentSnapshot, getErr := tx.Get(assignmentDoc)
+		if status.Code(getErr) == codes.NotFound {
+			return ErrRoleDenied
+		}
+		if getErr != nil {
+			return getErr
+		}
+		assignment, decodeErr := roleAssignmentFromSnapshot(assignmentSnapshot, assignmentID)
+		if decodeErr != nil {
+			return decodeErr
+		}
+		if assignment.Status != domain.RoleAssignmentStatusActive {
+			return ErrRoleDenied
+		}
+
+		match, getErr := transactionRecord(tx, matchDoc, MatchesCollection, matchID)
+		if getErr != nil {
+			return getErr
+		}
+		participants, getErr := transactionRecord(tx, participantsDoc, MatchParticipantsCollection, matchID)
+		if getErr != nil {
+			return getErr
+		}
+		nextMatch, nextParticipants, updateErr := update(
+			assignment, bytes.Clone(match.Data), bytes.Clone(participants.Data),
+		)
+		if updateErr != nil {
+			return updateErr
+		}
+		matchRecord, encodeErr := newFirestoreRecord(MatchesCollection, matchID, nextMatch)
+		if encodeErr != nil {
+			return encodeErr
+		}
+		participantsRecord, encodeErr := newFirestoreRecord(MatchParticipantsCollection, matchID, nextParticipants)
+		if encodeErr != nil {
+			return encodeErr
+		}
+		if setErr := tx.Set(matchDoc, matchRecord); setErr != nil {
+			return setErr
+		}
+		return tx.Set(participantsDoc, participantsRecord)
+	})
+	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
+		return fmt.Errorf("store: role-authorized match update %s: %w", matchID, err)
+	}
+	return nil
 }
 
 // GrantRoleAssignment atomically grants or regrants one role assignment and

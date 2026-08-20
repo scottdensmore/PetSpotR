@@ -97,9 +97,10 @@ Application Default Credentials or the metadata server when
 start with ephemeral state or emulator credentials.
 
 Managed emulator and GCP servers return redacted public lost-pet records.
-Contact, match/reunion transition, and push-subscription endpoints remain
-disabled with `403 Forbidden` outside explicit `memory` demo mode until
-issue #110 adds authentication and ownership enforcement.
+Identity-enabled private contact and match actions require the trusted report
+owner or match participant. Reunion resolution additionally requires an active
+global operator assignment. Push subscription remains disabled outside the
+explicit identity-disabled `memory` demo while issue #110 is incomplete.
 
 For example, after starting a Firestore emulator on port 8085:
 
@@ -142,13 +143,16 @@ Run the private role-assignment contract against the same emulator with:
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
 GOTOOLCHAIN=go1.26.5 \
   go test ./pkg/store -count=1 -v \
-  -run '^TestFirestoreRoleAssignmentsCrossRuntimeAndFailClosed$'
+  -run '^TestFirestore(RoleAssignmentsCrossRuntimeAndFailClosed|RoleAuthorizedMatchUpdateFencesConcurrentRevocation)$'
 ```
 
 It uses independent runtimes to grant, retry, read, and revoke one assignment;
 verifies the assignment and immutable audit commit together; inspects the raw
 private records for identity leakage; and proves malformed or key-mismatched
-state fails closed.
+state fails closed. The role-authorized match contract races a global operator
+write with a revocation and accepts only the two serializable outcomes: the
+mutation commits while the role is active and is then revoked, or revocation
+commits first and the mutation is denied.
 
 The separate-process contract builds the real lost-pet and web binaries,
 writes through the first process, reads through the second, restarts it, and
@@ -189,10 +193,10 @@ existing anonymous demo flow is preserved. Pet lifecycle mutation routes
 remain unexposed.
 
 Identity mode always overrides the memory runtime's demo privilege flag. When
-human sessions are configured, the legacy reunion-resolution, push-subscription,
-and presigned-upload routes remain closed even for an authenticated user; they
-must not become an accidental privilege-escalation path while their authorized
-replacements are incomplete.
+human sessions are configured, push-subscription and presigned-upload routes
+remain closed even for an authenticated user. Reunion resolution is available
+only to an active global operator through the separately authorized contract
+described below; ordinary users cannot inherit the memory demo privilege.
 
 Lost- and found-report application commands can already persist an optional
 provider-neutral `issuer` plus opaque `subject` owner. The owner is private
@@ -343,10 +347,26 @@ Grant and revoke operations atomically update the assignment and append an
 immutable audit receipt. Assignments are never deleted. Revocation leaves a
 tombstone, regrant increments its revision, exact operation retries return the
 original recorded result, and changed reuse of an operation ID fails as a
-conflict. There is intentionally no grant CLI, operator UI, or lifecycle
-mutation in this slice. Before a shelter-scoped role authorizes a resource, a
-later slice must add a trusted shelter association to that resource; a
-caller-supplied shelter ID is never sufficient.
+conflict. There is intentionally no grant CLI or operator UI. Before a
+shelter-scoped role authorizes a resource, a later slice must add a trusted
+shelter association to that resource; a caller-supplied shelter ID is never
+sufficient.
+
+An authenticated active global operator may resolve a confirmed match through
+`POST /api/v1/reunions/resolve`. The request requires double-submit CSRF plus an
+`Idempotency-Key`, a rating from 1 through 5, and bounded valid UTF-8 feedback.
+The private assignment read, match transition to `REUNITED`, and private
+participant audit write occur in one transaction. A concurrent revocation is
+therefore serialized before or after the mutation rather than allowing a stale
+authorization check to commit later. The audit stores only the opaque operator
+principal key, role, global scope, original operation ID, server time, rating,
+and feedback. While the actor has an active global assignment, exact retries
+return the original accepted result and immutable assignment revision even
+after a revoke and regrant; requests made while revoked remain denied. Changed
+operation reuse and non-confirmed source states return `409 Conflict`. Missing
+or mismatched resources return non-enumerating `404 Not Found`; ordinary,
+revoked, and shelter-scoped users receive `403 Forbidden` with no mutation.
+Identity-disabled memory demo behavior remains unchanged.
 
 Start the pinned Authentication emulator from one terminal:
 
@@ -372,9 +392,11 @@ emulator user, obtains an emulator-issued ID token, exercises CSRF rejection,
 establishes and verifies the session through
 the real web server, and creates owned lost and found reports. It proves
 anonymous and post-logout submissions are rejected, a caller cannot spoof the
-reporter or finder email, an ordinary user cannot invoke the legacy reunion
-mutation even when memory-mode demo privileges were requested, and the public
-listings omit owner identity and contact. It also proves each report owner can
+reporter or finder email, and an ordinary user cannot invoke reunion mutation
+even when memory-mode demo privileges were requested. The journey then grants
+that same verified principal an active global operator assignment and proves a
+CSRF-protected, idempotent, privately audited reunion succeeds. Public listings
+omit owner identity and contact. It also proves each report owner can
 read their private contact, while
 anonymous and independently authenticated wrong-owner requests cannot. The two
 authenticated users can both read a shared match as reporter and finder while
@@ -714,11 +736,11 @@ found reports may transition once to `resolved` or `expired`. Terminal states
 cannot reopen or transition again. The matcher uses this lifecycle contract and
 never considers a terminal lost report an active candidate.
 
-Status mutation HTTP routes are intentionally not exposed yet. Issue #110 must
-still connect authenticated reporter, finder, and current operator authority to
-the lifecycle policy, including a trusted shelter association for scoped
-operators. Adding a mutation endpoint before that enforcement would expand the
-existing demo security debt.
+Pet-report status mutation HTTP routes are intentionally not exposed yet. The
+global-operator reunion route closes the terminal match record only; it does
+not change the associated lost or found report. Issue #110 must still connect
+authenticated reporter, finder, and current operator authority to the report
+lifecycle policy, including a trusted shelter association for scoped operators.
 
 The lost-image consumer derives a separate durable operation from the verified
 `lostPet` envelope ID, or from a stable digest for exact legacy payloads. Reports

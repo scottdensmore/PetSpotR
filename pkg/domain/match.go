@@ -92,6 +92,7 @@ type MatchParticipantRecord struct {
 	ReporterDecision MatchDecision          `json:"reporterDecision,omitempty"`
 	FinderDecision   MatchDecision          `json:"finderDecision,omitempty"`
 	DecisionAudit    []MatchDecisionAudit   `json:"decisionAudit,omitempty"`
+	ReunionAudit     *MatchReunionAudit     `json:"reunionAudit,omitempty"`
 	Messages         []MediatedMatchMessage `json:"messages,omitempty"`
 }
 
@@ -147,6 +148,11 @@ func (r MatchParticipantRecord) Validate() error {
 	if (r.ReporterDecision != "") != seenAudit[MatchParticipantRoleReporter] ||
 		(r.FinderDecision != "") != seenAudit[MatchParticipantRoleFinder] {
 		return errors.New("domain: every match decision requires one audit record")
+	}
+	if r.ReunionAudit != nil {
+		if err := r.ReunionAudit.Validate(); err != nil {
+			return fmt.Errorf("domain: invalid match reunion audit: %w", err)
+		}
 	}
 	if err := validateMediatedMatchMessages(r.Reporter, r.Finder, r.Messages); err != nil {
 		return err
