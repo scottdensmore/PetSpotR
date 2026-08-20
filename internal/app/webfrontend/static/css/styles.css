@@ -983,6 +983,44 @@ a {
   color: #052e16;
 }
 
+.match-thread-panel {
+  max-width: 680px;
+  max-height: min(90vh, 760px);
+  overflow-y: auto;
+}
+
+.match-thread-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 18rem;
+  margin: 1rem 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.match-thread-message {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  overflow-wrap: anywhere;
+}
+
+.match-thread-message-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.match-thread-message-body {
+  white-space: pre-wrap;
+}
+
 /* Hero Section */
 .hero {
   padding: 5rem 0 3rem;
