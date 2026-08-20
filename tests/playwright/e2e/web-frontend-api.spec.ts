@@ -31,14 +31,24 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     expect(body.status).toBe('success');
   });
 
-  test('should reuse the lost report identity after a transient browser retry', async ({ page }) => {
+  test('should lock slow lost report submissions and restore retry after failure', async ({ page }) => {
     const submissions: Array<Record<string, unknown>> = [];
+    let releaseFailure: (() => void) | undefined;
+    let releaseSuccess: (() => void) | undefined;
+    const failureResponse = new Promise<void>((resolve) => {
+      releaseFailure = resolve;
+    });
+    const successResponse = new Promise<void>((resolve) => {
+      releaseSuccess = resolve;
+    });
     await page.route('**/api/v1/lost-pets', async (route) => {
       submissions.push(route.request().postDataJSON() as Record<string, unknown>);
       if (submissions.length === 1) {
+        await failureResponse;
         await route.fulfill({ status: 503, body: 'temporarily unavailable' });
         return;
       }
+      await successResponse;
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
@@ -55,9 +65,34 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     await page.locator('#btn-next').click();
     await page.locator('#reporterEmail').fill('owner@example.com');
 
-    await page.locator('#btn-submit').click();
+    const submitButton = page.locator('#btn-submit');
+    await submitButton.focus();
+    await page.keyboard.press('Enter');
     await expect.poll(() => submissions.length).toBe(1);
-    await page.locator('#btn-submit').click();
+    await expect(page.locator('#lost-pet-form')).toHaveAttribute('aria-busy', 'true');
+    await expect(submitButton).toHaveAttribute('aria-disabled', 'true');
+    await expect(submitButton).toHaveText('Submitting report...');
+    await expect(submitButton).toBeFocused();
+    await expect(page.locator('#lost-report-status')).toBeVisible();
+    await expect(page.locator('#lost-report-status')).toHaveText('Submitting your lost pet report...');
+    await page.evaluate(() => document.querySelector<HTMLButtonElement>('#btn-submit')?.click());
+    await expect.poll(() => submissions.length).toBe(1);
+
+    releaseFailure?.();
+    await expect(page.locator('#lost-pet-form')).toHaveAttribute('aria-busy', 'false');
+    await expect(submitButton).toHaveAttribute('aria-disabled', 'false');
+    await expect(submitButton).toHaveText('Submit Report');
+    await expect(submitButton).toBeFocused();
+    await expect(page.locator('#lost-report-status')).toBeHidden();
+
+    await page.keyboard.press('Enter');
+    await expect.poll(() => submissions.length).toBe(2);
+    await expect(submitButton).toHaveAttribute('aria-disabled', 'true');
+    await expect(submitButton).toBeFocused();
+    await expect(page.locator('#lost-report-status')).toHaveText('Submitting your lost pet report...');
+    await page.evaluate(() => document.querySelector<HTMLButtonElement>('#btn-submit')?.click());
+    await expect.poll(() => submissions.length).toBe(2);
+    releaseSuccess?.();
     await expect(page.locator('#success-modal')).toBeVisible();
 
     expect(submissions).toHaveLength(2);

@@ -61,7 +61,7 @@
         <div class="wizard-step-badge" id="step-badge-4">4. Contact</div>
       </div>
 
-      <form id="lost-pet-form">
+      <form id="lost-pet-form" aria-busy="false">
         <!-- Step 1: Pet Details -->
         <div class="wizard-step" id="wizard-step-1">
           <h2 class="section-title">Pet Characteristics</h2>
@@ -146,6 +146,7 @@
         </div>
 
         <!-- Wizard Navigation Buttons -->
+        <p id="lost-report-status" class="form-help" role="status" aria-live="polite" hidden></p>
         <div class="wizard-actions">
           <button type="button" class="btn btn-secondary is-invisible" id="btn-prev">Previous</button>
           <button type="button" class="btn btn-primary" id="btn-next">Next Step</button>

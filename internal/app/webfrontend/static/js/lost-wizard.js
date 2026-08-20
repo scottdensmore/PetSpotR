@@ -2,6 +2,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   let currentStep = 1;
   let pendingSubmission = null;
+  let submissionInFlight = false;
   const totalSteps = 4;
 
   const btnPrev = document.getElementById('btn-prev');
@@ -12,6 +13,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const photoInput = document.getElementById('photoInput');
   const imagePreview = document.getElementById('imagePreview');
   const previewContainer = document.getElementById('preview-container');
+  const submissionStatus = document.getElementById('lost-report-status');
+
+  function setSubmissionBusy(busy) {
+    if (form) form.setAttribute('aria-busy', String(busy));
+    if (btnSubmit) {
+      btnSubmit.setAttribute('aria-disabled', String(busy));
+      btnSubmit.textContent = busy ? 'Submitting report...' : 'Submit Report';
+    }
+    if (submissionStatus) {
+      submissionStatus.textContent = busy ? 'Submitting your lost pet report...' : '';
+      submissionStatus.hidden = !busy;
+    }
+  }
 
   // Step Switching
   function showStep(step) {
@@ -112,69 +126,78 @@ document.addEventListener('DOMContentLoaded', () => {
   if (form) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const reporterEmail = document.getElementById('reporterEmail');
-
-      let identityState = null;
-      if (window.petspotrIdentity) {
-        try {
-          identityState = await window.petspotrIdentity.requireSession();
-        } catch (error) {
-          if (error.code === 'identity-required') {
-            window.petspotrIdentity.focusSignIn();
-            alert('Sign in with Google before submitting your report.');
-            return;
-          }
-          console.error('Identity error:', error);
-          alert('Identity services are temporarily unavailable. Please try again.');
-          return;
-        }
-      }
-      if (!reporterEmail || !reporterEmail.value.trim()) {
-        alert('Please enter a contact email address.');
-        return;
-      }
-
-      if (!pendingSubmission) {
-        pendingSubmission = {
-          petId: `lost-${crypto.randomUUID()}`,
-          reportedAt: new Date().toISOString()
-        };
-      }
-
-      const payload = {
-        ...pendingSubmission,
-        petName: document.getElementById('petName')?.value || '',
-        species: document.getElementById('species')?.value || 'Dog',
-        breed: document.getElementById('breed')?.value || '',
-        primaryColor: document.getElementById('primaryColor')?.value || '',
-        description: document.getElementById('description')?.value || '',
-        location: document.getElementById('location')?.value || '',
-        reporterEmail: reporterEmail.value.trim(),
-        phone: document.getElementById('phone')?.value || ''
-      };
+      if (submissionInFlight) return;
+      submissionInFlight = true;
+      setSubmissionBusy(true);
 
       try {
-        const headers = { 'Content-Type': 'application/json' };
-        if (identityState?.enabled) {
-          headers['X-CSRF-Token'] = identityState.csrfToken;
-        }
-        const resp = await fetch('/api/v1/lost-pets', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload)
-        });
+        const reporterEmail = document.getElementById('reporterEmail');
 
-        if (resp.ok) {
-          pendingSubmission = null;
-          const modal = document.getElementById('success-modal');
-          if (modal) modal.hidden = false;
-        } else {
-          if (resp.status < 500) pendingSubmission = null;
-          alert('Failed to submit report. Please check input fields.');
+        let identityState = null;
+        if (window.petspotrIdentity) {
+          try {
+            identityState = await window.petspotrIdentity.requireSession();
+          } catch (error) {
+            if (error.code === 'identity-required') {
+              window.petspotrIdentity.focusSignIn();
+              alert('Sign in with Google before submitting your report.');
+              return;
+            }
+            console.error('Identity error:', error);
+            alert('Identity services are temporarily unavailable. Please try again.');
+            return;
+          }
         }
-      } catch (err) {
-        console.error('Submission error:', err);
-        alert('Network error submitting report.');
+        if (!reporterEmail || !reporterEmail.value.trim()) {
+          alert('Please enter a contact email address.');
+          return;
+        }
+
+        if (!pendingSubmission) {
+          pendingSubmission = {
+            petId: `lost-${crypto.randomUUID()}`,
+            reportedAt: new Date().toISOString()
+          };
+        }
+
+        const payload = {
+          ...pendingSubmission,
+          petName: document.getElementById('petName')?.value || '',
+          species: document.getElementById('species')?.value || 'Dog',
+          breed: document.getElementById('breed')?.value || '',
+          primaryColor: document.getElementById('primaryColor')?.value || '',
+          description: document.getElementById('description')?.value || '',
+          location: document.getElementById('location')?.value || '',
+          reporterEmail: reporterEmail.value.trim(),
+          phone: document.getElementById('phone')?.value || ''
+        };
+
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          if (identityState?.enabled) {
+            headers['X-CSRF-Token'] = identityState.csrfToken;
+          }
+          const resp = await fetch('/api/v1/lost-pets', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload)
+          });
+
+          if (resp.ok) {
+            pendingSubmission = null;
+            const modal = document.getElementById('success-modal');
+            if (modal) modal.hidden = false;
+          } else {
+            if (resp.status < 500) pendingSubmission = null;
+            alert('Failed to submit report. Please check input fields.');
+          }
+        } catch (err) {
+          console.error('Submission error:', err);
+          alert('Network error submitting report.');
+        }
+      } finally {
+        submissionInFlight = false;
+        setSubmissionBusy(false);
       }
     });
   }
