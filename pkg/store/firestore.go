@@ -168,6 +168,83 @@ func (s *FirestoreStore) UpdateState(ctx context.Context, storeName, key string,
 	return nil
 }
 
+// UpdateStateAndCreateOutbox atomically replaces one existing aggregate and
+// creates its outbox record. Firestore may retry the callback.
+func (s *FirestoreStore) UpdateStateAndCreateOutbox(
+	ctx context.Context,
+	storeName, key string,
+	update StateAndOutboxUpdater,
+) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if update == nil {
+		return errors.New("store: state and outbox updater is required")
+	}
+	if err := rejectPrivateRoleCollection(storeName); err != nil {
+		return err
+	}
+	stateDoc, err := s.document(storeName, key)
+	if err != nil {
+		return err
+	}
+	err = s.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		stateSnapshot, err := tx.Get(stateDoc)
+		if status.Code(err) == codes.NotFound {
+			return fmt.Errorf("%w: %s in store %s", ErrNotFound, key, storeName)
+		}
+		if err != nil {
+			return err
+		}
+		var current firestoreRecord
+		if err := stateSnapshot.DataTo(&current); err != nil {
+			return err
+		}
+		if current.Key != key {
+			return fmt.Errorf("store: state key %q does not match %q", current.Key, key)
+		}
+		next, outboxWrite, err := update(bytes.Clone(current.Data))
+		if err != nil {
+			return err
+		}
+		if next.StoreName != storeName || next.Key != key {
+			return errors.New("store: updater changed its state target")
+		}
+		if err := validateAtomicWrites([]StateWrite{next}, outboxWrite); err != nil {
+			return err
+		}
+		outboxDoc, err := s.document(outboxWrite.StoreName, outboxWrite.Key)
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Get(outboxDoc); status.Code(err) != codes.NotFound {
+			if err == nil {
+				return fmt.Errorf("%w: %s/%s", ErrConflict, outboxWrite.StoreName, outboxWrite.Key)
+			}
+			return err
+		}
+		stateRecord, err := newFirestoreRecord(next.StoreName, next.Key, next.Data)
+		if err != nil {
+			return err
+		}
+		outboxRecord, err := newFirestoreRecord(outboxWrite.StoreName, outboxWrite.Key, outboxWrite.Data)
+		if err != nil {
+			return err
+		}
+		if err := tx.Set(stateDoc, stateRecord); err != nil {
+			return err
+		}
+		return tx.Set(outboxDoc, outboxRecord)
+	})
+	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
+		return fmt.Errorf("store: update %s/%s and create outbox: %w", storeName, key, err)
+	}
+	return nil
+}
+
 // UpdateMatchAndParticipants atomically replaces an existing public match and
 // private participant record in one Firestore transaction.
 func (s *FirestoreStore) UpdateMatchAndParticipants(

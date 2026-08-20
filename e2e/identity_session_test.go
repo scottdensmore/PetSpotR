@@ -317,6 +317,64 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 	otherClient, otherPrincipal, otherCSRFToken := createAuthenticatedEmulatorClient(
 		t, ctx, setupAuth, host, srv.URL, otherEmail, password,
 	)
+	lifecycleURL := srv.URL + "/api/v1/lost-pets/" + reportID + "/status"
+	wrongOwnerLifecycle := mediatedProductRequest(
+		t, otherClient, http.MethodPatch, lifecycleURL, `{"status":"reunited"}`,
+		otherCSRFToken, "wrong-owner-lifecycle",
+	)
+	missingLifecycle := mediatedProductRequest(
+		t, otherClient, http.MethodPatch, srv.URL+"/api/v1/lost-pets/lost-missing/status", `{"status":"reunited"}`,
+		otherCSRFToken, "missing-lifecycle",
+	)
+	if wrongOwnerLifecycle.StatusCode != http.StatusNotFound || missingLifecycle.StatusCode != http.StatusNotFound {
+		t.Fatalf("wrong-owner/missing lifecycle statuses = %d/%d, want %d/%d",
+			wrongOwnerLifecycle.StatusCode, missingLifecycle.StatusCode, http.StatusNotFound, http.StatusNotFound)
+	}
+	wrongOwnerLifecycleBody, _ := io.ReadAll(wrongOwnerLifecycle.Body)
+	missingLifecycleBody, _ := io.ReadAll(missingLifecycle.Body)
+	_ = wrongOwnerLifecycle.Body.Close()
+	_ = missingLifecycle.Body.Close()
+	if !bytes.Equal(wrongOwnerLifecycleBody, missingLifecycleBody) {
+		t.Fatalf("lifecycle boundary enumerated target: %q / %q", wrongOwnerLifecycleBody, missingLifecycleBody)
+	}
+	ownerLifecycle := mediatedProductRequest(
+		t, client, http.MethodPatch, lifecycleURL, `{"status":"reunited"}`, csrfToken, "owner-lifecycle",
+	)
+	if ownerLifecycle.StatusCode != http.StatusOK || ownerLifecycle.Header.Get("Cache-Control") != "no-store" {
+		t.Fatalf("owner lifecycle response = %d Cache-Control %q", ownerLifecycle.StatusCode, ownerLifecycle.Header.Get("Cache-Control"))
+	}
+	var ownerLifecycleResult map[string]string
+	decodeResponseJSON(t, ownerLifecycle, &ownerLifecycleResult)
+	ownerLifecycleRetry := mediatedProductRequest(
+		t, client, http.MethodPatch, lifecycleURL, `{"status":"reunited"}`, csrfToken, "owner-lifecycle",
+	)
+	var ownerLifecycleRetryResult map[string]string
+	decodeResponseJSON(t, ownerLifecycleRetry, &ownerLifecycleRetryResult)
+	if ownerLifecycleRetry.StatusCode != http.StatusOK || ownerLifecycleResult["eventId"] == "" ||
+		ownerLifecycleRetryResult["eventId"] != ownerLifecycleResult["eventId"] {
+		t.Fatalf("owner lifecycle/retry results = %#v / %#v with retry status %d",
+			ownerLifecycleResult, ownerLifecycleRetryResult, ownerLifecycleRetry.StatusCode)
+	}
+	lifecycleRecordData, err := state.GetState(ctx, store.LostPetsCollection, reportID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var lifecycleRecord domain.LostPetRecord
+	if err := json.Unmarshal(lifecycleRecordData, &lifecycleRecord); err != nil {
+		t.Fatal(err)
+	}
+	if lifecycleRecord.Status != domain.LostPetStatusReunited || lifecycleRecord.LifecycleAudit == nil ||
+		lifecycleRecord.LifecycleAudit.EventID != ownerLifecycleResult["eventId"] {
+		t.Fatalf("persisted owner lifecycle = %#v", lifecycleRecord)
+	}
+	publicLifecycle := productRequest(t, publicClient, http.MethodGet, srv.URL+"/api/v1/lost-pets", "", "")
+	publicLifecycleData, err := io.ReadAll(publicLifecycle.Body)
+	_ = publicLifecycle.Body.Close()
+	if err != nil || publicLifecycle.StatusCode != http.StatusOK ||
+		!bytes.Contains(publicLifecycleData, []byte(`"status":"reunited"`)) ||
+		bytes.Contains(publicLifecycleData, []byte("lifecycleAudit")) {
+		t.Fatalf("public lifecycle response = %d %s, %v", publicLifecycle.StatusCode, publicLifecycleData, err)
+	}
 	wrongOwnerContact := productRequest(t, otherClient, http.MethodGet, privateContactURL, "", "")
 	if wrongOwnerContact.StatusCode != http.StatusNotFound {
 		t.Fatalf("wrong-owner private-contact status = %d, want %d", wrongOwnerContact.StatusCode, http.StatusNotFound)
@@ -735,6 +793,13 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("post-logout found-contact status = %d, want %d", afterLogoutFoundContact.StatusCode, http.StatusUnauthorized)
 	}
 	closeResponse(t, afterLogoutFoundContact)
+	afterLogoutLifecycle := mediatedProductRequest(
+		t, client, http.MethodPatch, lifecycleURL, `{"status":"reunited"}`, csrfToken, "after-logout-lifecycle",
+	)
+	if afterLogoutLifecycle.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("post-logout lifecycle status = %d, want %d", afterLogoutLifecycle.StatusCode, http.StatusUnauthorized)
+	}
+	closeResponse(t, afterLogoutLifecycle)
 	afterLogoutMatches := productRequest(t, client, http.MethodGet, srv.URL+"/api/v1/matches", "", "")
 	if afterLogoutMatches.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("post-logout match-list status = %d, want %d", afterLogoutMatches.StatusCode, http.StatusUnauthorized)

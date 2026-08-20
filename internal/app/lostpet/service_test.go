@@ -984,8 +984,21 @@ func TestLostPetService_RecoverPendingOutbox(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	statusPublished := make(chan []byte, 1)
+	if err := broker.Subscribe("petStatusChanged", func(_ context.Context, data []byte) error {
+		statusPublished <- append([]byte(nil), data...)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 	record := outbox.NewRecord("evt-lost-recovery", "lostPet", []byte(`{"petId":"lost-recovery"}`), time.Now().UTC())
 	if err := outbox.SaveRecord(ctx, stateStore, record); err != nil {
+		t.Fatal(err)
+	}
+	statusRecord := outbox.NewRecord(
+		"evt-status-recovery", "petStatusChanged", []byte(`{"petId":"lost-recovery","status":"reunited"}`), time.Now().UTC(),
+	)
+	if err := outbox.SaveRecord(ctx, stateStore, statusRecord); err != nil {
 		t.Fatal(err)
 	}
 	svc := NewService(stateStore, broker)
@@ -1008,5 +1021,26 @@ func TestLostPetService_RecoverPendingOutbox(t *testing.T) {
 	}
 	if got.Status != outbox.StatusPublished {
 		t.Fatalf("recovered status = %q, want %q", got.Status, outbox.StatusPublished)
+	}
+	gotStatus, err := outbox.GetRecord(ctx, stateStore, statusRecord.ID)
+	if err != nil || gotStatus.Status != outbox.StatusPending {
+		t.Fatalf("lifecycle status after lost-report recovery = %#v, %v", gotStatus, err)
+	}
+
+	count, err = svc.RecoverLifecycleOutbox(ctx)
+	if err != nil || count != 1 {
+		t.Fatalf("RecoverLifecycleOutbox() = %d, %v; want 1, nil", count, err)
+	}
+	select {
+	case got := <-statusPublished:
+		if string(got) != string(statusRecord.Payload) {
+			t.Fatalf("published status payload = %s, want %s", got, statusRecord.Payload)
+		}
+	default:
+		t.Fatal("RecoverLifecycleOutbox() did not publish the pending petStatusChanged event")
+	}
+	gotStatus, err = outbox.GetRecord(ctx, stateStore, statusRecord.ID)
+	if err != nil || gotStatus.Status != outbox.StatusPublished {
+		t.Fatalf("recovered lifecycle status = %#v, %v", gotStatus, err)
 	}
 }

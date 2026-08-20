@@ -41,6 +41,21 @@ type StateWrite struct {
 // Managed stores may invoke it more than once when a transaction is retried.
 type StateUpdater func(current []byte) (next []byte, err error)
 
+// StateAndOutboxUpdater computes an existing aggregate replacement and the
+// corresponding new outbox record. Managed stores may invoke it more than once
+// when a transaction is retried, so it must remain side-effect-free.
+type StateAndOutboxUpdater func(current []byte) (next StateWrite, outbox StateWrite, err error)
+
+// StateAndOutboxStore atomically updates one aggregate and creates its outbox
+// record. The outbox key must not already exist.
+type StateAndOutboxStore interface {
+	UpdateStateAndCreateOutbox(
+		ctx context.Context,
+		storeName, key string,
+		update StateAndOutboxUpdater,
+	) error
+}
+
 // MatchStateUpdater computes one atomic replacement for the public match and
 // its private participant record. Managed stores may invoke it more than once
 // when a transaction is retried.
@@ -216,6 +231,55 @@ func (m *MemoryStore) UpdateState(ctx context.Context, storeName, key string, up
 		return err
 	}
 	storeMap[key] = bytes.Clone(next)
+	return nil
+}
+
+// UpdateStateAndCreateOutbox atomically replaces one existing value and
+// creates one new outbox record under the same lock.
+func (m *MemoryStore) UpdateStateAndCreateOutbox(
+	ctx context.Context,
+	storeName, key string,
+	update StateAndOutboxUpdater,
+) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if update == nil {
+		return errors.New("store: state and outbox updater is required")
+	}
+	if err := rejectPrivateRoleCollection(storeName); err != nil {
+		return err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	storeMap, exists := m.items[storeName]
+	if !exists {
+		return fmt.Errorf("%w: %s", ErrStoreNotFound, storeName)
+	}
+	current, exists := storeMap[key]
+	if !exists {
+		return fmt.Errorf("%w: %s in store %s", ErrNotFound, key, storeName)
+	}
+	next, outboxWrite, err := update(bytes.Clone(current))
+	if err != nil {
+		return err
+	}
+	if next.StoreName != storeName || next.Key != key {
+		return errors.New("store: updater changed its state target")
+	}
+	if err := validateAtomicWrites([]StateWrite{next}, outboxWrite); err != nil {
+		return err
+	}
+	if outboxItems, ok := m.items[outboxWrite.StoreName]; ok {
+		if _, exists := outboxItems[outboxWrite.Key]; exists {
+			return fmt.Errorf("%w: %s/%s", ErrConflict, outboxWrite.StoreName, outboxWrite.Key)
+		}
+	}
+	storeMap[key] = bytes.Clone(next.Data)
+	if _, exists := m.items[outboxWrite.StoreName]; !exists {
+		m.items[outboxWrite.StoreName] = make(map[string][]byte)
+	}
+	m.items[outboxWrite.StoreName][outboxWrite.Key] = bytes.Clone(outboxWrite.Data)
 	return nil
 }
 

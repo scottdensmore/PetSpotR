@@ -652,8 +652,11 @@ An exact retry is a successful no-op and cannot reset a completed outbox
 record. A competing create with the same pet ID returns `409 Conflict`; report
 creation is aggregate version 1 and does not use last-write-wins ordering. Each
 relay serializes publication within one process. The lost- and found-report
-services poll a bounded, indexed set of their pending records every five
-seconds, so failed publication stays pending across a restart and is recovered.
+services poll a bounded, indexed set of their pending creation-event records
+every five seconds. The web frontend separately recovers lost-report lifecycle
+events, matching each runtime's publisher IAM. Failed publication therefore
+stays pending across a restart without an unauthorized runtime repeatedly
+claiming the record.
 Before polling, a cursor-backed bounded compatibility sweep adds the query
 fields missing from legacy key/data-only Firestore outbox documents. Incomplete
 sweeps advance from the durable cursor. Completed sweeps restart after one
@@ -683,6 +686,23 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
   -run TestFirestoreCreateStateAndOutboxTransaction
 ```
 
+Run the existing-state plus lifecycle-outbox transaction contract with:
+
+```bash
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
+  GOTOOLCHAIN=go1.26.5 go test ./pkg/store -count=1 -v \
+  -run '^TestFirestoreUpdatesStateAndCreatesOutboxAcrossRuntimes$'
+```
+
+Run the owner-authorized cross-runtime lifecycle and candidate-exclusion
+contract against the same emulator with:
+
+```bash
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
+  GOTOOLCHAIN=go1.26.5 go test ./e2e -count=1 -v \
+  -run '^TestFirestoreOwnerLostLifecycleIsAtomicAcrossRuntimes$'
+```
+
 Run the two-client relay claim contract against the same emulator with:
 
 ```bash
@@ -700,6 +720,24 @@ pushes. All four subscriptions have retry, retention, expiration, and DLQ
 policy. Multi-instance outbox claiming is durable. Found-pet image events carry
 a private finalized GCS object name in managed mode and retain legacy
 `imageUrl` decoding for messages already in flight.
+
+Authenticated owners can mark their own active lost report reunited with
+`PATCH /api/v1/lost-pets/{petID}/status`, an `Idempotency-Key`, a valid session,
+and double-submit CSRF. The only accepted body is `{"status":"reunited"}`.
+The report, opaque private lifecycle audit, and redacted
+`petspotr.pet.status-changed` payload-v1 outbox event are one atomic write.
+Exact retries return the original event ID. Wrong-owner and missing targets are
+both `404`, while identity-disabled demo mode exposes no lifecycle route.
+Managed delivery uses the `petStatusChanged` topic and a non-expiring 31-day
+backlog subscription until a later consumer slice is authorized.
+
+Run the redacted managed-publication contract against a Pub/Sub emulator with:
+
+```bash
+PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
+  GOTOOLCHAIN=go1.26.5 go test ./internal/app/lostpet -count=1 -v \
+  -run '^TestOwnerLostLifecyclePublishesRedactedEventWithPubSubEmulator$'
+```
 
 ### Idempotent matcher result publication
 

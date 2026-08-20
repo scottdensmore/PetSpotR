@@ -125,12 +125,12 @@ func TestFirestoreUpdatesMatchAndParticipantsAtomicallyAcrossRuntimes(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer writer.Close()
+	t.Cleanup(func() { _ = writer.Close() })
 	reader, err := store.NewFirestoreEmulatorStore(ctx, projectID, host)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer reader.Close()
+	t.Cleanup(func() { _ = reader.Close() })
 
 	matchID := fmt.Sprintf("match-decision-%d", time.Now().UnixNano())
 	if err := writer.SaveState(ctx, store.MatchesCollection, matchID, []byte("match-before")); err != nil {
@@ -267,6 +267,70 @@ func TestFirestoreCreateStateAndOutboxTransaction(t *testing.T) {
 	if string(storedContact) != string(contact.Data) {
 		t.Fatalf("competing create replaced contact = %s, want %s", storedContact, contact.Data)
 	}
+}
+
+func TestFirestoreUpdatesStateAndCreatesOutboxAcrossRuntimes(t *testing.T) {
+	host := os.Getenv("FIRESTORE_EMULATOR_HOST")
+	if host == "" {
+		t.Skip("FIRESTORE_EMULATOR_HOST is not set")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	const projectID = "petspotr-state-outbox-update"
+	writer, err := store.NewFirestoreEmulatorStore(ctx, projectID, host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Close()
+	reader, err := store.NewFirestoreEmulatorStore(ctx, projectID, host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+
+	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
+	stateKey := "lost-lifecycle-" + suffix
+	eventID := "evt-lifecycle-" + suffix
+	if err := writer.SaveState(ctx, store.LostPetsCollection, stateKey, []byte(`{"status":"lost"}`)); err != nil {
+		t.Fatal(err)
+	}
+	outboxData, err := outbox.MarshalRecord(outbox.NewRecord(
+		eventID, "petStatusChanged", []byte(`{"type":"petspotr.pet.status-changed"}`), time.Now().UTC(),
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cleanupCancel()
+		_ = writer.DeleteState(cleanupCtx, store.LostPetsCollection, stateKey)
+		_ = writer.DeleteState(cleanupCtx, store.OutboxCollection, eventID)
+	})
+
+	atomicWriter := store.StateAndOutboxStore(writer)
+	if err := atomicWriter.UpdateStateAndCreateOutbox(ctx, store.LostPetsCollection, stateKey,
+		func(current []byte) (store.StateWrite, store.StateWrite, error) {
+			if string(current) != `{"status":"lost"}` {
+				t.Fatalf("transaction current state = %s", current)
+			}
+			return store.StateWrite{StoreName: store.LostPetsCollection, Key: stateKey, Data: []byte(`{"status":"reunited"}`)},
+				store.StateWrite{StoreName: store.OutboxCollection, Key: eventID, Data: outboxData}, nil
+		}); err != nil {
+		t.Fatalf("UpdateStateAndCreateOutbox() error = %v", err)
+	}
+	assertStoredValue(t, reader, store.LostPetsCollection, stateKey, `{"status":"reunited"}`)
+	if record, err := outbox.GetRecord(ctx, reader, eventID); err != nil || record.Topic != "petStatusChanged" {
+		t.Fatalf("durable lifecycle outbox = %#v, %v", record, err)
+	}
+
+	rejected := errors.New("reject lifecycle")
+	if err := store.StateAndOutboxStore(reader).UpdateStateAndCreateOutbox(ctx, store.LostPetsCollection, stateKey,
+		func([]byte) (store.StateWrite, store.StateWrite, error) {
+			return store.StateWrite{}, store.StateWrite{}, rejected
+		}); !errors.Is(err, rejected) {
+		t.Fatalf("rejected update error = %v, want %v", err, rejected)
+	}
+	assertStoredValue(t, writer, store.LostPetsCollection, stateKey, `{"status":"reunited"}`)
 }
 
 func TestFirestoreCreateStateAndOutboxConcurrentCreators(t *testing.T) {

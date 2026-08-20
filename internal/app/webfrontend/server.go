@@ -39,6 +39,7 @@ type Server struct {
 	stateStore               store.StateStore
 	foundPetReporter         FoundPetReporter
 	lostPetReporter          LostPetReporter
+	lostPetLifecycle         LostPetLifecycle
 	allowPrivilegedMutations bool
 	identitySessions         identity.SessionManager
 	identityClientConfig     identity.WebClientConfig
@@ -49,6 +50,11 @@ type Server struct {
 // adapter.
 type LostPetReporter interface {
 	ReportLostPet(context.Context, lostpet.ReportCommand, lostpet.ReportMetadata) (lostpet.ReportResult, error)
+}
+
+// LostPetLifecycle is the authenticated owner-only lost-pet lifecycle command.
+type LostPetLifecycle interface {
+	ReuniteLostPet(context.Context, lostpet.LifecycleCommand) (lostpet.LifecycleResult, error)
 }
 
 // FoundPetReporter is the canonical found-pet command consumed by the browser
@@ -63,6 +69,7 @@ type ServerOptions struct {
 	AllowPrivilegedMutations bool
 	FoundPetReporter         FoundPetReporter
 	LostPetReporter          LostPetReporter
+	LostPetLifecycle         LostPetLifecycle
 	IdentitySessions         identity.SessionManager
 	IdentityClientConfig     identity.WebClientConfig
 	SecureSessionCookie      bool
@@ -99,6 +106,10 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 	if lostPetReporter == nil {
 		lostPetReporter = lostpet.NewService(st, pubsub.NewMemoryPubSub())
 	}
+	lostPetLifecycle := options.LostPetLifecycle
+	if lostPetLifecycle == nil {
+		lostPetLifecycle, _ = lostPetReporter.(LostPetLifecycle)
+	}
 	identityClientConfig := options.IdentityClientConfig
 	if options.IdentitySessions == nil || identityClientConfig.Validate() != nil {
 		identityClientConfig = identity.WebClientConfig{}
@@ -110,6 +121,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		stateStore:               st,
 		foundPetReporter:         foundPetReporter,
 		lostPetReporter:          lostPetReporter,
+		lostPetLifecycle:         lostPetLifecycle,
 		allowPrivilegedMutations: allowPrivilegedMutations,
 		identitySessions:         options.IdentitySessions,
 		identityClientConfig:     identityClientConfig,
@@ -134,6 +146,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/matches", s.handleMatches)
 	s.mux.HandleFunc("/api/v1/lost-pets", s.handleApiLostPets)
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/contact", s.handleApiLostPetContact)
+	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/status", s.handleApiLostPetStatus)
 	s.mux.HandleFunc("/api/v1/found-pets/extract-features", s.handleApiExtractFeatures)
 	s.mux.HandleFunc("/api/v1/found-pets", s.handleApiFoundPets)
 	s.mux.HandleFunc("/api/v1/found-pets/{petID}/contact", s.handleApiFoundPetContact)

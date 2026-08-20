@@ -18,6 +18,10 @@ resource "google_pubsub_topic" "match_found" {
   name = "matchFound"
 }
 
+resource "google_pubsub_topic" "pet_status_changed" {
+  name = "petStatusChanged"
+}
+
 resource "google_pubsub_topic" "found_pet_dead_letter" {
   name = "foundPet-dead-letter"
 }
@@ -52,6 +56,22 @@ resource "google_pubsub_topic_iam_member" "web_frontend_found_pet_publisher" {
   topic  = google_pubsub_topic.found_pet.name
   role   = "roles/pubsub.publisher"
   member = "serviceAccount:${var.web_frontend_runtime_service_account}"
+}
+
+resource "google_pubsub_topic_iam_member" "web_frontend_pet_status_changed_publisher" {
+  topic  = google_pubsub_topic.pet_status_changed.name
+  role   = "roles/pubsub.publisher"
+  member = "serviceAccount:${var.web_frontend_runtime_service_account}"
+}
+
+resource "google_pubsub_subscription" "pet_status_changed_backlog" {
+  name                       = "pet-status-changed-backlog"
+  topic                      = google_pubsub_topic.pet_status_changed.id
+  message_retention_duration = "2678400s"
+
+  expiration_policy {
+    ttl = ""
+  }
 }
 
 resource "google_pubsub_topic_iam_member" "match_found_publisher" {
@@ -339,4 +359,8 @@ output "found_pet_topic" {
 
 output "match_found_topic" {
   value = google_pubsub_topic.match_found.name
+}
+
+output "pet_status_changed_topic" {
+  value = google_pubsub_topic.pet_status_changed.name
 }
