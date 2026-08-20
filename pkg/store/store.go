@@ -131,20 +131,27 @@ func (m *MemoryStore) CreateStatesAndOutbox(ctx context.Context, states []StateW
 
 // MemoryStore implements StateStore in memory for testing and local dev.
 type MemoryStore struct {
-	mu    sync.RWMutex
-	items map[string]map[string][]byte
+	mu              sync.RWMutex
+	items           map[string]map[string][]byte
+	roleAssignments map[string][]byte
+	roleAudits      map[string]map[string][]byte
 }
 
 // NewMemoryStore constructs a thread-safe MemoryStore instance.
 func NewMemoryStore() *MemoryStore {
 	return &MemoryStore{
-		items: make(map[string]map[string][]byte),
+		items:           make(map[string]map[string][]byte),
+		roleAssignments: make(map[string][]byte),
+		roleAudits:      make(map[string]map[string][]byte),
 	}
 }
 
 // SaveState saves data under storeName and key.
 func (m *MemoryStore) SaveState(ctx context.Context, storeName, key string, data []byte) error {
 	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := rejectPrivateRoleCollection(storeName); err != nil {
 		return err
 	}
 
@@ -166,6 +173,9 @@ func (m *MemoryStore) UpdateState(ctx context.Context, storeName, key string, up
 	}
 	if update == nil {
 		return errors.New("store: state updater is required")
+	}
+	if err := rejectPrivateRoleCollection(storeName); err != nil {
+		return err
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -235,6 +245,9 @@ func (m *MemoryStore) GetState(ctx context.Context, storeName, key string) ([]by
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if err := rejectPrivateRoleCollection(storeName); err != nil {
+		return nil, err
+	}
 
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -257,6 +270,9 @@ func (m *MemoryStore) DeleteState(ctx context.Context, storeName, key string) er
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	if err := rejectPrivateRoleCollection(storeName); err != nil {
+		return err
+	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -270,6 +286,9 @@ func (m *MemoryStore) DeleteState(ctx context.Context, storeName, key string) er
 // ListState returns all keys and byte clones for a storeName.
 func (m *MemoryStore) ListState(ctx context.Context, storeName string) (map[string][]byte, error) {
 	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if err := rejectPrivateRoleCollection(storeName); err != nil {
 		return nil, err
 	}
 
@@ -340,6 +359,9 @@ func validateAtomicWrites(states []StateWrite, outbox StateWrite) error {
 	for _, write := range writes {
 		if write.StoreName == "" || write.Key == "" {
 			return errors.New("store: atomic write store name and key are required")
+		}
+		if err := rejectPrivateRoleCollection(write.StoreName); err != nil {
+			return err
 		}
 		target := write.StoreName + "\x00" + write.Key
 		if _, exists := targets[target]; exists {
