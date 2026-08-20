@@ -1,0 +1,43 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0GA8WKZGT2SA66AKT2103GD",
+  "strategy": "manual-commit",
+  "branch": "feat/owner-lost-reunion",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/web-frontend/main.go",
+    "docs/DEVELOPMENT.md",
+    "e2e/firestore_lost_lifecycle_test.go",
+    "e2e/identity_session_test.go",
+    "infra/opentofu/modules/pubsub/main.tf",
+    "internal/app/lostpet/lifecycle_pubsub_integration_test.go",
+    "internal/app/lostpet/service.go",
+    "internal/app/lostpet/service_test.go",
+    "internal/app/webfrontend/lost_status.go",
+    "internal/app/webfrontend/lost_status_auth_test.go",
+    "internal/app/webfrontend/server.go",
+    "pkg/domain/lost_lifecycle.go",
+    "pkg/domain/lost_lifecycle_test.go",
+    "pkg/domain/lost_report.go",
+    "pkg/store/atomic_test.go",
+    "pkg/store/firestore.go",
+    "pkg/store/firestore_atomic_integration_test.go",
+    "pkg/store/store.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 455057,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 29625344,
+    "output_tokens": 64780,
+    "api_call_count": 194
+  }
+}

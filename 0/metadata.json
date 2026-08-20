@@ -1,0 +1,66 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0GA8WKZGT2SA66AKT2103GD",
+  "session_id": "01a0106b-5c6a-72c3-ad94-2ec2cccbe9fa",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-20T19:29:23.284596323Z",
+  "branch": "feat/owner-lost-reunion",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "cmd/web-frontend/main.go",
+    "docs/DEVELOPMENT.md",
+    "e2e/firestore_lost_lifecycle_test.go",
+    "e2e/identity_session_test.go",
+    "infra/opentofu/modules/pubsub/main.tf",
+    "internal/app/lostpet/lifecycle_pubsub_integration_test.go",
+    "internal/app/lostpet/service.go",
+    "internal/app/lostpet/service_test.go",
+    "internal/app/webfrontend/lost_status.go",
+    "internal/app/webfrontend/lost_status_auth_test.go",
+    "internal/app/webfrontend/server.go",
+    "pkg/domain/lost_lifecycle.go",
+    "pkg/domain/lost_lifecycle_test.go",
+    "pkg/domain/lost_report.go",
+    "pkg/store/atomic_test.go",
+    "pkg/store/firestore.go",
+    "pkg/store/firestore_atomic_integration_test.go",
+    "pkg/store/store.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "9cc509126303",
+  "checkpoint_transcript_start": 21807,
+  "transcript_lines_at_start": 21807,
+  "compact_transcript_start": 3214,
+  "token_usage": {
+    "input_tokens": 455057,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 29625344,
+    "output_tokens": 64780,
+    "api_call_count": 194
+  },
+  "session_metrics": {
+    "turn_count": 12
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-20T19:29:13.930932516Z",
+    "agent_lines": 1407,
+    "agent_removed": 21,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1407,
+    "total_lines_changed": 1428,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
