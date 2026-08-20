@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const threadError = document.getElementById('match-thread-error');
 
   let allMatches = [];
+  let matchResultsLoaded = false;
   let identityEnabled = false;
   let matchLoadRevision = 0;
   let lastIdentityState = '';
@@ -191,17 +192,23 @@ document.addEventListener('DOMContentLoaded', () => {
     return element;
   }
 
-  function replaceMatchState(message, className) {
+  function renderMatchState(message, className, role) {
     allMatches = [];
-    matchLoadRevision += 1;
+    matchResultsLoaded = false;
     if (!container) return;
     if (!message) {
       container.replaceChildren();
       return;
     }
     const stateMessage = createElement('p', { text: message, className });
-    stateMessage.setAttribute('role', 'status');
+    stateMessage.setAttribute('role', role);
+    if (role === 'status') stateMessage.setAttribute('aria-live', 'polite');
     container.replaceChildren(stateMessage);
+  }
+
+  function replaceMatchState(message, className) {
+    matchLoadRevision += 1;
+    renderMatchState(message, className, 'status');
   }
 
   function validString(value, allowEmpty = false) {
@@ -293,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function fetchMatches() {
     const loadRevision = ++matchLoadRevision;
-    allMatches = [];
+    renderMatchState('Loading match records...', 'text-secondary', 'status');
     try {
       const resp = await fetch('/api/v1/matches');
       if (!resp.ok) throw new Error(`Match API returned status ${resp.status}`);
@@ -301,16 +308,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!Array.isArray(payload)) throw new Error('Match API returned a non-array payload');
       if (loadRevision !== matchLoadRevision) return;
       allMatches = payload.map(normalizeMatch).filter(match => match !== null);
+      matchResultsLoaded = true;
       renderMatches();
     } catch (err) {
       if (loadRevision !== matchLoadRevision) return;
       console.error('Failed to fetch matches:', err);
-      if (container) {
-        container.replaceChildren(createElement('p', {
-          text: 'Failed to load match records.',
-          className: 'match-load-error',
-        }));
-      }
+      renderMatchState('Failed to load match records.', 'match-load-error', 'alert');
     }
   }
 
@@ -820,7 +823,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (scoreFilter) {
-    scoreFilter.addEventListener('change', () => renderMatches());
+    scoreFilter.addEventListener('change', () => {
+      if (matchResultsLoaded) renderMatches();
+    });
   }
 
   if (zoomModal) {
