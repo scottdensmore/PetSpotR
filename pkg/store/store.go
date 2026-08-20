@@ -56,6 +56,27 @@ type StateAndOutboxStore interface {
 	) error
 }
 
+// RoleAuthorizedStateAndOutboxUpdater receives the exact active assignment
+// read in the same transaction as an aggregate/outbox update. Managed stores
+// may invoke it more than once, so it must remain side-effect-free.
+type RoleAuthorizedStateAndOutboxUpdater func(
+	assignment domain.RoleAssignment,
+	current []byte,
+) (next StateWrite, outbox StateWrite, err error)
+
+// RoleAuthorizedStateAndOutboxStore atomically requires one active role
+// assignment, updates an aggregate, and creates its outbox record.
+type RoleAuthorizedStateAndOutboxStore interface {
+	UpdateStateAndCreateOutboxAsRole(
+		ctx context.Context,
+		principal domain.PrincipalRef,
+		role domain.Role,
+		scope domain.RoleScope,
+		storeName, key string,
+		update RoleAuthorizedStateAndOutboxUpdater,
+	) error
+}
+
 // MatchStateUpdater computes one atomic replacement for the public match and
 // its private participant record. Managed stores may invoke it more than once
 // when a transaction is retried.
@@ -252,6 +273,53 @@ func (m *MemoryStore) UpdateStateAndCreateOutbox(
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	return m.updateStateAndCreateOutboxLocked(storeName, key, update)
+}
+
+// UpdateStateAndCreateOutboxAsRole authorizes and mutates under one lock.
+func (m *MemoryStore) UpdateStateAndCreateOutboxAsRole(
+	ctx context.Context,
+	principal domain.PrincipalRef,
+	role domain.Role,
+	scope domain.RoleScope,
+	storeName, key string,
+	update RoleAuthorizedStateAndOutboxUpdater,
+) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if update == nil {
+		return errors.New("store: role-authorized state and outbox updater is required")
+	}
+	if err := rejectPrivateRoleCollection(storeName); err != nil {
+		return err
+	}
+	assignmentID, err := domain.RoleAssignmentID(principal, role, scope)
+	if err != nil {
+		return err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	assignmentData, exists := m.roleAssignments[assignmentID]
+	if !exists {
+		return ErrRoleDenied
+	}
+	assignment, err := decodeRoleAssignment(assignmentData)
+	if err != nil {
+		return err
+	}
+	if assignment.AssignmentID != assignmentID || assignment.Status != domain.RoleAssignmentStatusActive {
+		return ErrRoleDenied
+	}
+	return m.updateStateAndCreateOutboxLocked(storeName, key, func(current []byte) (StateWrite, StateWrite, error) {
+		return update(assignment, current)
+	})
+}
+
+func (m *MemoryStore) updateStateAndCreateOutboxLocked(
+	storeName, key string,
+	update StateAndOutboxUpdater,
+) error {
 	storeMap, exists := m.items[storeName]
 	if !exists {
 		return fmt.Errorf("%w: %s", ErrStoreNotFound, storeName)

@@ -317,6 +317,34 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 	otherClient, otherPrincipal, otherCSRFToken := createAuthenticatedEmulatorClient(
 		t, ctx, setupAuth, host, srv.URL, otherEmail, password,
 	)
+	operatorTargetID := fmt.Sprintf("lost-operator-target-%d", time.Now().UnixNano())
+	operatorTargetBody, err := json.Marshal(map[string]string{
+		"petId": operatorTargetID, "petName": "Milo", "reporterEmail": "spoofed@example.com",
+		"location": "Tacoma, WA",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	operatorTargetReport := productRequest(
+		t, otherClient, http.MethodPost, srv.URL+"/api/v1/lost-pets", string(operatorTargetBody), otherCSRFToken,
+	)
+	if operatorTargetReport.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(operatorTargetReport.Body)
+		_ = operatorTargetReport.Body.Close()
+		t.Fatalf("operator target report status = %d, want %d; body = %s",
+			operatorTargetReport.StatusCode, http.StatusCreated, body)
+	}
+	closeResponse(t, operatorTargetReport)
+	operatorLifecycleURL := srv.URL + "/api/v1/lost-pets/" + operatorTargetID + "/status"
+	ordinaryOperatorLifecycle := mediatedProductRequest(
+		t, client, http.MethodPatch, operatorLifecycleURL, `{"status":"reunited"}`,
+		csrfToken, "ordinary-operator-lifecycle",
+	)
+	if ordinaryOperatorLifecycle.StatusCode != http.StatusNotFound {
+		t.Fatalf("ordinary operator-target lifecycle status = %d, want %d",
+			ordinaryOperatorLifecycle.StatusCode, http.StatusNotFound)
+	}
+	closeResponse(t, ordinaryOperatorLifecycle)
 	lifecycleURL := srv.URL + "/api/v1/lost-pets/" + reportID + "/status"
 	wrongOwnerLifecycle := mediatedProductRequest(
 		t, otherClient, http.MethodPatch, lifecycleURL, `{"status":"reunited"}`,
@@ -731,6 +759,29 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 	})
 	if err != nil || !changed {
 		t.Fatalf("grant emulator global operator = changed %t, error %v", changed, err)
+	}
+	operatorLifecycle := mediatedProductRequest(
+		t, client, http.MethodPatch, operatorLifecycleURL, `{"status":"reunited"}`,
+		csrfToken, "operator-lifecycle-emulator",
+	)
+	if operatorLifecycle.StatusCode != http.StatusOK || operatorLifecycle.Header.Get("Cache-Control") != "no-store" {
+		body, _ := io.ReadAll(operatorLifecycle.Body)
+		_ = operatorLifecycle.Body.Close()
+		t.Fatalf("global operator lost lifecycle response = %d Cache-Control %q; body = %s",
+			operatorLifecycle.StatusCode, operatorLifecycle.Header.Get("Cache-Control"), body)
+	}
+	closeResponse(t, operatorLifecycle)
+	operatorTargetData, err := state.GetState(ctx, store.LostPetsCollection, operatorTargetID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var operatorTarget domain.LostPetRecord
+	if err := json.Unmarshal(operatorTargetData, &operatorTarget); err != nil ||
+		operatorTarget.Status != domain.LostPetStatusReunited || operatorTarget.LifecycleAudit == nil ||
+		operatorTarget.LifecycleAudit.AuthorizedAs != domain.LostPetLifecycleAuthorizationOperator ||
+		operatorTarget.LifecycleAudit.AssignmentID != grantedAssignment.AssignmentID ||
+		operatorTarget.LifecycleAudit.AssignmentRevision != grantedAssignment.Revision {
+		t.Fatalf("persisted global operator lost lifecycle = %#v, %v", operatorTarget, err)
 	}
 	resolutionBody := `{"matchId":"` + operatorMatch.MatchID + `","petId":"` + reportID + `","rating":5,"feedback":"Reunited safely"}`
 	operatorResolution := mediatedProductRequest(
