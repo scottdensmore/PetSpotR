@@ -157,6 +157,9 @@ func TestNewStateRuntimeUsesMemoryOnlyInMemoryMode(t *testing.T) {
 	if _, ok := runtime.Store.(*store.MemoryStore); !ok {
 		t.Fatalf("NewStateRuntime().Store = %T, want *store.MemoryStore", runtime.Store)
 	}
+	if _, ok := runtime.RoleAssignments.(*store.MemoryStore); !ok {
+		t.Fatalf("NewStateRuntime().RoleAssignments = %T, want *store.MemoryStore", runtime.RoleAssignments)
+	}
 }
 
 func TestNewStateRuntimeRejectsInvalidManagedConfigBeforeConnecting(t *testing.T) {

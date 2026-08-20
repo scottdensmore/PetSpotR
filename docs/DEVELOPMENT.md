@@ -136,6 +136,20 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
   -run TestStateRuntimeSharesAndRetainsStateWithFirestoreEmulator
 ```
 
+Run the private role-assignment contract against the same emulator with:
+
+```bash
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
+GOTOOLCHAIN=go1.26.5 \
+  go test ./pkg/store -count=1 -v \
+  -run '^TestFirestoreRoleAssignmentsCrossRuntimeAndFailClosed$'
+```
+
+It uses independent runtimes to grant, retry, read, and revoke one assignment;
+verifies the assignment and immutable audit commit together; inspects the raw
+private records for identity leakage; and proves malformed or key-mismatched
+state fails closed.
+
 The separate-process contract builds the real lost-pet and web binaries,
 writes through the first process, reads through the second, restarts it, and
 verifies retention:
@@ -305,6 +319,34 @@ The current boundary accepts project-level Identity Platform users only. It reje
 tenant tokens before session creation or project-scoped revocation checks;
 tenant support requires a later runtime that selects the matching tenant-scoped
 Admin client.
+
+### Private operator role assignments
+
+Identity Platform authenticates a principal; PetSpotR authorizes operator work
+from private application state. `StateRuntime.RoleAssignments` supports the
+single durable `operator` role with two explicit scopes: `global`, or `shelter`
+with one canonical shelter ID. Reporter and finder access remains contextual to
+private report ownership and match participation, and service authorization
+remains a separate workload-identity boundary. Those relationships are never
+duplicated as stored roles.
+
+Each principal-role-scope tuple has one versioned assignment. Firestore stores
+only domain-separated SHA-256 keys derived from length-prefixed provider
+issuer and opaque subject bytes; assignment and audit documents contain no raw
+issuer, subject, email, or display name. The collection is available only
+through the specialized role store, never the generic state-store methods or a
+public HTTP route. Authorization consumers must read current state for every
+sensitive request and require `active`; roles are not copied into the five-day
+Identity Platform session or cached across requests.
+
+Grant and revoke operations atomically update the assignment and append an
+immutable audit receipt. Assignments are never deleted. Revocation leaves a
+tombstone, regrant increments its revision, exact operation retries return the
+original recorded result, and changed reuse of an operation ID fails as a
+conflict. There is intentionally no grant CLI, operator UI, or lifecycle
+mutation in this slice. Before a shelter-scoped role authorizes a resource, a
+later slice must add a trusted shelter association to that resource; a
+caller-supplied shelter ID is never sufficient.
 
 Start the pinned Authentication emulator from one terminal:
 
@@ -673,9 +715,10 @@ cannot reopen or transition again. The matcher uses this lifecycle contract and
 never considers a terminal lost report an active candidate.
 
 Status mutation HTTP routes are intentionally not exposed yet. Issue #110 must
-first provide authenticated reporter, finder, and operator identities plus
-ownership enforcement; adding an unauthenticated lifecycle endpoint would
-expand the existing demo security debt.
+still connect authenticated reporter, finder, and current operator authority to
+the lifecycle policy, including a trusted shelter association for scoped
+operators. Adding a mutation endpoint before that enforcement would expand the
+existing demo security debt.
 
 The lost-image consumer derives a separate durable operation from the verified
 `lostPet` envelope ID, or from a stable digest for exact legacy payloads. Reports

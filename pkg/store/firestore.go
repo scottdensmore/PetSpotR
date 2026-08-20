@@ -98,6 +98,9 @@ func NewFirestoreEmulatorStore(ctx context.Context, projectID, host string) (*Fi
 
 // SaveState saves data under a top-level collection and document key.
 func (s *FirestoreStore) SaveState(ctx context.Context, storeName, key string, data []byte) error {
+	if err := rejectPrivateRoleCollection(storeName); err != nil {
+		return err
+	}
 	doc, err := s.document(storeName, key)
 	if err != nil {
 		return err
@@ -123,6 +126,9 @@ func (s *FirestoreStore) UpdateState(ctx context.Context, storeName, key string,
 	}
 	if update == nil {
 		return errors.New("store: state updater is required")
+	}
+	if err := rejectPrivateRoleCollection(storeName); err != nil {
+		return err
 	}
 	doc, err := s.document(storeName, key)
 	if err != nil {
@@ -702,6 +708,9 @@ func (s *FirestoreStore) queueOutboxIndexBackfill(
 
 // GetState retrieves data from a top-level collection and document key.
 func (s *FirestoreStore) GetState(ctx context.Context, storeName, key string) ([]byte, error) {
+	if err := rejectPrivateRoleCollection(storeName); err != nil {
+		return nil, err
+	}
 	doc, err := s.document(storeName, key)
 	if err != nil {
 		return nil, err
@@ -727,6 +736,9 @@ func (s *FirestoreStore) GetState(ctx context.Context, storeName, key string) ([
 
 // DeleteState removes a document. Deleting an absent document succeeds.
 func (s *FirestoreStore) DeleteState(ctx context.Context, storeName, key string) error {
+	if err := rejectPrivateRoleCollection(storeName); err != nil {
+		return err
+	}
 	doc, err := s.document(storeName, key)
 	if err != nil {
 		return err
@@ -742,6 +754,9 @@ func (s *FirestoreStore) DeleteState(ctx context.Context, storeName, key string)
 
 // ListState returns every document payload in a top-level collection.
 func (s *FirestoreStore) ListState(ctx context.Context, storeName string) (map[string][]byte, error) {
+	if err := rejectPrivateRoleCollection(storeName); err != nil {
+		return nil, err
+	}
 	collection, err := s.collection(storeName)
 	if err != nil {
 		return nil, err

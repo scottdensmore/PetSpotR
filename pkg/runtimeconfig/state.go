@@ -10,10 +10,11 @@ import (
 
 // StateRuntime owns a configured StateStore and its managed client lifecycle.
 type StateRuntime struct {
-	Store    store.StateStore
-	close    func() error
-	closeErr error
-	closeOne sync.Once
+	Store           store.StateStore
+	RoleAssignments store.RoleAssignmentStore
+	close           func() error
+	closeErr        error
+	closeOne        sync.Once
 }
 
 // NewStateRuntime selects an in-memory, emulator, or managed Firestore
@@ -25,9 +26,11 @@ func NewStateRuntime(ctx context.Context, config StateConfig) (*StateRuntime, er
 
 	switch config.Mode {
 	case ModeMemory:
+		stateStore := store.NewMemoryStore()
 		return &StateRuntime{
-			Store: store.NewMemoryStore(),
-			close: func() error { return nil },
+			Store:           stateStore,
+			RoleAssignments: stateStore,
+			close:           func() error { return nil },
 		}, nil
 	case ModeLocalEmulator:
 		stateStore, err := store.NewFirestoreEmulatorStore(
@@ -38,7 +41,7 @@ func NewStateRuntime(ctx context.Context, config StateConfig) (*StateRuntime, er
 		if err != nil {
 			return nil, err
 		}
-		return &StateRuntime{Store: stateStore, close: stateStore.Close}, nil
+		return &StateRuntime{Store: stateStore, RoleAssignments: stateStore, close: stateStore.Close}, nil
 	case ModeGCP:
 		projectID := config.ProjectID
 		if config.DetectProjectID {
@@ -48,7 +51,7 @@ func NewStateRuntime(ctx context.Context, config StateConfig) (*StateRuntime, er
 		if err != nil {
 			return nil, err
 		}
-		return &StateRuntime{Store: stateStore, close: stateStore.Close}, nil
+		return &StateRuntime{Store: stateStore, RoleAssignments: stateStore, close: stateStore.Close}, nil
 	default:
 		return nil, fmt.Errorf("unsupported runtime mode %q", config.Mode)
 	}
