@@ -769,7 +769,7 @@ a {
 }
 
 .match-load-error {
-  color: var(--status-lost);
+  color: var(--text-error);
   text-align: center;
 }
 
