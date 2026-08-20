@@ -189,8 +189,9 @@ When configured, the web frontend requires a verified session and
 double-submit CSRF token for
 `POST /api/v1/lost-pets`, `POST /api/v1/found-pets`, and match decisions, and a
 verified session for participant-filtered match reads. When disabled, the
-existing anonymous demo flow is preserved. Pet lifecycle mutation routes
-remain unexposed.
+existing anonymous demo flow is preserved. In identity mode, the lost-report
+status route permits the report owner or an active global operator to mark an
+active report reunited; other lifecycle transitions remain unexposed.
 
 Identity mode always overrides the memory runtime's demo privilege flag. When
 human sessions are configured, push-subscription and presigned-upload routes
@@ -703,6 +704,15 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
   -run '^TestFirestoreOwnerLostLifecycleIsAtomicAcrossRuntimes$'
 ```
 
+Run the global-operator lifecycle and concurrent-revocation fencing contract
+against the same emulator with:
+
+```bash
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
+  GOTOOLCHAIN=go1.26.5 go test ./e2e -count=1 -v \
+  -run '^TestFirestoreGlobalOperatorLostLifecycleFencesConcurrentRevocation$'
+```
+
 Run the two-client relay claim contract against the same emulator with:
 
 ```bash
@@ -721,13 +731,17 @@ policy. Multi-instance outbox claiming is durable. Found-pet image events carry
 a private finalized GCS object name in managed mode and retain legacy
 `imageUrl` decoding for messages already in flight.
 
-Authenticated owners can mark their own active lost report reunited with
-`PATCH /api/v1/lost-pets/{petID}/status`, an `Idempotency-Key`, a valid session,
-and double-submit CSRF. The only accepted body is `{"status":"reunited"}`.
-The report, opaque private lifecycle audit, and redacted
+Authenticated owners and active global operators can mark an active lost report
+reunited with `PATCH /api/v1/lost-pets/{petID}/status`, an `Idempotency-Key`, a
+valid session, and double-submit CSRF. Contextual ownership takes precedence;
+otherwise the global assignment is read in the same transaction as the report
+and outbox mutation, fencing concurrent revocation. The only accepted body is
+`{"status":"reunited"}`. The report, opaque private lifecycle audit, and redacted
 `petspotr.pet.status-changed` payload-v1 outbox event are one atomic write.
-Exact retries return the original event ID. Wrong-owner and missing targets are
-both `404`, while identity-disabled demo mode exposes no lifecycle route.
+Operator audit pins the exact assignment revision used. Exact operator retries
+require a currently active global assignment but preserve the original pinned
+revision after regrant. Wrong-owner, missing, revoked, and shelter-only targets
+are all `404`, while identity-disabled demo mode exposes no lifecycle route.
 Managed delivery uses the `petStatusChanged` topic and a non-expiring 31-day
 backlog subscription until a later consumer slice is authorized.
 
@@ -769,16 +783,17 @@ fallback.
 ### Pet report lifecycle
 
 New lost and found reports always begin in their active `lost` and `found`
-states. Lost reports may transition once to `reunited`, `expired`, or `closed`;
-found reports may transition once to `resolved` or `expired`. Terminal states
-cannot reopen or transition again. The matcher uses this lifecycle contract and
-never considers a terminal lost report an active candidate.
+states. The authenticated lost-report status route exposes the first terminal
+transition: an owner or active global operator may change an active lost report
+to `reunited`. The transition, private authorization audit, and redacted
+`petStatusChanged` event are committed atomically. Terminal states cannot reopen
+or transition again, and the matcher never considers a terminal lost report an
+active candidate.
 
-Pet-report status mutation HTTP routes are intentionally not exposed yet. The
-global-operator reunion route closes the terminal match record only; it does
-not change the associated lost or found report. Issue #110 must still connect
-authenticated reporter, finder, and current operator authority to the report
-lifecycle policy, including a trusted shelter association for scoped operators.
+The global-operator match-reunion route still closes only the terminal match
+record; it does not cascade into either report. Remaining lifecycle work
+includes lost `expired`/`closed`, found `resolved`/`expired`, trusted finder and
+shelter associations, and explicit cross-aggregate reunion orchestration.
 
 The lost-image consumer derives a separate durable operation from the verified
 `lostPet` envelope ID, or from a stable digest for exact legacy payloads. Reports

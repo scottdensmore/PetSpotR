@@ -57,6 +57,101 @@ func (s *FirestoreStore) GetRoleAssignment(
 	return assignment, nil
 }
 
+// UpdateStateAndCreateOutboxAsRole reads the private assignment and updates an
+// aggregate plus its outbox record in one Firestore transaction. A concurrent
+// revocation is serialized before or after the privileged write.
+func (s *FirestoreStore) UpdateStateAndCreateOutboxAsRole(
+	ctx context.Context,
+	principal domain.PrincipalRef,
+	role domain.Role,
+	scope domain.RoleScope,
+	storeName, key string,
+	update RoleAuthorizedStateAndOutboxUpdater,
+) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if strings.TrimSpace(storeName) == "" || strings.TrimSpace(key) == "" || update == nil {
+		return errors.New("store: role-authorized state target and updater are required")
+	}
+	if err := rejectPrivateRoleCollection(storeName); err != nil {
+		return err
+	}
+	assignmentID, err := domain.RoleAssignmentID(principal, role, scope)
+	if err != nil {
+		return err
+	}
+	assignmentDoc, err := s.document(roleAssignmentsCollection, assignmentID)
+	if err != nil {
+		return err
+	}
+	stateDoc, err := s.document(storeName, key)
+	if err != nil {
+		return err
+	}
+
+	err = s.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		assignmentSnapshot, getErr := tx.Get(assignmentDoc)
+		if status.Code(getErr) == codes.NotFound {
+			return ErrRoleDenied
+		}
+		if getErr != nil {
+			return getErr
+		}
+		assignment, decodeErr := roleAssignmentFromSnapshot(assignmentSnapshot, assignmentID)
+		if decodeErr != nil {
+			return decodeErr
+		}
+		if assignment.Status != domain.RoleAssignmentStatusActive {
+			return ErrRoleDenied
+		}
+
+		current, getErr := transactionRecord(tx, stateDoc, storeName, key)
+		if getErr != nil {
+			return getErr
+		}
+		next, outboxWrite, updateErr := update(assignment, bytes.Clone(current.Data))
+		if updateErr != nil {
+			return updateErr
+		}
+		if next.StoreName != storeName || next.Key != key {
+			return errors.New("store: updater changed its state target")
+		}
+		if validateErr := validateAtomicWrites([]StateWrite{next}, outboxWrite); validateErr != nil {
+			return validateErr
+		}
+		outboxDoc, documentErr := s.document(outboxWrite.StoreName, outboxWrite.Key)
+		if documentErr != nil {
+			return documentErr
+		}
+		if _, getErr := tx.Get(outboxDoc); status.Code(getErr) != codes.NotFound {
+			if getErr == nil {
+				return fmt.Errorf("%w: %s/%s", ErrConflict, outboxWrite.StoreName, outboxWrite.Key)
+			}
+			return getErr
+		}
+		stateRecord, encodeErr := newFirestoreRecord(next.StoreName, next.Key, next.Data)
+		if encodeErr != nil {
+			return encodeErr
+		}
+		outboxRecord, encodeErr := newFirestoreRecord(outboxWrite.StoreName, outboxWrite.Key, outboxWrite.Data)
+		if encodeErr != nil {
+			return encodeErr
+		}
+		if setErr := tx.Set(stateDoc, stateRecord); setErr != nil {
+			return setErr
+		}
+		return tx.Set(outboxDoc, outboxRecord)
+	})
+	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
+		return fmt.Errorf("store: role-authorized update %s/%s and create outbox: %w", storeName, key, err)
+	}
+	return nil
+}
+
 // UpdateMatchAndParticipantsAsRole reads the private assignment and updates
 // both match records in one Firestore transaction. A concurrent revocation is
 // serialized before or after the privileged write, never between its check and

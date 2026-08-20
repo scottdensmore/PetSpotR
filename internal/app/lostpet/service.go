@@ -146,8 +146,9 @@ func (s *Service) RecoverLifecycleOutbox(ctx context.Context) (int, error) {
 	return s.relay.PublishPending(ctx, "petStatusChanged")
 }
 
-// ReuniteLostPet atomically persists an owner-authorized terminal transition,
-// its private audit receipt, and one redacted status-change outbox event.
+// ReuniteLostPet atomically persists an owner- or global-operator-authorized
+// terminal transition, its private audit receipt, and one redacted status-change
+// outbox event. Contextual ownership is attempted before durable role authority.
 func (s *Service) ReuniteLostPet(ctx context.Context, command LifecycleCommand) (LifecycleResult, error) {
 	atomicStore, ok := s.store.(store.StateAndOutboxStore)
 	if !ok {
@@ -165,47 +166,26 @@ func (s *Service) ReuniteLostPet(ctx context.Context, command LifecycleCommand) 
 		store.LostPetsCollection,
 		command.PetID,
 		func(current []byte) (store.StateWrite, store.StateWrite, error) {
-			applied = domain.LostPetLifecycleResult{}
-			var record domain.LostPetRecord
-			if err := json.Unmarshal(current, &record); err != nil || record.PetID != command.PetID {
-				return store.StateWrite{}, store.StateWrite{}, ErrLifecycleHidden
-			}
-			result, err := domain.ApplyOwnerLostPetReunion(record, command.Actor, command.OperationID, changedAt)
-			if errors.Is(err, domain.ErrLostPetNotOwned) {
-				return store.StateWrite{}, store.StateWrite{}, ErrLifecycleHidden
-			}
-			if err != nil {
-				return store.StateWrite{}, store.StateWrite{}, err
-			}
-			applied = result
-			if !result.Changed {
-				return store.StateWrite{}, store.StateWrite{}, errLifecycleAlreadyApplied
-			}
-			nextData, err := json.Marshal(result.Record)
-			if err != nil {
-				return store.StateWrite{}, store.StateWrite{}, err
-			}
-			envelope, err := domain.NewPetStatusChangedEnvelope(result.Event)
-			if err != nil {
-				return store.StateWrite{}, store.StateWrite{}, fmt.Errorf("lostpet: create lifecycle event: %w", err)
-			}
-			if envelope.ID != result.EventID {
-				return store.StateWrite{}, store.StateWrite{}, errors.New("lostpet: lifecycle event identity changed")
-			}
-			envelopeData, err := json.Marshal(envelope)
-			if err != nil {
-				return store.StateWrite{}, store.StateWrite{}, err
-			}
-			outboxData, err := outbox.MarshalRecord(outbox.NewRecord(
-				envelope.ID, "petStatusChanged", envelopeData, result.Event.ChangedAt,
-			))
-			if err != nil {
-				return store.StateWrite{}, store.StateWrite{}, err
-			}
-			return store.StateWrite{StoreName: store.LostPetsCollection, Key: command.PetID, Data: nextData},
-				store.StateWrite{StoreName: store.OutboxCollection, Key: envelope.ID, Data: outboxData}, nil
+			return lostPetLifecycleWrites(current, command, changedAt, nil, &applied)
 		},
 	)
+	if errors.Is(err, domain.ErrLostPetNotOwned) {
+		roleStore, ok := s.store.(store.RoleAuthorizedStateAndOutboxStore)
+		if !ok {
+			return LifecycleResult{}, ErrLifecycleHidden
+		}
+		err = roleStore.UpdateStateAndCreateOutboxAsRole(
+			ctx,
+			command.Actor,
+			domain.RoleOperator,
+			domain.RoleScope{Kind: domain.RoleScopeGlobal},
+			store.LostPetsCollection,
+			command.PetID,
+			func(authorization domain.RoleAssignment, current []byte) (store.StateWrite, store.StateWrite, error) {
+				return lostPetLifecycleWrites(current, command, changedAt, &authorization, &applied)
+			},
+		)
+	}
 	if errors.Is(err, errLifecycleAlreadyApplied) {
 		record, outboxErr := outbox.GetRecord(ctx, s.store, applied.EventID)
 		if outboxErr != nil {
@@ -219,7 +199,9 @@ func (s *Service) ReuniteLostPet(ctx context.Context, command LifecycleCommand) 
 		}
 		err = nil
 	}
-	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) ||
+		errors.Is(err, store.ErrRoleDenied) || errors.Is(err, domain.ErrLostPetNotOwned) ||
+		errors.Is(err, domain.ErrInvalidLostPetLifecycle) {
 		return LifecycleResult{}, ErrLifecycleHidden
 	}
 	if err != nil {
@@ -231,6 +213,61 @@ func (s *Service) ReuniteLostPet(ctx context.Context, command LifecycleCommand) 
 		}
 	}
 	return LifecycleResult{PetID: applied.Record.PetID, Status: applied.Record.Status, EventID: applied.EventID}, nil
+}
+
+func lostPetLifecycleWrites(
+	current []byte,
+	command LifecycleCommand,
+	changedAt time.Time,
+	authorization *domain.RoleAssignment,
+	applied *domain.LostPetLifecycleResult,
+) (store.StateWrite, store.StateWrite, error) {
+	*applied = domain.LostPetLifecycleResult{}
+	var record domain.LostPetRecord
+	if err := json.Unmarshal(current, &record); err != nil || record.PetID != command.PetID {
+		return store.StateWrite{}, store.StateWrite{}, ErrLifecycleHidden
+	}
+	var (
+		result domain.LostPetLifecycleResult
+		err    error
+	)
+	if authorization == nil {
+		result, err = domain.ApplyOwnerLostPetReunion(record, command.Actor, command.OperationID, changedAt)
+	} else {
+		result, err = domain.ApplyGlobalOperatorLostPetReunion(
+			record, command.Actor, *authorization, command.OperationID, changedAt,
+		)
+	}
+	if err != nil {
+		return store.StateWrite{}, store.StateWrite{}, err
+	}
+	*applied = result
+	if !result.Changed {
+		return store.StateWrite{}, store.StateWrite{}, errLifecycleAlreadyApplied
+	}
+	nextData, err := json.Marshal(result.Record)
+	if err != nil {
+		return store.StateWrite{}, store.StateWrite{}, err
+	}
+	envelope, err := domain.NewPetStatusChangedEnvelope(result.Event)
+	if err != nil {
+		return store.StateWrite{}, store.StateWrite{}, fmt.Errorf("lostpet: create lifecycle event: %w", err)
+	}
+	if envelope.ID != result.EventID {
+		return store.StateWrite{}, store.StateWrite{}, errors.New("lostpet: lifecycle event identity changed")
+	}
+	envelopeData, err := json.Marshal(envelope)
+	if err != nil {
+		return store.StateWrite{}, store.StateWrite{}, err
+	}
+	outboxData, err := outbox.MarshalRecord(outbox.NewRecord(
+		envelope.ID, "petStatusChanged", envelopeData, result.Event.ChangedAt,
+	))
+	if err != nil {
+		return store.StateWrite{}, store.StateWrite{}, err
+	}
+	return store.StateWrite{StoreName: store.LostPetsCollection, Key: command.PetID, Data: nextData},
+		store.StateWrite{StoreName: store.OutboxCollection, Key: envelope.ID, Data: outboxData}, nil
 }
 
 func respondWithError(w http.ResponseWriter, code int, message string) {

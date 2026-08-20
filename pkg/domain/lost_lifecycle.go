@@ -11,11 +11,12 @@ import (
 )
 
 const (
-	EventTypePetStatusChanged          = "petspotr.pet.status-changed"
-	PetStatusChangedPayloadVersion     = 1
-	PetStatusChangedAggregateVersion   = 2
-	MaxLostPetLifecycleOperationRunes  = 128
-	LostPetLifecycleAuthorizationOwner = "owner"
+	EventTypePetStatusChanged             = "petspotr.pet.status-changed"
+	PetStatusChangedPayloadVersion        = 1
+	PetStatusChangedAggregateVersion      = 2
+	MaxLostPetLifecycleOperationRunes     = 128
+	LostPetLifecycleAuthorizationOwner    = "owner"
+	LostPetLifecycleAuthorizationOperator = "operator"
 )
 
 var (
@@ -24,16 +25,19 @@ var (
 	ErrLostPetLifecycleConflict = errors.New("domain: lost-pet lifecycle transition conflicts with persisted state")
 )
 
-// LostPetLifecycleAudit is the private immutable receipt for an owner terminal
-// transition. ActorKey is opaque and never exposes provider identity or contact.
+// LostPetLifecycleAudit is the private immutable receipt for an authorized
+// terminal transition. ActorKey is opaque and never exposes provider identity
+// or contact. Operator receipts pin the assignment used for authorization.
 type LostPetLifecycleAudit struct {
-	OperationID    string        `json:"operationId"`
-	ActorKey       string        `json:"actorKey"`
-	AuthorizedAs   string        `json:"authorizedAs"`
-	PreviousStatus LostPetStatus `json:"previousStatus"`
-	Status         LostPetStatus `json:"status"`
-	ChangedAt      time.Time     `json:"changedAt"`
-	EventID        string        `json:"eventId"`
+	OperationID        string        `json:"operationId"`
+	ActorKey           string        `json:"actorKey"`
+	AuthorizedAs       string        `json:"authorizedAs"`
+	AssignmentID       string        `json:"assignmentId,omitempty"`
+	AssignmentRevision int64         `json:"assignmentRevision,omitempty"`
+	PreviousStatus     LostPetStatus `json:"previousStatus"`
+	Status             LostPetStatus `json:"status"`
+	ChangedAt          time.Time     `json:"changedAt"`
+	EventID            string        `json:"eventId"`
 }
 
 // PetStatusChangedV1 is the contact- and identity-free lifecycle event.
@@ -61,7 +65,7 @@ func ApplyOwnerLostPetReunion(
 	operationID string,
 	changedAt time.Time,
 ) (LostPetLifecycleResult, error) {
-	if err := validateLostPetLifecycleRecord(record); err != nil {
+	if err := validateLostPetLifecycleRecord(record, true); err != nil {
 		return LostPetLifecycleResult{}, err
 	}
 	actor.Issuer = strings.TrimSpace(actor.Issuer)
@@ -79,7 +83,9 @@ func ApplyOwnerLostPetReunion(
 		return LostPetLifecycleResult{}, fmt.Errorf("%w: %w", ErrInvalidLostPetLifecycle, err)
 	}
 	if record.LifecycleAudit != nil {
-		if record.Status == LostPetStatusReunited && record.LifecycleAudit.OperationID == operationID &&
+		if record.Status == LostPetStatusReunited &&
+			record.LifecycleAudit.AuthorizedAs == LostPetLifecycleAuthorizationOwner &&
+			record.LifecycleAudit.OperationID == operationID &&
 			record.LifecycleAudit.ActorKey == actorKey {
 			return lifecycleResultFromAudit(record, false)
 		}
@@ -107,7 +113,73 @@ func ApplyOwnerLostPetReunion(
 		PreviousStatus: LostPetStatusLost, Status: LostPetStatusReunited,
 		ChangedAt: changedAt, EventID: eventID,
 	}
-	if err := validateLostPetLifecycleRecord(next); err != nil {
+	if err := validateLostPetLifecycleRecord(next, true); err != nil {
+		return LostPetLifecycleResult{}, err
+	}
+	return LostPetLifecycleResult{Record: next, Event: event, EventID: eventID, Changed: true}, nil
+}
+
+// ApplyGlobalOperatorLostPetReunion applies one global-operator-authorized
+// lost -> reunited transition. Exact retries require a currently active global
+// assignment but preserve the original pinned assignment revision.
+func ApplyGlobalOperatorLostPetReunion(
+	record LostPetRecord,
+	actor PrincipalRef,
+	authorization RoleAssignment,
+	operationID string,
+	changedAt time.Time,
+) (LostPetLifecycleResult, error) {
+	if err := validateLostPetLifecycleRecord(record, false); err != nil {
+		return LostPetLifecycleResult{}, err
+	}
+	actor.Issuer = strings.TrimSpace(actor.Issuer)
+	if err := actor.Validate(); err != nil {
+		return LostPetLifecycleResult{}, fmt.Errorf("%w: %w", ErrInvalidLostPetLifecycle, err)
+	}
+	if err := validateCanonicalRoleText("lifecycle operation ID", operationID, MaxLostPetLifecycleOperationRunes); err != nil {
+		return LostPetLifecycleResult{}, fmt.Errorf("%w: %w", ErrInvalidLostPetLifecycle, err)
+	}
+	actorKey, err := RolePrincipalKey(actor)
+	if err != nil {
+		return LostPetLifecycleResult{}, fmt.Errorf("%w: %w", ErrInvalidLostPetLifecycle, err)
+	}
+	globalScope := RoleScope{Kind: RoleScopeGlobal}
+	if err := authorization.Validate(); err != nil || authorization.Status != RoleAssignmentStatusActive ||
+		authorization.PrincipalKey != actorKey || authorization.Role != RoleOperator || authorization.Scope != globalScope {
+		return LostPetLifecycleResult{}, ErrLostPetNotOwned
+	}
+	if record.LifecycleAudit != nil {
+		if record.Status == LostPetStatusReunited &&
+			record.LifecycleAudit.AuthorizedAs == LostPetLifecycleAuthorizationOperator &&
+			record.LifecycleAudit.OperationID == operationID && record.LifecycleAudit.ActorKey == actorKey {
+			return lifecycleResultFromAudit(record, false)
+		}
+		return LostPetLifecycleResult{}, ErrLostPetLifecycleConflict
+	}
+	if record.Status != LostPetStatusLost {
+		return LostPetLifecycleResult{}, ErrLostPetLifecycleConflict
+	}
+	if changedAt.IsZero() {
+		return LostPetLifecycleResult{}, fmt.Errorf("%w: transition time is required", ErrInvalidLostPetLifecycle)
+	}
+	changedAt = changedAt.UTC()
+	event := PetStatusChangedV1{
+		PetID: record.PetID, ReportType: "lost", PreviousStatus: LostPetStatusLost,
+		Status: LostPetStatusReunited, ChangedAt: changedAt,
+	}
+	eventID, err := petStatusChangedEventID(event)
+	if err != nil {
+		return LostPetLifecycleResult{}, fmt.Errorf("%w: %w", ErrInvalidLostPetLifecycle, err)
+	}
+	next := record
+	next.Status = LostPetStatusReunited
+	next.LifecycleAudit = &LostPetLifecycleAudit{
+		OperationID: operationID, ActorKey: actorKey, AuthorizedAs: LostPetLifecycleAuthorizationOperator,
+		AssignmentID: authorization.AssignmentID, AssignmentRevision: authorization.Revision,
+		PreviousStatus: LostPetStatusLost, Status: LostPetStatusReunited,
+		ChangedAt: changedAt, EventID: eventID,
+	}
+	if err := validateLostPetLifecycleRecord(next, false); err != nil {
 		return LostPetLifecycleResult{}, err
 	}
 	return LostPetLifecycleResult{Record: next, Event: event, EventID: eventID, Changed: true}, nil
@@ -122,25 +194,26 @@ func lifecycleResultFromAudit(record LostPetRecord, changed bool) (LostPetLifecy
 	return LostPetLifecycleResult{Record: record, Event: event, EventID: audit.EventID, Changed: changed}, nil
 }
 
-func validateLostPetLifecycleRecord(record LostPetRecord) error {
+func validateLostPetLifecycleRecord(record LostPetRecord, requireOwner bool) error {
 	if strings.TrimSpace(record.PetID) == "" || strings.TrimSpace(record.PetID) != record.PetID ||
 		record.ReportedAt.IsZero() || record.ReportedAt.Location() != time.UTC ||
 		record.OwnerIdentityRef != reportIdentityRef("lost", record.PetID, "owner") {
-		return errors.New("domain: invalid persisted lost-pet lifecycle record")
+		return fmt.Errorf("%w: invalid persisted lost-pet lifecycle record", ErrInvalidLostPetLifecycle)
 	}
 	if record.OwnedBy == nil {
-		return ErrLostPetNotOwned
-	}
-	if err := record.OwnedBy.Validate(); err != nil || strings.TrimSpace(record.OwnedBy.Issuer) != record.OwnedBy.Issuer {
-		return errors.New("domain: invalid persisted lost-pet owner")
+		if requireOwner {
+			return ErrLostPetNotOwned
+		}
+	} else if err := record.OwnedBy.Validate(); err != nil || strings.TrimSpace(record.OwnedBy.Issuer) != record.OwnedBy.Issuer {
+		return fmt.Errorf("%w: invalid persisted lost-pet owner", ErrInvalidLostPetLifecycle)
 	}
 	canonical, err := json.Marshal(NormalizeLostPetRecord(record))
 	if err != nil {
-		return fmt.Errorf("domain: normalize persisted lost-pet lifecycle record: %w", err)
+		return fmt.Errorf("%w: normalize persisted lost-pet lifecycle record: %w", ErrInvalidLostPetLifecycle, err)
 	}
 	persisted, err := json.Marshal(record)
 	if err != nil || !bytes.Equal(persisted, canonical) {
-		return errors.New("domain: persisted lost-pet lifecycle record is not canonical")
+		return fmt.Errorf("%w: persisted lost-pet lifecycle record is not canonical", ErrInvalidLostPetLifecycle)
 	}
 	canonicalFields := LostPetReport{
 		PetID: record.PetID, PetName: record.PetName, Species: record.Species, Breed: record.Breed,
@@ -149,29 +222,43 @@ func validateLostPetLifecycleRecord(record LostPetRecord) error {
 		Coordinates: record.Coordinates, Status: LostPetStatusLost, OwnedBy: record.OwnedBy,
 	}
 	if err := validateLostPetCanonicalFields(canonicalFields); err != nil {
-		return fmt.Errorf("domain: invalid persisted lost-pet lifecycle fields: %w", err)
+		return fmt.Errorf("%w: invalid persisted lost-pet lifecycle fields: %w", ErrInvalidLostPetLifecycle, err)
 	}
 	switch record.Status {
 	case LostPetStatusLost, LostPetStatusReunited:
 	default:
-		return fmt.Errorf("domain: unsupported persisted lost-pet lifecycle status %q", record.Status)
+		return fmt.Errorf("%w: unsupported persisted lost-pet lifecycle status %q", ErrInvalidLostPetLifecycle, record.Status)
 	}
 	if record.LifecycleAudit == nil {
 		return nil
 	}
 	audit := record.LifecycleAudit
-	if audit.AuthorizedAs != LostPetLifecycleAuthorizationOwner ||
-		audit.PreviousStatus != LostPetStatusLost || audit.Status != LostPetStatusReunited ||
+	if audit.PreviousStatus != LostPetStatusLost || audit.Status != LostPetStatusReunited ||
 		audit.ChangedAt.IsZero() || audit.ChangedAt.Location() != time.UTC ||
 		!validEventID(audit.EventID) {
-		return errors.New("domain: invalid lost-pet lifecycle audit")
+		return fmt.Errorf("%w: invalid lost-pet lifecycle audit", ErrInvalidLostPetLifecycle)
 	}
 	if err := validateCanonicalRoleText("lifecycle operation ID", audit.OperationID, MaxLostPetLifecycleOperationRunes); err != nil {
-		return err
+		return fmt.Errorf("%w: invalid persisted lifecycle operation: %w", ErrInvalidLostPetLifecycle, err)
 	}
-	ownerKey, err := RolePrincipalKey(*record.OwnedBy)
-	if err != nil || audit.ActorKey != ownerKey {
-		return errors.New("domain: lost-pet lifecycle audit does not match its owner")
+	switch audit.AuthorizedAs {
+	case LostPetLifecycleAuthorizationOwner:
+		if record.OwnedBy == nil {
+			return fmt.Errorf("%w: owner lifecycle audit has no owner", ErrInvalidLostPetLifecycle)
+		}
+		ownerKey, err := RolePrincipalKey(*record.OwnedBy)
+		if err != nil || audit.ActorKey != ownerKey || audit.AssignmentID != "" || audit.AssignmentRevision != 0 {
+			return fmt.Errorf("%w: lost-pet lifecycle audit does not match its owner", ErrInvalidLostPetLifecycle)
+		}
+	case LostPetLifecycleAuthorizationOperator:
+		globalScope := RoleScope{Kind: RoleScopeGlobal}
+		if !validRoleDigest(audit.ActorKey, "role_principal_v1_") ||
+			audit.AssignmentID != roleAssignmentIDFromKey(audit.ActorKey, RoleOperator, globalScope) ||
+			audit.AssignmentRevision < 1 || audit.AssignmentRevision%2 == 0 {
+			return fmt.Errorf("%w: lost-pet lifecycle audit does not match a global operator assignment", ErrInvalidLostPetLifecycle)
+		}
+	default:
+		return fmt.Errorf("%w: invalid lost-pet lifecycle authorization source", ErrInvalidLostPetLifecycle)
 	}
 	result, err := lifecycleResultFromAudit(record, false)
 	if err != nil {
@@ -179,7 +266,7 @@ func validateLostPetLifecycleRecord(record LostPetRecord) error {
 	}
 	wantEventID, err := petStatusChangedEventID(result.Event)
 	if err != nil || audit.EventID != wantEventID || record.Status != audit.Status {
-		return errors.New("domain: lost-pet lifecycle audit does not match its event and status")
+		return fmt.Errorf("%w: lost-pet lifecycle audit does not match its event and status", ErrInvalidLostPetLifecycle)
 	}
 	return nil
 }
