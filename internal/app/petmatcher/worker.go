@@ -156,6 +156,12 @@ func (w *Worker) processClaimedFoundPet(
 	} else if exists {
 		return w.publishMatcherResult(ctx, result)
 	}
+	// Raw and payload-v1 events predate private finalized image objects. Keep
+	// accepting and completing new deliveries, but never send their
+	// caller-controlled imageUrl to the model or create a match from it.
+	if inputEnvelope == nil || inputEnvelope.PayloadVersion == domain.FoundPetReportedLegacyPayloadVersion {
+		return nil
+	}
 	candidates, err := w.eligibleLostPetCandidates(ctx, foundEvt)
 	if err != nil {
 		return err
