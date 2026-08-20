@@ -1,0 +1,43 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0ETSC5W2MMEK88HNQ4HFJQ4",
+  "session_id": "01a0106b-5c6a-72c3-ad94-2ec2cccbe9fa",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-20T05:38:49.310020017Z",
+  "branch": "fix/close-reunion-in-identity-mode",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "e2e/identity_session_test.go",
+    "internal/app/webfrontend/server.go",
+    "internal/app/webfrontend/server_test.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "27e207934156",
+  "checkpoint_transcript_start": 18336,
+  "transcript_lines_at_start": 18336,
+  "compact_transcript_start": 2703,
+  "token_usage": {
+    "input_tokens": 137273,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 11207680,
+    "output_tokens": 18738,
+    "api_call_count": 95
+  },
+  "session_metrics": {
+    "turn_count": 9
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-20T05:38:42.550055818Z",
+    "agent_lines": 139,
+    "agent_removed": 4,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 139,
+    "total_lines_changed": 143,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
