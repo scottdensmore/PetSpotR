@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0ERJY5FG053D24Y0B5N4AM8",
+  "strategy": "manual-commit",
+  "branch": "feat/private-match-conversation",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/DEVELOPMENT.md",
+    "internal/app/webfrontend/static/css/styles.css",
+    "internal/app/webfrontend/static/js/match-dashboard.js",
+    "internal/app/webfrontend/templates/matches.html",
+    "tests/playwright/e2e/match-dashboard-security.spec.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": -88128512,
+    "output_tokens": -132929,
+    "api_call_count": 221
+  }
+}
