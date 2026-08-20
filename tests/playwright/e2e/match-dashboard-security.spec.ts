@@ -33,6 +33,91 @@ function validMatchRecord(matchId: string) {
 }
 
 test.describe('Match dashboard persisted-data boundary', () => {
+  test('announces loading and failures without stealing focus', async ({ page }) => {
+    type MatchResponse = 'http-error' | 'network-error' | 'json-error' | 'empty';
+    const responses: MatchResponse[] = ['http-error', 'network-error', 'json-error', 'empty'];
+    let releaseMatchRequest: (() => void) | undefined;
+
+    await page.addInitScript(() => {
+      document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('scoreFilter')?.focus();
+      });
+    });
+    await page.route('**/api/v1/session/client-config', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ enabled: false }),
+      });
+    });
+    await page.route('**/api/v1/matches', async (route) => {
+      const response = responses.shift();
+      await new Promise<void>((resolve) => {
+        releaseMatchRequest = resolve;
+      });
+      releaseMatchRequest = undefined;
+      if (response === 'network-error') {
+        await route.abort('connectionfailed');
+        return;
+      }
+      if (response === 'json-error') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '{' });
+        return;
+      }
+      if (response === 'empty') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+        return;
+      }
+      await route.fulfill({ status: 503, body: 'Match store unavailable' });
+    });
+
+    const expectLoading = async () => {
+      const loading = page.locator('#matches-list-container [role="status"]');
+      await expect(loading).toHaveText('Loading match records...');
+      await expect(loading).toHaveAttribute('aria-live', 'polite');
+      await expect(page.locator('#scoreFilter')).toBeFocused();
+      expect(releaseMatchRequest).toBeDefined();
+    };
+    const finishMatchRequest = () => {
+      const release = releaseMatchRequest;
+      expect(release).toBeDefined();
+      release?.();
+    };
+    const expectLoadAlert = async () => {
+      await expect(page.locator('#matches-list-container [role="alert"]'))
+        .toHaveText('Failed to load match records.');
+      await expect(page.locator('.match-empty')).toHaveCount(0);
+      await expect(page.locator('#scoreFilter')).toBeFocused();
+    };
+
+    await page.goto(`${WEB_FRONTEND_URL}/matches`);
+    await expectLoading();
+    await page.locator('#scoreFilter').selectOption('0.70');
+    await expectLoading();
+    finishMatchRequest();
+    await expectLoadAlert();
+    await page.locator('#scoreFilter').selectOption('0.90');
+    await expectLoadAlert();
+
+    await page.reload();
+    await expectLoading();
+    finishMatchRequest();
+    await expectLoadAlert();
+
+    await page.reload();
+    await expectLoading();
+    finishMatchRequest();
+    await expectLoadAlert();
+
+    await page.reload();
+    await expectLoading();
+    finishMatchRequest();
+    await expect(page.locator('.match-empty')).toContainText('No Candidate Matches Above 85% Threshold');
+    await expect(page.locator('#matches-list-container [role="alert"]')).toHaveCount(0);
+    await expect(page.locator('#scoreFilter')).toBeFocused();
+    expect(responses).toEqual([]);
+  });
+
   test('requires Google sign-in before rendering participant matches', async ({ page }) => {
     const principal = {
       issuer: 'https://securetoken.google.com/demo-petspotr-auth',
