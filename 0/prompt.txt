@@ -1,5 +1,1 @@
-Yes lets continue with the private Firestore role assignment design
-
----
-
 ok lets pick up the next vertical slice
