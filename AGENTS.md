@@ -145,6 +145,12 @@ lint, build, and test checks belong to the gate, not to a reviewer.
 - **Event schema changes stay backward compatible with in-flight messages.**
   Prefer additive fields with tolerant readers; otherwise version the schema
   explicitly and keep a decoder or migration path for the prior one.
+- **Intentionally breaking a published contract is a stop-and-ask, not a review
+  item.** The rule above is what a reviewer applies to a change that means to
+  stay compatible. A change that knowingly breaks or versions an event or HTTP
+  schema reaches messages already in flight and consumers already deployed —
+  which no gate in this repository can catch and no revert can recall. Say what
+  breaks, and get agreement, before implementing it.
 - **Reporter contact details and state-changing actions never cross an
   unauthenticated or unauthorized boundary.** New or changed boundaries return
   redacted public DTOs and require authentication plus ownership, or equivalent
@@ -244,6 +250,14 @@ lint, build, and test checks belong to the gate, not to a reviewer.
   completes the issue, `Part of #<n>` for every earlier slice of an ordered
   split. The squash carries the body onto `main`, so `Closes` on an intermediate
   slice closes an issue that is still outstanding.
+- **Stop and ask before changing what enforces the gates.** The managed block
+  requires approval only for actions you cannot take back, which leaves out
+  `.github/workflows/`, the `main-protection` ruleset, and `infra/` state — all
+  reversible, and all able to weaken every future check without a diff that
+  looks dangerous. In this repository those are a stop-and-ask regardless, and
+  this rule wins over the block's narrower list.
+- **Keep the commit subject to 72 characters or fewer**, and open pull requests
+  ready for review — no drafts unless the user asks for one.
 - **File out-of-scope discoveries** with `gh issue create` rather than widening
   the slice: title them as Conventional Commits, label them `agent-found`, and
   reference the branch that surfaced them. This is pre-authorized.
