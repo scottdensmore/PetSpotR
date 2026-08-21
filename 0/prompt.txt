@@ -1,0 +1,5 @@
+Ok lets go through the workflow and see if it meets the same requirements as before. Also does this workflow make sense?
+
+---
+
+Yep go ahead and add those
