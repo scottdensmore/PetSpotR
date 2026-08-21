@@ -1,0 +1,5 @@
+Ok lets clean things up. What should we do with the Playwright API journeys?
+
+---
+
+It should be required (don't you think)?
