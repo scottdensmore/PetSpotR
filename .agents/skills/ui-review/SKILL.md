@@ -34,6 +34,7 @@ flowchart TD
 ## 2. Review Checklists by Domain
 
 ### A. Web Applications (Desktop, Tablet, Mobile)
+
 1. **Responsive Viewports**:
    - Mobile (~375px–420px), Tablet (~768px), Desktop (~1280px+).
    - No unexpected horizontal scrolling, text clipping, or overlapping controls.
@@ -46,6 +47,7 @@ flowchart TD
    - Adequate touch/tap target size (minimum 44x44px or 48x48px on mobile).
 
 ### B. Desktop Applications & Fixed-Viewport Games (e.g. Go/Ebitengine)
+
 1. **On-Screen Readability & Visual Hierarchy**:
    - High contrast between foreground sprites/vectors and dark or textured background.
    - Clear font rendering for scoreboards, HUD indicators, version strings, and menus.
@@ -58,6 +60,7 @@ flowchart TD
    - Fixed aspect ratios or full-screen resize handling without tearing.
 
 ### C. Terminal / CLI Tools
+
 1. **Output Formatting & Alignment**:
    - Tables, indentation, progress bars, and structured terminal output.
 2. **Terminal Theme Compatibility**:
@@ -65,6 +68,7 @@ flowchart TD
    - Clean stderr vs stdout separation.
 
 ### D. Headless / Pure Backend / Internal Refactor (No UI Impact)
+
 - Explicitly record that UI review is **Not Applicable** and state the concrete reason (e.g. *"Changes are strictly internal data structures / CLI flags without visual presentation impact"*). Never skip UI review silently.
 
 ---

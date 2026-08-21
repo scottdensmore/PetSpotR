@@ -26,7 +26,8 @@ flowchart TD
     E --> F["5. Proceed to TDD Implementation"]
 ```
 
-### Upfront Planning Checklist:
+### Upfront Planning Checklist
+
 1. **Clarify Desired Outcome**: Identify the operational or user-visible goal.
 2. **Identify Boundaries & Invariants**: Determine which systems, state models, or packages are touched.
 3. **Decompose into Thin Slices**: Break down large features into ordered, independent vertical slices that each deliver a testable, reviewable outcome.
@@ -36,20 +37,22 @@ flowchart TD
 
 ## 2. When and How to Prototype Options
 
-### When to Prototype:
+### When to Prototype
+
 - **Architectural Trade-offs**: When multiple viable patterns exist (e.g. struct vs protocol composition, polling vs event-driven, synchronous vs async dispatch).
 - **API & Library Feasibility**: When integrating new third-party APIs, platform frameworks, or unfamiliar libraries.
 - **UX & Interaction Exploration**: When exploring layout, gesture, or state transition ergonomics.
 
-### Prototyping Guidelines (The Spike Protocol):
+### Prototyping Guidelines (The Spike Protocol)
+
 1. **Timebox & Isolate**: Keep spikes minimal and isolated (e.g. in scratch files, lightweight spike tests, or throwaway branch experiments).
 2. **Test Specific Hypotheses**: Focus the prototype strictly on resolving the unknown (performance, ergonomics, API compatibility).
 3. **Evaluate with a Trade-off Matrix**:
 
-| Option | Pros | Cons | Complexity | Recommendation |
-|---|---|---|---|---|
-| Option A: `<Approach>` | Fast, simple | Limited extensibility | Low | Recommended |
-| Option B: `<Approach>` | Highly flexible | Higher boilerplate | Medium | Alternative |
+   | Option | Pros | Cons | Complexity | Recommendation |
+   |---|---|---|---|---|
+   | Option A: `<Approach>` | Fast, simple | Limited extensibility | Low | Recommended |
+   | Option B: `<Approach>` | Highly flexible | Higher boilerplate | Medium | Alternative |
 
 4. **Align & Clean Up**: Select the winning path (aligning with the user if valuable). Do not directly commit messy spike code; distill the proven pattern cleanly into the test-first `tdd-workflow` loop.
 

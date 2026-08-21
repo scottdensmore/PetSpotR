@@ -34,23 +34,28 @@ flowchart TD
 ```
 
 ### Step 1: Red — Write the Minimal Failing Test
+
 - Identify the single slice of behavior or the specific bug reproduction needed.
 - Write or update a focused test before touching production code.
 - Name the test clearly following project conventions (e.g. `TestScoreManager_AddPoints` or `it('should calculate discount when promo code applied')`).
 
 ### Step 2: Confirm Failure Reason
+
 - Execute the focused test runner (e.g. `go test -run TestName ./...` or `npm test -- -t "test name"`).
 - **Verify that the test fails for the expected reason** (e.g. missing function, assertion mismatch, returned error) rather than a syntax or compile error in the test harness itself.
 
 ### Step 3: Green — Minimal Implementation
+
 - Write the simplest, cleanest implementation necessary to make the failing test pass.
 - Resist premature optimization or adding speculative features not required by the test.
 
 ### Step 4: Validate Passing Test
+
 - Re-run the focused test command.
 - Iterate rapidly on the implementation until all assertions pass.
 
 ### Step 5: Refactor
+
 - Clean up duplication, improve variable names, extract small helpers, and enforce code conventions.
 - Run tests continuously during refactoring to guarantee no regression.
 
@@ -73,6 +78,7 @@ flowchart TD
 ## 4. TDD Summary Output Template
 
 When reporting completed TDD work, include a concise note:
+
 ```markdown
 ### TDD Cycle Completed
 - **Target Component**: `<path/to/component>`

@@ -91,12 +91,14 @@ the disagreement.
 ## 4. Filling each section
 
 ### Development Commands
+
 One row per stage the project actually has. Every command must run from the
-repository root — prefix with `cd <dir> && ` when the project is nested. Drop the
+repository root — prefix with `cd <dir> &&` when the project is nested. Drop the
 `<!-- unverified -->` marker only for rows you confirmed; keep it, narrowed, for
 rows you could not.
 
 ### Verification Map
+
 The table stage 6 of the workflow uses to rerun only what a fix could have
 invalidated. For each gate command, determine which paths it **reads**:
 
@@ -210,6 +212,7 @@ no partial-success trap, no self-rewriting file — leave it out. An invented
 answer is worse than an absent one, and a row you cannot source is an invention.
 
 ### Architecture & Conventions
+
 Boundaries a change must respect, stated so a reviewer could cite them: layer
 separation, where logic belongs versus presentation, error handling rules,
 naming. Derive from the code, not from aspiration. Three accurate lines beat
@@ -223,6 +226,7 @@ format whose version must be bumped — state the rule and where in the source i
 is enforced.
 
 ### Gotchas & Troubleshooting
+
 Only things that have actually bitten someone: a formatter that must not touch a
 directory, a test that needs a simulator booted, an env var without which the
 suite fails oddly. Look in CI workarounds, `.gitignore` oddities, scripts with

@@ -31,6 +31,7 @@ flowchart TD
 ## 2. Rules & Protocols
 
 ### A. Branch Creation
+
 - Resolve the repository's base branch first — never assume `main`:
   `git symbolic-ref --short refs/remotes/origin/HEAD` (falls back to whatever
   `AGENTS.md` records under **Base Branch**).
@@ -41,11 +42,13 @@ flowchart TD
 - Never commit directly to the base branch.
 
 ### B. Thin Vertical Slices
+
 - Define the smallest end-to-end slice that delivers a coherent outcome and can be independently reviewed, tested, and shipped.
 - Avoid large horizontal layers (e.g. implementing 10 database models before any UI or business logic).
 - Keep pull requests small enough for reliable review, verification, and fast rollback.
 
 ### C. Capturing Discoveries, Bugs & Follow-ups
+
 - When unexpected bugs, edge cases, technical debt, or follow-up tasks are identified during the course of development:
   - **Do NOT expand the scope of the current slice** (prevent scope creep).
   - **Create a tracked issue immediately** using the project's source control management / issue system:
@@ -55,6 +58,7 @@ flowchart TD
   - Keep the current branch focused on completing its single reviewed slice.
 
 ### D. Conventional Commits
+
 Commit only after UI review, verification, and code review have all passed:
 
 ```text
@@ -67,6 +71,7 @@ Commit only after UI review, verification, and code review have all passed:
 - Stage files explicitly; never run blind `git add -A` if unrelated work exists in the worktree.
 
 ### E. GitHub CLI (`gh`) Automation
+
 Use Git for branch transport and the GitHub CLI (`gh`) for GitHub operations:
 
 - **Match the stopping point to the request.** A request that only asks to commit
