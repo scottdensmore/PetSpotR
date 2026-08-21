@@ -230,12 +230,14 @@ lint, build, and test checks belong to the gate, not to a reviewer.
   | `static-checks` | `Static Analysis & Markdown Linting` | yes |
   | `go-checks` | `Go Build & Unit Tests` | yes |
   | `infra-checks` | `OpenTofu Format & Validate` | yes |
-  | `e2e-playwright-tests` | `Playwright API Journeys` | **no** |
+  | `e2e-playwright-tests` | `Playwright API Journeys` | yes |
 
-- **The Playwright job runs on every pull request but cannot block a merge.** It
+- **All five checks are required; none can be bypassed.** The Playwright job
   builds the three HTTP services, waits for readiness, runs the suite, and
-  uploads its report, traces, and service logs on failure — so its viewport,
-  keyboard, and API coverage is advisory until the ruleset adds its context.
+  uploads its report, traces, and service logs on failure. It is the only
+  enforcement for the rendered-UI rubric the specs mechanize — viewports,
+  overflow, stacking, touch targets, and keyboard focus order — so a change that
+  breaks them can no longer merge. Budget roughly three minutes for it.
 - **The PR title becomes the commit subject on `main`,** because branches are
   squash-merged; `pr-title` validates it as a Conventional Commit.
 - **Link the tracked issue in the PR body**: `Closes #<n>` only when this slice
