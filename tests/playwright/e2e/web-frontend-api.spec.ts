@@ -789,11 +789,11 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     }
 
     await page.locator('#brand-link').focus();
-    const keyboardActionIds: string[] = [];
-    for (const id of actionIds) {
-      if (!(await page.locator(`#${id}`).isDisabled())) keyboardActionIds.push(id);
+    const keyboardIds: string[] = [];
+    for (const id of ['nav-home', 'nav-directory', 'nav-matches', ...actionIds]) {
+      if (!(await page.locator(`#${id}`).isDisabled())) keyboardIds.push(id);
     }
-    for (const id of keyboardActionIds) {
+    for (const id of keyboardIds) {
       await page.keyboard.press('Tab');
       await expect(page.locator(`#${id}`)).toBeFocused();
     }
