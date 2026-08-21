@@ -1,0 +1,74 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0HCJWTQ88D3D6FR3DGCNTYP",
+  "session_id": "01a022bd-1233-7581-a52d-f3f0fefbddd2",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-21T05:27:04.701903864Z",
+  "branch": "scottdensmore/chore/refresh-agent-workflow-skills",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".agents/agent-skills.json",
+    ".agents/skills/code-review/SKILL.md",
+    ".agents/skills/plan-and-prototype/SKILL.md",
+    ".agents/skills/project-profile/SKILL.md",
+    ".agents/skills/slice-and-pr/SKILL.md",
+    ".agents/skills/tdd-workflow/SKILL.md",
+    ".agents/skills/ui-review/SKILL.md"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "88cbce5146de",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 63504,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1315072,
+    "output_tokens": 6043,
+    "api_call_count": 31
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-21T05:27:04.61114998Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 33,
+    "total_committed": 0,
+    "total_lines_changed": 43,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 79,
+      "user_lines_removed": 33,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".agents/agent-skills.json": 13,
+        ".agents/skills/code-review/SKILL.md": 3,
+        ".agents/skills/plan-and-prototype/SKILL.md": 10,
+        ".agents/skills/project-profile/SKILL.md": 5,
+        ".agents/skills/slice-and-pr/SKILL.md": 5,
+        ".agents/skills/tdd-workflow/SKILL.md": 6,
+        ".agents/skills/ui-review/SKILL.md": 4,
+        ".claude/skills/code-review/SKILL.md": 3,
+        ".claude/skills/plan-and-prototype/SKILL.md": 10,
+        ".claude/skills/project-profile/SKILL.md": 5,
+        ".claude/skills/slice-and-pr/SKILL.md": 5,
+        ".claude/skills/tdd-workflow/SKILL.md": 6,
+        ".claude/skills/ui-review/SKILL.md": 4
+      },
+      "user_removed_per_file": {
+        ".agents/agent-skills.json": 13,
+        ".agents/skills/code-review/SKILL.md": 2,
+        ".agents/skills/plan-and-prototype/SKILL.md": 7,
+        ".agents/skills/project-profile/SKILL.md": 1,
+        ".claude/skills/code-review/SKILL.md": 2,
+        ".claude/skills/plan-and-prototype/SKILL.md": 7,
+        ".claude/skills/project-profile/SKILL.md": 1
+      }
+    }
+  ]
+}

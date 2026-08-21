@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.10.0",
+  "checkpoint_id": "01M0HCJWTQ88D3D6FR3DGCNTYP",
+  "strategy": "manual-commit",
+  "branch": "scottdensmore/chore/refresh-agent-workflow-skills",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".agents/agent-skills.json",
+    ".agents/skills/code-review/SKILL.md",
+    ".agents/skills/plan-and-prototype/SKILL.md",
+    ".agents/skills/project-profile/SKILL.md",
+    ".agents/skills/slice-and-pr/SKILL.md",
+    ".agents/skills/tdd-workflow/SKILL.md",
+    ".agents/skills/ui-review/SKILL.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 63504,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1315072,
+    "output_tokens": 6043,
+    "api_call_count": 31
+  }
+}
