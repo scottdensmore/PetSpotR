@@ -17,7 +17,7 @@ This skill acts as a senior peer reviewer. It audits the complete branch diff, s
 Always inspect the complete change context. Resolve the base branch first — never
 assume `main`:
 
-```
+```bash
 git symbolic-ref --short refs/remotes/origin/HEAD   # e.g. origin/main
 git diff origin/<base>...HEAD                       # branch diff against the merge base
 git diff HEAD                                       # staged + unstaged worktree changes
@@ -45,7 +45,8 @@ flowchart TD
     G -->|No| I["APPROVED"]
 ```
 
-### Rubric Breakdown:
+### Rubric Breakdown
+
 1. **Diff Hygiene**:
    - Only intentionally modified files are present.
    - No accidental debug logging (`console.log`, `fmt.Println`), leftover commented-out code, or unintended whitespace modifications.
