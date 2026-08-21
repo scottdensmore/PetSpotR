@@ -84,23 +84,24 @@ type FoundPetReport struct {
 // is stored separately and linked by FinderIdentityRef. OwnedBy identifies the
 // authenticated resource owner when the producer supplied one.
 type FoundPetRecord struct {
-	PetID               string              `json:"petId"`
-	ImageURL            string              `json:"imageUrl,omitempty"`
-	ImageObject         string              `json:"imageObject,omitempty"`
-	FoundAt             time.Time           `json:"foundAt"`
-	Location            string              `json:"location"`
-	GeocodingStatus     GeocodingStatus     `json:"geocodingStatus"`
-	Coordinates         *LocationPoint      `json:"coordinates,omitempty"`
-	FinderIdentityRef   string              `json:"finderIdentityRef"`
-	Species             string              `json:"species,omitempty"`
-	Breed               string              `json:"breed,omitempty"`
-	PrimaryColor        string              `json:"primaryColor,omitempty"`
-	SecondaryColor      string              `json:"secondaryColor,omitempty"`
-	DistinctiveMarkings []string            `json:"distinctiveMarkings,omitempty"`
-	CustodyStatus       CustodyStatus       `json:"custodyStatus"`
-	Status              FoundPetStatus      `json:"status"`
-	ImageAnalysis       *ImageTraitAnalysis `json:"imageAnalysis,omitempty"`
-	OwnedBy             *PrincipalRef       `json:"ownedBy,omitempty"`
+	PetID               string                  `json:"petId"`
+	ImageURL            string                  `json:"imageUrl,omitempty"`
+	ImageObject         string                  `json:"imageObject,omitempty"`
+	FoundAt             time.Time               `json:"foundAt"`
+	Location            string                  `json:"location"`
+	GeocodingStatus     GeocodingStatus         `json:"geocodingStatus"`
+	Coordinates         *LocationPoint          `json:"coordinates,omitempty"`
+	FinderIdentityRef   string                  `json:"finderIdentityRef"`
+	Species             string                  `json:"species,omitempty"`
+	Breed               string                  `json:"breed,omitempty"`
+	PrimaryColor        string                  `json:"primaryColor,omitempty"`
+	SecondaryColor      string                  `json:"secondaryColor,omitempty"`
+	DistinctiveMarkings []string                `json:"distinctiveMarkings,omitempty"`
+	CustodyStatus       CustodyStatus           `json:"custodyStatus"`
+	Status              FoundPetStatus          `json:"status"`
+	ImageAnalysis       *ImageTraitAnalysis     `json:"imageAnalysis,omitempty"`
+	OwnedBy             *PrincipalRef           `json:"ownedBy,omitempty"`
+	LifecycleAudit      *FoundPetLifecycleAudit `json:"lifecycleAudit,omitempty"`
 }
 
 // FoundPetReportedV2 is the additive payload-v2 integration event. Its legacy
@@ -374,6 +375,10 @@ func NormalizeFoundPetRecord(record FoundPetRecord) FoundPetRecord {
 		normalized.FinderIdentityRef = identityRef
 	}
 	normalized.ImageAnalysis = NormalizeImageTraitAnalysis(record.ImageAnalysis)
+	if record.LifecycleAudit != nil {
+		audit := *record.LifecycleAudit
+		normalized.LifecycleAudit = &audit
+	}
 	return normalized
 }
 

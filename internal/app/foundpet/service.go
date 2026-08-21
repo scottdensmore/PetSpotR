@@ -67,6 +67,30 @@ type ReportResult struct {
 	EventID string
 }
 
+// LifecycleCommand carries trusted finder identity and one idempotent terminal
+// transition into the canonical application service.
+type LifecycleCommand struct {
+	PetID       string
+	Status      domain.FoundPetStatus
+	OperationID string
+	Actor       domain.PrincipalRef
+}
+
+// LifecycleResult identifies the durable lifecycle event.
+type LifecycleResult struct {
+	PetID   string
+	Status  domain.FoundPetStatus
+	EventID string
+}
+
+var (
+	ErrInvalidLifecycleCommand = errors.New("foundpet: invalid lifecycle command")
+	ErrLifecycleUnavailable    = errors.New("foundpet: lifecycle persistence is unavailable")
+	ErrLifecycleHidden         = errors.New("foundpet: lifecycle target is unavailable")
+)
+
+var errLifecycleAlreadyApplied = errors.New("foundpet: lifecycle operation already applied")
+
 // ErrInvalidReport identifies domain validation failures.
 var ErrInvalidReport = errors.New("foundpet: invalid report")
 
@@ -126,6 +150,107 @@ func NewServiceWithOptions(st store.StateStore, br pubsub.Publisher, images blob
 // RecoverOutbox publishes one bounded batch of durable foundPet events.
 func (s *Service) RecoverOutbox(ctx context.Context) (int, error) {
 	return s.relay.PublishPending(ctx, "foundPet")
+}
+
+// ResolveFoundPet atomically persists a finder-owned found -> resolved
+// transition, its private audit receipt, and one redacted payload-v2 outbox
+// event.
+func (s *Service) ResolveFoundPet(ctx context.Context, command LifecycleCommand) (LifecycleResult, error) {
+	atomicStore, ok := s.store.(store.StateAndOutboxStore)
+	if !ok {
+		return LifecycleResult{}, ErrLifecycleUnavailable
+	}
+	command.PetID = strings.TrimSpace(command.PetID)
+	command.OperationID = strings.TrimSpace(command.OperationID)
+	if command.PetID == "" || command.Status != domain.FoundPetStatusResolved || command.OperationID == "" {
+		return LifecycleResult{}, fmt.Errorf(
+			"%w: pet ID, resolved status, and operation ID are required", ErrInvalidLifecycleCommand,
+		)
+	}
+	changedAt := time.Now().UTC()
+	var applied domain.FoundPetLifecycleResult
+	err := atomicStore.UpdateStateAndCreateOutbox(
+		ctx,
+		store.FoundPetsCollection,
+		command.PetID,
+		func(current []byte) (store.StateWrite, store.StateWrite, error) {
+			return foundPetLifecycleWrites(current, command, changedAt, &applied)
+		},
+	)
+	if errors.Is(err, errLifecycleAlreadyApplied) {
+		record, outboxErr := outbox.GetRecord(ctx, s.store, applied.EventID)
+		if outboxErr != nil {
+			return LifecycleResult{}, fmt.Errorf("foundpet: verify lifecycle retry: %w", outboxErr)
+		}
+		expectedEnvelope, envelopeErr := domain.NewFoundPetStatusChangedEnvelope(applied.Event)
+		expectedPayload, marshalErr := json.Marshal(expectedEnvelope)
+		if record.ID != applied.EventID || record.Topic != "petStatusChanged" ||
+			envelopeErr != nil || marshalErr != nil || !bytes.Equal(record.Payload, expectedPayload) {
+			return LifecycleResult{}, errors.New("foundpet: lifecycle retry does not match its durable outbox")
+		}
+		err = nil
+	}
+	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) ||
+		errors.Is(err, domain.ErrFoundPetNotOwned) || errors.Is(err, domain.ErrInvalidFoundPetLifecycle) {
+		return LifecycleResult{}, ErrLifecycleHidden
+	}
+	if err != nil {
+		return LifecycleResult{}, err
+	}
+	if s.relay.CanPublish("petStatusChanged") {
+		if _, publishErr := s.relay.PublishRecords(ctx, applied.EventID); publishErr != nil {
+			log.Printf("FoundPet lifecycle outbox publication deferred: %v", publishErr)
+		}
+	}
+	return LifecycleResult{
+		PetID: applied.Record.PetID, Status: applied.Record.Status, EventID: applied.EventID,
+	}, nil
+}
+
+func foundPetLifecycleWrites(
+	current []byte,
+	command LifecycleCommand,
+	changedAt time.Time,
+	applied *domain.FoundPetLifecycleResult,
+) (store.StateWrite, store.StateWrite, error) {
+	*applied = domain.FoundPetLifecycleResult{}
+	var record domain.FoundPetRecord
+	if err := json.Unmarshal(current, &record); err != nil || record.PetID != command.PetID {
+		return store.StateWrite{}, store.StateWrite{}, ErrLifecycleHidden
+	}
+	result, err := domain.ApplyFinderFoundPetResolution(
+		record, command.Actor, command.OperationID, changedAt,
+	)
+	if err != nil {
+		return store.StateWrite{}, store.StateWrite{}, err
+	}
+	*applied = result
+	if !result.Changed {
+		return store.StateWrite{}, store.StateWrite{}, errLifecycleAlreadyApplied
+	}
+	nextData, err := json.Marshal(result.Record)
+	if err != nil {
+		return store.StateWrite{}, store.StateWrite{}, err
+	}
+	envelope, err := domain.NewFoundPetStatusChangedEnvelope(result.Event)
+	if err != nil {
+		return store.StateWrite{}, store.StateWrite{}, fmt.Errorf("foundpet: create lifecycle event: %w", err)
+	}
+	if envelope.ID != result.EventID {
+		return store.StateWrite{}, store.StateWrite{}, errors.New("foundpet: lifecycle event identity changed")
+	}
+	envelopeData, err := json.Marshal(envelope)
+	if err != nil {
+		return store.StateWrite{}, store.StateWrite{}, err
+	}
+	outboxData, err := outbox.MarshalRecord(outbox.NewRecord(
+		envelope.ID, "petStatusChanged", envelopeData, result.Event.ChangedAt,
+	))
+	if err != nil {
+		return store.StateWrite{}, store.StateWrite{}, err
+	}
+	return store.StateWrite{StoreName: store.FoundPetsCollection, Key: command.PetID, Data: nextData},
+		store.StateWrite{StoreName: store.OutboxCollection, Key: envelope.ID, Data: outboxData}, nil
 }
 
 type ErrorResponse struct {
