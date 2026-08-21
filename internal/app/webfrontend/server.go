@@ -38,6 +38,7 @@ type Server struct {
 	metrics                  *telemetry.MetricsRegistry
 	stateStore               store.StateStore
 	foundPetReporter         FoundPetReporter
+	foundPetLifecycle        FoundPetLifecycle
 	lostPetReporter          LostPetReporter
 	lostPetLifecycle         LostPetLifecycle
 	allowPrivilegedMutations bool
@@ -63,11 +64,18 @@ type FoundPetReporter interface {
 	ReportFoundPet(context.Context, foundpet.ReportCommand, foundpet.ReportMetadata) (foundpet.ReportResult, error)
 }
 
+// FoundPetLifecycle is the authenticated finder-owned found-pet lifecycle
+// command.
+type FoundPetLifecycle interface {
+	ResolveFoundPet(context.Context, foundpet.LifecycleCommand) (foundpet.LifecycleResult, error)
+}
+
 // ServerOptions controls injected commands and behavior that must remain
 // limited to explicit demo runtimes until authorization is implemented.
 type ServerOptions struct {
 	AllowPrivilegedMutations bool
 	FoundPetReporter         FoundPetReporter
+	FoundPetLifecycle        FoundPetLifecycle
 	LostPetReporter          LostPetReporter
 	LostPetLifecycle         LostPetLifecycle
 	IdentitySessions         identity.SessionManager
@@ -102,6 +110,10 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 	if foundPetReporter == nil {
 		foundPetReporter = foundpet.NewReportService(st, pubsub.NewMemoryPubSub())
 	}
+	foundPetLifecycle := options.FoundPetLifecycle
+	if foundPetLifecycle == nil {
+		foundPetLifecycle, _ = foundPetReporter.(FoundPetLifecycle)
+	}
 	lostPetReporter := options.LostPetReporter
 	if lostPetReporter == nil {
 		lostPetReporter = lostpet.NewService(st, pubsub.NewMemoryPubSub())
@@ -120,6 +132,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		metrics:                  telemetry.NewMetricsRegistry("web-frontend"),
 		stateStore:               st,
 		foundPetReporter:         foundPetReporter,
+		foundPetLifecycle:        foundPetLifecycle,
 		lostPetReporter:          lostPetReporter,
 		lostPetLifecycle:         lostPetLifecycle,
 		allowPrivilegedMutations: allowPrivilegedMutations,
@@ -150,6 +163,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/found-pets/extract-features", s.handleApiExtractFeatures)
 	s.mux.HandleFunc("/api/v1/found-pets", s.handleApiFoundPets)
 	s.mux.HandleFunc("/api/v1/found-pets/{petID}/contact", s.handleApiFoundPetContact)
+	s.mux.HandleFunc("/api/v1/found-pets/{petID}/status", s.handleApiFoundPetStatus)
 	s.mux.HandleFunc("/api/v1/matches", s.handleApiMatches)
 	s.mux.HandleFunc("/api/v1/matches/action", s.handleApiMatchAction)
 	s.mux.HandleFunc("/api/v1/reunions/contact", s.handleApiReunionContact)

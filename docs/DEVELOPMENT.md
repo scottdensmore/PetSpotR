@@ -191,7 +191,9 @@ double-submit CSRF token for
 verified session for participant-filtered match reads. When disabled, the
 existing anonymous demo flow is preserved. In identity mode, the lost-report
 status route permits the report owner or an active global operator to mark an
-active report reunited; other lifecycle transitions remain unexposed.
+active report reunited. The found-report status route permits only the report's
+finder to mark an active report resolved; other lifecycle transitions remain
+unexposed.
 
 Identity mode always overrides the memory runtime's demo privilege flag. When
 human sessions are configured, push-subscription and presigned-upload routes
@@ -397,7 +399,10 @@ reporter or finder email, and an ordinary user cannot invoke reunion mutation
 even when memory-mode demo privileges were requested. The journey then grants
 that same verified principal an active global operator assignment and proves a
 CSRF-protected, idempotent, privately audited reunion succeeds. Public listings
-omit owner identity and contact. It also proves each report owner can
+omit owner identity and contact. It also proves the finder can resolve their
+found report through the CSRF-protected, idempotent status route, while wrong
+finders and missing targets remain indistinguishable and the public record
+omits the private audit. It proves each report owner can
 read their private contact, while
 anonymous and independently authenticated wrong-owner requests cannot. The two
 authenticated users can both read a shared match as reporter and finder while
@@ -654,10 +659,10 @@ record. A competing create with the same pet ID returns `409 Conflict`; report
 creation is aggregate version 1 and does not use last-write-wins ordering. Each
 relay serializes publication within one process. The lost- and found-report
 services poll a bounded, indexed set of their pending creation-event records
-every five seconds. The web frontend separately recovers lost-report lifecycle
-events, matching each runtime's publisher IAM. Failed publication therefore
-stays pending across a restart without an unauthorized runtime repeatedly
-claiming the record.
+every five seconds. The web frontend separately recovers lost- and found-report
+lifecycle events, matching each runtime's publisher IAM. Failed publication
+therefore stays pending across a restart without an unauthorized runtime
+repeatedly claiming the record.
 Before polling, a cursor-backed bounded compatibility sweep adds the query
 fields missing from legacy key/data-only Firestore outbox documents. Incomplete
 sweeps advance from the durable cursor. Completed sweeps restart after one
@@ -704,6 +709,14 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
   -run '^TestFirestoreOwnerLostLifecycleIsAtomicAcrossRuntimes$'
 ```
 
+Run the finder-authorized cross-runtime found lifecycle contract with:
+
+```bash
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
+  GOTOOLCHAIN=go1.26.5 go test ./e2e -count=1 -v \
+  -run '^TestFirestoreFinderFoundLifecycleIsAtomicAcrossRuntimes$'
+```
+
 Run the global-operator lifecycle and concurrent-revocation fencing contract
 against the same emulator with:
 
@@ -745,12 +758,30 @@ are all `404`, while identity-disabled demo mode exposes no lifecycle route.
 Managed delivery uses the `petStatusChanged` topic and a non-expiring 31-day
 backlog subscription until a later consumer slice is authorized.
 
+An authenticated finder can mark their own active found report resolved with
+`PATCH /api/v1/found-pets/{petID}/status`, an `Idempotency-Key`, a valid session,
+double-submit CSRF, and exactly `{"status":"resolved"}`. The report, opaque
+private lifecycle audit, and redacted `petspotr.pet.status-changed` payload-v2
+outbox event are one atomic write. Exact finder retries return the original
+event and cannot duplicate a completed publication. Wrong-finder, ownerless,
+missing, and malformed durable targets are all `404`; a different operation
+against terminal state is `409`; and identity-disabled demo mode exposes no
+route.
+
 Run the redacted managed-publication contract against a Pub/Sub emulator with:
 
 ```bash
 PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
   GOTOOLCHAIN=go1.26.5 go test ./internal/app/lostpet -count=1 -v \
   -run '^TestOwnerLostLifecyclePublishesRedactedEventWithPubSubEmulator$'
+```
+
+Run the equivalent found-report payload-v2 publication contract with:
+
+```bash
+PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
+  GOTOOLCHAIN=go1.26.5 go test ./internal/app/foundpet -count=1 -v \
+  -run '^TestFinderFoundLifecyclePublishesRedactedEventWithPubSubEmulator$'
 ```
 
 ### Idempotent matcher result publication
@@ -783,17 +814,21 @@ fallback.
 ### Pet report lifecycle
 
 New lost and found reports always begin in their active `lost` and `found`
-states. The authenticated lost-report status route exposes the first terminal
-transition: an owner or active global operator may change an active lost report
-to `reunited`. The transition, private authorization audit, and redacted
-`petStatusChanged` event are committed atomically. Terminal states cannot reopen
-or transition again, and the matcher never considers a terminal lost report an
-active candidate.
+states. The authenticated lost-report status route permits an owner or active
+global operator to change an active lost report to `reunited`. The authenticated
+found-report status route permits only the report finder to change an active
+found report to `resolved`. Each transition, private authorization audit, and
+redacted `petStatusChanged` event is committed atomically. Lost events preserve
+the payload-v1 contract byte for byte; found events use payload v2, and the
+shared decoder tolerates both versions. Terminal states cannot reopen or
+transition again, the matcher never considers a terminal lost report an active
+candidate, and it safely completes a current-contract found event whose durable
+found report is already terminal after first recovering any durable result.
 
 The global-operator match-reunion route still closes only the terminal match
 record; it does not cascade into either report. Remaining lifecycle work
-includes lost `expired`/`closed`, found `resolved`/`expired`, trusted finder and
-shelter associations, and explicit cross-aggregate reunion orchestration.
+includes lost `expired`/`closed`, found `expired`, trusted finder and shelter
+associations, and explicit cross-aggregate reunion orchestration.
 
 The lost-image consumer derives a separate durable operation from the verified
 `lostPet` envelope ID, or from a stable digest for exact legacy payloads. Reports

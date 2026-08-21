@@ -462,6 +462,55 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 	if foundReport.OwnedBy == nil || *foundReport.OwnedBy != wantOwner {
 		t.Fatalf("persisted found-report owner = %#v, want %#v", foundReport.OwnedBy, wantOwner)
 	}
+	foundLifecycleURL := srv.URL + "/api/v1/found-pets/" + foundReportID + "/status"
+	wrongFinderLifecycle := mediatedProductRequest(
+		t, otherClient, http.MethodPatch, foundLifecycleURL, `{"status":"resolved"}`,
+		otherCSRFToken, "wrong-finder-lifecycle",
+	)
+	missingFoundLifecycle := mediatedProductRequest(
+		t, otherClient, http.MethodPatch, srv.URL+"/api/v1/found-pets/found-missing/status", `{"status":"resolved"}`,
+		otherCSRFToken, "missing-found-lifecycle",
+	)
+	wrongFinderLifecycleBody, _ := io.ReadAll(wrongFinderLifecycle.Body)
+	missingFoundLifecycleBody, _ := io.ReadAll(missingFoundLifecycle.Body)
+	_ = wrongFinderLifecycle.Body.Close()
+	_ = missingFoundLifecycle.Body.Close()
+	if wrongFinderLifecycle.StatusCode != http.StatusNotFound || missingFoundLifecycle.StatusCode != http.StatusNotFound ||
+		!bytes.Equal(wrongFinderLifecycleBody, missingFoundLifecycleBody) {
+		t.Fatalf("wrong-finder/missing lifecycle = %d/%q and %d/%q",
+			wrongFinderLifecycle.StatusCode, wrongFinderLifecycleBody,
+			missingFoundLifecycle.StatusCode, missingFoundLifecycleBody)
+	}
+	finderLifecycle := mediatedProductRequest(
+		t, client, http.MethodPatch, foundLifecycleURL, `{"status":"resolved"}`,
+		csrfToken, "finder-lifecycle",
+	)
+	if finderLifecycle.StatusCode != http.StatusOK || finderLifecycle.Header.Get("Cache-Control") != "no-store" {
+		t.Fatalf("finder lifecycle response = %d Cache-Control %q",
+			finderLifecycle.StatusCode, finderLifecycle.Header.Get("Cache-Control"))
+	}
+	var finderLifecycleResult map[string]string
+	decodeResponseJSON(t, finderLifecycle, &finderLifecycleResult)
+	finderLifecycleRetry := mediatedProductRequest(
+		t, client, http.MethodPatch, foundLifecycleURL, `{"status":"resolved"}`,
+		csrfToken, "finder-lifecycle",
+	)
+	var finderLifecycleRetryResult map[string]string
+	decodeResponseJSON(t, finderLifecycleRetry, &finderLifecycleRetryResult)
+	if finderLifecycleRetry.StatusCode != http.StatusOK || finderLifecycleResult["eventId"] == "" ||
+		finderLifecycleRetryResult["eventId"] != finderLifecycleResult["eventId"] {
+		t.Fatalf("finder lifecycle/retry results = %#v / %#v with retry status %d",
+			finderLifecycleResult, finderLifecycleRetryResult, finderLifecycleRetry.StatusCode)
+	}
+	foundReportData, err = state.GetState(ctx, store.FoundPetsCollection, foundReportID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(foundReportData, &foundReport); err != nil ||
+		foundReport.Status != domain.FoundPetStatusResolved || foundReport.LifecycleAudit == nil ||
+		foundReport.LifecycleAudit.EventID != finderLifecycleResult["eventId"] {
+		t.Fatalf("persisted finder lifecycle = %#v, %v", foundReport, err)
+	}
 	foundContactData, err := state.GetState(ctx, store.ReportContactsCollection, foundReport.FinderIdentityRef)
 	if err != nil {
 		t.Fatalf("load authenticated found-report contact: %v", err)
@@ -483,7 +532,9 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("read public found reports: %v", err)
 	}
 	_ = publicFoundReports.Body.Close()
-	if bytes.Contains(publicFoundBody, []byte(email)) || bytes.Contains(publicFoundBody, []byte("ownedBy")) {
+	if bytes.Contains(publicFoundBody, []byte(email)) || bytes.Contains(publicFoundBody, []byte("ownedBy")) ||
+		bytes.Contains(publicFoundBody, []byte("lifecycleAudit")) ||
+		!bytes.Contains(publicFoundBody, []byte(`"status":"resolved"`)) {
 		t.Fatalf("public found reports exposed private identity: %s", publicFoundBody)
 	}
 
@@ -851,6 +902,14 @@ func TestIdentityPlatformSessionJourneyWithAuthEmulator(t *testing.T) {
 		t.Fatalf("post-logout lifecycle status = %d, want %d", afterLogoutLifecycle.StatusCode, http.StatusUnauthorized)
 	}
 	closeResponse(t, afterLogoutLifecycle)
+	afterLogoutFoundLifecycle := mediatedProductRequest(
+		t, client, http.MethodPatch, foundLifecycleURL, `{"status":"resolved"}`, csrfToken, "after-logout-found-lifecycle",
+	)
+	if afterLogoutFoundLifecycle.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("post-logout found lifecycle status = %d, want %d",
+			afterLogoutFoundLifecycle.StatusCode, http.StatusUnauthorized)
+	}
+	closeResponse(t, afterLogoutFoundLifecycle)
 	afterLogoutMatches := productRequest(t, client, http.MethodGet, srv.URL+"/api/v1/matches", "", "")
 	if afterLogoutMatches.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("post-logout match-list status = %d, want %d", afterLogoutMatches.StatusCode, http.StatusUnauthorized)

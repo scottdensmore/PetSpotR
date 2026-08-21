@@ -162,6 +162,13 @@ func (w *Worker) processClaimedFoundPet(
 	if inputEnvelope == nil || inputEnvelope.PayloadVersion == domain.FoundPetReportedLegacyPayloadVersion {
 		return nil
 	}
+	terminal, err := w.foundReportTerminal(ctx, foundEvt.PetID)
+	if err != nil {
+		return err
+	}
+	if terminal {
+		return nil
+	}
 	candidates, err := w.eligibleLostPetCandidates(ctx, foundEvt)
 	if err != nil {
 		return err
@@ -288,6 +295,32 @@ func (w *Worker) processClaimedFoundPet(
 	}
 
 	return nil
+}
+
+func (w *Worker) foundReportTerminal(ctx context.Context, petID string) (bool, error) {
+	data, err := w.store.GetState(ctx, store.FoundPetsCollection, petID)
+	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+		// Payload-v2 URL compatibility predates mandatory durable object state.
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("pet-matcher: load durable found-pet lifecycle state: %w", err)
+	}
+	var record domain.FoundPetRecord
+	if err := json.Unmarshal(data, &record); err != nil {
+		return false, fmt.Errorf("pet-matcher: decode durable found-pet lifecycle state: %w", err)
+	}
+	record = domain.NormalizeFoundPetRecord(record)
+	if record.PetID != petID {
+		return false, errors.New("pet-matcher: durable found-pet lifecycle identity does not match event")
+	}
+	if record.Status.IsTerminal() {
+		return true, nil
+	}
+	if !record.Status.IsActive() {
+		return false, fmt.Errorf("pet-matcher: unsupported durable found-pet lifecycle status %q", record.Status)
+	}
+	return false, nil
 }
 
 func (w *Worker) persistMatcherResult(
