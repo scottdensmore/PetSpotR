@@ -1,0 +1,45 @@
+I updated the workflow in this project. It is in @AGENTS.md. We should be using the one in the xml comment bloc. Go through and remove the old cruft. Also make sure you only use the agents and skills that were installed by the agents-skills. Also keep things as lean as possible.
+
+---
+
+/project-profile
+
+---
+
+So what lint part failed?
+
+---
+
+Is MD013/line-length overkill? Should we keep it?
+
+---
+
+So everything will pass ci now? Does the workflow make sense?
+
+---
+
+What should we do bring back the UI review? Should we add something new to do this automatically?
+
+---
+
+What should we do bring back the UI review? Should we add something new to do this automatically?
+
+---
+
+Ok lets do 3 which beats both
+
+---
+
+lets undo that ui-reviewer real quick
+
+---
+
+/project-profile
+
+---
+
+We should add the check for contrast as part of the project profile so it is caught.
+
+---
+
+Ok take a look through one more time and scrutinize and make sure we are good
