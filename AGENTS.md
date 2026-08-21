@@ -1,434 +1,443 @@
-# Agent Workflow Guidelines
+# AGENTS.md
 
-This document defines the standard workflow required for all AI coding agents
-working on this codebase, and it is the single source of truth for that
-workflow. Every agent reads this file. Tool-specific entrypoints such as
-`CLAUDE.md` only point here — never add rules, commands, or project facts to
-them, because agents that read a different entrypoint will not see them. Add it
-here instead. Registered subagent definitions may describe their role and
-reporting format, but they must defer project facts, gate applicability, and
-verification commands to this file.
+This file is the single source of truth for this repository. The managed block
+at the end defines the workflow every agent follows; everything above it is the
+project half — commands, layout, criteria, and traps — that the workflow relies
+on. `CLAUDE.md` and `GEMINI.md` only point here, and the workflow's subagents
+carry no project knowledge on purpose, so a rule recorded anywhere else is
+invisible to whichever agent reads a different entrypoint. Record it here.
 
-## The project
+## Project overview
 
 Event-driven Go microservices for reporting and matching lost pets, running on
 GCP (Cloud Run, Pub/Sub, Firestore, GCS) and locally via Docker Compose plus
-Ollama `gemma4:e2b`.
+Ollama `gemma4:e2b`. Five services: four expose JSON HTTP endpoints or run as
+Pub/Sub workers; `web-frontend` serves rendered HTML, CSS, and JavaScript
+alongside JSON API endpoints. The sixth entrypoint, `demo-seed`, is a one-shot
+CLI rather than a service.
 
-The repository has five services. Four expose JSON HTTP endpoints or run as
-Pub/Sub workers; `web-frontend` serves rendered HTML, CSS, JavaScript, and JSON
-API endpoints. The Playwright suite contains both API-level request journeys
-and browser-driven page coverage.
+- **Base branch**: `main`, protected — see [Git & CI](#git--ci).
+- **UI Domain**: Responsive Web, but only for `internal/app/webfrontend`
+  (templates, `static/css`, `static/js`, `static/sw.js`). Every other package is
+  headless, and a change confined to them skips UI review.
+
+## Repo Map
 
 | Path | Contents |
 | --- | --- |
-| `cmd/` | Service entrypoints: `lostpet-service`, `foundpet-service`, `pet-matcher`, `notification-service`, `web-frontend` |
-| `pkg/` | Shared packages: `domain`, `store`, `pubsub`, `outbox`, `delivery`, `blob`, `ollama`, `scoring`, `runtimeconfig`, `telemetry` |
-| `e2e/` | Event-cascade tests: in-memory/test-server cascades plus emulator-gated Firestore and Pub/Sub contracts |
-| `tests/playwright/` | API and browser journeys using three local HTTP services |
-| `infra/opentofu/` | GCP infrastructure modules |
-| `deploy/cloudrun/` | Cloud Run manifests |
-| `docs/` | `DEVELOPMENT.md` |
+| `cmd/` | Entrypoints: `lostpet-service`, `foundpet-service`, `pet-matcher`, `notification-service`, `web-frontend`, `demo-seed` |
+| `internal/app/` | Service implementations: `lostpet`, `foundpet`, `petmatcher`, `notification`, `outboxrecovery`, `webfrontend` (the last owns `templates/` and `static/`) |
+| `pkg/` | Shared packages: `domain`, `store`, `pubsub`, `outbox`, `delivery`, `blob`, `ollama`, `scoring`, `runtimeconfig`, `identity`, `telemetry` |
+| `e2e/` | Event-cascade tests: in-memory cascades plus emulator-gated Firestore and Pub/Sub contracts |
+| `tests/playwright/e2e/` | API request journeys and browser page specs (`*.spec.ts`) |
+| `infra/opentofu/`, `deploy/cloudrun/` | GCP infrastructure modules and Cloud Run manifests |
+| `docs/DEVELOPMENT.md` | Runtime modes and the per-area emulator journeys |
 
-## Code Review Rules
+Go tests live beside their source as `*_test.go`; copy the shape of a neighbour
+in the package you are changing. Nothing is vendored. The only tool-written
+files are the two lockfiles — `go.sum` (regenerate with `go mod tidy`) and
+`tests/playwright/package-lock.json` (`npm install`) — which are updated by
+their tool, never edited by hand.
 
-These rules guide local reviewers. Keep deterministic formatting, lint, build,
-and test checks in the verifier and CI.
+## Development Commands
 
-- Pub/Sub handlers must remain idempotent under redelivery. Flag writes,
-  notifications, or state transitions that can be duplicated when the same
-  event is delivered more than once; use a stable event or deduplication key,
-  or make the operation inherently idempotent.
-- Event schema changes must remain backward compatible with in-flight
-  messages. Prefer additive fields with tolerant readers; otherwise introduce
-  an explicit version and preserve a decoder or migration path for the prior
-  schema.
-- Reporter contact details and state-changing actions must not cross an
-  unauthenticated or unauthorized boundary. Apply this rule to new or changed
-  boundaries: return redacted public DTOs and require authentication plus
-  ownership or equivalent authorization before exposing contact data or
-  mutating pet and match state. Existing pre-authentication demo behavior is
-  roadmap debt, not precedent for expanding the exposed boundary.
-- Automated tests must exercise product code or product behavior. Do not add
-  tests that inspect repository files such as documentation, agent guidance,
-  CI workflows, dependency metadata, Docker or deployment manifests, or
-  OpenTofu source. Validate those artifacts with their native lint, build,
-  configuration, or validation commands instead.
+**Every version below is pinned to match CI** (`.github/workflows/ci.yml`).
+Reproduce a CI failure with the pinned version, never `@latest` — a floating
+linter once produced a green local run and a red CI on the same commit. Changing
+a version here means changing it in `ci.yml` in the same commit. Green is
+exit code 0.
 
-## Ground rules
-
-These apply at every step, not just at the gate where they are mentioned.
-
-- **Never commit directly to `main`.** Never force-push, never amend or rebase
-  a commit that has already been pushed, and never discard user work with
-  `git checkout --`, `git restore`, `git clean`, or `git reset --hard`.
-- **Preserve unrelated work.** Staged, unstaged, and untracked files that you
-  did not create belong to the user. Leave them alone.
-- **Never commit secrets.** No service-account JSON, `*.tfstate`, `.env` files,
-  API keys, or real GCP project identifiers. If you need a credential to
-  proceed, stop and ask.
-- **Stop and ask the user** rather than pushing through when: a gate fails
-  twice for the same reason; the task requires a credential, a paid resource,
-  or a destructive operation; the change would alter published API contracts,
-  infrastructure state, or CI enforcement; or the request is ambiguous enough
-  that two readings produce materially different work.
-
-## Workflow
-
-1. **Inspect before changing anything.** Inspect the repository, current Git
-   state, and all applicable instruction files before making changes.
-
-2. **Choose a thin vertical slice.** Before implementing a tracked issue or
-   feature, define the smallest end-to-end slice that can be reviewed, tested,
-   shipped, and merged independently. Prefer one coherent user-visible or
-   operational outcome over a broad horizontal layer. If the next issue is too
-   large for one pull request, split it into ordered slices and complete only
-   the current slice. Keep pull requests small enough for thorough review,
-   reliable verification, and quick rollback.
-
-3. **Create a branch for that slice.** Branch from the latest `main` using
-   `<type>/<short-kebab-summary>`, where `<type>` is one of `feat`, `fix`,
-   `refactor`, `chore`, `test`, or `docs` — matching the Conventional Commit
-   type the work will land under. Example: `feat/foundpet-image-upload`.
-
-4. **Use test-driven development when behavior or structure is testable.**
-   - Add or update a focused test before implementation.
-   - Run it and confirm it fails for the expected reason.
-   - Implement the smallest appropriate change.
-   - Run focused tests while iterating.
-   - Refactor only while the relevant tests remain green.
-   - Follow [Test execution ownership](#test-execution-ownership) so the main
-     agent retains only focused Go test output and the verifier owns noisy or
-     repository-wide execution.
-
-5. **Inspect the complete diff and track out-of-scope discoveries.** Review the
-   branch diff plus all staged, unstaged, and untracked files. Remove
-   accidental or unrelated changes while preserving work that belongs to the
-   user. Whenever you discover bugs, technical debt, missing features, or
-   refactoring opportunities not aligned with the current slice, file them with
-   `gh issue create` rather than expanding scope. Title them as Conventional
-   Commits, label them `agent-found`, and reference the branch that surfaced
-   them. Filing these issues is pre-authorized; you do not need to ask first.
-
-6. **Run `ui-review` when the change can affect rendered UI.** Invoke the
-   `ui-review` sub-agent after an implementation pass. See
-   [Applicability](#applicability) for when this gate is live. When it applies,
-   exercise the changed journey in the rendered application at representative
-   phone, tablet, and desktop viewports; inspect interaction, loading, empty,
-   error, focus, keyboard, contrast, and responsive states; and capture
-   screenshots or equivalent visual evidence. Address every actionable finding
-   before running the `verifier`. When the change has no UI impact, record one
-   line stating that and move on — do not fabricate a review.
-
-   Bring the rendered app up with `docker compose up --build -d web-frontend`
-   (port 8082; it needs neither Ollama nor the other services), then stop only
-   what you started with `docker compose rm -sf web-frontend` — a project-wide
-   `down` would tear down a stack the user or an earlier step is using. The `-d`
-   spelling is deliberate: it keeps this line from colliding with the guarded
-   `--detach` stack command in [Verification scope](#verification-scope).
-   Starting the app so the gate can run is not test execution, so the Compose
-   restriction in [Test execution ownership](#test-execution-ownership) does not
-   apply to it.
-
-7. **Run `verifier` before code review.** Invoke the `verifier` sub-agent to run
-   the builds, static checks, tests, and journey coverage appropriate for the
-   change. The verifier must report failures, flakes, missing coverage, and
-   environment issues, and must state explicitly which suites it could not run
-   and why (for example, the local HTTP services required by Playwright could
-   not be started). Fix or explicitly resolve every actionable finding before
-   starting code review. If a verifier finding requires a code change, rerun
-   the verifier after addressing it. A focused-support verifier run during TDD
-   does not satisfy this gate; invoke the verifier fresh against the settled
-   worktree for the complete applicable battery.
-
-8. **Run the local `code-review` before every commit.** Invoke the
-    `code-review` sub-agent against the current branch diff and every staged,
-    unstaged, and untracked file. Address every actionable finding before
-    committing. If review findings cause changes, rerun the affected tests and
-    the `verifier`, then obtain a fresh `code-review` approval for the changed
-    state.
-
-9. **Commit after approval.** Commit only after verification and code review are
-   complete. Use Conventional Commits:
-
-   ```text
-   <type>(<scope>): <imperative summary>
-   ```
-
-   Keep the subject at 72 characters or fewer, describe why in the body when
-   useful, and do not combine unrelated work.
-
-10. **Create pull requests from the reviewed state.**
-    - Confirm that local verification remains valid.
-    - Rerun `code-review` only if the reviewed state changed after the
-      pre-commit review. A changed state includes code, tests, documentation,
-      generated files, conflict resolution, or any other staged, unstaged, or
-      untracked content. Do not repeat code review when the already-reviewed
-      diff and worktree remain unchanged.
-    - Title the pull request as a Conventional Commit. CI enforces this, and
-      because short-lived branches are squash-merged, the pull request title
-      becomes the commit subject on `main`.
-    - Link the tracked issue in the pull request body: `Closes #<n>` only when
-      this slice completes the issue, `Part of #<n>` for every earlier slice of
-      an ordered split. The squash merge carries the body onto `main`, so
-      `Closes` on an intermediate slice closes the issue while later slices are
-      still outstanding.
-    - Push and open a normal, ready-for-review pull request. Do not open draft
-      pull requests unless the user explicitly asks for a draft.
-
-11. **Merge only clean, passing pull requests.** Merge only after GitHub reports
-    a clean merge state and every configured check passes. Never bypass a
-    failing or pending required check. Self-merges are allowed when these
-    conditions are met. Use squash merge for short-lived development branches to
-    keep `main` linear, then delete the merged branch.
-
-## Gate discipline
-
-The `ui-review` → `verifier` → `code-review` sequence can otherwise loop
-forever. It is bounded by these rules.
-
-- **Actionable** means correctness, security, data-loss, accessibility, or
-  contract defects, plus anything the sub-agent marks as blocking. Style
-  preferences and speculative refactors are not actionable; note them, or file
-  them per step 5, and move on.
-- **Two rounds maximum.** If the same gate reports actionable findings on a
-  third pass, stop and hand the disagreement to the user with both positions
-  summarized.
-- **Rerun only what the change invalidated.** A documentation-only fix after a
-  review does not require rerunning the full verifier suite; say what you
-  reran and why.
-- **Never self-certify a gate.** If a sub-agent is unavailable, say so
-  explicitly and state what you checked manually instead. Do not report a gate
-  as passed when it did not run.
-
-## Test execution ownership
-
-Keep the main agent's context focused on design and implementation. Split test
-execution by phase and weight:
-
-| Phase | Main agent | `verifier` sub-agent |
+| Gate | Command | When |
 | --- | --- | --- |
-| Go TDD red/green | Writes the test and runs only the exact focused Go test, scoped by package and `-run` | Not required |
-| Integration or journey TDD red/green | Writes the focused contract and interprets the concise result | Runs only the named emulator, Docker, or Playwright test in focused-support mode |
-| Settled implementation gate | Does not duplicate the full battery | Starts fresh and runs every applicable command in [Verification scope](#verification-scope) |
+| Vet | `go vet ./...` | Always |
+| Tests | `go test -race -cover ./...` | Always |
+| Go lint | `go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run` | Always |
+| Markdown lint | `npx --yes markdownlint-cli@0.49.1 --config .markdownlint.json "AGENTS.md" "CLAUDE.md" "GEMINI.md" "README.md" "docs/**/*.md"` | Markdown changed |
+| Infra | `cd infra/opentofu && tofu fmt -check -recursive && tofu init -backend=false && tofu validate` | `infra/` changed |
+| Playwright | Bring up the three services (see [Local Setup](#local-setup)), then `cd tests/playwright && npm ci && npx playwright install chromium && npx playwright test` | HTTP behavior, rendered pages, or contracts changed |
 
-The main agent may rerun a tightly related set of named Go tests while
-refactoring, but it does not run repository-wide tests, race/coverage, lint,
-Compose rebuilds, emulator batteries, infrastructure validation, or
-Playwright — the one exception being the single-service `ui-review` bring-up in
-step 6, which starts the app rather than running tests. A focused Go test
-already compiles its package; do not add a broad build merely to prove
-compilation during the TDD loop.
+Toolchains, checked before running anything:
 
-All automated Playwright execution belongs to the verifier, including a single
-spec or test selected for journey TDD. In focused-support mode, the verifier
-reports the command, the red or green result, and the decisive failure evidence
-without claiming the formal gate. After the implementation settles, use a
-fresh verifier invocation for the full applicable suite. Manual viewport and
-accessibility inspection remains the separate `ui-review` responsibility.
+- **Go `1.26.5`** — `go version` must report it. `go.mod` declares `go 1.25.8`,
+  which is the *language* version and pins nothing; if the local toolchain
+  differs, prefix the Go commands with `GOTOOLCHAIN=go1.26.5`. Never report a Go
+  gate as passed on a different toolchain.
+- **Node `24`** — `node -v` reports the system default, so a different major
+  silently resolves different transitive dependencies than CI. Route the
+  markdownlint and Playwright commands through the pinned one instead:
+  `mise x node@24 -- npx ...` or your version manager's equivalent.
+- **OpenTofu `1.12.5`** — `tofu fmt` output differs between versions.
 
-## Applicability
+**The baseline is green.** On 2026-08-20, on a host running Go 1.26.6 routed
+through `GOTOOLCHAIN=go1.26.5`, all three always-on gates exited 0 —
+`go vet ./...` silent, `go test -race -cover ./...` with every package `ok`, and
+`golangci-lint run` printing `0 issues.`. A failure in those three is yours, not
+inherited. When a gate's binary is absent (`tofu` and `gcloud` are not installed
+everywhere), report it `NOT RUN` with that reason rather than as a skip.
 
-Not every gate applies to every change. Record the reason when one does not.
+What a green run does **not** license a claim about: the emulator-gated
+contracts, which skip silently (see [Gotchas](#gotchas--troubleshooting)); live
+Ollama, real Pub/Sub, or a deployed GCP cascade, which no documented command
+exercises; and color contrast, which nothing in the repository checks at all
+(see [Architecture & Conventions](#architecture--conventions)). Coverage
+percentages are informational, not a gate — no threshold is enforced anywhere.
 
-| Gate | Applies when | Status in this repo |
+## Local Setup
+
+No credentials are needed for any command documented here. Never commit
+service-account JSON, `*.tfstate`, `.env` files, API keys, or real GCP project
+identifiers; if a task appears to need one, stop and ask.
+
+**Runtime mode.** The five stateful processes choose their state backend from
+`PETSPOTR_RUNTIME_MODE`: `memory` (no configuration, and the default outside
+Cloud Run), `local-emulator` (needs `GOOGLE_CLOUD_PROJECT` plus the emulator
+hosts below), or `gcp` (Application Default Credentials; Cloud Run selects it
+automatically and rejects the other two). `docs/DEVELOPMENT.md` § *State Runtime
+Modes* is the contract.
+
+| Purpose | Command | Host ports |
 | --- | --- | --- |
-| `ui-review` | The change affects rendered UI — templates, static assets, styling, or a client app | **Live.** Active for `internal/app/webfrontend` templates, CSS, and client-side JavaScript (`static/js/`, `static/sw.js`). |
-| `verifier` | Always | Live |
-| `code-review` | Always | Live |
+| Playwright services | `docker compose up --build --detach lostpet-service foundpet-service web-frontend` | 8080, 8081, 8082 |
+| UI bring-up | `docker compose up --build -d web-frontend`, then `docker compose rm -sf web-frontend` | 8082 |
+| Full stack | the above plus `pet-matcher`, `notification-service`, `ollama` | 8083, 8084; Ollama is network-internal |
 
-The Playwright suite in `tests/playwright/` contains both API request specs and
-browser-driven page specs. The verifier owns all automated Playwright coverage;
-browser specs complement but do not replace the manual, viewport-based
-`ui-review` gate for rendered UI changes.
+Stop only the services you started. Ollama pulls `${OLLAMA_MODEL:-gemma4:e2b}`
+on first start, so the Playwright and UI sets deliberately leave it out.
 
-## Verification scope
-
-The `verifier` owns these commands.
-
-**Every tool version is pinned to match CI.** Reproduce a CI failure with the
-pinned version, never `@latest` — a floating linter once produced a green local
-run and a red CI on the same commit. If you change a version here, change it in
-`.github/workflows/ci.yml` in the same commit.
-
-Go toolchain — `1.26.5`, matching `actions/setup-go` in CI. The Go version is
-pinned for the same reason the linters are: `go vet`'s analyzer set and stdlib
-behavior shift between releases, so a newer local toolchain can pass checks that
-CI rejects. `go.mod` declares `go 1.25.8` as the **language** version, which is a
-separate thing and does not pin the toolchain. Check yours before verifying:
+**Emulators.** Export the host variable for the area under test —
+`FIRESTORE_EMULATOR_HOST=127.0.0.1:8085`,
+`PUBSUB_EMULATOR_HOST=127.0.0.1:8086`,
+`FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099` (that port is fixed by
+`firebase.json`). Only the Auth emulator has a documented, pinned start command:
 
 ```bash
-go version   # must report go1.26.5
+mise x node@24 -- npx --yes firebase-tools@15.27.0 \
+  emulators:start --only auth --project demo-petspotr-auth
 ```
 
-If it reports anything else, prefix the Go commands with
-`GOTOOLCHAIN=go1.26.5` — Go fetches the pinned toolchain automatically, and the
-language version in `go.mod` stops `GOTOOLCHAIN=auto` from doing it for you.
-Never report a Go gate as passed on a different toolchain.
+<!-- unverified: no start command for the Firestore or Pub/Sub emulator is
+documented anywhere in the repository, and gcloud was absent on the host this
+was profiled from — supply the endpoints above from whatever emulator you run -->
 
-Node — `24`, the active LTS, matching both `actions/setup-node` steps in CI.
-Node is dev tooling only here — it runs markdownlint and Playwright, and no
-service or rendered page depends on it. Check with `node -v` before those
-commands; a different local major can resolve different transitive dependencies
-than CI.
+The per-area `go test -run ...` invocations live in `docs/DEVELOPMENT.md`: run
+the identity journey when human identity changes, and the durable-state, outbox,
+delivery, or idempotency contracts when those change.
 
-If it reports a different major, run them under the pinned one rather than the
-default — `mise x node@24 -- npx ...` or your version manager's equivalent.
-This matters more than it looks: `node -v` reports the system default, so the
-commands below run under whatever that happens to be unless you route them.
+**Fixtures.** `go run ./cmd/demo-seed` writes the fixed-ID match fixtures
+`match-101` and `match-102` into a `local-emulator` Firestore. It refuses
+`memory` and `gcp` so it cannot write ephemeral or deployed data, and rerunning
+it replaces both documents — use a dedicated emulator project.
 
-Track the LTS line. Node 20 was pinned here until it reached end-of-life, which
-is how a supported runtime becomes an unsupported one without anyone deciding
-to.
+**Playwright URLs.** The specs read `LOSTPET_SERVICE_URL`,
+`FOUNDPET_SERVICE_URL`, and `WEB_FRONTEND_URL`, falling back to `BASE_URL` and
+then to `localhost:8080`, `:8081`, `:8082`. Those defaults match the Compose
+ports, so a local run needs no environment at all.
 
-Static checks and unit tests — always:
+## Architecture & Conventions
 
-```bash
-go vet ./...
-go test -race -cover ./...
-```
+These are the invariants a review is judged against. Deterministic formatting,
+lint, build, and test checks belong to the gate, not to a reviewer.
 
-Go lint — always. `.golangci.yml` uses the **v2** config schema, which a v1
-binary cannot parse:
+- **Pub/Sub handlers stay idempotent under redelivery.** Flag writes,
+  notifications, or state transitions that duplicate when the same event
+  arrives twice; use a stable event or deduplication key, or make the operation
+  inherently idempotent.
+- **Event schema changes stay backward compatible with in-flight messages.**
+  Prefer additive fields with tolerant readers; otherwise version the schema
+  explicitly and keep a decoder or migration path for the prior one.
+- **Reporter contact details and state-changing actions never cross an
+  unauthenticated or unauthorized boundary.** New or changed boundaries return
+  redacted public DTOs and require authentication plus ownership, or equivalent
+  authorization, before exposing contact data or mutating pet and match state.
+  Existing pre-authentication demo behavior is roadmap debt, not precedent for
+  widening the exposed boundary.
+- **WCAG AA contrast is a review criterion, because no gate checks it.** The
+  Playwright suite mechanizes most of the rendered-UI rubric — no horizontal
+  overflow and 44px touch targets at 390px
+  (`tests/playwright/e2e/mobile-navigation.spec.ts:13,43`), header containment
+  and keyboard focus order across 769–1280px
+  (`tests/playwright/e2e/web-frontend-api.spec.ts:817`) — but nothing anywhere
+  in the repository computes contrast: there is no `axe`, no `getComputedStyle`
+  contrast assertion, and no luminance helper. A rendered-UI change must have
+  its text and interactive-icon contrast judged against WCAG AA by a reviewer,
+  in **both** themes, because `.glass-nav` translucency and the theme toggle
+  change effective background per surface. A green Playwright run is not
+  evidence of contrast.
+- **Tests exercise product code or product behavior.** Do not add tests that
+  inspect repository files — documentation, agent guidance, CI workflows,
+  dependency metadata, Docker or deployment manifests, OpenTofu source. Validate
+  those with their own lint, build, or validation command instead.
 
-```bash
-go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run
-```
+## Gotchas & Troubleshooting
 
-Markdown lint — when Markdown changes:
+- **Emulator-gated contracts skip silently.** Files across `pkg/store`,
+  `pkg/outbox`, `pkg/runtimeconfig`, `internal/app/petmatcher`,
+  `internal/app/notification`, and `e2e/` skip unless their emulator host
+  variable is set, and the package still reports `ok`. `pkg/identity` is **not**
+  among them — its two test files carry no gating and always run; the Firebase
+  Auth journeys it looks like it owns live in `e2e/identity_session_test.go` and
+  `pkg/runtimeconfig/identity_test.go`. A green
+  `go test -race -cover ./...` is not evidence that those contracts ran, and CI
+  starts no emulator either.
+- **`.golangci.yml` uses the v2 config schema**, which a v1 binary cannot parse.
+  The pinned `github.com/golangci/golangci-lint/v2/...@v2.12.2` invocation is
+  not interchangeable with an installed `golangci-lint`.
+- **`golangci-lint` prints noise that is not findings.** Its cache can emit
+  `level=warning ... no such file or directory` lines naming paths from a
+  previous checkout location. The decisive output is the trailing `N issues.`
+  line and the exit code; a run can print several warnings and still be clean.
+- **The markdownlint file list is hardcoded in `ci.yml`.** Renaming or adding a
+  top-level doc requires updating the workflow in the same commit, or CI lints a
+  file that no longer exists — or silently never lints a new one.
+- **`docker compose down` tears down the whole project**, including a stack the
+  user or an earlier step is using. Stop only the services you started with
+  `docker compose rm -sf <service>`.
+- **`BLOCKED` with every check green means the branch is behind `main`.**
+  Required checks are strict; update from `main`, let CI rerun, and confirm a
+  clean state again.
 
-```bash
-npx --yes markdownlint-cli@0.49.1 --config .markdownlint.json \
-  "AGENTS.md" "CLAUDE.md" "README.md" "docs/**/*.md"
-```
+## Verification Map
 
-Infrastructure — when `infra/` changes. `tofu fmt` output can differ between
-versions, so use OpenTofu `1.12.5`:
+| A fix touches | Rerun |
+| --- | --- |
+| `cmd/`, `internal/`, `pkg/`, or `e2e/` | `go vet ./...`, `go test -race -cover ./...`, `golangci-lint run` |
+| `internal/app/webfrontend/` or any HTTP handler contract | the Go gate above, plus the Playwright suite |
+| `*.md` at the root or under `docs/`, or `.markdownlint.json` | markdownlint only — no Go, Playwright, or OpenTofu command reads Markdown |
+| `infra/` | `tofu fmt -check -recursive`, `tofu init -backend=false && tofu validate` |
+| `tests/playwright/` | the Playwright suite |
+| `go.mod`, `go.sum`, `.golangci.yml`, `Dockerfile`, `docker-compose.yml`, `.github/workflows/` | the complete gate |
+| anything else | the complete gate |
 
-```bash
-cd infra/opentofu
-tofu fmt -check -recursive
-tofu init -backend=false && tofu validate
-```
+## Git & CI
 
-The always-on `go test -race -cover ./...` command includes `e2e/`. Its
-in-memory cascade tests need no Compose, Ollama, or GCP credentials.
+- **`main` is protected** by the `main-protection` ruleset (id `20470880`) with
+  no bypass actors — it applies to repository owners too. Pull request required,
+  squash the only permitted merge method, no deletion, no force-push. Required
+  checks are **strict**, so a branch must also be current with `main`. Zero
+  approving reviews are required and PRs #220–#222 each merged with none, so
+  self-merge works. The ruleset also sets
+  `require_extra_approval_for_unattributed_changes`; nothing observed has been
+  blocked by it, but it is the first thing to check if a green pull request ever
+  stalls waiting for an approval.
+- **A required check context is the job's `name:` value, not its id.** The
+  ruleset stores the display names, so renaming a job in `ci.yml` without
+  updating the ruleset leaves a required check that can never report, which
+  blocks every pull request:
 
-Emulator-gated contracts across `pkg/store`, `pkg/outbox`, `pkg/runtimeconfig`,
-`pkg/identity`, `internal/app/petmatcher`, `internal/app/notification`, and `e2e/` **skip silently**
-unless the emulator host variable for that area — `FIRESTORE_EMULATOR_HOST`,
-`PUBSUB_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST`, or the documented
-combination — is set. The package still reports `ok`, so a green run is not
-evidence that those contracts ran. When human identity changes, run the pinned
-Firebase Authentication emulator journey in `docs/DEVELOPMENT.md`. When
-durable state, the outbox, Pub/Sub delivery, or idempotency changes, start the
-emulators and run the contracts named for that area in `docs/DEVELOPMENT.md`.
-Otherwise report emulator contracts `NOT RUN` with the reason.
+  | Job in `ci.yml` | Required check context | Required? |
+  | --- | --- | --- |
+  | `pr-title` | `Validate PR Title` | yes |
+  | `static-checks` | `Static Analysis & Markdown Linting` | yes |
+  | `go-checks` | `Go Build & Unit Tests` | yes |
+  | `infra-checks` | `OpenTofu Format & Validate` | yes |
+  | `e2e-playwright-tests` | `Playwright API Journeys` | **no** |
 
-Playwright journey coverage — when HTTP service behavior, rendered pages, or
-contracts change. It needs only the three HTTP services exercised by the suite;
-if they cannot run, the verifier must report `NOT RUN` with the reason rather
-than silently skipping:
+- **The Playwright job runs on every pull request but cannot block a merge.** It
+  builds the three HTTP services, waits for readiness, runs the suite, and
+  uploads its report, traces, and service logs on failure — so its viewport,
+  keyboard, and API coverage is advisory until the ruleset adds its context.
+- **The PR title becomes the commit subject on `main`,** because branches are
+  squash-merged; `pr-title` validates it as a Conventional Commit.
+- **Link the tracked issue in the PR body**: `Closes #<n>` only when this slice
+  completes the issue, `Part of #<n>` for every earlier slice of an ordered
+  split. The squash carries the body onto `main`, so `Closes` on an intermediate
+  slice closes an issue that is still outstanding.
+- **File out-of-scope discoveries** with `gh issue create` rather than widening
+  the slice: title them as Conventional Commits, label them `agent-found`, and
+  reference the branch that surfaced them. This is pre-authorized.
+- **CI is not the verification stage.** A green pipeline does not replace the
+  independent `verifier` report the workflow requires before code review.
 
-```bash
-docker compose up --build --detach lostpet-service foundpet-service web-frontend
+<!-- The managed block below is written by agent-workflow-skills and is
+     overwritten on every re-adoption, so it cannot be reflowed to this
+     repository's Markdown style. Exempt it rather than editing it. -->
+<!-- markdownlint-disable MD013 MD060 -->
+<!-- agent-skills:begin workflow 185672e4 — managed block, edits here are overwritten -->
+## Development Workflow
 
-cd tests/playwright
-npm ci
-npx playwright install chromium
-npx playwright test
-```
+Follow these stages in order (governed by the global `agent-workflow-skills`). Scale the pipeline to the
+size of the change using the triage table — skipping a stage is a decision to
+state out loud, never a shortcut taken silently. A stage in parentheses applies
+only when its own entry says it does.
 
-## CI
+| Track | When | Stages |
+|---|---|---|
+| **Trivial** | Docs, comments, typos, config with no logic change | 1 → 6 → 9 |
+| **Single fix** | One bug or small change with a clear, contained cause | 1 → 2 → 5 → 6 → (7) → 8 → 9 |
+| **Feature** | New behavior, several files, or an architectural choice | All stages; repeat 5–8 per slice |
 
-`.github/workflows/ci.yml` runs five jobs on pull requests. The first four are
-required before merge:
+**Division of labor.** The main agent runs only focused checks — the single test
+it just wrote, a formatter over the files it just touched. Whole suites, builds,
+dependency audits, and repository-wide lint go to the **`verifier`** subagent;
+reviews go to **`code-reviewer`** and **`ui-reviewer`**. Each follows the skill
+of the same job (`verifier`, `code-review`, `ui-review`), reads this file for
+what the project's commands and criteria are, and is declared without
+file-editing tools — a read-only sandbox where the host supports one. This is
+not ceremony: it keeps routine command output out of the implementation context,
+and it means each gate is read by something that has not already convinced
+itself the change is correct. If a subagent is unavailable, run the stage
+inline against the same skill and say that you did.
 
-- `pr-title` — validates the **PR title** as a Conventional Commit. Because
-  short-lived branches are squash-merged, the PR title becomes the commit
-  subject on `main`.
-- `static-checks` — markdownlint. The file list is hardcoded in the workflow;
-  renaming or adding a top-level doc requires updating it in the same commit.
-- `go-checks` — `go vet`, `go test -race -cover`, `golangci-lint`.
-- `infra-checks` — `tofu fmt -check -recursive` and `tofu validate`.
-- `e2e-playwright-tests` — builds the three HTTP services used by the Playwright
-  API and browser journeys, waits for them to become ready, runs the suite, and
-  uploads its report, traces, and service logs on failure. This job is not a
-  required check until the repository ruleset is updated separately.
+**Stages end.** Every delegated stage returns a verdict, and a verdict is acted
+on once. Fix what came back, then rerun only the stage whose inputs your fix
+touched. If the same finding survives two attempts, stop and report it with what
+you tried — do not loop. Never rerun a stage against a state it has already
+seen; an unchanged tree yields an unchanged verdict.
 
-The `go-checks` job runs the in-memory portion of the `e2e/` package as part of
-`go test -race -cover ./...`. It starts no emulator, so the emulator-gated files
-in `e2e/` skip and the job reports green without them; see
-[Verification scope](#verification-scope). The Playwright job needs only
-`lostpet-service`, `foundpet-service`, and `web-frontend`, so it deliberately
-avoids downloading a model. Neither CI nor the documented verifier commands
-exercise a live Ollama, real Pub/Sub, or deployed GCP cascade; do not claim that
-coverage unless a task defines and runs an explicit integration command for it.
-CI results also do not replace the independent verifier report required by
-step 7.
+**Preserve what you did not change.** A worktree may hold work that is not yours.
+Never stage, revert, or "clean up" a change you did not make; when something
+unrelated is in the way, name it and leave it alone.
 
-## Branch protection
+**Claim only what you observed.** A gate licenses a statement about exactly
+what it measured and nothing more: a green build says the code compiles, not
+that the feature works; a passing test says that test passed, not that the bug
+is gone. If you did not run it, say you did not. "I believe this fixes it" is a
+usable sentence; "fixed and verified" without a command and its output is not.
 
-`main` is protected by an active ruleset: pull request required, squash-only
-merges, no deletion, no force-push, and all four checks green before merge.
-There are no bypass actors — it applies to repository owners too, which is what
-makes step 11 enforceable rather than aspirational.
+**Say what you assumed.** When a choice would change what gets delivered and the
+request does not settle it, ask before building rather than after. When it is
+too small to be worth asking, decide, and write the assumption where a reviewer
+will see it. An assumption nobody can see is indistinguishable from a mistake.
 
-Required status checks are **strict**: a branch must also be up to date with
-`main` before it can merge. If GitHub reports `BLOCKED` while every check is
-green, the branch is behind — update it from `main`, let CI rerun, and confirm
-a clean state again. Merging `main` in changes the reviewed state, so step 10's
-rerun rule applies: a conflict resolution needs a fresh `code-review`, while a
-conflict-free update does not — the incoming commits were already reviewed on
-`main`.
+**Instructions are part of the change.** When a command, a behavior, or a
+constraint changes, the file that documents it changes in the same commit —
+`AGENTS.md`, the Verification Map, the README, whichever is now wrong. Stale
+instructions are worse than missing ones, because the next agent follows them
+confidently.
 
-The required check contexts must match the job `name:` values in `ci.yml`
-exactly. Renaming a job without updating the ruleset leaves a required check
-that can never report, which blocks every pull request.
-
-## Registered subagents
-
-These are defined in `.claude/agents/` and are invocable by name. If you are
-running under a tool that cannot load them, follow the responsibilities below
-inline and say that you did so.
-
-### `ui-review`
-
-- **Role**: Website design, usability, responsiveness, and accessibility
-  expert.
-- **Responsibilities**:
-  - Exercises UI user journeys across mobile, tablet, and desktop viewports.
-  - Inspects interaction, loading, empty, error, focus, keyboard navigation,
-    contrast, and responsive layout states.
-  - Captures visual evidence and screenshots.
-  - Documents UI findings, or states plainly that the change has no UI impact.
-  - Identifies out-of-scope UI defects and files issues per step 5.
-
-### `verifier`
-
-- **Role**: Build, static check, test, and journey coverage verifier.
-- **Responsibilities**:
-  - Supports TDD by running an explicitly named integration, emulator, Docker,
-    or Playwright test when requested, returning a concise result without
-    treating it as the formal gate.
-  - Executes the commands in [Verification scope](#verification-scope).
-  - Runs the formal gate fresh against the settled worktree even when it ran
-    focused-support checks earlier in the slice.
-  - Reports failures, flakes, missing coverage, and environment configuration
-    issues, and names every suite it could not run.
-  - Validates code fixes before code review begins.
-  - Flags pre-existing test debt or environmental issues outside the current
-    scope and files issues per step 5.
-
-### `code-review`
-
-- **Role**: Language, framework, and architectural code review expert.
-- **Responsibilities**:
-  - Inspects branch diffs and all staged, unstaged, and untracked files against
-    best practices, security standards, and performance patterns.
-  - Verifies Conventional Commit messages, API design consistency, and clean
-    code principles.
-  - Issues a formal approval or actionable revision request before commits and
-    pull requests.
-  - Identifies unrelated code smells, technical debt, or bugs and files issues
-    per step 5 rather than coupling them to the pull request.
+1. **Inspect & Branch**: Inspect `git status`, the current branch, and every
+   applicable instruction file before touching anything. Note unrelated staged,
+   unstaged, and untracked work so you can preserve it. Fetch the base branch
+   (`git fetch origin main`) and create a dedicated branch:
+   `git checkout -b <owner>/<type>/<short-description> origin/main`.
+   `<owner>` is your GitHub login (`gh api user --jq .login`); `<type>` is one of
+   `feat`, `fix`, `refactor`, `chore`, `test`, `docs`. Never commit to `main`.
+2. **Plan & Slice (`plan-and-prototype`)**:
+   - **Read before you plan.** Open the code the change will touch, its tests, and
+     its call sites. A plan written without reading them is a guess about a
+     codebase rather than a plan for this one.
+   - Formulate a clear step-by-step plan before writing code. Define the smallest
+     end-to-end slice that can be reviewed, tested, and shipped independently; if
+     the work is too large for one pull request, order the slices and complete only
+     the current one.
+   - **A slice is vertical, not horizontal.** It goes through every layer of one
+     narrow thing and ends in something you can actually verify: "add the new field
+     end to end, with tests" is a slice; "rename the field everywhere" is a sweep.
+     One concern per branch — if a change spans unrelated concerns, that is two
+     branches.
+   - **A new dependency is an architectural decision, not an implementation
+     detail.** Say what it replaces, why writing that yourself is the worse option,
+     and what its license and maintenance status are. Adding one silently is how a
+     project acquires a liability nobody chose.
+3. **Prototype Options (if needed)**: When facing architectural choices, unfamiliar
+   APIs, or UX alternatives, spike lightweight prototypes and compare trade-offs
+   before committing to an approach.
+4. **Track Bugs & Follow-ups**: When bugs, edge cases, technical debt, or follow-up
+   tasks surface mid-change, file them immediately (`gh issue create`, the project's
+   tracker, or `ISSUES.md` when none is configured) instead of expanding the current
+   slice.
+5. **Test-Driven Development (`tdd-workflow`)**:
+   - Write/update a focused test first → confirm it fails for the expected reason →
+     minimal implementation → iterate until passing → refactor. A test that passes
+     before the code exists is testing the wrong thing.
+   - **When the change replaces an existing contract, find the tests pinning the old
+     one first.** A new failing test proves the new behavior is missing; it says
+     nothing about tests still asserting the behavior being removed. Search for
+     assertions on the symbol, attribute, label, or role being changed and update
+     them inside the same red/green loop. Skipping this is silently safe — the new
+     test goes green, the loop looks complete, and the contradiction only surfaces a
+     full gate cycle later.
+   - **A test that has never failed is not evidence of anything.** When you add a
+     regression detector, break the thing it guards and confirm it catches it, then
+     put it back. A detector that cannot be shown to fire is decoration.
+   - Run only the test you authored or changed, filtered by file and name. Whole
+     suites are stage 6's job.
+   - Pure logic (calculations, state machines, business rules) must be unit-tested.
+     Non-testable areas (rendering, audio) must be visually/interactively verified.
+6. **Verification (`verifier` subagent → `verifier` skill)**:
+   - Run the project's full gate: lint, type-check, test suites, build. Focused runs
+     from stage 5 do not substitute for it.
+   - **Know what green looked like before you started.** If you do not know the
+     gate passed on the state you began from, establish that first. Without it a
+     failure is ambiguous — you cannot tell what you broke from what you inherited,
+     and every later decision rests on that distinction.
+   - **Measure the thing you ship, not a proxy for it.** A gate that checks part of
+     the output, or a stand-in for it, reads exactly like one that checks all of it
+     — and certifies the rest by silence. If a command covers less than it appears
+     to, say what it left out.
+   - The subagent runs and reports; fixing is yours. Resolve every actionable
+     finding before code review. When a fix changes code, rerun the affected focused
+     tests, then ask for only the gate commands whose inputs the fix touched — see
+     **Verification Map** below if this project defines one. The complete gate must
+     run in full at least once on the state that enters code review.
+   - Some findings are environmental and no code change resolves them (browsers that
+     will not install, no network, a missing credential). Resolving those means
+     naming them precisely — what ran, what did not, and why — not retrying them.
+7. **UI Review (`ui-reviewer` → `ui-review`)**:
+   - Runs after verification, so the tree builds before anyone looks at it.
+   - **Check whether this stage applies before delegating.** It applies only when
+     the change can alter something a person sees or interacts with. A change
+     confined to documentation, comments, configuration, build scripts, CI, tests,
+     or code with no rendered output does not qualify — skip the stage, record one
+     line saying which of those it was, and move on. A docs-only or test-only diff
+     never needs a UI review.
+   - When it does apply, audit layout, visual hierarchy, contrast (WCAG AA),
+     interaction states, and accessibility according to the project's UI domain.
+   - A project whose UI domain is headless or backend skips this stage every time.
+   - Never invent findings to justify the stage, and never describe an appearance
+     that was not observed running.
+8. **Code Review (`code-reviewer` → `code-review`)**:
+   - The reviewer reads the complete change: `git diff origin/main...HEAD`,
+     plus staged and unstaged edits (`git diff HEAD`) and untracked files (`git
+     status --porcelain`). It reports; it does not edit. **You** remove the
+     accidental or unrelated edits it names, and preserve anything that is the
+     user's.
+   - Enforce architectural boundaries, language idioms, defensive error handling,
+     and zero committed secrets.
+   - Do not repeat this review on an unchanged state. Rerun it only when the
+     reviewed content actually changed.
+9. **Commit & PR Lifecycle (`slice-and-pr`)**:
+   - **Close the loop against the request.** Re-read what was actually asked for,
+     and state how this change satisfies it — and what it deliberately does not.
+     Every gate above proves the code works; none of them prove it is the thing
+     that was wanted. A green pipeline on the wrong feature is the most expensive
+     outcome available.
+   - Commit using Conventional Commits (`<type>(<scope>): <summary>`). Stage files
+     explicitly; never `git add -A` when unrelated work is present.
+   - **Match the stopping point to the request.** A request that only asks to
+     commit stops after the local commit. A request that asks to use, follow, or
+     complete the workflow—including "commit based on the workflow"—includes the
+     reversible remote steps: push the branch, open the PR, and watch its checks.
+     It does not authorize a merge or any action named under **Stop there and
+     report**.
+   - Open the PR with `gh pr create` and watch CI with `gh pr checks --watch`.
+   - **The description carries the evidence.** Say why the change exists, what it
+     changes grouped by concern rather than by file, and how it was tested — the
+     command you actually ran and its actual result. "Should work" is not a test
+     result. If a test was added, say what it would have caught.
+   - **Stop there and report.** Anything you cannot take back needs explicit
+     approval from the user in the current conversation: merging (`gh pr merge`),
+     force-pushing, rewriting shared history, deleting a branch or tag, dropping
+     or migrating data, removing files wholesale, and publishing or deploying.
+     Approval for one of them is not approval for the next.
+   - **Squash, unless this project says otherwise.** One reviewed slice lands as
+     one commit on the base branch. The false starts, the fixups and the "address
+     review" commits are how the work got made, not what it is; keeping them turns
+     the base branch's history into a diary and makes a revert an archaeology
+     exercise. Because the PR description is what survives, it has to carry the
+     reasoning — see above. A project that requires merge commits or a rebase says
+     so in its own section, and that wins.
+   - **A merge takes its branch with it.** Once a merge is approved and done,
+     delete that branch — remote and local, in the same step. It is the one
+     deletion the merge approval covers, because it is the merge finishing rather
+     than a separate act; no other branch is included. A merged branch left
+     behind is a decoy: it looks like work in flight, and the next person cannot
+     tell it from the real thing without checking.
+   - Verify before deleting, and be aware of the squash case: a squash merge
+     writes a new commit rather than joining histories, so git sees no ancestry
+     and `git branch -d` refuses a branch whose every line is already merged.
+     Confirm with `git diff <base> <branch>` — empty output means nothing is
+     lost — and then `-D` is correct rather than reckless. If that diff is *not*
+     empty, stop: something did not make it in.
+<!-- agent-skills:end workflow -->
+<!-- markdownlint-enable MD013 MD060 -->
