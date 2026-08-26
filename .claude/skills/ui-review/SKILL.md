@@ -16,6 +16,18 @@ the application.
 
 ---
 
+## Execution Context
+
+When UI review is a stage of the managed workflow, it runs in the `ui-reviewer`
+subagent, invoked by the main agent — never in the main agent's own context.
+The review is requested there, not performed there.
+
+Being asked directly for a UI review is not a managed stage: perform it, and say
+which context it ran in. Inside the subagent, follow the review protocol and
+never delegate again — that would recurse.
+
+---
+
 ## 1. Domain Detection & Scope
 
 Determine the project's UI domain from `AGENTS.md` (or inspect repository files):
@@ -67,13 +79,53 @@ flowchart TD
    - ANSI color codes readable on both dark and light terminal backgrounds.
    - Clean stderr vs stdout separation.
 
-### D. Headless / Pure Backend / Internal Refactor (No UI Impact)
+### D. No UI Impact (Headless, Backend, or Nothing That Renders)
+
+A change lands here two ways, and the second is the common one. Either the
+project's UI domain is headless or backend — or nothing this change touches
+renders: every file is documentation, comments, configuration, a build script,
+CI, or a test, **or it is code with no rendered output**. A docs-only change to
+a web application is this case, and so is a backend query layer inside one;
+neither is an internal refactor, and neither needs to be.
 
 - Explicitly record that UI review is **Not Applicable** and state the concrete reason (e.g. *"Changes are strictly internal data structures / CLI flags without visual presentation impact"*). Never skip UI review silently.
 
 ---
 
-## 3. UI Review Report Output Template
+## 3. Evidence
+
+**Say which one you did: you read it, or you ran it.**
+
+Reading the code tells you what it should draw. Only running it tells you what it
+does. Every finding carries which of the two produced it, and the report's
+**Visual Evidence / Run Method** field says how the change was exercised — or that
+it was not exercised at all.
+
+**A read-only sandbox makes the run unavailable, not optional.** This reviewer
+declares `sandbox_mode: read-only`, and hosts enforce that differently. Where it
+becomes a filesystem sandbox, writes are denied everywhere including the
+temporary directory; where it becomes a `readonly` flag, state-changing shell
+commands are denied outright. A dev server, a build and a screenshot are each one
+of those, so on such a host they are out of reach — while on a host that denies
+only the file-editing tools, the same review can run the application. **The same
+change therefore yields observed findings on one host and read findings on
+another, and nobody downstream can tell which they are holding unless you say.**
+
+Where the run is unavailable, review what can be read: structure and semantics,
+declared colour and contrast values, focus handling, which interaction and error
+states the code implements and which it omits. Record the run method as
+unavailable and name the host. That is a narrower review, not a failed one.
+
+**It is never an `N/A`.** `N/A` is for a change that cannot alter a rendered frame
+(§ 2 D). A reviewer who could not launch the application still has a change that
+renders, and reporting `N/A` there hands the caller a verdict meaning "nothing to
+look at" for a change nobody looked at.
+
+Never describe an appearance you did not see.
+
+---
+
+## 4. UI Review Report Output Template
 
 When UI review is completed, generate a markdown report:
 
@@ -91,6 +143,34 @@ When UI review is completed, generate a markdown report:
 | Interactive States & Contrast | [PASS / FAIL / NA] | Loading, error, and hover states verified |
 | Accessibility / Input Ergonomics | [PASS / FAIL / NA] | Keyboard navigability & high contrast |
 
-- **Verdict**: [APPROVED | CHANGES_REQUESTED]
+- **Verdict**: [APPROVED | CHANGES_REQUESTED | N/A]
 - **Actionable Findings**: (List blocking UI issues if any)
 ```
+
+Where the run was unavailable (§ 3), the two statuses are not symmetric, and that
+is what decides every row. **A `FAIL` needs one defect you can stand behind; a
+`PASS` needs the whole row.** So reading can produce a `FAIL` on a row it can
+never produce a `PASS` on — a state the code does not implement, a declared colour
+pair that misses the ratio on paper, a control with no accessible name. Where
+reading settles only part of a row, the row is `NA`, and Observations says which
+part you settled and which you could not.
+
+`Responsive Layout / Scaling` has no readable half that could carry a `PASS`, so
+it is `NA` unless reading turned one up as a `FAIL` — a fixed pixel width with no
+media query is plain in the diff. Every other row splits, and none of them splits the same way,
+which is why the rule is stated rather than tabulated: a state that exists, a
+ratio that passes on paper, a semantic element in the right place are each half an
+answer, and half an answer is `NA`.
+
+The verdict is `N/A` only when § 2 D applies — the change cannot alter a rendered
+frame, or the project has no UI. Name which one, in a line. **A review that could
+not run is not `N/A` and is not excused from a verdict**: it ends in `APPROVED` or
+`CHANGES_REQUESTED` on what it was able to settle, with the run recorded as
+unavailable in `Visual Evidence / Run Method`. A review that examined the change
+and found nothing is `APPROVED`, and says what it looked at — reading only, if
+that is what it did.
+
+**Never borrow `APPROVED` for a change you did not examine.** The caller cannot
+tell the two apart: `slice-and-pr` treats a passed stage and an `N/A` one as the
+same precondition for committing, so a stand-in `APPROVED` is a gate reporting
+success on work it never did — and it reads identically to one that did.

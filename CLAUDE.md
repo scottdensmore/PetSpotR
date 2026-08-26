@@ -2,6 +2,8 @@
 
 **Follow [`AGENTS.md`](./AGENTS.md).**
 
+@AGENTS.md
+
 It is the single source of truth for this repository: project layout, the
 development workflow and its review gates, verification commands with pinned
 tool versions, CI, and merge rules.

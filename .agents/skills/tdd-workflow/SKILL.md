@@ -13,6 +13,22 @@ This skill guides the agent through disciplined, test-first software development
 
 ---
 
+## Execution Context
+
+Unlike the gate skills, this one **is** the main agent's own work. `verifier`,
+`code-review`, `ui-review` and `localization-review` are requested from a
+subagent; the Red-Green-Refactor loop is performed here, in your own context.
+
+That makes one boundary easy to cross without noticing. **The full suite is not
+yours to run.** Stage 5 runs only the test you authored or changed, filtered by
+file and name; whole suites, builds and repository-wide lint are stage 6's, and
+stage 6 happens in the `verifier` subagent. Being confident the change is right,
+having just written the test, or the suite being fast are not reasons to run it
+here — a gate read by the context that wrote the code is not a second opinion,
+whatever it is labelled.
+
+---
+
 ## 1. When to Use TDD
 
 - **Always use TDD for testable units**: Pure logic, business rules, calculations, parsers, state machines, data transformations, API route handlers, and service boundaries.
@@ -29,8 +45,8 @@ flowchart TD
     A["1. Red: Write/Update Focused Test"] --> B["2. Confirm Expected Failure"]
     B --> C["3. Green: Minimal Implementation"]
     C --> D["4. Run Focused Test (Iterate until Pass)"]
-    D --> E["5. Refactor (Keep Tests Green)"]
-    E --> F["6. Full Suite Verification"]
+    D --> E["5. Refactor (Focused Tests Stay Green)"]
+    E --> F["6. Hand off to the verifier subagent (the full suite is not yours to run)"]
 ```
 
 ### Step 1: Red — Write the Minimal Failing Test
@@ -57,7 +73,8 @@ flowchart TD
 ### Step 5: Refactor
 
 - Clean up duplication, improve variable names, extract small helpers, and enforce code conventions.
-- Run tests continuously during refactoring to guarantee no regression.
+- Re-run the *focused* tests continuously during refactoring to guarantee no
+  regression. Not the suite — see **Execution Context**.
 
 ---
 

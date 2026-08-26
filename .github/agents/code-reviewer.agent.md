@@ -5,8 +5,6 @@ description: >-
   handling, secrets, diff hygiene, and instructions the change made untrue — and returns a
   ranked list of findings with file:line. Use after verification is green and before
   committing or opening a PR. It reads code only and cannot edit files.
-subagent: true
-model: inherit
 ---
 
 <!-- Generated from agents/code-reviewer.md by agent-workflow-skills. Edit that file and re-run the installer. -->

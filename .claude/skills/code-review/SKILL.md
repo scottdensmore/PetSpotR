@@ -77,10 +77,14 @@ flowchart TD
 
 ## 3. Execution Context
 
-The managed workflow decides whether the main agent delegates this skill to the
-`code-reviewer` subagent or runs it inline. Perform the review in the current
-context; never delegate again from inside this skill, which would recurse when a
-`code-reviewer` is already following it.
+When code review is a stage of the managed workflow, it runs in the
+`code-reviewer` subagent, invoked by the main agent — never in the main agent's
+own context. The review is requested there, not performed there.
+
+Being asked directly for a review is not a managed stage: perform it, and say
+which context it ran in. Inside the subagent, review in the current context and
+never delegate again — that would recurse when a `code-reviewer` is already
+following this skill.
 
 ---
 

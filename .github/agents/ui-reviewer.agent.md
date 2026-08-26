@@ -7,9 +7,6 @@ description: >-
   configuration, build scripts, CI, test-only, or backend changes, or in a project with no
   user interface — there is nothing for it to review. It reads code only and cannot edit
   files.
-disallowedTools: Write, Edit, NotebookEdit
-model: inherit
-readonly: true
 ---
 
 <!-- Generated from agents/ui-reviewer.md by agent-workflow-skills. Edit that file and re-run the installer. -->
