@@ -70,7 +70,12 @@ resource "google_cloud_run_v2_service" "web_frontend" {
   location = var.region
 
   template {
-    service_account = google_service_account.web_frontend_runtime.email
+    service_account                  = google_service_account.web_frontend_runtime.email
+    max_instance_request_concurrency = var.web_frontend_concurrency
+
+    scaling {
+      max_instance_count = var.web_frontend_max_instances
+    }
 
     containers {
       image = var.web_frontend_image
@@ -83,11 +88,12 @@ resource "google_cloud_run_v2_service" "lostpet_service" {
   location = var.region
 
   template {
-    service_account = google_service_account.lostpet_runtime.email
+    service_account                  = google_service_account.lostpet_runtime.email
+    max_instance_request_concurrency = var.lostpet_concurrency
 
     scaling {
       min_instance_count = 1
-      max_instance_count = 1
+      max_instance_count = var.lostpet_max_instances
     }
 
     containers {
@@ -110,11 +116,12 @@ resource "google_cloud_run_v2_service" "foundpet_service" {
   location = var.region
 
   template {
-    service_account = google_service_account.foundpet_runtime.email
+    service_account                  = google_service_account.foundpet_runtime.email
+    max_instance_request_concurrency = var.foundpet_concurrency
 
     scaling {
       min_instance_count = 1
-      max_instance_count = 1
+      max_instance_count = var.foundpet_max_instances
     }
 
     containers {
@@ -138,8 +145,13 @@ resource "google_cloud_run_v2_service" "pet_matcher" {
   ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   template {
-    service_account = google_service_account.pet_matcher_runtime.email
-    timeout         = "600s"
+    service_account                  = google_service_account.pet_matcher_runtime.email
+    timeout                          = "600s"
+    max_instance_request_concurrency = var.pet_matcher_concurrency
+
+    scaling {
+      max_instance_count = var.pet_matcher_max_instances
+    }
 
     containers {
       image = var.pet_matcher_image
@@ -173,7 +185,12 @@ resource "google_cloud_run_v2_service" "notification_service" {
   ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   template {
-    service_account = google_service_account.notification_runtime.email
+    service_account                  = google_service_account.notification_runtime.email
+    max_instance_request_concurrency = var.notification_service_concurrency
+
+    scaling {
+      max_instance_count = var.notification_service_max_instances
+    }
 
     containers {
       image = var.notification_service_image
@@ -204,6 +221,66 @@ variable "foundpet_image" { type = string }
 variable "pet_matcher_image" { type = string }
 variable "notification_service_image" { type = string }
 variable "image_bucket_name" { type = string }
+
+variable "web_frontend_max_instances" {
+  description = "Maximum instance count for web-frontend"
+  type        = number
+  default     = 10
+}
+
+variable "web_frontend_concurrency" {
+  description = "Maximum concurrent requests per instance for web-frontend"
+  type        = number
+  default     = 80
+}
+
+variable "lostpet_max_instances" {
+  description = "Maximum instance count for lostpet-service"
+  type        = number
+  default     = 10
+}
+
+variable "lostpet_concurrency" {
+  description = "Maximum concurrent requests per instance for lostpet-service"
+  type        = number
+  default     = 80
+}
+
+variable "foundpet_max_instances" {
+  description = "Maximum instance count for foundpet-service"
+  type        = number
+  default     = 10
+}
+
+variable "foundpet_concurrency" {
+  description = "Maximum concurrent requests per instance for foundpet-service"
+  type        = number
+  default     = 80
+}
+
+variable "pet_matcher_max_instances" {
+  description = "Maximum instance count for pet-matcher"
+  type        = number
+  default     = 10
+}
+
+variable "pet_matcher_concurrency" {
+  description = "Maximum concurrent requests per instance for pet-matcher"
+  type        = number
+  default     = 10
+}
+
+variable "notification_service_max_instances" {
+  description = "Maximum instance count for notification-service"
+  type        = number
+  default     = 10
+}
+
+variable "notification_service_concurrency" {
+  description = "Maximum concurrent requests per instance for notification-service"
+  type        = number
+  default     = 80
+}
 
 output "web_frontend_url" {
   value = google_cloud_run_v2_service.web_frontend.uri

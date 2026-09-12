@@ -44,3 +44,75 @@ variable "notification_service_image" {
   type        = string
   default     = "gcr.io/petspotr/notification-service:latest"
 }
+
+variable "cloudrun_max_instances" {
+  description = "Default maximum instance count for Cloud Run services"
+  type        = number
+  default     = 10
+}
+
+variable "cloudrun_concurrency" {
+  description = "Default maximum concurrent requests per Cloud Run instance"
+  type        = number
+  default     = 80
+}
+
+variable "web_frontend_max_instances" {
+  description = "Maximum instance count for web-frontend (defaults to cloudrun_max_instances when null)"
+  type        = number
+  default     = null
+}
+
+variable "web_frontend_concurrency" {
+  description = "Maximum concurrent requests per instance for web-frontend (defaults to cloudrun_concurrency when null)"
+  type        = number
+  default     = null
+}
+
+variable "lostpet_max_instances" {
+  description = "Maximum instance count for lostpet-service (defaults to cloudrun_max_instances when null)"
+  type        = number
+  default     = null
+}
+
+variable "lostpet_concurrency" {
+  description = "Maximum concurrent requests per instance for lostpet-service (defaults to cloudrun_concurrency when null)"
+  type        = number
+  default     = null
+}
+
+variable "foundpet_max_instances" {
+  description = "Maximum instance count for foundpet-service (defaults to cloudrun_max_instances when null)"
+  type        = number
+  default     = null
+}
+
+variable "foundpet_concurrency" {
+  description = "Maximum concurrent requests per instance for foundpet-service (defaults to cloudrun_concurrency when null)"
+  type        = number
+  default     = null
+}
+
+variable "pet_matcher_max_instances" {
+  description = "Maximum instance count for pet-matcher (defaults to cloudrun_max_instances when null)"
+  type        = number
+  default     = null
+}
+
+variable "pet_matcher_concurrency" {
+  description = "Maximum concurrent requests per instance for pet-matcher (defaults to 10 when null for inference protection)"
+  type        = number
+  default     = null
+}
+
+variable "notification_service_max_instances" {
+  description = "Maximum instance count for notification-service (defaults to cloudrun_max_instances when null)"
+  type        = number
+  default     = null
+}
+
+variable "notification_service_concurrency" {
+  description = "Maximum concurrent requests per instance for notification-service (defaults to cloudrun_concurrency when null)"
+  type        = number
+  default     = null
+}

@@ -39,16 +39,26 @@ module "firestore" {
 }
 
 module "cloudrun" {
-  source                     = "./modules/cloudrun"
-  project_id                 = var.project_id
-  region                     = var.region
-  web_frontend_image         = var.web_frontend_image
-  lostpet_image              = var.lostpet_image
-  foundpet_image             = var.foundpet_image
-  pet_matcher_image          = var.pet_matcher_image
-  notification_service_image = var.notification_service_image
-  image_bucket_name          = module.storage.bucket_name
-  depends_on                 = [google_project_service.iam_credentials]
+  source                             = "./modules/cloudrun"
+  project_id                         = var.project_id
+  region                             = var.region
+  web_frontend_image                 = var.web_frontend_image
+  lostpet_image                      = var.lostpet_image
+  foundpet_image                     = var.foundpet_image
+  pet_matcher_image                  = var.pet_matcher_image
+  notification_service_image         = var.notification_service_image
+  image_bucket_name                  = module.storage.bucket_name
+  web_frontend_max_instances         = coalesce(var.web_frontend_max_instances, var.cloudrun_max_instances)
+  web_frontend_concurrency           = coalesce(var.web_frontend_concurrency, var.cloudrun_concurrency)
+  lostpet_max_instances              = coalesce(var.lostpet_max_instances, var.cloudrun_max_instances)
+  lostpet_concurrency                = coalesce(var.lostpet_concurrency, var.cloudrun_concurrency)
+  foundpet_max_instances             = coalesce(var.foundpet_max_instances, var.cloudrun_max_instances)
+  foundpet_concurrency               = coalesce(var.foundpet_concurrency, var.cloudrun_concurrency)
+  pet_matcher_max_instances          = coalesce(var.pet_matcher_max_instances, var.cloudrun_max_instances)
+  pet_matcher_concurrency            = coalesce(var.pet_matcher_concurrency, 10)
+  notification_service_max_instances = coalesce(var.notification_service_max_instances, var.cloudrun_max_instances)
+  notification_service_concurrency   = coalesce(var.notification_service_concurrency, var.cloudrun_concurrency)
+  depends_on                         = [google_project_service.iam_credentials]
 }
 
 module "pubsub" {

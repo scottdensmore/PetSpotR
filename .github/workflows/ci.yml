@@ -166,3 +166,15 @@ jobs:
         run: |
           tofu init -backend=false
           tofu validate
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate Cloud Run Manifests
+        run: |
+          # Pinned so YAML linting rules and schema behaviors cannot shift
+          # unexpectedly on upstream releases.
+          pip install --disable-pip-version-check yamllint==1.35.1
+          yamllint -s deploy/cloudrun/
