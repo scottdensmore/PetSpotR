@@ -23,6 +23,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/identity"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
+	"github.com/scottdensmore/petspotr/pkg/ratelimit"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/store"
 	"github.com/scottdensmore/petspotr/pkg/telemetry"
@@ -46,6 +47,7 @@ type Server struct {
 	identitySessions         identity.SessionManager
 	identityClientConfig     identity.WebClientConfig
 	secureSessionCookie      bool
+	rateLimiter              ratelimit.Limiter
 }
 
 // LostPetReporter is the canonical lost-pet command consumed by the browser
@@ -82,6 +84,8 @@ type ServerOptions struct {
 	IdentitySessions         identity.SessionManager
 	IdentityClientConfig     identity.WebClientConfig
 	SecureSessionCookie      bool
+	RateLimiter              ratelimit.Limiter
+	DisableRateLimiting      bool
 }
 
 // NewServer initializes an empty in-memory Server for tests and local callers.
@@ -131,6 +135,32 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		identityClientConfig = identity.WebClientConfig{}
 	}
 	allowPrivilegedMutations := options.AllowPrivilegedMutations && options.IdentitySessions == nil
+	rateLimiter := options.RateLimiter
+	if rateLimiter == nil {
+		if options.DisableRateLimiting {
+			rateLimiter = ratelimit.NewNoop()
+		} else {
+			var limiterOpts []ratelimit.Option
+			if options.IdentitySessions != nil {
+				cookieName := localSessionCookieName
+				if options.SecureSessionCookie {
+					cookieName = secureSessionCookieName
+				}
+				limiterOpts = append(limiterOpts, ratelimit.WithSubjectExtractor(func(r *http.Request) string {
+					cookie, err := r.Cookie(cookieName)
+					if err != nil || strings.TrimSpace(cookie.Value) == "" {
+						return ""
+					}
+					principal, err := options.IdentitySessions.VerifySession(r.Context(), cookie.Value)
+					if err != nil {
+						return ""
+					}
+					return principal.Subject
+				}))
+			}
+			rateLimiter = ratelimit.New(limiterOpts...)
+		}
+	}
 	s := &Server{
 		mux:                      http.NewServeMux(),
 		metrics:                  telemetry.NewMetricsRegistry("web-frontend"),
@@ -143,6 +173,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		identitySessions:         options.IdentitySessions,
 		identityClientConfig:     identityClientConfig,
 		secureSessionCookie:      options.SecureSessionCookie,
+		rateLimiter:              rateLimiter,
 	}
 	s.routes()
 	return s
@@ -162,17 +193,35 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/report-lost", s.handleReportLost)
 	s.mux.HandleFunc("/report-found", s.handleReportFound)
 	s.mux.HandleFunc("/matches", s.handleMatches)
-	s.mux.HandleFunc("/api/v1/pets", s.handleApiPets)
-	s.mux.HandleFunc("/api/v1/lost-pets", s.handleApiLostPets)
-	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/contact", s.handleApiLostPetContact)
+	if s.rateLimiter == nil {
+		s.rateLimiter = ratelimit.NewNoop()
+	}
+
+	s.mux.HandleFunc("/api/v1/pets", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleApiPets))
+	s.mux.HandleFunc("/api/v1/lost-pets", s.rateLimiter.RequireRateLimitByMethodFunc(
+		map[string]ratelimit.Limit{
+			http.MethodPost: ratelimit.ModerateLimit,
+			http.MethodGet:  ratelimit.GenerousLimit,
+		},
+		nil,
+		s.handleApiLostPets,
+	))
+	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/contact", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiLostPetContact))
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/status", s.handleApiLostPetStatus)
-	s.mux.HandleFunc("/api/v1/found-pets/extract-features", s.handleApiExtractFeatures)
-	s.mux.HandleFunc("/api/v1/found-pets", s.handleApiFoundPets)
-	s.mux.HandleFunc("/api/v1/found-pets/{petID}/contact", s.handleApiFoundPetContact)
+	s.mux.HandleFunc("/api/v1/found-pets/extract-features", s.rateLimiter.RequireRateLimitFunc(ratelimit.StrictLimit, s.handleApiExtractFeatures))
+	s.mux.HandleFunc("/api/v1/found-pets", s.rateLimiter.RequireRateLimitByMethodFunc(
+		map[string]ratelimit.Limit{
+			http.MethodPost: ratelimit.ModerateLimit,
+			http.MethodGet:  ratelimit.GenerousLimit,
+		},
+		nil,
+		s.handleApiFoundPets,
+	))
+	s.mux.HandleFunc("/api/v1/found-pets/{petID}/contact", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiFoundPetContact))
 	s.mux.HandleFunc("/api/v1/found-pets/{petID}/status", s.handleApiFoundPetStatus)
-	s.mux.HandleFunc("/api/v1/matches", s.handleApiMatches)
+	s.mux.HandleFunc("/api/v1/matches", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleApiMatches))
 	s.mux.HandleFunc("/api/v1/matches/action", s.handleApiMatchAction)
-	s.mux.HandleFunc("/api/v1/reunions/contact", s.handleApiReunionContact)
+	s.mux.HandleFunc("/api/v1/reunions/contact", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiReunionContact))
 	s.mux.HandleFunc("/api/v1/reunions/resolve", s.handleApiReunionResolve)
 	s.mux.HandleFunc("/api/v1/push/subscribe", s.handleApiPushSubscribe)
 	s.mux.HandleFunc("/api/v1/push/test", s.handleApiPushTest)
@@ -1452,4 +1501,16 @@ func (s *Server) securityPolicy() string {
 		"style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; " +
 		"img-src 'self' data: blob: https://storage.petspotr.io; connect-src " + connectSources +
 		"; frame-src " + frameSources + "; worker-src 'self'"
+}
+
+// RateLimiter returns the configured rate limiter.
+func (s *Server) RateLimiter() ratelimit.Limiter {
+	return s.rateLimiter
+}
+
+// Close releases server resources including background rate limiting workers.
+func (s *Server) Close() {
+	if s.rateLimiter != nil {
+		s.rateLimiter.Close()
+	}
 }
