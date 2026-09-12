@@ -32,10 +32,8 @@ playwright/.cache/
 # Local runtime
 petimages
 
-# Agent tooling scratch state (.claude/, .codex/, .cursor/ are committed config)
+# Entire CLI
 .entire/
-.superpowers/
-superpowers/
 
 # Editor & OS
 .DS_Store
