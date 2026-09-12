@@ -18,7 +18,6 @@ the **Go 1.26.5 toolchain**, **Ollama**, and **Gemma 4** vision models!
   ([`infra/opentofu/`](./infra/opentofu)).
 - **Documentation**:
   - Setup & Deployment Guide: [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md)
-  - Coding Agent Guidelines: [`AGENTS.md`](./AGENTS.md)
 
 ---
 

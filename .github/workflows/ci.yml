@@ -47,7 +47,7 @@ jobs:
         with:
           # Exact patch pin, not '1.26': go vet's analyzer set and stdlib
           # behavior shift between releases, so a floating toolchain can turn a
-          # green local verifier run red here. Keep in sync with AGENTS.md.
+          # green local verifier run red here.
           go-version: '1.26.5'
 
       - name: Go Vet
@@ -60,7 +60,7 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           # Pinned, not "latest": .golangci.yml uses the v2 schema, which
-          # golangci-lint v1 cannot parse. Keep in sync with AGENTS.md.
+          # golangci-lint v1 cannot parse.
           version: v2.12.2
 
   e2e-playwright-tests:
@@ -74,7 +74,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          # Active LTS. Keep in sync with AGENTS.md.
+          # Active LTS.
           node-version: 24
           cache: npm
           cache-dependency-path: tests/playwright/package-lock.json
@@ -154,7 +154,7 @@ jobs:
         uses: opentofu/setup-opentofu@v2
         with:
           # Pinned so `tofu fmt` rules cannot shift under us on an upstream
-          # release. Keep in sync with AGENTS.md.
+          # release.
           tofu_version: 1.12.5
 
       - name: Format Check
