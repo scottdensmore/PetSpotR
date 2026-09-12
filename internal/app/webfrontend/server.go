@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"math"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -95,6 +96,9 @@ func NewDemoServer() *Server {
 	if err := SeedDemoMatches(context.Background(), memory); err != nil {
 		panic(fmt.Sprintf("seed demo matches: %v", err))
 	}
+	if err := SeedDemoPets(context.Background(), memory); err != nil {
+		panic(fmt.Sprintf("seed demo pets: %v", err))
+	}
 	return NewServerWithOptions(memory, ServerOptions{AllowPrivilegedMutations: true})
 }
 
@@ -154,9 +158,11 @@ func (s *Server) routes() {
 	// Page & Health routes
 	s.mux.HandleFunc("/", s.handleIndex)
 	s.mux.HandleFunc("/sw.js", s.handleServiceWorker)
+	s.mux.HandleFunc("/pets", s.handlePets)
 	s.mux.HandleFunc("/report-lost", s.handleReportLost)
 	s.mux.HandleFunc("/report-found", s.handleReportFound)
 	s.mux.HandleFunc("/matches", s.handleMatches)
+	s.mux.HandleFunc("/api/v1/pets", s.handleApiPets)
 	s.mux.HandleFunc("/api/v1/lost-pets", s.handleApiLostPets)
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/contact", s.handleApiLostPetContact)
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/status", s.handleApiLostPetStatus)
@@ -266,28 +272,35 @@ type QueryParams struct {
 	RadiusMiles float64
 }
 
-func parseQueryParams(r *http.Request) QueryParams {
+func parseQueryParams(r *http.Request) (QueryParams, error) {
 	q := r.URL.Query()
 
 	limit := 20
 	if lStr := q.Get("limit"); lStr != "" {
-		if l, err := strconv.Atoi(lStr); err == nil && l >= 1 {
-			if l > 100 {
-				l = 100
-			}
-			limit = l
+		l, err := strconv.Atoi(lStr)
+		if err != nil || l < 1 {
+			return QueryParams{}, errors.New("invalid limit: must be a positive integer")
 		}
+		if l > 100 {
+			l = 100
+		}
+		limit = l
 	}
 
 	offset := 0
 	if oStr := q.Get("offset"); oStr != "" {
-		if o, err := strconv.Atoi(oStr); err == nil && o >= 0 {
-			offset = o
+		o, err := strconv.Atoi(oStr)
+		if err != nil || o < 0 {
+			return QueryParams{}, errors.New("invalid offset: must be a non-negative integer")
 		}
+		offset = o
 	}
 
 	species := strings.TrimSpace(q.Get("species"))
 	status := strings.TrimSpace(q.Get("status"))
+	if status != "" && !strings.EqualFold(status, "lost") && !strings.EqualFold(status, "found") && !strings.EqualFold(status, "all") {
+		return QueryParams{}, errors.New("invalid status filter: must be lost, found, or all")
+	}
 
 	var hasGeo bool
 	var geoPoint domain.LocationPoint
@@ -295,22 +308,26 @@ func parseQueryParams(r *http.Request) QueryParams {
 
 	latStr := q.Get("lat")
 	lngStr := q.Get("lng")
+	if (latStr != "" && lngStr == "") || (latStr == "" && lngStr != "") {
+		return QueryParams{}, errors.New("both lat and lng parameters are required for proximity filtering")
+	}
 	if latStr != "" && lngStr != "" {
 		lat, err1 := strconv.ParseFloat(latStr, 64)
 		lng, err2 := strconv.ParseFloat(lngStr, 64)
-		if err1 == nil && err2 == nil && !math.IsNaN(lat) && !math.IsNaN(lng) && !math.IsInf(lat, 0) && !math.IsInf(lng, 0) {
-			pt := domain.LocationPoint{Latitude: lat, Longitude: lng}
-			if pt.Validate() == nil {
-				hasGeo = true
-				geoPoint = pt
-			}
+		if err1 != nil || err2 != nil || math.IsNaN(lat) || math.IsNaN(lng) || math.IsInf(lat, 0) || math.IsInf(lng, 0) ||
+			lat < -90 || lat > 90 || lng < -180 || lng > 180 {
+			return QueryParams{}, errors.New("invalid coordinates: lat must be [-90, 90] and lng [-180, 180]")
 		}
+		hasGeo = true
+		geoPoint = domain.LocationPoint{Latitude: lat, Longitude: lng}
 	}
 
 	if rStr := q.Get("radiusMiles"); rStr != "" {
-		if rVal, err := strconv.ParseFloat(rStr, 64); err == nil && rVal > 0 {
-			radiusMiles = rVal
+		rVal, err := strconv.ParseFloat(rStr, 64)
+		if err != nil || math.IsNaN(rVal) || math.IsInf(rVal, 0) || rVal <= 0 {
+			return QueryParams{}, errors.New("invalid radiusMiles: must be a positive number")
 		}
+		radiusMiles = rVal
 	}
 
 	return QueryParams{
@@ -321,37 +338,58 @@ func parseQueryParams(r *http.Request) QueryParams {
 		HasGeo:      hasGeo,
 		GeoPoint:    geoPoint,
 		RadiusMiles: radiusMiles,
-	}
+	}, nil
 }
 
 func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
+		params, err := parseQueryParams(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if params.Status != "" && !strings.EqualFold(params.Status, "all") && !strings.EqualFold(params.Status, "lost") {
+			w.Header().Set("X-Total-Count", "0")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]domain.PublicLostPetReport{})
+			return
+		}
+
 		rawItems, err := s.stateStore.ListState(r.Context(), store.LostPetsCollection)
 		if err != nil {
 			http.Error(w, "Failed to query lost pets", http.StatusInternalServerError)
 			return
 		}
 
-		params := parseQueryParams(r)
-
 		pets := make([]domain.LostPetRecord, 0, len(rawItems))
 		for _, b := range rawItems {
 			var pet domain.LostPetRecord
 			if err := json.Unmarshal(b, &pet); err == nil {
 				pet = domain.NormalizeLostPetRecord(pet)
+				if !pet.Status.IsActive() {
+					continue
+				}
 				// Species filter check
-				if params.Species != "" {
-					var rawMap map[string]any
-					_ = json.Unmarshal(b, &rawMap)
-					if sp, ok := rawMap["species"].(string); ok && sp != "" {
-						if !strings.EqualFold(sp, params.Species) {
+				if params.Species != "" && !strings.EqualFold(params.Species, "all") {
+					if pet.Species == "" {
+						continue
+					}
+					if strings.EqualFold(params.Species, "other") {
+						if strings.EqualFold(pet.Species, "dog") || strings.EqualFold(pet.Species, "cat") {
 							continue
 						}
+					} else if !strings.EqualFold(pet.Species, params.Species) {
+						continue
 					}
 				}
 				// Geo radius filter
 				if params.HasGeo {
-					locPt := domain.ParseLocationCoordinates(pet.Location)
+					locPt, ok := extractCoordinates(pet.Coordinates, pet.Location)
+					if !ok {
+						continue
+					}
 					dist := domain.HaversineDistanceMiles(params.GeoPoint, locPt)
 					if dist > params.RadiusMiles {
 						continue
@@ -360,6 +398,14 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 				pets = append(pets, pet)
 			}
 		}
+
+		// Sort deterministically: ReportedAt DESC, PetID DESC
+		sort.Slice(pets, func(i, j int) bool {
+			if !pets[i].ReportedAt.Equal(pets[j].ReportedAt) {
+				return pets[i].ReportedAt.After(pets[j].ReportedAt)
+			}
+			return pets[i].PetID > pets[j].PetID
+		})
 
 		totalCount := len(pets)
 		w.Header().Set("X-Total-Count", strconv.Itoa(totalCount))
@@ -533,28 +579,53 @@ func newFoundPetID() (string, error) {
 
 func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
+		params, err := parseQueryParams(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if params.Status != "" && !strings.EqualFold(params.Status, "all") && !strings.EqualFold(params.Status, "found") {
+			w.Header().Set("X-Total-Count", "0")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]domain.PublicFoundPetReport{})
+			return
+		}
+
 		rawItems, err := s.stateStore.ListState(r.Context(), store.FoundPetsCollection)
 		if err != nil {
 			http.Error(w, "Failed to query found pets", http.StatusInternalServerError)
 			return
 		}
 
-		params := parseQueryParams(r)
-
 		pets := make([]domain.FoundPetRecord, 0, len(rawItems))
 		for _, b := range rawItems {
 			var pet domain.FoundPetRecord
 			if err := json.Unmarshal(b, &pet); err == nil {
 				pet = domain.NormalizeFoundPetRecord(pet)
+				if !pet.Status.IsActive() {
+					continue
+				}
 				// Species filter check
-				if params.Species != "" {
-					if pet.Species != "" && !strings.EqualFold(pet.Species, params.Species) {
+				if params.Species != "" && !strings.EqualFold(params.Species, "all") {
+					if pet.Species == "" {
+						continue
+					}
+					if strings.EqualFold(params.Species, "other") {
+						if strings.EqualFold(pet.Species, "dog") || strings.EqualFold(pet.Species, "cat") {
+							continue
+						}
+					} else if !strings.EqualFold(pet.Species, params.Species) {
 						continue
 					}
 				}
 				// Geo filter check
 				if params.HasGeo {
-					locPt := domain.ParseLocationCoordinates(pet.Location)
+					locPt, ok := extractCoordinates(pet.Coordinates, pet.Location)
+					if !ok {
+						continue
+					}
 					dist := domain.HaversineDistanceMiles(params.GeoPoint, locPt)
 					if dist > params.RadiusMiles {
 						continue
@@ -563,6 +634,14 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 				pets = append(pets, pet)
 			}
 		}
+
+		// Sort deterministically: FoundAt DESC, PetID DESC
+		sort.Slice(pets, func(i, j int) bool {
+			if !pets[i].FoundAt.Equal(pets[j].FoundAt) {
+				return pets[i].FoundAt.After(pets[j].FoundAt)
+			}
+			return pets[i].PetID > pets[j].PetID
+		})
 
 		totalCount := len(pets)
 		w.Header().Set("X-Total-Count", strconv.Itoa(totalCount))

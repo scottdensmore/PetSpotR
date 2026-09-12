@@ -31,5 +31,8 @@ func main() {
 	if err := webfrontend.SeedDemoMatches(ctx, runtime.Store); err != nil {
 		log.Fatalf("Failed to seed demo matches: %v", err)
 	}
-	log.Print("Seeded demo matches in the local Firestore emulator")
+	if err := webfrontend.SeedDemoPets(ctx, runtime.Store); err != nil {
+		log.Fatalf("Failed to seed demo pets: %v", err)
+	}
+	log.Print("Seeded demo matches and pets in the local Firestore emulator")
 }
