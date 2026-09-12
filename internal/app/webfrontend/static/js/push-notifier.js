@@ -1,3 +1,19 @@
+function setPushStatus(message, isError) {
+  let banner = document.getElementById('push-status-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'push-status-banner';
+    banner.className = 'push-status-banner';
+    const main = document.getElementById('main-content') || document.body;
+    main.prepend(banner);
+  }
+  banner.textContent = message;
+  banner.className = `push-status-banner ${isError ? 'is-error' : 'is-success'}`;
+  banner.setAttribute('role', isError ? 'alert' : 'status');
+  banner.setAttribute('aria-live', isError ? 'assertive' : 'polite');
+  banner.hidden = false;
+}
+
 // Client-side controller for Service Worker registration and Web Push Subscriptions
 document.addEventListener('DOMContentLoaded', async () => {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -39,7 +55,7 @@ async function requestPushSubscription(btn) {
   try {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
-      alert('Notification permission was denied.');
+      setPushStatus('Notification permission was denied.', true);
       updatePushButtonState(btn);
       return;
     }
@@ -65,11 +81,12 @@ async function requestPushSubscription(btn) {
 
     if (resp.ok) {
       updatePushButtonState(btn);
-      alert('Instant Web Push notifications enabled successfully!');
+      setPushStatus('Instant Web Push notifications enabled successfully!', false);
     } else {
-      alert('Failed to register push subscription on server.');
+      setPushStatus('Failed to register push subscription on server.', true);
     }
   } catch (err) {
     console.error('Error enabling push subscription:', err);
+    setPushStatus('Error enabling push notifications. Please try again.', true);
   }
 }

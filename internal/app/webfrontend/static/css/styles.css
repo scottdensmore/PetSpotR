@@ -94,6 +94,103 @@ a {
   display: none !important;
 }
 
+:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.btn:focus-visible,
+.nav-link:focus-visible,
+.brand-logo:focus-visible,
+.theme-toggle:focus-visible,
+.dropzone:focus-visible,
+.pet-card:focus-visible,
+.match-card:focus-visible,
+.badge:focus-visible,
+.chip:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+[data-theme="light"] :focus-visible,
+[data-theme="light"] a:focus-visible,
+[data-theme="light"] button:focus-visible,
+[data-theme="light"] input:focus-visible,
+[data-theme="light"] select:focus-visible,
+[data-theme="light"] textarea:focus-visible,
+[data-theme="light"] .btn:focus-visible,
+[data-theme="light"] .dropzone:focus-visible,
+[data-theme="light"] .pet-card:focus-visible,
+[data-theme="light"] .match-card:focus-visible {
+  outline-color: #4f46e5;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.field-error {
+  color: var(--text-error);
+  font-size: 0.85rem;
+  margin-top: 0.35rem;
+  font-weight: 500;
+}
+
+.form-error-banner {
+  color: var(--text-error);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.upload-status {
+  font-size: 0.85rem;
+  color: var(--brand-primary);
+  margin-top: 0.5rem;
+}
+
+.push-status-banner {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  margin: 1rem auto;
+  max-width: 600px;
+  text-align: center;
+  font-weight: 500;
+  font-size: 0.95rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.push-status-banner.is-error {
+  color: var(--text-error);
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.push-status-banner.is-success {
+  color: var(--status-reunited);
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.1);
+}
+
 .brand-icon {
   color: var(--brand-primary);
 }
@@ -1472,5 +1569,21 @@ footer {
   .match-controls {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .spinner {
+    animation: none !important;
+    border-top-style: dashed !important;
   }
 }

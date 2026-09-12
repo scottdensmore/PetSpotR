@@ -870,3 +870,118 @@ func TestMatchListDoesNotSeedInjectedStore(t *testing.T) {
 		t.Fatalf("persisted matches = %d, want 0", len(items))
 	}
 }
+
+func TestAccessibilityFeatures(t *testing.T) {
+	t.Parallel()
+	srv := NewDemoServer()
+
+	t.Run("Report Lost template contains accessible dropzone and live regions", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/report-lost", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+		}
+		body := rec.Body.String()
+		expectedSnippets := []string{
+			`id="dropzone"`,
+			`aria-label="Upload pet photo"`,
+			`tabindex="0"`,
+			`aria-describedby="dropzone-help"`,
+			`id="dropzone-help"`,
+			`Supports JPG, PNG, WEBP up to 10MB`,
+			`id="lost-photo-status"`,
+			`role="status"`,
+			`aria-live="polite"`,
+			`id="petName-error"`,
+			`role="alert"`,
+			`id="location-error"`,
+			`id="reporterEmail-error"`,
+		}
+		for _, snippet := range expectedSnippets {
+			if !strings.Contains(body, snippet) {
+				t.Errorf("report-lost missing expected accessibility snippet: %q", snippet)
+			}
+		}
+	})
+
+	t.Run("Report Found template contains accessible dropzone and live regions", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/report-found", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+		}
+		body := rec.Body.String()
+		expectedSnippets := []string{
+			`id="found-dropzone"`,
+			`aria-label="Upload pet photo"`,
+			`tabindex="0"`,
+			`aria-describedby="found-dropzone-help"`,
+			`id="found-dropzone-help"`,
+			`Supports JPG, PNG, WEBP up to 10MB`,
+			`id="found-photo-status"`,
+			`role="status"`,
+			`aria-live="polite"`,
+			`id="found-location-error"`,
+			`id="finder-email-error"`,
+			`id="found-form-status"`,
+			`role="alert"`,
+		}
+		for _, snippet := range expectedSnippets {
+			if !strings.Contains(body, snippet) {
+				t.Errorf("report-found missing expected accessibility snippet: %q", snippet)
+			}
+		}
+	})
+
+	t.Run("Match Dashboard contains accessible modal dialogs", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/matches", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+		}
+		body := rec.Body.String()
+		expectedSnippets := []string{
+			`id="zoom-modal" class="modal-overlay zoom-overlay" role="dialog" aria-modal="true"`,
+			`id="contact-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title"`,
+			`id="contact-modal-title">Send Secure Message</h2>`,
+			`id="reunion-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reunion-modal-title"`,
+			`id="reunion-modal-title">Confirm Pet Reunion!`,
+			`id="match-action-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="action-modal-title"`,
+			`id="match-thread-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="match-thread-title"`,
+		}
+		for _, snippet := range expectedSnippets {
+			if !strings.Contains(body, snippet) {
+				t.Errorf("matches missing expected accessibility snippet: %q", snippet)
+			}
+		}
+	})
+
+	t.Run("Styles CSS contains focus-visible and reduced-motion media query", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/static/css/styles.css", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+		}
+		body := rec.Body.String()
+		expectedSnippets := []string{
+			`:focus-visible`,
+			`@media (prefers-reduced-motion: reduce)`,
+			`.push-status-banner`,
+			`.field-error`,
+			`.form-error-banner`,
+		}
+		for _, snippet := range expectedSnippets {
+			if !strings.Contains(body, snippet) {
+				t.Errorf("styles.css missing expected accessibility snippet: %q", snippet)
+			}
+		}
+	})
+}

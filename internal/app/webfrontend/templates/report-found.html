@@ -61,11 +61,14 @@
             <span class="ai-badge">AI Vision Auto-Extract</span>
           </h2>
 
-          <button type="button" id="found-dropzone" class="dropzone">
-            <svg class="upload-icon" width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H3a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          <button type="button" id="found-dropzone" class="dropzone" aria-label="Upload pet photo" tabindex="0" aria-describedby="found-dropzone-help">
+            <svg class="upload-icon" width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H3a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             <span class="dropzone-title">Click or drag photo here to scan with Gemma 4 Vision AI</span>
+            <span id="found-dropzone-help" class="dropzone-help">Supports JPG, PNG, WEBP up to 10MB</span>
           </button>
           <input type="file" id="foundPhotoInput" accept="image/*" hidden>
+          <p id="found-photo-status" class="upload-status" role="status" aria-live="polite"></p>
+          <p id="found-photo-error" class="field-error" role="alert" aria-live="assertive" hidden></p>
 
           <!-- AI Extraction Spinner Indicator -->
           <div id="ai-spinner" class="ai-spinner-panel" hidden>
@@ -126,7 +129,8 @@
           <h2 class="section-title">3. Location & Custody Status</h2>
           <div class="form-field">
             <label for="foundLocation" class="form-label">Found Location / Neighborhood *</label>
-            <input class="form-control" type="text" id="foundLocation" name="location" required placeholder="e.g. Green Lake Park, Seattle, WA">
+            <input class="form-control" type="text" id="foundLocation" name="location" required placeholder="e.g. Green Lake Park, Seattle, WA" aria-describedby="found-location-error">
+            <p id="found-location-error" class="field-error" role="alert" aria-live="assertive" hidden></p>
           </div>
           <div>
             <label for="custodyStatus" class="form-label">Current Pet Custody</label>
@@ -144,12 +148,14 @@
           <h2 class="section-title">4. Finder Contact Info</h2>
           <div class="form-field">
             <label for="finderEmail" class="form-label">Finder Email *</label>
-            <input class="form-control" type="email" id="finderEmail" name="finderEmail" required placeholder="finder@example.com" aria-describedby="finder-email-help" data-identity-email>
+            <input class="form-control" type="email" id="finderEmail" name="finderEmail" required placeholder="finder@example.com" aria-describedby="finder-email-help finder-email-error" data-identity-email>
+            <p id="finder-email-error" class="field-error" role="alert" aria-live="assertive" hidden></p>
             <p id="finder-email-help" class="form-help">When sign-in is enabled, PetSpotR uses the verified email on your Google account.</p>
           </div>
         </div>
 
         <!-- Submit Button -->
+        <p id="found-form-status" class="form-error-banner" role="alert" aria-live="assertive" hidden></p>
         <button type="submit" class="btn btn-primary btn-full btn-submit" id="btn-submit-found">
           <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
           Submit Found Pet & Trigger AI Match Cascade

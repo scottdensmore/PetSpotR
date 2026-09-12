@@ -68,7 +68,8 @@
           <div class="form-grid">
             <div>
               <label for="petName" class="form-label">Pet Name *</label>
-              <input class="form-control" type="text" id="petName" name="petName" required placeholder="e.g. Buddy">
+              <input class="form-control" type="text" id="petName" name="petName" required placeholder="e.g. Buddy" aria-describedby="petName-error">
+              <p id="petName-error" class="field-error" role="alert" aria-live="assertive" hidden></p>
             </div>
             <div>
               <label for="species" class="form-label">Species *</label>
@@ -101,12 +102,14 @@
         <!-- Step 2: Photo Upload & Drag Drop Zone -->
         <div class="wizard-step" id="wizard-step-2" hidden>
           <h2 class="section-title">Upload Pet Photo</h2>
-          <button type="button" id="dropzone" class="dropzone">
-            <svg class="upload-icon" width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          <button type="button" id="dropzone" class="dropzone" aria-label="Upload pet photo" tabindex="0" aria-describedby="dropzone-help">
+            <svg class="upload-icon" width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
             <span class="dropzone-title">Drag & drop photo here, or click to browse</span>
-            <span class="dropzone-help">Supports JPG, PNG, WEBP up to 10MB</span>
+            <span id="dropzone-help" class="dropzone-help">Supports JPG, PNG, WEBP up to 10MB</span>
           </button>
           <input type="file" id="photoInput" accept="image/*" hidden>
+          <p id="lost-photo-status" class="upload-status" role="status" aria-live="polite"></p>
+          <p id="photo-error" class="field-error" role="alert" aria-live="assertive" hidden></p>
 
           <div id="preview-container" class="image-preview" hidden>
             <p class="image-preview-title">Live Photo Preview:</p>
@@ -119,7 +122,8 @@
           <h2 class="section-title">Last Seen Location</h2>
           <div class="form-field">
             <label for="location" class="form-label">Address / Neighborhood *</label>
-            <input class="form-control" type="text" id="location" name="location" required placeholder="e.g. Capitol Hill, Seattle, WA">
+            <input class="form-control" type="text" id="location" name="location" required placeholder="e.g. Capitol Hill, Seattle, WA" aria-describedby="location-error">
+            <p id="location-error" class="field-error" role="alert" aria-live="assertive" hidden></p>
           </div>
 
           <div class="map-preview">
@@ -136,7 +140,8 @@
           <h2 class="section-title">Owner Contact Details</h2>
           <div class="form-field">
             <label for="reporterEmail" class="form-label">Contact Email *</label>
-            <input class="form-control" type="email" id="reporterEmail" name="reporterEmail" required placeholder="owner@example.com" aria-describedby="reporter-email-help" data-identity-email>
+            <input class="form-control" type="email" id="reporterEmail" name="reporterEmail" required placeholder="owner@example.com" aria-describedby="reporter-email-help reporterEmail-error" data-identity-email>
+            <p id="reporterEmail-error" class="field-error" role="alert" aria-live="assertive" hidden></p>
             <p id="reporter-email-help" class="form-help">When sign-in is enabled, PetSpotR uses the verified email on your Google account.</p>
           </div>
           <div class="form-field">
@@ -146,6 +151,7 @@
         </div>
 
         <!-- Wizard Navigation Buttons -->
+        <p id="lost-form-error" class="form-error-banner" role="alert" aria-live="assertive" hidden></p>
         <p id="lost-report-status" class="form-help" role="status" aria-live="polite" hidden></p>
         <div class="wizard-actions">
           <button type="button" class="btn btn-secondary is-invisible" id="btn-prev">Previous</button>
