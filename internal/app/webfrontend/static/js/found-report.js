@@ -17,6 +17,46 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputPrimaryColor = document.getElementById('foundPrimaryColor');
   const inputSecondaryColor = document.getElementById('foundSecondaryColor');
 
+  function showFieldError(fieldId, errorId, message) {
+    const field = document.getElementById(fieldId);
+    const errorEl = document.getElementById(errorId);
+    if (field) field.setAttribute('aria-invalid', 'true');
+    if (errorEl) {
+      errorEl.textContent = message;
+      errorEl.hidden = false;
+    }
+    field?.focus();
+  }
+
+  function clearFieldError(fieldId, errorId) {
+    const field = document.getElementById(fieldId);
+    const errorEl = document.getElementById(errorId);
+    if (field) field.removeAttribute('aria-invalid');
+    if (errorEl) {
+      errorEl.textContent = '';
+      errorEl.hidden = true;
+    }
+  }
+
+  function showFormError(message) {
+    const formError = document.getElementById('found-form-status');
+    if (formError) {
+      formError.textContent = message;
+      formError.hidden = false;
+    }
+  }
+
+  function clearFormError() {
+    const formError = document.getElementById('found-form-status');
+    if (formError) {
+      formError.textContent = '';
+      formError.hidden = true;
+    }
+  }
+
+  document.getElementById('foundLocation')?.addEventListener('input', () => clearFieldError('foundLocation', 'found-location-error'));
+  document.getElementById('finderEmail')?.addEventListener('input', () => clearFieldError('finderEmail', 'finder-email-error'));
+
   let currentImageUrl = '';
   let currentDistinctiveMarkings = [];
   let pendingSubmission = null;
@@ -35,6 +75,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (dropzone && photoInput) {
     dropzone.addEventListener('click', () => photoInput.click());
+    dropzone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        photoInput.click();
+      }
+    });
 
     dropzone.addEventListener('dragover', (e) => {
       e.preventDefault();
@@ -61,9 +107,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function handleFile(file) {
+    const photoError = document.getElementById('found-photo-error');
+    const photoStatus = document.getElementById('found-photo-status');
+    if (photoError) {
+      photoError.textContent = '';
+      photoError.hidden = true;
+    }
     if (!file.type.startsWith('image/')) {
-      alert('Please select a valid image file.');
+      if (photoError) {
+        photoError.textContent = 'Please select a valid image file.';
+        photoError.hidden = false;
+      }
+      dropzone?.focus();
       return;
+    }
+    if (photoStatus) {
+      photoStatus.textContent = `Photo selected: ${file.name}`;
     }
 
     const reader = new FileReader();
@@ -133,6 +192,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const location = document.getElementById('foundLocation')?.value || '';
       const finderEmail = document.getElementById('finderEmail')?.value || '';
 
+      clearFormError();
+      const locationInput = document.getElementById('foundLocation');
+      const emailInput = document.getElementById('finderEmail');
+
       let identityState = null;
       if (window.petspotrIdentity) {
         try {
@@ -140,17 +203,45 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
           if (error.code === 'identity-required') {
             window.petspotrIdentity.focusSignIn();
-            alert('Sign in with Google before submitting your report.');
+            const idError = document.getElementById('identity-error');
+            if (idError) {
+              idError.textContent = 'Sign in with Google before submitting your report.';
+              idError.hidden = false;
+            }
+            showFormError('Sign in with Google before submitting your report.');
             return;
           }
           console.error('Identity error:', error);
-          alert('Identity services are temporarily unavailable. Please try again.');
+          const idError = document.getElementById('identity-error');
+          if (idError) {
+            idError.textContent = 'Identity services are temporarily unavailable. Please try again.';
+            idError.hidden = false;
+          }
+          showFormError('Identity services are temporarily unavailable. Please try again.');
           return;
         }
       }
 
-      if (!location.trim() || !finderEmail.trim()) {
-        alert('Please enter found location and finder contact email.');
+      let hasError = false;
+      if (!location.trim()) {
+        showFieldError('foundLocation', 'found-location-error', 'Please enter found location.');
+        hasError = true;
+      } else {
+        clearFieldError('foundLocation', 'found-location-error');
+      }
+
+      if (!finderEmail.trim()) {
+        showFieldError('finderEmail', 'finder-email-error', 'Please enter finder contact email.');
+        if (!hasError) {
+          emailInput?.focus();
+        }
+        hasError = true;
+      } else {
+        clearFieldError('finderEmail', 'finder-email-error');
+      }
+
+      if (hasError) {
+        showFormError('Please enter found location and finder contact email.');
         return;
       }
       if (!pendingSubmission) {
@@ -193,11 +284,11 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         } else {
           if (resp.status < 500) pendingSubmission = null;
-          alert('Failed to submit found pet report.');
+          showFormError('Failed to submit found pet report.');
         }
       } catch (err) {
         console.error('Submission error:', err);
-        alert('Network error submitting found pet report.');
+        showFormError('Network error submitting found pet report.');
       }
     });
   }
@@ -206,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const modal = document.getElementById('found-success-modal');
       if (modal && !modal.hidden) {
         modal.hidden = true;
+        document.getElementById('btn-submit-found')?.focus();
       }
     }
   });

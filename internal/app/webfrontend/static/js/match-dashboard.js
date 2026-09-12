@@ -29,6 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let threadSendInFlight = false;
   let activeThreadSendToken = null;
   let threadReturnTarget = null;
+  let lastZoomTrigger = null;
+  let lastContactTrigger = null;
+  let lastReunionTrigger = null;
   let pendingThreadAttempt = null;
   let threadIdentityFocusPending = false;
   const matchStatuses = new Set(['PENDING_REVIEW', 'CONFIRMED', 'REJECTED', 'REUNITED']);
@@ -41,6 +44,30 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeModal(modal) {
     if (modal) modal.hidden = true;
   }
+  function closeZoomModal() {
+    if (!zoomModal || zoomModal.hidden) return;
+    closeModal(zoomModal);
+    const trigger = lastZoomTrigger;
+    lastZoomTrigger = null;
+    trigger?.focus();
+  }
+
+  function closeContactModal() {
+    const contactModal = document.getElementById('contact-modal');
+    closeModal(contactModal);
+    const trigger = lastContactTrigger;
+    lastContactTrigger = null;
+    (trigger || scoreFilter)?.focus();
+  }
+
+  function closeReunionModal() {
+    const reunionModal = document.getElementById('reunion-modal');
+    closeModal(reunionModal);
+    const trigger = lastReunionTrigger;
+    lastReunionTrigger = null;
+    (trigger || scoreFilter)?.focus();
+  }
+
 
   function setDecisionBusy(button, busy) {
     container?.querySelectorAll('.action-btn').forEach(actionButton => {
@@ -565,6 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Zoom Handler
     container.querySelectorAll('.zoom-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        lastZoomTrigger = e.currentTarget;
         const src = e.currentTarget.getAttribute('data-src');
         if (zoomedImage && zoomModal && src) {
           zoomedImage.src = src;
@@ -576,12 +604,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Contact Handler
     container.querySelectorAll('.contact-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        lastContactTrigger = e.currentTarget;
         const matchId = e.currentTarget.getAttribute('data-match-id');
         const contactMatchIdInput = document.getElementById('contact-match-id');
         const contactModal = document.getElementById('contact-modal');
         if (contactMatchIdInput && contactModal) {
           contactMatchIdInput.value = matchId;
           openModal(contactModal);
+          document.getElementById('contact-sender-email')?.focus();
         }
       });
     });
@@ -597,6 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Reunion Resolution Handler
     container.querySelectorAll('.reunion-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        lastReunionTrigger = e.currentTarget;
         const matchId = e.currentTarget.getAttribute('data-match-id');
         const petId = e.currentTarget.getAttribute('data-pet-id');
         const reunionMatchIdInput = document.getElementById('reunion-match-id');
@@ -606,6 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
           reunionMatchIdInput.value = matchId;
           reunionPetIdInput.value = petId;
           openModal(reunionModal);
+          document.getElementById('reunion-rating')?.focus();
         }
       });
     });
@@ -755,7 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (resp.ok) {
-          closeModal(document.getElementById('contact-modal'));
+          closeContactModal();
           showActionModal('CONFIRMED', 'contact');
         }
       } catch (err) {
@@ -782,7 +814,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (resp.ok) {
-          closeModal(document.getElementById('reunion-modal'));
+          closeReunionModal();
           showActionModal('REUNITED', 'resolve');
           fetchMatches();
         }
@@ -829,19 +861,39 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (zoomModal) {
-    zoomModal.addEventListener('click', () => closeModal(zoomModal));
+    zoomModal.addEventListener('click', () => closeZoomModal());
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !zoomModal.hidden) {
-        closeModal(zoomModal);
+        closeZoomModal();
       }
     });
   }
+
+  const contactModal = document.getElementById('contact-modal');
+  contactModal?.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeContactModal();
+    }
+  });
+
+  const reunionModal = document.getElementById('reunion-modal');
+  reunionModal?.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeReunionModal();
+    }
+  });
 
   document.querySelectorAll('.modal-close').forEach(button => {
     button.addEventListener('click', (event) => {
       const modal = event.currentTarget.closest('.modal-overlay');
       if (modal?.id === 'match-action-modal') {
         closeActionModal();
+      } else if (modal?.id === 'contact-modal') {
+        closeContactModal();
+      } else if (modal?.id === 'reunion-modal') {
+        closeReunionModal();
       } else {
         closeModal(modal);
       }

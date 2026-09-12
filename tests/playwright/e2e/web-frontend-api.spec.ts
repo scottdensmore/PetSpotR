@@ -352,7 +352,7 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     await page.goto(`${WEB_FRONTEND_URL}/report-found`);
 
     const upload = page.getByRole('button', {
-      name: 'Click or drag photo here to scan with Gemma 4 Vision AI',
+      name: 'Upload pet photo',
     });
     await expect(upload).toHaveAttribute('id', 'found-dropzone');
 
@@ -372,7 +372,7 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     await page.getByRole('button', { name: 'Next Step' }).click();
 
     const upload = page.getByRole('button', {
-      name: 'Drag & drop photo here, or click to browse Supports JPG, PNG, WEBP up to 10MB',
+      name: 'Upload pet photo',
     });
     await expect(upload).toHaveAttribute('id', 'dropzone');
 
@@ -465,16 +465,8 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     await expect(page.locator('#identity-panel')).toBeVisible();
     await page.locator('#foundLocation').fill('Green Lake Park, Seattle, WA');
     await page.locator('#finderEmail').fill('spoofed-finder@example.com');
-    let signInDialogMessage = '';
-    const signInDialogHandled = page.waitForEvent('dialog').then(async (dialog) => {
-      signInDialogMessage = dialog.message();
-      await dialog.accept();
-    });
-    await Promise.all([
-      signInDialogHandled,
-      page.locator('#btn-submit-found').click(),
-    ]);
-    expect(signInDialogMessage).toContain('Sign in with Google');
+    await page.locator('#btn-submit-found').click();
+    await expect(page.locator('#identity-error')).toContainText('Sign in with Google');
     expect(submittedReport).toBeUndefined();
     await expect(page.locator('#google-sign-in')).toBeFocused();
 
