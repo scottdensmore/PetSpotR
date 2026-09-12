@@ -25,6 +25,9 @@ type NotificationMessage struct {
 	PushToken      string    `json:"pushToken"`
 	Subject        string    `json:"subject"`
 	Body           string    `json:"body"`
+	HTMLBody       string    `json:"htmlBody,omitempty"`
+	TextBody       string    `json:"textBody,omitempty"`
+	SMSBody        string    `json:"smsBody,omitempty"`
 	Channels       []Channel `json:"channels"`
 	IdempotencyKey string    `json:"idempotencyKey,omitempty"`
 }
@@ -106,8 +109,12 @@ func (s *MockSMSSender) Send(ctx context.Context, msg *NotificationMessage) erro
 		}
 		s.sentKeys[msg.IdempotencyKey] = struct{}{}
 	}
+	body := msg.SMSBody
+	if body == "" {
+		body = msg.Body
+	}
 	s.SentMessages = append(s.SentMessages, msg)
-	log.Printf("[SMS SENDER] Text sent to %s: %s", msg.Phone, msg.Body)
+	log.Printf("[SMS SENDER] Text sent to %s: %s", msg.Phone, body)
 	return nil
 }
 
@@ -164,6 +171,28 @@ func NewMultiChannelDispatcher(senders ...ChannelSender) *MultiChannelDispatcher
 		m[s.Channel()] = s
 	}
 	return &MultiChannelDispatcher{senders: m}
+}
+
+// NewMultiChannelDispatcherWithProviders constructs a MultiChannelDispatcher wired with the given providers.
+func NewMultiChannelDispatcherWithProviders(
+	email EmailProvider,
+	sms SMSProvider,
+	push PushProvider,
+	fromEmail string,
+	fromPhone string,
+	formatter *SMSFormatter,
+) *MultiChannelDispatcher {
+	senders := make([]ChannelSender, 0, 3)
+	if email != nil {
+		senders = append(senders, NewProviderEmailSender(email, fromEmail))
+	}
+	if sms != nil {
+		senders = append(senders, NewProviderSMSSender(sms, formatter, fromPhone))
+	}
+	if push != nil {
+		senders = append(senders, NewProviderPushSender(push))
+	}
+	return NewMultiChannelDispatcher(senders...)
 }
 
 // Dispatch routes the notification message across all requested channels.

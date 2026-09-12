@@ -83,6 +83,7 @@ type MatchResult struct {
 	Scores           *MatchScoreBreakdown `json:"scores,omitempty"`
 	Model            string               `json:"model,omitempty"`
 	ThresholdVersion string               `json:"thresholdVersion,omitempty"`
+	PhotoURL         string               `json:"photoUrl,omitempty"`
 }
 
 // Validate checks that mandatory fields on MatchResult are non-empty.
