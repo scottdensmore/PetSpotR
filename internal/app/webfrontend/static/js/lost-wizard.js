@@ -186,7 +186,10 @@ document.addEventListener('DOMContentLoaded', () => {
           if (resp.ok) {
             pendingSubmission = null;
             const modal = document.getElementById('success-modal');
-            if (modal) modal.hidden = false;
+            if (modal) {
+              modal.hidden = false;
+              document.getElementById('lost-success-return')?.focus();
+            }
           } else {
             if (resp.status < 500) pendingSubmission = null;
             alert('Failed to submit report. Please check input fields.');
@@ -201,4 +204,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('success-modal');
+      if (modal && !modal.hidden) {
+        modal.hidden = true;
+      }
+    }
+  });
 });

@@ -187,7 +187,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (resp.ok) {
           pendingSubmission = null;
           const modal = document.getElementById('found-success-modal');
-          if (modal) modal.hidden = false;
+          if (modal) {
+            modal.hidden = false;
+            document.getElementById('found-success-return')?.focus();
+          }
         } else {
           if (resp.status < 500) pendingSubmission = null;
           alert('Failed to submit found pet report.');
@@ -198,4 +201,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('found-success-modal');
+      if (modal && !modal.hidden) {
+        modal.hidden = true;
+      }
+    }
+  });
 });

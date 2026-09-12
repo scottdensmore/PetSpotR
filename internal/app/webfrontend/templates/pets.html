@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Browse active lost and found pet reports in the PetSpotR community with deterministic filters and search.">
+  <title>Public Pet Directory — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link active" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary" id="btn-report-lost">Report Lost Pet</a>
+        <a href="/report-found" class="btn btn-secondary" id="btn-report-found">Found a Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container page-main" id="main-content">
+    <div class="directory-heading">
+      <h1>Public Pet Directory</h1>
+      <p class="text-secondary">Community-wide active lost and found pet reports with AI-indexed attributes.</p>
+    </div>
+
+    <!-- Filter and Search Controls -->
+    <section class="glass-card directory-toolbar" aria-label="Directory search and filters">
+      <form id="pet-filter-form" class="directory-form" method="GET" action="/pets" role="search">
+        <div class="directory-form-group">
+          <label for="filter-species" class="form-label">Species</label>
+          <select id="filter-species" name="species" class="form-control">
+            <option value="all"{{ if eq .Species "all" }} selected{{ end }}>All Species</option>
+            <option value="dog"{{ if eq .Species "dog" }} selected{{ end }}>Dogs</option>
+            <option value="cat"{{ if eq .Species "cat" }} selected{{ end }}>Cats</option>
+            <option value="other"{{ if eq .Species "other" }} selected{{ end }}>Other Animals</option>
+          </select>
+        </div>
+
+        <div class="directory-form-group">
+          <label for="filter-status" class="form-label">Report Status</label>
+          <select id="filter-status" name="status" class="form-control">
+            <option value="all"{{ if eq .Status "all" }} selected{{ end }}>All Active Reports</option>
+            <option value="lost"{{ if eq .Status "lost" }} selected{{ end }}>Lost Pets</option>
+            <option value="found"{{ if eq .Status "found" }} selected{{ end }}>Found Pets</option>
+          </select>
+        </div>
+
+        <div class="directory-form-group directory-form-group-grow">
+          <label for="filter-query" class="form-label">Search Query</label>
+          <input type="search" id="filter-query" name="q" class="form-control" placeholder="Search breed, name, location..." value="{{ .Query }}">
+        </div>
+
+        <div class="directory-form-group-actions">
+          <button type="submit" class="btn btn-primary" id="btn-filter">Filter</button>
+          <a href="/pets" class="btn btn-secondary" id="btn-clear-filters">Reset</a>
+        </div>
+      </form>
+    </section>
+
+    <!-- Results Count -->
+    <div class="directory-summary">
+      <p id="results-count" class="results-count" role="status" aria-live="polite">
+        {{ if eq .TotalCount 0 }}
+          No active reports found
+        {{ else }}
+          Showing {{ len .Pets }} of {{ .TotalCount }} active reports
+        {{ end }}
+      </p>
+    </div>
+
+    <!-- Active Reports Grid -->
+    <section class="pets-grid" id="pets-grid" aria-label="Pet reports listing">
+      {{ if eq (len .Pets) 0 }}
+        <div class="glass-card empty-state" id="empty-state">
+          <div class="empty-icon" aria-hidden="true">🐾</div>
+          <h2 class="empty-state-title">No matching pet reports found</h2>
+          <p class="text-secondary">Try adjusting your species, status, or search query filters to find active reports.</p>
+          <a href="/pets" class="btn btn-secondary">View all active reports</a>
+        </div>
+      {{ else }}
+        {{ range .Pets }}
+          <article class="glass-card pet-card" data-pet-id="{{ .PetID }}" data-status="{{ .Status }}">
+            <div class="pet-card-image-wrap">
+              {{ if .ImageURL }}
+                <img src="{{ .ImageURL }}" alt="{{ if .PetName }}{{ .PetName }}{{ else }}Found {{ .Species }}{{ end }}" class="pet-card-image" loading="lazy">
+              {{ else }}
+                <div class="pet-card-image-placeholder" aria-hidden="true">
+                  <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v8m-4-4h8"></path></svg>
+                  <span>No Photo Available</span>
+                </div>
+              {{ end }}
+              <span class="badge badge-status badge-{{ .Status }}">{{ .Status }}</span>
+            </div>
+
+            <div class="pet-card-body">
+              <h2 class="pet-card-title">{{ if .PetName }}{{ .PetName }}{{ else }}Found {{ .Species }}{{ end }}</h2>
+              <p class="pet-card-species-breed">
+                <span class="badge badge-secondary">{{ .Species }}</span>
+                {{ if .Breed }}<span class="pet-breed">{{ .Breed }}</span>{{ end }}
+              </p>
+
+              <div class="pet-card-details">
+                {{ if .PrimaryColor }}
+                  <p class="pet-detail-item"><strong>Color:</strong> {{ .PrimaryColor }}{{ if .SecondaryColor }} / {{ .SecondaryColor }}{{ end }}</p>
+                {{ end }}
+                {{ if .CustodyStatus }}
+                  <p class="pet-detail-item"><strong>Custody:</strong> {{ .CustodyStatus }}</p>
+                {{ end }}
+                {{ if .Description }}
+                  <p class="pet-detail-item pet-description"><strong>Description:</strong> {{ .Description }}</p>
+                {{ end }}
+              </div>
+
+              {{ if .DistinctiveMarkings }}
+                <div class="chip-list" aria-label="Distinctive markings">
+                  {{ range .DistinctiveMarkings }}
+                    <span class="chip">{{ . }}</span>
+                  {{ end }}
+                </div>
+              {{ end }}
+
+              <div class="pet-card-footer">
+                <span class="pet-card-location">📍 {{ .Location }}</span>
+                <time class="pet-card-date" datetime="{{ .ReportedAt.Format "2006-01-02T15:04:05Z07:00" }}">Reported {{ .ReportedAt.Format "Jan 02, 2006" }}</time>
+              </div>
+            </div>
+          </article>
+        {{ end }}
+      {{ end }}
+    </section>
+
+    <!-- Pagination -->
+    {{ if or .HasPrev .HasNext }}
+      <nav class="pagination-nav" aria-label="Directory pagination">
+        {{ if .HasPrev }}
+          <a href="{{ .PrevPageURL }}" class="btn btn-secondary pagination-btn" id="btn-prev-page">← Previous</a>
+        {{ else }}
+          <button class="btn btn-secondary pagination-btn" id="btn-prev-page" disabled aria-disabled="true">← Previous</button>
+        {{ end }}
+
+        <span class="pagination-info" aria-current="page">Page {{ .CurrentPage }} of {{ .TotalPages }}</span>
+
+        {{ if .HasNext }}
+          <a href="{{ .NextPageURL }}" class="btn btn-secondary pagination-btn" id="btn-next-page">Next →</a>
+        {{ else }}
+          <button class="btn btn-secondary pagination-btn" id="btn-next-page" disabled aria-disabled="true">Next →</button>
+        {{ end }}
+      </nav>
+    {{ end }}
+  </main>
+
+  <footer>
+    <div class="container footer-content">
+      <p>&copy; 2026 PetSpotR. Event-driven Go & GCP AI Microservices.</p>
+      <p><a href="/healthz" id="footer-health-link">System Status: Operational</a></p>
+    </div>
+  </footer>
+
+  <script src="/static/js/theme.js"></script>
+  <script src="/static/js/pet-directory.js"></script>
+</body>
+</html>

@@ -156,14 +156,14 @@
     </div>
 
     <!-- Success Modal -->
-    <div id="success-modal" class="modal-overlay" hidden>
+    <div id="success-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="lost-success-title" hidden>
       <div class="glass-card modal-panel modal-panel-compact">
         <div class="modal-icon modal-icon-success">
           <svg width="36" height="36" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
         </div>
-        <h2 class="modal-title">Report Submitted!</h2>
+        <h2 id="lost-success-title" class="modal-title">Report Submitted!</h2>
         <p class="modal-description">Our Gemma 4 AI matching engine has indexed your report and is continuously scanning found pet events.</p>
-        <a href="/" class="btn btn-primary btn-full">Return to Home</a>
+        <a href="/" class="btn btn-primary btn-full" id="lost-success-return">Return to Home</a>
       </div>
     </div>
   </main>

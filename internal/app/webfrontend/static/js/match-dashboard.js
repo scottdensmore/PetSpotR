@@ -830,6 +830,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (zoomModal) {
     zoomModal.addEventListener('click', () => closeModal(zoomModal));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !zoomModal.hidden) {
+        closeModal(zoomModal);
+      }
+    });
   }
 
   document.querySelectorAll('.modal-close').forEach(button => {

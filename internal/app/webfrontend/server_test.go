@@ -496,7 +496,7 @@ func TestRenderedPagesDeclareFavicon(t *testing.T) {
 	srv := NewDemoServer()
 	want := `<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">`
 
-	for _, path := range []string{"/", "/report-lost", "/report-found", "/matches"} {
+	for _, path := range []string{"/", "/report-lost", "/report-found", "/matches", "/pets"} {
 		t.Run(path, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, path, nil)
 			rec := httptest.NewRecorder()

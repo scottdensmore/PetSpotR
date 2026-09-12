@@ -158,14 +158,14 @@
     </div>
 
     <!-- Success Confirmation Modal -->
-    <div id="found-success-modal" class="modal-overlay" hidden>
+    <div id="found-success-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="found-success-title" hidden>
       <div class="glass-card modal-panel modal-panel-compact">
         <div class="modal-icon modal-icon-found">
           <svg width="36" height="36" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
         </div>
-        <h2 class="modal-title">Found Pet Report Registered!</h2>
+        <h2 id="found-success-title" class="modal-title">Found Pet Report Registered!</h2>
         <p class="modal-description">PetSpotR matcher worker is calculating visual trait similarity scores against all active lost pet reports.</p>
-        <a href="/" class="btn btn-primary btn-full">Return to Home</a>
+        <a href="/" class="btn btn-primary btn-full" id="found-success-return">Return to Home</a>
       </div>
     </div>
   </main>
