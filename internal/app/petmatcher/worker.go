@@ -209,6 +209,7 @@ func (w *Worker) processClaimedFoundPet(
 		lostPetID := lostRecord.PetID
 		matchResult.SourceEventID = inputEventID
 		matchResult.Model = foundModel
+		matchResult.PhotoURL = foundEvt.ImageURL
 		matchID, err := domain.StableMatchID(inputEventID, foundEvt.PetID, lostPetID)
 		if err != nil {
 			return fmt.Errorf("pet-matcher: derive match ID: %w", err)

@@ -31,12 +31,41 @@ func NewWorker(br pubsub.Broker) *Worker {
 	return NewWorkerWithStore(store.NewMemoryStore(), br)
 }
 
-// NewWorkerWithStore constructs a Worker with durable delivery operations.
+// NewWorkerWithStore constructs a Worker with durable delivery operations and configured providers.
 func NewWorkerWithStore(stateStore store.DeliveryOperationStore, br pubsub.Broker) *Worker {
-	dispatcher := NewMultiChannelDispatcher(
-		NewMockEmailSender(),
-		NewMockSMSSender(),
-		NewMockWebPushSender(),
+	cfg := LoadProviderConfigFromEnv()
+	email, sms, push := NewProvidersFromConfig(cfg)
+	formatter := NewSMSFormatter(
+		WithDefaultCountryCode(cfg.DefaultCountryCode),
+		WithSMSMaxLength(cfg.SMSMaxLength),
+	)
+	dispatcher := NewMultiChannelDispatcherWithProviders(
+		email,
+		sms,
+		push,
+		cfg.SendGridFromEmail,
+		cfg.TwilioFromNumber,
+		formatter,
+	)
+	return NewWorkerWithStoreAndDispatcher(stateStore, br, dispatcher)
+}
+
+// NewWorkerWithProviders constructs a Worker with custom durable state and notification providers.
+func NewWorkerWithProviders(
+	stateStore store.DeliveryOperationStore,
+	br pubsub.Broker,
+	email EmailProvider,
+	sms SMSProvider,
+	push PushProvider,
+) *Worker {
+	formatter := NewSMSFormatter()
+	dispatcher := NewMultiChannelDispatcherWithProviders(
+		email,
+		sms,
+		push,
+		"alerts@petspotr.io",
+		"+15005550006",
+		formatter,
 	)
 	return NewWorkerWithStoreAndDispatcher(stateStore, br, dispatcher)
 }
@@ -99,23 +128,6 @@ func (w *Worker) ProcessMatchFound(ctx context.Context, matchResultData []byte) 
 		return nil, fmt.Errorf("notification-service: invalid MatchResult payload: %w", err)
 	}
 
-	notif := &domain.OwnerNotification{
-		FromEmail:  "alerts@petspotr.io",
-		ToEmail:    "owner@example.com",
-		Subject:    fmt.Sprintf("Match Found for Your Pet (%s)", res.MatchedPetID),
-		PetName:    res.MatchedPetID,
-		MatchScore: res.Score,
-	}
-
-	if err := notif.Validate(); err != nil {
-		return nil, fmt.Errorf("notification-service: notification validation failed: %w", err)
-	}
-
-	notif.Body = notif.RenderEmailBody()
-
-	log.Printf("[Notification Service] DISPATCHING NOTIFICATION to %s: %s (Score: %.2f)",
-		notif.ToEmail, notif.Subject, notif.MatchScore)
-
 	if w.dispatcher == nil || w.deliveryStore == nil {
 		return nil, errors.New("notification-service: delivery dependencies are not configured")
 	}
@@ -127,13 +139,71 @@ func (w *Worker) ProcessMatchFound(ctx context.Context, matchResultData []byte) 
 	if err != nil {
 		return nil, fmt.Errorf("notification-service: resolve matchFound identity: %w", err)
 	}
+
+	matchID := res.MatchID
+	if matchID == "" {
+		matchID, _ = domain.StableMatchID(eventID, res.FoundPetID, res.MatchedPetID)
+	}
+
+	photoURL := res.PhotoURL
+	if photoURL == "" {
+		photoURL = fmt.Sprintf("https://petspotr.io/api/pets/%s/photo", res.FoundPetID)
+	}
+
+	explanation := res.Details
+	if explanation == "" {
+		explanation = fmt.Sprintf("High confidence match (%.0f%%) based on visual and trait analysis.", res.Score*100)
+	}
+
+	alertData := MatchAlertEmailData{
+		MatchID:           matchID,
+		PetID:             res.MatchedPetID,
+		PetName:           res.MatchedPetID,
+		PhotoURL:          photoURL,
+		Score:             res.Score,
+		ConfidencePercent: domain.MatchConfidencePercent(res.Score),
+		Explanation:       explanation,
+		DetailsURL:        fmt.Sprintf("https://petspotr.io/matches/%s", matchID),
+	}
+
+	renderer := NewEmailTemplateRenderer()
+	emailContent, renderErr := renderer.RenderMatchAlert(alertData)
+	if renderErr != nil {
+		return nil, fmt.Errorf("notification-service: render match alert email: %w", renderErr)
+	}
+
+	smsFormatter := NewSMSFormatter()
+	smsText, formatErr := smsFormatter.FormatMatchAlert(alertData)
+	if formatErr != nil {
+		return nil, fmt.Errorf("notification-service: format match alert sms: %w", formatErr)
+	}
+
+	notif := &domain.OwnerNotification{
+		FromEmail:  "alerts@petspotr.io",
+		ToEmail:    "owner@example.com",
+		Subject:    emailContent.Subject,
+		PetName:    res.MatchedPetID,
+		MatchScore: res.Score,
+		Body:       emailContent.HTMLBody,
+	}
+
+	if err := notif.Validate(); err != nil {
+		return nil, fmt.Errorf("notification-service: notification validation failed: %w", err)
+	}
+
+	log.Printf("[Notification Service] DISPATCHING NOTIFICATION to %s: %s (Score: %.2f)",
+		notif.ToEmail, notif.Subject, notif.MatchScore)
+
 	msg := &NotificationMessage{
 		RecipientID: res.MatchedPetID,
 		Email:       notif.ToEmail,
 		Phone:       "+12065550199",
 		PushToken:   "push-token-default",
 		Subject:     notif.Subject,
-		Body:        notif.Body,
+		Body:        emailContent.HTMLBody,
+		HTMLBody:    emailContent.HTMLBody,
+		TextBody:    emailContent.TextBody,
+		SMSBody:     smsText,
 		Channels:    []Channel{ChannelEmail, ChannelSMS, ChannelPush},
 	}
 	results, err := w.dispatchNotification(ctx, eventID, msg)
