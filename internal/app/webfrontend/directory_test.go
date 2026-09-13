@@ -562,3 +562,123 @@ func TestDirectory_StaticVendoredLeafletAssets(t *testing.T) {
 	}
 }
 
+func TestDirectory_GeospatialDataSerialization(t *testing.T) {
+	memStore := store.NewMemoryStore()
+	ctx := context.Background()
+
+	// Seed one report with coordinates and one without
+	now := time.Now().UTC()
+	lat := 37.7749
+	lng := -122.4194
+
+	lostPetWithGeo := domain.NormalizeLostPetRecord(domain.LostPetRecord{
+		PetID:           "pet-geo-1",
+		PetName:         "Milo",
+		Species:         "Dog",
+		Breed:           "Beagle",
+		Status:          domain.LostPetStatusLost,
+		ReportedAt:      now,
+		Location:        "San Francisco, CA",
+		Coordinates:     &domain.LocationPoint{Latitude: lat, Longitude: lng},
+		GeocodingStatus: domain.GeocodingVerified,
+		Description:     "Friendly hound near the park",
+	})
+	geoData, err := json.Marshal(lostPetWithGeo)
+	if err != nil {
+		t.Fatalf("failed to marshal lost pet report: %v", err)
+	}
+	if err := memStore.SaveState(ctx, store.LostPetsCollection, lostPetWithGeo.PetID, geoData); err != nil {
+		t.Fatalf("failed to seed lost pet report: %v", err)
+	}
+
+	lostPetWithoutGeo := domain.NormalizeLostPetRecord(domain.LostPetRecord{
+		PetID:       "pet-nogeo-2",
+		PetName:     "Shadow",
+		Species:     "Cat",
+		Breed:       "Domestic Shorthair",
+		Status:      domain.LostPetStatusLost,
+		ReportedAt:  now.Add(-time.Hour),
+		Location:    "Unknown Location",
+		Coordinates: &domain.LocationPoint{Latitude: 0, Longitude: 0},
+		Description: "Black cat",
+	})
+	noGeoData, err := json.Marshal(lostPetWithoutGeo)
+	if err != nil {
+		t.Fatalf("failed to marshal lost pet report: %v", err)
+	}
+	if err := memStore.SaveState(ctx, store.LostPetsCollection, lostPetWithoutGeo.PetID, noGeoData); err != nil {
+		t.Fatalf("failed to seed lost pet report: %v", err)
+	}
+
+	srv := NewServerWithOptions(memStore, ServerOptions{})
+	req := httptest.NewRequest(http.MethodGet, "/pets?lat=37.7749&lng=-122.4194&radiusMiles=15", nil)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected HTTP 200, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	if !strings.Contains(body, `id="pets-data"`) {
+		t.Errorf("expected HTML body to contain script id='pets-data'")
+	}
+	if !strings.Contains(body, "pet-geo-1") {
+		t.Errorf("expected script id='pets-data' or body to contain pet-geo-1")
+	}
+	if !strings.Contains(body, `37.7749`) || !strings.Contains(body, `-122.4194`) {
+		t.Errorf("expected coordinates to be serialized in page body")
+	}
+
+	// Verify unmarshaling of pets-data JSON
+	startIdx := strings.Index(body, `<script id="pets-data" type="application/json">`)
+	if startIdx != -1 {
+		startIdx += len(`<script id="pets-data" type="application/json">`)
+		endIdx := strings.Index(body[startIdx:], `</script>`)
+		if endIdx != -1 {
+			jsonStr := strings.TrimSpace(body[startIdx : startIdx+endIdx])
+			var markers []PetMapMarker
+			if err := json.Unmarshal([]byte(jsonStr), &markers); err != nil {
+				t.Fatalf("failed to unmarshal pets-data JSON %q: %v", jsonStr, err)
+			}
+			if len(markers) != 1 {
+				t.Fatalf("expected 1 marker, got %d", len(markers))
+			}
+			if markers[0].PetID != "pet-geo-1" || markers[0].Latitude != lat || markers[0].Longitude != lng {
+				t.Errorf("unexpected marker data: %+v", markers[0])
+			}
+		}
+	}
+
+	// Also verify that without geo filters, reports without valid coordinates are omitted from markers
+	reqAll := httptest.NewRequest(http.MethodGet, "/pets", nil)
+	recAll := httptest.NewRecorder()
+	srv.ServeHTTP(recAll, reqAll)
+	if recAll.Code != http.StatusOK {
+		t.Fatalf("expected HTTP 200, got %d", recAll.Code)
+	}
+	bodyAll := recAll.Body.String()
+	if !strings.Contains(bodyAll, "Shadow") {
+		t.Errorf("expected non-geo pet Shadow to be in HTML card list")
+	}
+	startIdxAll := strings.Index(bodyAll, `<script id="pets-data" type="application/json">`)
+	if startIdxAll != -1 {
+		startIdxAll += len(`<script id="pets-data" type="application/json">`)
+		endIdxAll := strings.Index(bodyAll[startIdxAll:], `</script>`)
+		if endIdxAll != -1 {
+			jsonStrAll := strings.TrimSpace(bodyAll[startIdxAll : startIdxAll+endIdxAll])
+			var markersAll []PetMapMarker
+			if err := json.Unmarshal([]byte(jsonStrAll), &markersAll); err != nil {
+				t.Fatalf("failed to unmarshal pets-data JSON: %v", err)
+			}
+			if len(markersAll) != 1 {
+				t.Errorf("expected only 1 marker with valid coordinates, got %d", len(markersAll))
+			}
+			if len(markersAll) > 0 && markersAll[0].PetID != "pet-geo-1" {
+				t.Errorf("expected marker to be pet-geo-1, got %s", markersAll[0].PetID)
+			}
+		}
+	}
+}
+
+
