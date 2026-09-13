@@ -681,4 +681,36 @@ func TestDirectory_GeospatialDataSerialization(t *testing.T) {
 	}
 }
 
+func TestDirectory_TemplateMapElementsPresent(t *testing.T) {
+	srv := NewServer()
+	req := httptest.NewRequest(http.MethodGet, "/pets", nil)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected HTTP 200, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	requiredElements := []string{
+		`id="btn-view-grid"`,
+		`id="btn-view-map"`,
+		`id="pets-map-container"`,
+		`id="pets-map"`,
+		`id="filter-lat"`,
+		`id="filter-lng"`,
+		`id="filter-radius"`,
+		`id="btn-geolocation"`,
+		`id="pets-data"`,
+		`/static/vendor/leaflet/leaflet.css`,
+		`/static/vendor/leaflet/leaflet.js`,
+	}
+
+	for _, elem := range requiredElements {
+		if !strings.Contains(body, elem) {
+			t.Errorf("expected pets.html to contain %s", elem)
+		}
+	}
+}
+
 
