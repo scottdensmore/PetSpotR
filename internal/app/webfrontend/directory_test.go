@@ -517,3 +517,46 @@ func TestExistingPetAPIs_StrictValidationAndDeterminism(t *testing.T) {
 		}
 	})
 }
+
+func TestDirectory_ContentSecurityPolicy_PermitsOpenStreetMapTiles(t *testing.T) {
+	srv := NewServer()
+	req := httptest.NewRequest(http.MethodGet, "/pets", nil)
+	rec := httptest.NewRecorder()
+
+	srv.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected HTTP 200, got %d", rec.Code)
+	}
+
+	csp := rec.Header().Get("Content-Security-Policy")
+	if !strings.Contains(csp, "https://*.tile.openstreetmap.org") {
+		t.Fatalf("expected CSP to allow openstreetmap tiles in img-src, got: %s", csp)
+	}
+}
+
+func TestDirectory_StaticVendoredLeafletAssets(t *testing.T) {
+	srv := NewServer()
+
+	tests := []struct {
+		urlPath     string
+		contentType string
+	}{
+		{urlPath: "/static/vendor/leaflet/leaflet.js", contentType: "text/javascript"},
+		{urlPath: "/static/vendor/leaflet/leaflet.css", contentType: "text/css"},
+	}
+
+	for _, tc := range tests {
+		req := httptest.NewRequest(http.MethodGet, tc.urlPath, nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("asset %s returned status %d, expected 200", tc.urlPath, rec.Code)
+		}
+		if ct := rec.Header().Get("Content-Type"); !strings.Contains(ct, tc.contentType) {
+			t.Errorf("asset %s returned content-type %s, expected to contain %s", tc.urlPath, ct, tc.contentType)
+		}
+	}
+}
+
