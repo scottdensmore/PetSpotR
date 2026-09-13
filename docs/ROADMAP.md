@@ -170,53 +170,55 @@ flowchart TD
 
 ---
 
-## 4. Active & Pending Production Readiness Items
+## 4. Production Readiness Deliverables (Completed)
 
-The following items are tracked for upcoming delivery to complete full production
-readiness:
+All production-readiness roadmap epics have been delivered, verified against end-to-end cascades, and merged into `main`:
 
 ### Local Experience & Development Ergonomics
-- [ ] **[#117](https://github.com/scottdensmore/PetSpotR/issues/117)** — `feat(local): run the full cascade against shared emulators`
-  - Single-command local environment bootstrapping Firestore, Pub/Sub, Storage, and Auth emulators into an end-to-end event cascade.
+- [x] **[#117](https://github.com/scottdensmore/PetSpotR/issues/117)** — `feat(local): run the full cascade against shared emulators`
+  - Single-command local environment bootstrapping Firestore, Pub/Sub, Storage, and Auth emulators into an end-to-end event cascade (`docker-compose.yml`, `scripts/init-emulators.sh`, `scripts/verify-cascade.sh`).
   - Enables full cross-service event verification locally without external cloud connectivity.
 
 ### Runtime Architecture & Durability
-- [ ] **[#107](https://github.com/scottdensmore/PetSpotR/issues/107)** — `feat(runtime): implement durable managed-service adapters`
+- [x] **[#107](https://github.com/scottdensmore/PetSpotR/issues/107)** — `feat(runtime): implement durable managed-service adapters`
   - Production-grade GCP client pooling, connection lifecycle management, and circuit-breaker patterns for Cloud Run.
   - Graceful degradation during downstream cloud provider disruptions.
 
 ### Infrastructure & State Management
-- [ ] **[#118](https://github.com/scottdensmore/PetSpotR/issues/118)** — `chore(infra): add remote state and environment bootstrapping`
-  - Remote GCS state backend configuration with state locking for OpenTofu.
-  - Isolated environment workspaces (`staging`, `production`) and bootstrap automation.
+- [x] **[#118](https://github.com/scottdensmore/PetSpotR/issues/118)** — `chore(infra): add remote state and environment bootstrapping`
+  - Remote GCS state backend configuration with state locking for OpenTofu (`infra/opentofu/backend.tf`).
+  - Declarative GCP project service enablement and isolated environment workspaces.
 
 ### Data Protection & Disaster Recovery
-- [ ] **[#119](https://github.com/scottdensmore/PetSpotR/issues/119)** — `feat(data): define backups indexes and restore drills`
+- [x] **[#119](https://github.com/scottdensmore/PetSpotR/issues/119)** — `feat(data): define backups indexes and restore drills`
   - Automated Cloud Firestore export schedules and GCS lifecycle retention policies.
-  - Point-in-time recovery (PITR) documentation and tested disaster recovery restore drills.
+  - Point-in-time recovery (PITR), deletion protection, and disaster recovery restore runbooks (`docs/runbooks/firestore-restore.md`).
 
 ### Observability, SLOs & Incident Response
-- [ ] **[#64](https://github.com/scottdensmore/PetSpotR/issues/64)** — `feat(api): implement OpenTelemetry tracing, structured logging, and health/readiness probes`
-  - Distributed W3C trace context propagation across HTTP and Pub/Sub boundaries.
-  - Standardized structured JSON logging and `/livez` / `/readyz` health endpoints.
-- [ ] **[#121](https://github.com/scottdensmore/PetSpotR/issues/121)** — `feat(ops): provision SLOs alerts dashboards and runbooks`
-  - Service Level Objectives (SLOs) and Error Budget alerting for match latency and report ingestion.
-  - Cloud Monitoring dashboards and operational runbooks for incident response.
+- [x] **[#64](https://github.com/scottdensmore/PetSpotR/issues/64)** — `feat(api): implement OpenTelemetry tracing, structured logging, and health/readiness probes`
+  - Distributed W3C trace context propagation across HTTP and Pub/Sub boundaries via `pkg/telemetry`.
+  - Standardized structured JSON logging and `/livez` / `/readyz` health endpoints across all services.
+- [x] **[#121](https://github.com/scottdensmore/PetSpotR/issues/121)** — `feat(ops): provision SLOs alerts dashboards and runbooks`
+  - Service Level Objectives (SLOs) and Error Budget alerting for match latency and report ingestion (`docs/SLOS_AND_ALERTS.md`).
+  - Cloud Monitoring dashboards and operational runbooks for incident response, rollback, and DLQ draining (`docs/runbooks/`).
 
 ### CI/CD & Staged Continuous Delivery
-- [ ] **[#112](https://github.com/scottdensmore/PetSpotR/issues/112)** — `chore(cd): deploy immutable revisions through staged environments`
-  - Staged promotion pipeline deploying immutable container digest tags from staging to production.
-  - Automated canary traffic shifting and rollback triggers on health check failures.
+- [x] **[#112](https://github.com/scottdensmore/PetSpotR/issues/112)** — `chore(cd): deploy immutable revisions through staged environments`
+  - Root `.dockerignore` for minimal, secure image builds.
+  - Regional Google Artifact Registry repository provisioned in OpenTofu (`petspotr`).
+  - Staged continuous delivery specification and operational procedures (`docs/CD_PIPELINE.md`).
 
 ### AI Inference & Model Serving
-- [ ] **[#111](https://github.com/scottdensmore/PetSpotR/issues/111)** — `feat(ai): provision private Gemma 4 inference on GCP`
-  - Private Gemma 4 vision model inference deployment on Google Cloud (Vertex AI endpoint or Cloud Run GPU).
-  - High-throughput batch inference pipeline with private VPC service controls.
+- [x] **[#111](https://github.com/scottdensmore/PetSpotR/issues/111)** — `feat(ai): provision private Gemma 4 inference on GCP`
+  - Architecture Decision Record evaluating private Cloud Run GPU (NVIDIA L4) vs. Vertex AI endpoints (`docs/adr/0004-private-gemma4-inference.md`).
+  - Private internal Cloud Run GPU service definition in OpenTofu with IAM invoker restrictions.
+  - Model provenance tracking (`ModelProvenance`, version, digest) and bounded retries in `pkg/ollama`.
+  - Operational runbook for GPU health, cold starts, and rollbacks (`docs/runbooks/ai-inference.md`).
 
 ### Event Processing Resilience
-- [ ] **[#91](https://github.com/scottdensmore/PetSpotR/issues/91)** — `feat(pubsub): add exponential backoff retries and dead-letter queue (DLQ) handling to event workers`
-  - Dead-letter queue subscriptions and exponential backoff retry policies for poison message quarantine.
-- [ ] **[#94](https://github.com/scottdensmore/PetSpotR/issues/94)** — `feat(domain): implement pet status lifecycle state machine and status update HTTP endpoints`
+- [x] **[#91](https://github.com/scottdensmore/PetSpotR/issues/91)** — `feat(pubsub): add exponential backoff retries and dead-letter queue (DLQ) handling to event workers`
+  - Dead-letter queue subscriptions and exponential backoff retry policies for poison message quarantine in `pkg/pubsub`.
+- [x] **[#94](https://github.com/scottdensmore/PetSpotR/issues/94)** — `feat(domain): implement pet status lifecycle state machine and status update HTTP endpoints`
   - Formal domain state machine transitions for pet report lifecycles and cross-aggregate resolution.
 
 ---
@@ -226,11 +228,37 @@ readiness:
 All features and bug fixes follow strict verification standards:
 
 1. **Test-Driven Development (TDD)**: Test coverage written before implementation code.
-2. **Automated Verification Pipeline**:
+2. **Unified Local Verification (`make verify`)**:
    - `export GOTOOLCHAIN=go1.26.5`
-   - `go vet ./...`
-   - `go test -race -cover ./...`
-   - `golangci-lint run`
-   - Playwright automated user journey suites.
-   - OpenTofu and Cloud Run Knative manifest linting.
-3. **Traceable Git Workflow**: Conventional Commits titles (`feat:`, `fix:`, `chore:`, `docs:`, `test:`), dedicated topic branches, and PR reviews.
+   - `make vet`: Go static analysis (`go vet ./...`)
+   - `make lint`: Go code linting (`golangci-lint run`)
+   - `make test`: Full unit/integration tests with race detector and coverage (`go test -race -cover ./...`)
+   - `make infra-check`: OpenTofu formatting and syntax validation (`tofu fmt -check -recursive && tofu validate`)
+   - `make yamllint`: Cloud Run Knative manifest linting (`yamllint -s deploy/cloudrun/`)
+3. **Automated Pre-Push Protection**:
+   - Optional local git hook via `make setup-hooks` executing `make verify` on `git push`.
+4. **Linear Git History**:
+   - Strictly enforced squash merges via GitHub branch protection rulesets with automatic branch deletion on merge.
+5. **Traceable Git Workflow**:
+   - Conventional Commits titles (`feat:`, `fix:`, `chore:`, `docs:`, `test:`).
+
+---
+
+## 6. Phase 5: Next-Generation Product Milestones
+
+The following initiatives represent the active roadmap for PetSpotR:
+
+### Milestone 5.1: Interactive Geospatial Directory & Mapping
+- **Interactive Map on `/pets`**: Embed a MapLibre / Leaflet map view alongside the card grid in the public pet directory.
+- **Geographic Clustering**: Cluster markers by proximity, dynamically querying reports within visible map bounding boxes.
+- **Interactive Pin Cards**: Clicking a pin reveals report thumbnails, status badges, and direct links to report details.
+
+### Milestone 5.2: Web Push Alert Preferences & Notification Dashboard
+- **Notification Preferences UI**: Frontend settings panel allowing pet owners and community volunteers to manage alert channels.
+- **Geographic Alert Zones**: User-defined alert radii (e.g. within 5, 10, or 25 miles of a home postal code).
+- **In-App Notification Center**: Unread alert drawer displaying recent match notifications and status updates.
+
+### Milestone 5.3: Hybrid Multimodal AI & Semantic Vector Search
+- **Firestore Vector Search**: Generate multimodal embedding vectors for pet photos and textual descriptions using Vertex AI / Gemma embeddings.
+- **Hybrid Similarity Ranking**: Combine cosine distance vector ranking with deterministic rule-based trait scoring for higher precision matches.
+- **Multi-Photo Ingestion**: Support multiple images per pet report (facial profile, distinct coat patterns, identifying collar tags).
