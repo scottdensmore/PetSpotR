@@ -55,6 +55,22 @@ resource "google_project_service" "cloudtrace" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "artifactregistry" {
+  project            = var.project_id
+  service            = "artifactregistry.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_artifact_registry_repository" "petspotr" {
+  project       = var.project_id
+  location      = var.region
+  repository_id = "petspotr"
+  description   = "PetSpotR regional container image repository"
+  format        = "DOCKER"
+
+  depends_on = [google_project_service.artifactregistry]
+}
+
 module "storage" {
   source          = "./modules/storage"
   project_id      = var.project_id

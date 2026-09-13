@@ -1,0 +1,43 @@
+# Git metadata & entire CLI
+.git
+.gitignore
+.entire/
+
+# Documentation
+*.md
+docs/
+
+# Go build & test artifacts
+*.test
+*.out
+coverage.out
+/bin/
+
+# Credentials & secrets
+*.env*
+*-service-account*.json
+*credentials*.json
+gha-creds-*.json
+
+# OpenTofu / Terraform
+.terraform/
+infra/opentofu/.terraform/
+*.tfstate*
+*.tfvars*
+crash.log
+
+# Node & Playwright artifacts
+node_modules/
+tests/playwright/playwright-report/
+tests/playwright/test-results/
+tests/playwright/blob-report/
+playwright/.cache/
+
+# Local runtime & logs
+petimages/
+compose.log
+
+# Editor & OS artifacts
+.DS_Store
+*.swp
+.idea/
