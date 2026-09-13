@@ -1335,6 +1335,26 @@ footer {
   z-index: 1;
 }
 
+.map-status-overlay {
+  display: none;
+  position: absolute;
+  top: 1.25rem;
+  left: 1.25rem;
+  z-index: 1000;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+}
+
+.map-status-overlay.visible {
+  display: block;
+}
+
 /* Leaflet Dark Theme Harmonization */
 [data-theme="dark"] .leaflet-tile-pane {
   filter: brightness(0.65) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);

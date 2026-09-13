@@ -340,32 +340,30 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // Popup interaction for "View Details": switch to Grid view and scroll to card
-    map.on('popupopen', (e) => {
-      const popupNode = e.popup.getElement();
-      if (!popupNode) return;
-      const detailBtn = popupNode.querySelector('.popup-btn[data-pet-id]');
-      if (detailBtn && !detailBtn.dataset.bound) {
-        detailBtn.dataset.bound = 'true';
-        detailBtn.addEventListener('click', (ev) => {
-          ev.preventDefault();
-          const petId = detailBtn.getAttribute('data-pet-id');
-          if (!petId) return;
+    // Delegated click listener on map element for "View Details" popup button
+    mapElement.addEventListener('click', (ev) => {
+      const detailBtn = ev.target.closest('.popup-btn[data-pet-id]');
+      if (!detailBtn) return;
+      ev.preventDefault();
+      const petId = detailBtn.getAttribute('data-pet-id');
+      if (!petId) return;
 
-          switchView('grid');
-
-          const escapedId = window.CSS && CSS.escape ? CSS.escape(petId) : petId.replace(/["\\]/g, '\\$&');
-          const targetCard = document.querySelector(`.pet-card[data-pet-id="${escapedId}"]`);
-          if (targetCard) {
-            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            targetCard.focus();
-            targetCard.classList.add('highlight-pet-card');
-            setTimeout(() => {
-              targetCard.classList.remove('highlight-pet-card');
-            }, 2000);
-          }
-        });
+      // switch to grid view and focus card
+      if (typeof switchView === 'function') {
+        switchView('grid');
       }
+      setTimeout(() => {
+        const escapedId = window.CSS && CSS.escape ? CSS.escape(petId) : petId;
+        const targetCard = document.querySelector(`.pet-card[data-pet-id="${escapedId}"]`);
+        if (targetCard) {
+          targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          targetCard.focus();
+          targetCard.classList.add('highlight-pet-card');
+          setTimeout(() => {
+            targetCard.classList.remove('highlight-pet-card');
+          }, 2000);
+        }
+      }, 50);
     });
 
     return map;
