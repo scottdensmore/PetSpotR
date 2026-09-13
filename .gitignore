@@ -34,6 +34,9 @@ petimages
 # Entire CLI
 .entire/
 
+# Superpowers SDD workspace
+.superpowers/
+
 # Editor & OS
 .DS_Store
 *.swp
