@@ -37,19 +37,60 @@ built with the pinned **Go 1.26.5** toolchain:
 - Docker & Docker Compose installed.
 - Ollama installed locally or running via Docker Compose.
 
-### Running Unit Tests
+### Running Tests & Verification
 
-To run all package unit tests and static analysis:
+PetSpotR enforces strict verification across all packages, including static analysis, linting, unit/race coverage, end-to-end Playwright API journeys, and infrastructure manifest validation:
 
 ```bash
-# Run unit tests across all packages
-go test -v ./...
-
-# Run tests with race detector and coverage
-go test -race -v -cover ./...
+# Set pinned Go toolchain
+export GOTOOLCHAIN=go1.26.5
 
 # Run static analysis
 go vet ./...
+
+# Run unit tests with race detector and coverage
+go test -race -cover ./...
+
+# Run code linter
+golangci-lint run
+```
+
+#### Playwright End-to-End API Journeys
+
+Automated user journey and API tests are executed with Playwright against running services:
+
+```bash
+# Start required services in Docker
+docker compose up --build --detach lostpet-service foundpet-service web-frontend
+
+# Run Playwright API journeys
+cd tests/playwright
+npm ci
+npx playwright install chromium
+LOSTPET_SERVICE_URL=http://localhost:8080 \
+FOUNDPET_SERVICE_URL=http://localhost:8081 \
+WEB_FRONTEND_URL=http://localhost:8082 \
+npx playwright test
+cd ../..
+
+# Tear down test containers
+docker compose down --volumes --remove-orphans
+```
+
+#### Infrastructure & Manifest Validation
+
+Validate OpenTofu configurations and Cloud Run Knative manifests:
+
+```bash
+# OpenTofu formatting and syntax validation
+cd infra/opentofu
+tofu fmt -check -recursive
+tofu init -backend=false
+tofu validate
+cd ../..
+
+# Cloud Run Knative manifest linting
+yamllint -s deploy/cloudrun/
 ```
 
 ### Running Locally with Docker Compose
@@ -78,6 +119,39 @@ emulator stack remains tracked separately in issue #117.
 
 Access the application in your browser at `http://localhost:8082`.
 
+### Runtime Profiles & Execution Tiers
+
+PetSpotR services are configured via typed runtime configuration (`pkg/runtimeconfig`) using `.env.example` as a non-secret reference template. Services support four operational runtime profiles governed by `PETSPOTR_ENV` and `PETSPOTR_RUNTIME_MODE`:
+
+1. **Demo Profile** (`PETSPOTR_ENV=development`, `PETSPOTR_RUNTIME_MODE=memory`):
+   - **State & Messaging**: In-memory ephemeral state (`store.NewMemoryStore()`) and in-memory Pub/Sub broker (`pubsub.NewMemoryPubSub()`).
+   - **Seeded Data**: Pre-populated with realistic demo pets and match candidates (`NewDemoServer`, `SeedDemoPets`, `SeedDemoMatches`) for rapid local UI evaluation and testing.
+   - **External Dependencies**: Zero cloud or emulator dependencies required.
+   - **Intended Use**: Fast local UI development, single-binary evaluation, and isolated unit test suites.
+
+2. **Local Emulator Profile** (`PETSPOTR_ENV=local-emulator`, `PETSPOTR_RUNTIME_MODE=local-emulator`):
+   - **Configuration**: Uses `.env.example` as the non-secret environment template.
+   - **State & Messaging**: Connects to locally running GCP emulators:
+     - Cloud Firestore emulator (`FIRESTORE_EMULATOR_HOST=localhost:8085`)
+     - Cloud Pub/Sub emulator (`PUBSUB_EMULATOR_HOST=localhost:8086`)
+     - Cloud Storage emulator (`STORAGE_EMULATOR_HOST=http://localhost:9023`)
+     - Firebase Authentication emulator (`FIREBASE_AUTH_EMULATOR_HOST=localhost:9099`)
+   - **Behavior**: Exercises true multi-service transactional persistence, outbox polling relays, authenticated Pub/Sub push delivery with development tokens (`PUBSUB_PUSH_DEV_TOKEN`), and GCS capability tokens.
+   - **Intended Use**: Multi-service integration testing, cross-process persistence verification, and contract testing.
+
+3. **GCP Staging Profile** (`PETSPOTR_ENV=staging`, `PETSPOTR_RUNTIME_MODE=gcp`):
+   - **Configuration**: Managed GCP staging project infrastructure deployed via OpenTofu (`infra/opentofu`).
+   - **State & Messaging**: Managed Cloud Firestore, Cloud Pub/Sub topics with OIDC push subscriptions, and private Cloud Storage buckets.
+   - **Credentials & Secrets**: Uses Application Default Credentials (ADC) and Workload Identity. Sensitive credentials (session secret, SendGrid API key, Twilio tokens, VAPID keys) are loaded from Google Secret Manager.
+   - **Fail-Fast Validation**: Typed runtime config validation enforces required cloud variables and rejects placeholder secrets or local emulator host variables at startup.
+   - **Intended Use**: Pre-production integration testing, automated deployment verification, and staging environments.
+
+4. **GCP Production Profile** (`PETSPOTR_ENV=production`, `PETSPOTR_RUNTIME_MODE=gcp`):
+   - **Configuration**: Highly available, autoscaled Google Cloud Run services.
+   - **State & Messaging**: Production Cloud Firestore, Cloud Pub/Sub with dead-letter queues (DLQ) and exponential backoff retry policies, and private GCS buckets with uniform bucket-level access.
+   - **Security & Protection**: Strict Google OIDC service account token verification on all push subscriptions (`PUBSUB_PUSH_SERVICE_ACCOUNT`), HTTPS-only secure session cookies, token-bucket abuse controls and rate limiting (`RATE_LIMIT_ENABLED=true`), and Secret Manager integration.
+   - **Intended Use**: Production consumer traffic.
+
 ### State Runtime Modes
 
 The five stateful processes select their state backend with
@@ -99,8 +173,8 @@ start with ephemeral state or emulator credentials.
 Managed emulator and GCP servers return redacted public lost-pet records.
 Identity-enabled private contact and match actions require the trusted report
 owner or match participant. Reunion resolution additionally requires an active
-global operator assignment. Push subscription remains disabled outside the
-explicit identity-disabled `memory` demo while issue #110 is incomplete.
+global operator assignment. Push subscription and identity ownership are fully integrated (#110), enforcing
+provider-neutral authenticated sessions, participant-only match reads, and bilateral decisions.
 
 For example, after starting a Firestore emulator on port 8085:
 
@@ -916,8 +990,8 @@ work.
 The operation ID is also passed to every channel provider as its idempotency
 key. This closes the crash window where provider delivery succeeds but writing
 the completed operation fails: after the lease expires, the retry uses the same
-provider key. Every production sender must preserve that contract when
-issue #65 replaces the current development senders.
+provider key. Multi-channel notification engine (#65) implements SendGrid email, Twilio SMS, and
+VAPID Web Push providers, preserving that contract and falling back to logging senders when API keys are omitted in development.
 
 Run the live concurrent-claim and fencing contract against a Firestore emulator
 with:
