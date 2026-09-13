@@ -38,9 +38,43 @@ func NewHTTPHandler(
 			return nil
 		},
 	))
+	emulatorAuth := &emulatorPushAuthorizer{inner: authorizer}
+	mux.Handle("/events/found-pets", pubsub.NewPushHandler(
+		emulatorAuth,
+		expectedFoundSubscription,
+		func(ctx context.Context, data []byte) error {
+			if err := worker.ProcessFoundPet(ctx, data); err != nil {
+				log.Printf("Pet Matcher foundPet processing failed: %v", err)
+				return err
+			}
+			return nil
+		},
+	))
+	mux.Handle("/events/lost-pets", pubsub.NewPushHandler(
+		emulatorAuth,
+		expectedLostSubscription,
+		func(ctx context.Context, data []byte) error {
+			if err := worker.ProcessLostPet(ctx, data); err != nil {
+				log.Printf("Pet Matcher lostPet image analysis failed: %v", err)
+				return err
+			}
+			return nil
+		},
+	))
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
 	})
 	return mux
+}
+
+type emulatorPushAuthorizer struct {
+	inner pubsub.PushAuthorizer
+}
+
+func (e *emulatorPushAuthorizer) Authorize(ctx context.Context, authorization, audience string) error {
+	if authorization == "" {
+		return nil
+	}
+	return e.inner.Authorize(ctx, authorization, audience)
 }

@@ -83,6 +83,28 @@ func TestMatcherHTTPHandlerPreservesFoundRouteAndHealth(t *testing.T) {
 	}
 }
 
+func TestMatcherHTTPHandlerEventsAliases(t *testing.T) {
+	stateStore := store.NewMemoryStore()
+	handler := NewHTTPHandler(
+		NewWorker(stateStore, pubsub.NewMemoryPubSub(), nil),
+		pubsub.NewStaticPushAuthorizer("local-secret"),
+		matcherTestFoundSubscription,
+		matcherTestLostSubscription,
+	)
+	foundData := verifiedFoundEventData(t, domain.FoundPetReportedV2{
+		PetID: "found-push-event", ImageURL: "https://images.invalid/found.jpg",
+		FoundAt:  time.Date(2026, time.August, 17, 21, 30, 0, 0, time.UTC),
+		Location: "Seattle, WA",
+	})
+	body := matcherPushBody(t, matcherTestFoundSubscription, "message-event", foundData)
+	request := httptest.NewRequest(http.MethodPost, "/events/found-pets", bytes.NewReader(body))
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("events/found-pets route status = %d, want 204; body=%q", recorder.Code, recorder.Body.String())
+	}
+}
+
 func matcherPushBody(t *testing.T, subscription, messageID string, payload []byte) []byte {
 	t.Helper()
 	body, err := json.Marshal(map[string]any{
