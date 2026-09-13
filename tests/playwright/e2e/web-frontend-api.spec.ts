@@ -7,7 +7,14 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
     const response = await request.get(`${WEB_FRONTEND_URL}/healthz`);
     expect(response.status()).toBe(200);
     const text = await response.text();
-    expect(text).toContain('OK');
+    expect(text.toLowerCase()).toContain('ok');
+  });
+
+  test('should return 200 OK on GET /readyz', async ({ request }) => {
+    const response = await request.get(`${WEB_FRONTEND_URL}/readyz`);
+    expect(response.status()).toBe(200);
+    const text = await response.text();
+    expect(text.toLowerCase()).toContain('ready');
   });
 
   test('should return Prometheus metrics on GET /metrics', async ({ request }) => {
