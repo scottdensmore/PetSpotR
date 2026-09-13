@@ -78,8 +78,22 @@ func TestNewServer_Routes(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Errorf("expected status 200 OK, got %d", rec.Code)
 		}
-		if !strings.Contains(rec.Body.String(), "OK") {
-			t.Errorf("expected body OK, got %s", rec.Body.String())
+		if !strings.Contains(rec.Body.String(), `"status":"ok"`) {
+			t.Errorf("expected body status ok, got %s", rec.Body.String())
+		}
+	})
+
+	t.Run("GET /readyz returns 200 OK", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200 OK, got %d", rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), `"status":"ready"`) {
+			t.Errorf("expected body status ready, got %s", rec.Body.String())
 		}
 	})
 
