@@ -81,7 +81,7 @@ func main() {
 	go recoveryRunner.Run(ctx)
 
 	srv := webfrontend.NewServerWithOptions(stateRuntime.Store, webfrontend.ServerOptions{
-		AllowPrivilegedMutations: config.Mode == runtimeconfig.ModeMemory,
+		AllowPrivilegedMutations: config.Mode == runtimeconfig.ModeMemory || config.Mode == runtimeconfig.ModeLocalEmulator,
 		FoundPetReporter:         foundReports,
 		LostPetReporter:          lostReports,
 		IdentitySessions:         identityRuntime.Sessions,
