@@ -544,6 +544,8 @@ func TestDirectory_StaticVendoredLeafletAssets(t *testing.T) {
 	}{
 		{urlPath: "/static/vendor/leaflet/leaflet.js", contentType: "text/javascript"},
 		{urlPath: "/static/vendor/leaflet/leaflet.css", contentType: "text/css"},
+		{urlPath: "/static/vendor/leaflet/images/marker-icon.png", contentType: "image/png"},
+		{urlPath: "/static/vendor/leaflet/images/marker-shadow.png", contentType: "image/png"},
 	}
 
 	for _, tc := range tests {
