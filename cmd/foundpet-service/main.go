@@ -14,6 +14,7 @@ import (
 	"github.com/scottdensmore/petspotr/internal/app/outboxrecovery"
 	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
 	"github.com/scottdensmore/petspotr/pkg/store"
+	"github.com/scottdensmore/petspotr/pkg/telemetry"
 )
 
 func main() {
@@ -103,9 +104,29 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/foundPet", svc.HandleFoundPet)
 	mux.HandleFunc("/foundPet/uploads", svc.HandleBeginImageUpload)
+	telemetry.RegisterHealthRoutes(mux, map[string]telemetry.ReadinessChecker{
+		"state": func(ctx context.Context) error {
+			if stateRuntime == nil || stateRuntime.Store == nil {
+				return errors.New("state store uninitialized")
+			}
+			return nil
+		},
+		"messaging": func(ctx context.Context) error {
+			if messagingRuntime == nil || messagingRuntime.Publisher == nil {
+				return errors.New("messaging publisher uninitialized")
+			}
+			return nil
+		},
+		"storage": func(ctx context.Context) error {
+			if storageRuntime == nil || storageRuntime.Images == nil {
+				return errors.New("storage images uninitialized")
+			}
+			return nil
+		},
+	})
 	httpServer := &http.Server{
 		Addr:              ":" + port,
-		Handler:           mux,
+		Handler:           telemetry.TraceContextMiddleware(mux),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

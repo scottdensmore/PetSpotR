@@ -48,6 +48,7 @@ type Server struct {
 	identityClientConfig     identity.WebClientConfig
 	secureSessionCookie      bool
 	rateLimiter              ratelimit.Limiter
+	handler                  http.Handler
 }
 
 // LostPetReporter is the canonical lost-pet command consumed by the browser
@@ -176,6 +177,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		rateLimiter:              rateLimiter,
 	}
 	s.routes()
+	s.handler = telemetry.TraceContextMiddleware(s.mux)
 	return s
 }
 
@@ -230,7 +232,14 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/session/client-config", s.handleApiIdentityClientConfig)
 	s.mux.HandleFunc("/api/v1/session", s.handleApiSession)
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
-	s.mux.HandleFunc("/healthz", s.handleHealthz)
+	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
+		"state": func(ctx context.Context) error {
+			if s.stateStore == nil {
+				return errors.New("state store uninitialized")
+			}
+			return nil
+		},
+	})
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
@@ -1470,12 +1479,6 @@ func (s *Server) handleApiPresignedURL(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(res)
 }
 
-func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("OK"))
-}
-
 // ServeHTTP satisfies the http.Handler interface.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Security-Policy", s.securityPolicy())
@@ -1483,7 +1486,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(), microphone=()")
 	w.Header().Set("X-Frame-Options", "DENY")
-	s.mux.ServeHTTP(w, r)
+	s.handler.ServeHTTP(w, r)
 }
 
 func (s *Server) securityPolicy() string {
