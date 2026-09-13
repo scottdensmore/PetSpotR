@@ -29,6 +29,26 @@ resource "google_storage_bucket" "pet_images" {
       with_state     = "ANY"
     }
   }
+
+  lifecycle_rule {
+    action {
+      type = "Delete"
+    }
+    condition {
+      days_since_noncurrent_time = 30
+      num_newer_versions         = 3
+      with_state                 = "ARCHIVED"
+    }
+  }
+
+  lifecycle_rule {
+    action {
+      type = "AbortIncompleteMultipartUpload"
+    }
+    condition {
+      age = 7
+    }
+  }
 }
 
 variable "project_id" { type = string }

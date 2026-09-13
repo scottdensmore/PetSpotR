@@ -25,6 +25,36 @@ resource "google_project_service" "iam_credentials" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "firestore" {
+  project            = var.project_id
+  service            = "firestore.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "pubsub" {
+  project            = var.project_id
+  service            = "pubsub.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "cloudrun" {
+  project            = var.project_id
+  service            = "run.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "secretmanager" {
+  project            = var.project_id
+  service            = "secretmanager.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "cloudtrace" {
+  project            = var.project_id
+  service            = "cloudtrace.googleapis.com"
+  disable_on_destroy = false
+}
+
 module "storage" {
   source          = "./modules/storage"
   project_id      = var.project_id
@@ -34,8 +64,11 @@ module "storage" {
 }
 
 module "firestore" {
-  source = "./modules/firestore"
-  region = var.region
+  source              = "./modules/firestore"
+  project_id          = var.project_id
+  region              = var.region
+  deletion_protection = var.firestore_deletion_protection
+  depends_on          = [google_project_service.firestore]
 }
 
 module "cloudrun" {

@@ -116,3 +116,9 @@ variable "notification_service_concurrency" {
   type        = number
   default     = null
 }
+
+variable "firestore_deletion_protection" {
+  description = "Enable deletion protection on Firestore database in production"
+  type        = bool
+  default     = true
+}
