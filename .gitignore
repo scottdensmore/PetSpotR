@@ -15,7 +15,6 @@ gha-creds-*.json
 
 # OpenTofu / Terraform
 .terraform/
-.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 *.tfvars
