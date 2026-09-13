@@ -27,3 +27,8 @@ output "artifact_registry_repository_url" {
   value       = "${google_artifact_registry_repository.petspotr.location}-docker.pkg.dev/${google_artifact_registry_repository.petspotr.project}/${google_artifact_registry_repository.petspotr.repository_id}"
   description = "Regional Artifact Registry Docker repository URL"
 }
+
+output "pet_inference_url" {
+  value       = module.cloudrun.pet_inference_url
+  description = "Authenticated internal URL of pet-inference Cloud Run GPU service"
+}

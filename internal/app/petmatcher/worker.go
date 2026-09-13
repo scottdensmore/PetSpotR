@@ -59,7 +59,7 @@ func NewWorker(st Store, br pubsub.Publisher, oc *ollama.Client) *Worker {
 func NewWorkerWithImageStore(st Store, br pubsub.Publisher, oc *ollama.Client, images blob.ImageStore) *Worker {
 	model := os.Getenv("OLLAMA_MODEL")
 	if model == "" {
-		model = "gemma4:e2b"
+		model = ollama.Gemma4Model
 	}
 	return &Worker{
 		store:        st,
@@ -208,6 +208,9 @@ func (w *Worker) processClaimedFoundPet(
 		lostTraits := winner.candidate.traits
 		lostPetID := lostRecord.PetID
 		matchResult.SourceEventID = inputEventID
+		if foundModel == "" {
+			foundModel = ollama.Gemma4Model
+		}
 		matchResult.Model = foundModel
 		matchResult.PhotoURL = foundEvt.ImageURL
 		matchID, err := domain.StableMatchID(inputEventID, foundEvt.PetID, lostPetID)

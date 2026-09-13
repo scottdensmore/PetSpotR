@@ -47,6 +47,11 @@ resource "google_service_account" "notification_runtime" {
   display_name = "Notification Cloud Run runtime"
 }
 
+resource "google_service_account" "pet_inference_runtime" {
+  account_id   = "pet-inference-runtime"
+  display_name = "Pet inference Cloud Run runtime"
+}
+
 resource "google_project_iam_member" "foundpet_datastore" {
   project = var.project_id
   role    = "roles/datastore.user"
@@ -175,6 +180,16 @@ resource "google_cloud_run_v2_service" "pet_matcher" {
         name  = "PUBSUB_PUSH_SERVICE_ACCOUNT"
         value = "pubsub-pet-matcher-invoker@${var.project_id}.iam.gserviceaccount.com"
       }
+
+      env {
+        name  = "OLLAMA_HOST"
+        value = google_cloud_run_v2_service.pet_inference.uri
+      }
+
+      env {
+        name  = "OLLAMA_MODEL"
+        value = var.ollama_model
+      }
     }
   }
 }
@@ -211,6 +226,72 @@ resource "google_cloud_run_v2_service" "notification_service" {
       }
     }
   }
+}
+
+resource "google_cloud_run_v2_service" "pet_inference" {
+  name     = "pet-inference"
+  location = var.region
+  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+
+  template {
+    service_account                  = google_service_account.pet_inference_runtime.email
+    max_instance_request_concurrency = var.pet_inference_concurrency
+
+    scaling {
+      min_instance_count = var.pet_inference_min_instances
+      max_instance_count = var.pet_inference_max_instances
+    }
+
+    annotations = {
+      "run.googleapis.com/launch-stage" = "BETA"
+    }
+
+    containers {
+      image = var.pet_inference_image
+
+      resources {
+        limits = {
+          cpu              = var.pet_inference_cpu
+          memory           = var.pet_inference_memory
+          "nvidia.com/gpu" = tostring(var.pet_inference_gpu_count)
+        }
+        cpu_idle = false
+      }
+
+      ports {
+        container_port = 11434
+      }
+
+      startup_probe {
+        http_get {
+          path = "/api/version"
+          port = 11434
+        }
+        initial_delay_seconds = 10
+        period_seconds        = 10
+        failure_threshold     = 30
+        timeout_seconds       = 5
+      }
+
+      liveness_probe {
+        http_get {
+          path = "/api/version"
+          port = 11434
+        }
+        period_seconds    = 15
+        failure_threshold = 3
+        timeout_seconds   = 5
+      }
+    }
+  }
+}
+
+resource "google_cloud_run_v2_service_iam_member" "pet_inference_matcher_invoker" {
+  project  = var.project_id
+  location = var.region
+  name     = google_cloud_run_v2_service.pet_inference.name
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.pet_matcher_runtime.email}"
 }
 
 variable "project_id" { type = string }
@@ -282,6 +363,60 @@ variable "notification_service_concurrency" {
   default     = 80
 }
 
+variable "pet_inference_image" {
+  description = "Container image for pet-inference"
+  type        = string
+  default     = "ollama/ollama:0.32.5"
+}
+
+variable "pet_inference_concurrency" {
+  description = "Maximum concurrent requests per instance for pet-inference"
+  type        = number
+  default     = 4
+}
+
+variable "pet_inference_gpu_type" {
+  description = "GPU accelerator type for pet-inference"
+  type        = string
+  default     = "nvidia-l4"
+}
+
+variable "pet_inference_gpu_count" {
+  description = "Number of GPUs allocated per pet-inference instance"
+  type        = number
+  default     = 1
+}
+
+variable "pet_inference_cpu" {
+  description = "CPU limit for pet-inference container"
+  type        = string
+  default     = "4"
+}
+
+variable "pet_inference_memory" {
+  description = "Memory limit for pet-inference container"
+  type        = string
+  default     = "16Gi"
+}
+
+variable "pet_inference_min_instances" {
+  description = "Minimum instance count for pet-inference"
+  type        = number
+  default     = 0
+}
+
+variable "pet_inference_max_instances" {
+  description = "Maximum instance count for pet-inference"
+  type        = number
+  default     = 5
+}
+
+variable "ollama_model" {
+  description = "Default Ollama model identifier for multimodal pet matching"
+  type        = string
+  default     = "gemma4:e2b"
+}
+
 output "web_frontend_url" {
   value = google_cloud_run_v2_service.web_frontend.uri
 }
@@ -328,4 +463,16 @@ output "notification_service_name" {
 
 output "notification_runtime_service_account" {
   value = google_service_account.notification_runtime.email
+}
+
+output "pet_inference_url" {
+  value = google_cloud_run_v2_service.pet_inference.uri
+}
+
+output "pet_inference_name" {
+  value = google_cloud_run_v2_service.pet_inference.name
+}
+
+output "pet_inference_runtime_service_account" {
+  value = google_service_account.pet_inference_runtime.email
 }

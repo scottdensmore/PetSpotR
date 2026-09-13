@@ -122,3 +122,57 @@ variable "firestore_deletion_protection" {
   type        = bool
   default     = true
 }
+
+variable "pet_inference_image" {
+  description = "Container image for pet-inference"
+  type        = string
+  default     = "ollama/ollama:0.32.5"
+}
+
+variable "pet_inference_concurrency" {
+  description = "Maximum concurrent requests per instance for pet-inference"
+  type        = number
+  default     = 4
+}
+
+variable "pet_inference_gpu_type" {
+  description = "GPU accelerator type for pet-inference"
+  type        = string
+  default     = "nvidia-l4"
+}
+
+variable "pet_inference_gpu_count" {
+  description = "Number of GPUs allocated per pet-inference instance"
+  type        = number
+  default     = 1
+}
+
+variable "pet_inference_cpu" {
+  description = "CPU limit for pet-inference container"
+  type        = string
+  default     = "4"
+}
+
+variable "pet_inference_memory" {
+  description = "Memory limit for pet-inference container"
+  type        = string
+  default     = "16Gi"
+}
+
+variable "pet_inference_min_instances" {
+  description = "Minimum instance count for pet-inference"
+  type        = number
+  default     = null
+}
+
+variable "pet_inference_max_instances" {
+  description = "Maximum instance count for pet-inference"
+  type        = number
+  default     = null
+}
+
+variable "ollama_model" {
+  description = "Default Ollama model identifier for multimodal pet matching"
+  type        = string
+  default     = "gemma4:e2b"
+}
