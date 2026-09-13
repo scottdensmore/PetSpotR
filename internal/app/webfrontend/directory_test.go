@@ -712,5 +712,3 @@ func TestDirectory_TemplateMapElementsPresent(t *testing.T) {
 		}
 	}
 }
-
-
