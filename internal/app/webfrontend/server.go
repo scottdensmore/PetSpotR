@@ -32,7 +32,7 @@ import (
 //go:embed static/* templates/*
 var embeddedFiles embed.FS
 
-const contentSecurityPolicy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://storage.petspotr.io; connect-src 'self'; worker-src 'self'"
+const contentSecurityPolicy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://storage.petspotr.io https://*.tile.openstreetmap.org; connect-src 'self'; worker-src 'self'"
 
 // Server encapsulates HTTP routes and handlers for the PetSpotR Web Frontend.
 type Server struct {

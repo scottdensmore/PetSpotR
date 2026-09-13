@@ -52,6 +52,20 @@ type DirectoryQueryParams struct {
 	RadiusMiles float64
 }
 
+// PetMapMarker represents a lightweight client marker payload for directory map pins.
+type PetMapMarker struct {
+	PetID      string  `json:"petId"`
+	Status     string  `json:"status"`
+	PetName    string  `json:"petName"`
+	Species    string  `json:"species"`
+	Breed      string  `json:"breed"`
+	Location   string  `json:"location"`
+	ImageURL   string  `json:"imageUrl"`
+	ReportedAt string  `json:"reportedAt"`
+	Latitude   float64 `json:"lat"`
+	Longitude  float64 `json:"lng"`
+}
+
 // PetsPageData provides context data to the pets.html template.
 type PetsPageData struct {
 	Pets        []PublicPetDirectoryItem
@@ -69,6 +83,12 @@ type PetsPageData struct {
 	NextPageURL string
 	NextCursor  string
 	PrevCursor  string
+	Lat         float64
+	Lng         float64
+	RadiusMiles float64
+	HasGeo      bool
+	MappedCount int
+	PetsJSON    template.JS
 }
 
 func encodeCursor(t time.Time, id string) string {
@@ -449,6 +469,29 @@ func (s *Server) handlePets(w http.ResponseWriter, r *http.Request) {
 		nextPageURL = buildDirectoryPageURL(baseURL, r.URL.Query(), nextOffset, nextCursor, params.Cursor != "")
 	}
 
+	markers := make([]PetMapMarker, 0, len(pagedItems))
+	for _, item := range pagedItems {
+		if item.Coordinates != nil && (item.Coordinates.Latitude != 0 || item.Coordinates.Longitude != 0) {
+			markers = append(markers, PetMapMarker{
+				PetID:      item.PetID,
+				Status:     item.Status,
+				PetName:    item.PetName,
+				Species:    item.Species,
+				Breed:      item.Breed,
+				Location:   item.Location,
+				ImageURL:   item.ImageURL,
+				ReportedAt: item.ReportedAt.Format("Jan 02, 2006"),
+				Latitude:   item.Coordinates.Latitude,
+				Longitude:  item.Coordinates.Longitude,
+			})
+		}
+	}
+
+	var petsJSON template.JS = "[]"
+	if jsonBytes, err := json.Marshal(markers); err == nil {
+		petsJSON = template.JS(jsonBytes)
+	}
+
 	data := PetsPageData{
 		Pets:        pagedItems,
 		TotalCount:  totalCount,
@@ -465,6 +508,12 @@ func (s *Server) handlePets(w http.ResponseWriter, r *http.Request) {
 		NextPageURL: nextPageURL,
 		NextCursor:  nextCursor,
 		PrevCursor:  prevCursor,
+		Lat:         params.GeoPoint.Latitude,
+		Lng:         params.GeoPoint.Longitude,
+		RadiusMiles: params.RadiusMiles,
+		HasGeo:      params.HasGeo,
+		MappedCount: len(markers),
+		PetsJSON:    petsJSON,
 	}
 
 	tmpl, err := template.ParseFS(embeddedFiles, "templates/pets.html")

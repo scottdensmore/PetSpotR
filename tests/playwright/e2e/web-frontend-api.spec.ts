@@ -844,7 +844,7 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
   });
 
   test('should enforce the browser security policy without breaking frontend journeys', async ({ page }) => {
-    const expectedCSP = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://storage.petspotr.io; connect-src 'self'; worker-src 'self'";
+    const expectedCSP = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://storage.petspotr.io https://*.tile.openstreetmap.org; connect-src 'self'; worker-src 'self'";
     const cspViolations: string[] = [];
     page.on('console', (message) => {
       if (message.type() === 'error' && message.text().includes('Content Security Policy')) {
