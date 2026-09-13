@@ -1,0 +1,247 @@
+name: Continuous Delivery
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: cd-production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  GAR_LOCATION: ${{ vars.GCP_REGION || 'us-central1' }}
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID || 'petspotr' }}
+  GAR_REPOSITORY: petspotr
+
+jobs:
+  build-and-publish:
+    name: Build & Publish Immutable Containers
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER || vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT || vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker "${{ env.GAR_LOCATION }}-docker.pkg.dev" --quiet
+
+      - name: Build and Push Immutable Container Images
+        id: build-images
+        run: |
+          set -euo pipefail
+          SERVICES=(
+            "web-frontend"
+            "lostpet-service"
+            "foundpet-service"
+            "pet-matcher"
+            "notification-service"
+          )
+          REPO_BASE="${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GAR_REPOSITORY }}"
+          mkdir -p .artifacts
+
+          for svc in "${SERVICES[@]}"; do
+            IMAGE_TAG="${REPO_BASE}/${svc}:${{ github.sha }}"
+            echo "::group::Building container for ${svc}"
+            docker buildx build \
+              --file Dockerfile \
+              --build-arg "SERVICE_NAME=${svc}" \
+              --tag "${IMAGE_TAG}" \
+              --push \
+              .
+
+            DIGEST=$(docker buildx imagetools inspect "${IMAGE_TAG}" --format '{{json .Manifest.Digest}}' | tr -d '"')
+            if [ -z "${DIGEST}" ] || [ "${DIGEST}" = "null" ]; then
+              DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "${IMAGE_TAG}" | awk -F'@' '{print $2}')
+            fi
+
+            echo "${svc}=${REPO_BASE}/${svc}@${DIGEST}" >> .artifacts/digests.env
+            echo "${svc} built with tag ${IMAGE_TAG} and digest ${DIGEST}"
+            echo "::endgroup::"
+          done
+
+      - name: Upload Container Digests Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-digests
+          path: .artifacts/digests.env
+          retention-days: 14
+
+  deploy-staging:
+    name: Deploy to Staging & Verify
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: staging
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Container Digests
+        uses: actions/download-artifact@v4
+        with:
+          name: container-digests
+          path: .artifacts
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER || vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT || vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy Services to Staging
+        run: |
+          set -euo pipefail
+          SERVICES=(
+            "web-frontend"
+            "lostpet-service"
+            "foundpet-service"
+            "pet-matcher"
+            "notification-service"
+          )
+          for svc in "${SERVICES[@]}"; do
+            IMG_DIGEST=$(grep "^${svc}=" .artifacts/digests.env | cut -d '=' -f 2-)
+            STAGING_SERVICE="${svc}-staging"
+            echo "Deploying ${STAGING_SERVICE} using immutable digest ${IMG_DIGEST}..."
+            gcloud run deploy "${STAGING_SERVICE}" \
+              --image="${IMG_DIGEST}" \
+              --region="${{ env.GAR_LOCATION }}" \
+              --project="${{ env.GCP_PROJECT_ID }}" \
+              --platform=managed \
+              --quiet
+          done
+
+      - name: Verify Staging Probes (/healthz & /readyz)
+        run: |
+          set -euo pipefail
+          SERVICES=(
+            "web-frontend-staging"
+            "lostpet-service-staging"
+            "foundpet-service-staging"
+            "pet-matcher-staging"
+            "notification-service-staging"
+          )
+          for svc in "${SERVICES[@]}"; do
+            echo "::group::Verifying probes for ${svc}"
+            SVC_URL=$(gcloud run services describe "${svc}" \
+              --region="${{ env.GAR_LOCATION }}" \
+              --project="${{ env.GCP_PROJECT_ID }}" \
+              --format="value(status.url)")
+
+            if [ -z "${SVC_URL}" ]; then
+              echo "Error: Could not resolve URL for ${svc}"
+              exit 1
+            fi
+
+            for probe in "/healthz" "/readyz"; do
+              TARGET_URL="${SVC_URL}${probe}"
+              echo "Checking probe ${TARGET_URL}..."
+              STATUS=$(curl --silent --show-error --output /dev/null --write-out "%{http_code}" "${TARGET_URL}" || echo "000")
+              if [ "${STATUS}" != "200" ]; then
+                echo "Error: Probe ${TARGET_URL} returned HTTP ${STATUS} (expected 200)"
+                exit 1
+              fi
+              echo "Probe ${TARGET_URL} returned HTTP 200"
+            done
+            echo "::endgroup::"
+          done
+
+  deploy-production:
+    name: Deploy to Production
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Container Digests
+        uses: actions/download-artifact@v4
+        with:
+          name: container-digests
+          path: .artifacts
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER || vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT || vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy Services to Production
+        run: |
+          set -euo pipefail
+          SERVICES=(
+            "web-frontend"
+            "lostpet-service"
+            "foundpet-service"
+            "pet-matcher"
+            "notification-service"
+          )
+          for svc in "${SERVICES[@]}"; do
+            IMG_DIGEST=$(grep "^${svc}=" .artifacts/digests.env | cut -d '=' -f 2-)
+            echo "Deploying production service ${svc} using immutable digest ${IMG_DIGEST}..."
+            gcloud run deploy "${svc}" \
+              --image="${IMG_DIGEST}" \
+              --region="${{ env.GAR_LOCATION }}" \
+              --project="${{ env.GCP_PROJECT_ID }}" \
+              --platform=managed \
+              --quiet
+          done
+
+      - name: Verify Production Health Probes
+        run: |
+          set -euo pipefail
+          SERVICES=(
+            "web-frontend"
+            "lostpet-service"
+            "foundpet-service"
+            "pet-matcher"
+            "notification-service"
+          )
+          for svc in "${SERVICES[@]}"; do
+            echo "::group::Verifying production probes for ${svc}"
+            SVC_URL=$(gcloud run services describe "${svc}" \
+              --region="${{ env.GAR_LOCATION }}" \
+              --project="${{ env.GCP_PROJECT_ID }}" \
+              --format="value(status.url)" || echo "")
+
+            if [ -n "${SVC_URL}" ]; then
+              for probe in "/healthz" "/readyz"; do
+                TARGET_URL="${SVC_URL}${probe}"
+                echo "Checking probe ${TARGET_URL}..."
+                STATUS=$(curl --silent --show-error --output /dev/null --write-out "%{http_code}" "${TARGET_URL}" || echo "000")
+                if [ "${STATUS}" != "200" ]; then
+                  echo "Error: Production probe ${TARGET_URL} returned HTTP ${STATUS} (expected 200)"
+                  exit 1
+                fi
+                echo "Production probe ${TARGET_URL} returned HTTP 200"
+              done
+            fi
+            echo "::endgroup::"
+          done

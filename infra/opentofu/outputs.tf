@@ -22,3 +22,8 @@ output "notification_service_url" {
   value       = module.cloudrun.notification_service_url
   description = "Authenticated internal URL of notification-service Cloud Run service"
 }
+
+output "artifact_registry_repository_url" {
+  value       = "${google_artifact_registry_repository.petspotr.location}-docker.pkg.dev/${google_artifact_registry_repository.petspotr.project}/${google_artifact_registry_repository.petspotr.repository_id}"
+  description = "Regional Artifact Registry Docker repository URL"
+}
