@@ -35,6 +35,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mapStatusOverlay) {
       mapStatusOverlay.textContent = message;
       mapStatusOverlay.classList.add('visible');
+      clearTimeout(mapStatusOverlay._timeout);
+      mapStatusOverlay._timeout = setTimeout(() => {
+        mapStatusOverlay.classList.remove('visible');
+      }, 5000);
     }
 
     let toast = document.getElementById('directory-toast');
@@ -320,6 +324,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (mapStatusOverlay) {
         mapStatusOverlay.textContent = `Location set to ${clickedLat.toFixed(4)}, ${clickedLng.toFixed(4)}. Radius: ${activeRadius} miles.`;
+        mapStatusOverlay.classList.add('visible');
+        clearTimeout(mapStatusOverlay._timeout);
+        mapStatusOverlay._timeout = setTimeout(() => {
+          mapStatusOverlay.classList.remove('visible');
+        }, 5000);
       }
 
       // Prompt popup offering to apply proximity filter
