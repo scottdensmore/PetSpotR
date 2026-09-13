@@ -94,8 +94,12 @@ func (w *Worker) generateFoundImageTraits(ctx context.Context, image string) (*s
 	if w.ollamaClient == nil {
 		return nil, "", errors.New("pet-matcher: Ollama client is not configured")
 	}
+	modelReq := w.modelName
+	if modelReq == "" {
+		modelReq = ollama.Gemma4Model
+	}
 	response, err := w.ollamaClient.Generate(ctx, &ollama.GenerateRequest{
-		Model: w.modelName, Prompt: scoring.BuildGemmaPrompt("Pet", ""), Images: []string{image},
+		Model: modelReq, Prompt: scoring.BuildGemmaPrompt("Pet", ""), Images: []string{image},
 	})
 	if err != nil {
 		return nil, "", fmt.Errorf("pet-matcher: Ollama generation failed: %w", err)
@@ -106,7 +110,7 @@ func (w *Worker) generateFoundImageTraits(ctx context.Context, image string) (*s
 	}
 	model := strings.TrimSpace(response.Model)
 	if model == "" {
-		model = w.modelName
+		model = modelReq
 	}
 	return traits, model, nil
 }

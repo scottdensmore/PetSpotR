@@ -103,8 +103,12 @@ func (w *Worker) processClaimedLostPet(
 	if err != nil {
 		return fmt.Errorf("pet-matcher: read private lost-pet image: %w", err)
 	}
+	modelReq := w.modelName
+	if modelReq == "" {
+		modelReq = ollama.Gemma4Model
+	}
 	response, err := w.ollamaClient.Generate(ctx, &ollama.GenerateRequest{
-		Model:  w.modelName,
+		Model:  modelReq,
 		Prompt: scoring.BuildGemmaPrompt(lostEvent.Species, lostEvent.Breed),
 		Images: []string{base64.StdEncoding.EncodeToString(imageBytes)},
 	})
@@ -117,7 +121,7 @@ func (w *Worker) processClaimedLostPet(
 	}
 	model := strings.TrimSpace(response.Model)
 	if model == "" {
-		model = w.modelName
+		model = modelReq
 	}
 	analysis := domain.NormalizeImageTraitAnalysis(&domain.ImageTraitAnalysis{
 		Status: domain.ImageTraitsVerified,

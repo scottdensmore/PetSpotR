@@ -1042,3 +1042,69 @@ func assertPublishedMatcherResult(t *testing.T, st store.StateStore) {
 		}
 	}
 }
+
+func TestMatcherWorker_RecordsGemma4ModelProvenance(t *testing.T) {
+	ctx := context.Background()
+	st := store.NewMemoryStore()
+	ps := pubsub.NewMemoryPubSub()
+	if err := ps.Subscribe("matchFound", func(context.Context, []byte) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	images := blob.NewMemoryBlobStore("https://storage.petspotr.io")
+	grant, err := images.BeginImageUpload(ctx, blob.ImageUploadIntent{
+		Purpose: blob.ImagePurposeFoundPet, ContentType: "image/jpeg",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	imageBytes := encodedMatcherImage(t)
+	if _, err := images.UploadImage(ctx, grant.ObjectName, imageBytes); err != nil {
+		t.Fatal(err)
+	}
+	finalized, err := images.FinalizeImage(ctx, grant.ReportID, grant.ObjectName, grant.FinalizeToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundAt := time.Now().UTC()
+	foundEvent := domain.FoundPetReportedV2{
+		PetID: grant.ReportID, ImageObject: finalized.ObjectName, FoundAt: foundAt,
+		Location: "Seattle, WA", GeocodingStatus: domain.GeocodingVerified,
+		Coordinates: matcherTestPoint(), CustodyStatus: domain.CustodyUnknown,
+		Status: domain.FoundPetStatusFound,
+	}
+	seedMatcherFoundPet(t, st, foundEvent)
+
+	deterministicClient := ollama.NewDeterministicClient(&ollama.GenerateResponse{
+		Model:      ollama.Gemma4Model,
+		Done:       true,
+		Response:   `{"breed":"Golden Retriever","primaryColor":"Golden","secondaryColor":"Cream","distinctiveMarkings":[],"eyeColor":"Brown"}`,
+		Provenance: ollama.DefaultGemma4Provenance(),
+	}, nil)
+
+	seedMatcherLostPet(t, st)
+	worker := NewWorkerWithImageStore(st, ps, deterministicClient, images)
+	foundData := verifiedFoundEventData(t, foundEvent)
+	if err := worker.ProcessFoundPet(ctx, foundData); err != nil {
+		t.Fatalf("ProcessFoundPet() error = %v", err)
+	}
+
+	matches, err := st.ListState(ctx, store.MatchesCollection)
+	if err != nil {
+		t.Fatalf("ListState matches error: %v", err)
+	}
+	if len(matches) != 1 {
+		t.Fatalf("expected 1 match, got %d", len(matches))
+	}
+	var record domain.MatchRecord
+	for _, data := range matches {
+		if err := json.Unmarshal(data, &record); err != nil {
+			t.Fatalf("decode match record: %v", err)
+		}
+	}
+	if record.Model != ollama.Gemma4Model {
+		t.Errorf("record.Model = %q, want %q", record.Model, ollama.Gemma4Model)
+	}
+	if err := record.Validate(); err != nil {
+		t.Errorf("record.Validate() error: %v", err)
+	}
+}

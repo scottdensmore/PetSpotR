@@ -107,6 +107,15 @@ module "cloudrun" {
   pet_matcher_concurrency            = coalesce(var.pet_matcher_concurrency, 10)
   notification_service_max_instances = coalesce(var.notification_service_max_instances, var.cloudrun_max_instances)
   notification_service_concurrency   = coalesce(var.notification_service_concurrency, var.cloudrun_concurrency)
+  pet_inference_image                = var.pet_inference_image
+  pet_inference_concurrency          = coalesce(var.pet_inference_concurrency, 4)
+  pet_inference_gpu_type             = var.pet_inference_gpu_type
+  pet_inference_gpu_count            = var.pet_inference_gpu_count
+  pet_inference_cpu                  = var.pet_inference_cpu
+  pet_inference_memory               = var.pet_inference_memory
+  pet_inference_min_instances        = coalesce(var.pet_inference_min_instances, 0)
+  pet_inference_max_instances        = coalesce(var.pet_inference_max_instances, 5)
+  ollama_model                       = var.ollama_model
   depends_on                         = [google_project_service.iam_credentials]
 }
 
