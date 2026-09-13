@@ -41,6 +41,10 @@ func TestResolveRuntimeMode(t *testing.T) {
 			wantErr: `runtime mode "local-emulator" is not allowed on Cloud Run`,
 		},
 		{
+			name: "resolves local-emulator from PETSPOTR_ENV", env: map[string]string{"PETSPOTR_ENV": "local-emulator"},
+			wantMode: ModeLocalEmulator,
+		},
+		{
 			name: "rejects unknown mode", env: map[string]string{"PETSPOTR_RUNTIME_MODE": "automatic"},
 			wantMode: "automatic", wantErr: `unsupported PETSPOTR_RUNTIME_MODE "automatic"`,
 		},

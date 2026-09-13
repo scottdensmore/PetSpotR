@@ -201,6 +201,23 @@ func TestNotificationHTTPHandlerHealth(t *testing.T) {
 	}
 }
 
+func TestNotificationHTTPHandlerEventsAliases(t *testing.T) {
+	worker := NewWorkerWithStore(store.NewMemoryStore(), nil)
+	handler := NewHTTPHandler(
+		worker,
+		pubsub.NewStaticPushAuthorizer("local-secret"),
+		notificationTestSubscription,
+		notificationTestLostSubscription,
+	)
+	body := notificationPushBody(t, notificationTestSubscription, "message-event", matchFoundEnvelope(t, "found-push", "lost-push"))
+	request := httptest.NewRequest(http.MethodPost, "/events/matches", bytes.NewReader(body))
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("events/matches status = %d, want %d", recorder.Code, http.StatusNoContent)
+	}
+}
+
 func notificationPushBody(t *testing.T, subscription, messageID string, payload []byte) []byte {
 	t.Helper()
 	body, err := json.Marshal(map[string]any{
