@@ -248,10 +248,11 @@ All features and bug fixes follow strict verification standards:
 
 The following initiatives represent the active roadmap for PetSpotR:
 
-### Milestone 5.1: Interactive Geospatial Directory & Mapping
-- **Interactive Map on `/pets`**: Embed a MapLibre / Leaflet map view alongside the card grid in the public pet directory.
-- **Geographic Clustering**: Cluster markers by proximity, dynamically querying reports within visible map bounding boxes.
-- **Interactive Pin Cards**: Clicking a pin reveals report thumbnails, status badges, and direct links to report details.
+### Milestone 5.1: Interactive Geospatial Directory & Mapping (Complete)
+- [x] **Interactive Map on `/pets`**: Embed an accessible Leaflet map view with segmented view switcher (`Grid` vs `Map`) in the public pet directory.
+- [x] **Geospatial Proximity & Radius Sync**: Proximity filter group with "Use My Location" (`navigator.geolocation`), radius dropdown (5, 10, 25, 50, 100 miles), visual proximity circle overlay (`L.circle`), and click-to-pin search centering.
+- [x] **Status-Coded Custom Pins & Popups**: Custom SVG pins styled by report status (Amber for lost, Emerald for found) with interactive popup cards linking to report details.
+- [x] **Strict CSP & Vendored Assets**: Vendored Leaflet 1.9.4 locally in `internal/app/webfrontend/static/vendor/leaflet/` to maintain strict defense-in-depth CSP (`script-src 'self'`, `style-src 'self'`).
 
 ### Milestone 5.2: Web Push Alert Preferences & Notification Dashboard
 - **Notification Preferences UI**: Frontend settings panel allowing pet owners and community volunteers to manage alert channels.
