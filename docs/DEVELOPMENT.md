@@ -39,7 +39,31 @@ built with the pinned **Go 1.26.5** toolchain:
 
 ### Running Tests & Verification
 
-PetSpotR enforces strict verification across all packages, including static analysis, linting, unit/race coverage, end-to-end Playwright API journeys, and infrastructure manifest validation:
+PetSpotR provides a unified `Makefile` to execute all verification tasks consistently:
+
+```bash
+# Run the complete local verification suite (vet + lint + tofu + yamllint + race tests)
+make verify
+
+# Or run individual verification targets:
+make vet          # Run Go static analysis (go vet)
+make lint         # Run golangci-lint
+make test         # Run unit tests with race detector and coverage
+make infra-check  # Validate OpenTofu formatting and syntax
+make yamllint     # Validate Cloud Run Knative manifests
+make help         # View all available targets and descriptions
+```
+
+#### Automatic Git Pre-Push Hook
+
+To automatically prevent pushing code that fails verification, install the local pre-push git hook:
+
+```bash
+make setup-hooks
+# Installed at .git/hooks/pre-push — runs 'make verify' before every 'git push'
+```
+
+Alternatively, commands can be invoked directly:
 
 ```bash
 # Set pinned Go toolchain
