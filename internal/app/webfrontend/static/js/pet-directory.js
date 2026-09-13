@@ -34,35 +34,26 @@ document.addEventListener('DOMContentLoaded', () => {
   function showStatusMessage(message, isError = false) {
     if (mapStatusOverlay) {
       mapStatusOverlay.textContent = message;
-      mapStatusOverlay.style.display = 'block';
+      mapStatusOverlay.classList.add('visible');
     }
 
     let toast = document.getElementById('directory-toast');
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'directory-toast';
+      toast.className = 'directory-toast';
       toast.setAttribute('role', 'alert');
       toast.setAttribute('aria-live', 'polite');
-      toast.style.cssText =
-        'position:fixed;bottom:24px;right:24px;z-index:9999;max-width:380px;padding:12px 18px;border-radius:8px;font-size:0.9rem;box-shadow:0 8px 24px rgba(0,0,0,0.3);transition:opacity 0.3s ease;backdrop-filter:blur(10px);';
       document.body.appendChild(toast);
     }
 
-    toast.style.background = isError ? 'rgba(239, 68, 68, 0.95)' : 'rgba(31, 41, 55, 0.95)';
-    toast.style.color = '#ffffff';
-    toast.style.border = isError ? '1px solid #dc2626' : '1px solid var(--border-glass, #374151)';
     toast.textContent = message;
-    toast.style.opacity = '1';
-    toast.style.display = 'block';
+    toast.classList.toggle('toast-error', isError);
+    toast.classList.add('visible');
 
     clearTimeout(toast._timeout);
     toast._timeout = setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => {
-        if (toast.style.opacity === '0') {
-          toast.style.display = 'none';
-        }
-      }, 300);
+      toast.classList.remove('visible');
     }, 5000);
   }
 
@@ -261,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (item.imageUrl) {
         imageHtml = `<img src="${escapeHTML(item.imageUrl)}" alt="${escapeHTML(title)}" class="popup-img" loading="lazy">`;
       } else {
-        imageHtml = `<div class="popup-img" style="display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,0.6);font-size:2rem;color:var(--text-secondary);" aria-hidden="true">🐾</div>`;
+        imageHtml = `<div class="popup-img popup-img-placeholder" aria-hidden="true">🐾</div>`;
       }
 
       const popupHtml = `
@@ -333,10 +324,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Prompt popup offering to apply proximity filter
       const promptDiv = document.createElement('div');
-      promptDiv.style.textAlign = 'center';
-      promptDiv.style.padding = '4px';
+      promptDiv.className = 'popup-prompt-wrapper';
       promptDiv.innerHTML = `
-        <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 0.9rem;">Search within ${activeRadius} miles of here?</p>
+        <p class="popup-prompt-text">Search within ${activeRadius} miles of here?</p>
         <button type="button" class="btn btn-primary btn-sm popup-btn" id="btn-apply-map-pin">Search Here</button>
       `;
 
@@ -355,18 +345,23 @@ document.addEventListener('DOMContentLoaded', () => {
       const popupNode = e.popup.getElement();
       if (!popupNode) return;
       const detailBtn = popupNode.querySelector('.popup-btn[data-pet-id]');
-      if (detailBtn) {
+      if (detailBtn && !detailBtn.dataset.bound) {
+        detailBtn.dataset.bound = 'true';
         detailBtn.addEventListener('click', (ev) => {
           ev.preventDefault();
           const petId = detailBtn.getAttribute('data-pet-id');
+          if (!petId) return;
+
           switchView('grid');
-          const targetCard = document.querySelector(`.pet-card[data-pet-id="${petId}"]`);
+
+          const escapedId = window.CSS && CSS.escape ? CSS.escape(petId) : petId.replace(/["\\]/g, '\\$&');
+          const targetCard = document.querySelector(`.pet-card[data-pet-id="${escapedId}"]`);
           if (targetCard) {
             targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
             targetCard.focus();
-            targetCard.style.outline = '3px solid var(--accent-primary)';
+            targetCard.classList.add('highlight-pet-card');
             setTimeout(() => {
-              targetCard.style.outline = '';
+              targetCard.classList.remove('highlight-pet-card');
             }, 2000);
           }
         });

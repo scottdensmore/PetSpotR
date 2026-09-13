@@ -1427,6 +1427,15 @@ footer {
   margin-bottom: 0.5rem;
 }
 
+.popup-img-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.6);
+  font-size: 2rem;
+  color: var(--text-secondary);
+}
+
 .popup-title {
   font-size: 1.05rem;
   font-weight: 700;
@@ -1445,6 +1454,51 @@ footer {
   text-align: center;
   padding: 0.35rem;
   font-size: 0.85rem;
+}
+
+.popup-prompt-wrapper {
+  text-align: center;
+  padding: 4px;
+}
+
+.popup-prompt-text {
+  margin: 0 0 8px 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.highlight-pet-card {
+  outline: 3px solid var(--accent-primary) !important;
+}
+
+/* Accessible Notification Toast */
+.directory-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  max-width: 380px;
+  padding: 12px 18px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.9rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.3s ease;
+  backdrop-filter: blur(10px);
+  background: rgba(31, 41, 55, 0.95);
+  color: #ffffff;
+  border: 1px solid var(--border-glass, #374151);
+  display: none;
+  opacity: 0;
+}
+
+.directory-toast.toast-error {
+  background: rgba(239, 68, 68, 0.95);
+  border-color: #dc2626;
+}
+
+.directory-toast.visible {
+  display: block;
+  opacity: 1;
 }
 
 .results-count {
