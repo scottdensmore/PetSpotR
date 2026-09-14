@@ -578,7 +578,6 @@ func TestRenderedPagesDeclareOfflineUI(t *testing.T) {
 	})
 }
 
-
 func TestNewServerStartsWithoutDemoMatches(t *testing.T) {
 	srv := NewServer()
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/matches", nil)
@@ -1610,4 +1609,3 @@ func TestOfflineFormInterceptionSnippets(t *testing.T) {
 		}
 	}
 }
-

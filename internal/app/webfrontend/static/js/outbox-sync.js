@@ -708,6 +708,16 @@
       PetSpotROutbox.updateUI();
     });
 
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && typeof window !== 'undefined') {
+      if (typeof document !== 'undefined' && document.readyState === 'complete') {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      } else {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    }
+
     if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', (event) => {
         if (event.data?.type === 'PETSPOTR_TRIGGER_SYNC') {

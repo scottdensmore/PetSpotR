@@ -1584,4 +1584,3 @@ func (s *Server) Close() {
 func respondWithError(w http.ResponseWriter, code int, message string) {
 	http.Error(w, message, code)
 }
-
