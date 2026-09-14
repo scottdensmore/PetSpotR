@@ -11,4 +11,6 @@ const (
 	OutboxCollection                 = "eventOutbox"
 	NotificationDeliveriesCollection = "notificationDeliveries"
 	MatcherResultsCollection         = "matcherResults"
+	NotificationPreferencesCollection = "notificationPreferences"
+	InAppNotificationsCollection      = "inAppNotifications"
 )
