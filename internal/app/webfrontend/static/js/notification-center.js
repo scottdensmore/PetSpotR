@@ -73,7 +73,7 @@
   function trapFocus(container, event) {
     if (!container || event.key !== 'Tab') return;
     const focusable = container.querySelectorAll(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      'button:not([disabled]), [href], input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
     );
     if (focusable.length === 0) return;
 
@@ -213,10 +213,21 @@
     }
   }
 
+  function sanitizeNotificationLink(rawLink) {
+    if (!rawLink || typeof rawLink !== 'string') return '#';
+    const trimmed = rawLink.trim();
+    if (!trimmed) return '#';
+    if (trimmed.startsWith('/')) return trimmed;
+    if (trimmed.startsWith('https://') || trimmed.startsWith('http://localhost')) {
+      return trimmed;
+    }
+    return '#';
+  }
+
   function createNotificationCard(item) {
     const card = document.createElement('a');
     card.className = `notification-item ${!item.read ? 'is-unread' : ''}`.trim();
-    card.href = item.link && item.link.trim() ? item.link : 'javascript:void(0)';
+    card.href = sanitizeNotificationLink(item.link);
     card.dataset.id = item.id || '';
     card.setAttribute('role', 'article');
     card.setAttribute('aria-label', item.title || 'Notification');
@@ -257,7 +268,7 @@
           markNotificationAsRead(id);
         }
       }
-      if (card.getAttribute('href') === 'javascript:void(0)') {
+      if (card.getAttribute('href') === '#') {
         e.preventDefault();
       }
     });
@@ -447,6 +458,7 @@
 
     updateMapCoordinates(lat, lng, radius);
     miniMap.setView([lat, lng], miniMap.getZoom() || 11);
+    miniMap.invalidateSize();
   }
 
   // --- Preferences Modal Controller ---
@@ -463,9 +475,9 @@
     const lngInput = document.getElementById('pref-lng');
 
     if (emailEnabled) emailEnabled.checked = Boolean(prefs.emailEnabled);
-    if (emailInput && prefs.email) emailInput.value = prefs.email;
+    if (emailInput) emailInput.value = prefs.email || '';
     if (smsEnabled) smsEnabled.checked = Boolean(prefs.smsEnabled);
-    if (phoneInput && prefs.phone) phoneInput.value = prefs.phone;
+    if (phoneInput) phoneInput.value = prefs.phone || '';
     if (pushEnabled) pushEnabled.checked = Boolean(prefs.pushEnabled);
     if (geoZoneEnabled) geoZoneEnabled.checked = prefs.geoZoneEnabled !== false;
 
@@ -474,12 +486,12 @@
       radiusSelect.value = String(Math.round(radius));
     }
 
-    const lat = (prefs.coordinates && typeof prefs.coordinates.latitude === 'number')
-      ? prefs.coordinates.latitude
-      : 47.6062;
-    const lng = (prefs.coordinates && typeof prefs.coordinates.longitude === 'number')
-      ? prefs.coordinates.longitude
-      : -122.3321;
+    const hasValidCoords = prefs.coordinates &&
+      typeof prefs.coordinates.latitude === 'number' &&
+      typeof prefs.coordinates.longitude === 'number' &&
+      (prefs.coordinates.latitude !== 0 || prefs.coordinates.longitude !== 0);
+    const lat = hasValidCoords ? prefs.coordinates.latitude : 47.6062;
+    const lng = hasValidCoords ? prefs.coordinates.longitude : -122.3321;
 
     if (latInput) latInput.value = lat.toFixed(6);
     if (lngInput) lngInput.value = lng.toFixed(6);
@@ -501,9 +513,11 @@
 
     const pageLat = parseFloat(document.getElementById('filter-lat')?.value);
     const pageLng = parseFloat(document.getElementById('filter-lng')?.value);
-    if (!isNaN(pageLat) && !isNaN(pageLng)) {
+    if (!isNaN(pageLat) && !isNaN(pageLng) && (pageLat !== 0 || pageLng !== 0)) {
       prefs.coordinates = { latitude: pageLat, longitude: pageLng };
     }
+
+    let isGuest = true;
 
     try {
       const resp = await fetch('/api/v1/notifications/preferences', { credentials: 'same-origin', cache: 'no-store' });
@@ -511,21 +525,33 @@
         const serverPrefs = await resp.json();
         if (serverPrefs && typeof serverPrefs === 'object') {
           Object.assign(prefs, serverPrefs);
+          if (serverPrefs.userId) {
+            isGuest = false;
+          }
         }
       }
     } catch (err) {
       console.warn('Failed to load server alert preferences:', err);
     }
 
-    try {
-      const local = localStorage.getItem('petspotr_alert_preferences');
-      if (local) {
-        const localPrefs = JSON.parse(local);
-        if (localPrefs && typeof localPrefs === 'object') {
-          Object.assign(prefs, localPrefs);
-        }
+    if (window.petspotrIdentity && typeof window.petspotrIdentity.getState === 'function') {
+      const idState = window.petspotrIdentity.getState();
+      if (idState && idState.principal) {
+        isGuest = false;
       }
-    } catch (_) {}
+    }
+
+    if (isGuest) {
+      try {
+        const local = localStorage.getItem('petspotr_alert_preferences');
+        if (local) {
+          const localPrefs = JSON.parse(local);
+          if (localPrefs && typeof localPrefs === 'object') {
+            Object.assign(prefs, localPrefs);
+          }
+        }
+      } catch (_) {}
+    }
 
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       prefs.pushEnabled = true;
