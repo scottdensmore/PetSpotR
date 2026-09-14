@@ -276,12 +276,37 @@ document.addEventListener('DOMContentLoaded', () => {
       return null;
     }
 
+    let images = [];
+    if (Array.isArray(value.images)) {
+      images = value.images.map(img => {
+        if (!img) return null;
+        if (typeof img === 'string') {
+          const url = trustedImageURL(img);
+          return url ? { url, tag: '' } : null;
+        }
+        if (typeof img === 'object') {
+          const raw = img.url || img.imageUrl || img.object;
+          const url = trustedImageURL(raw);
+          if (!url) return null;
+          return {
+            url,
+            tag: typeof img.tag === 'string' ? img.tag.trim() : '',
+          };
+        }
+        return null;
+      }).filter(img => img !== null);
+    }
+
+    const trustedMainUrl = trustedImageURL(value.imageUrl);
+    const imageUrl = trustedMainUrl || (images.length > 0 ? images[0].url : null);
+
     return {
       petId: value.petId,
       petName,
       breed: value.breed,
       location: value.location,
-      imageUrl: trustedImageURL(value.imageUrl),
+      imageUrl,
+      images,
     };
   }
 
@@ -307,6 +332,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const foundPet = normalizePet(value.foundPet, false);
     if (!lostPet || !foundPet) return null;
 
+    const scores = {
+      visual: value.scores.visual,
+      color: value.scores.color,
+      spatial: value.scores.spatial,
+      distanceMiles: value.scores.distanceMiles,
+    };
+    if (value.scores.vector !== undefined && value.scores.vector !== null && validScore(value.scores.vector)) {
+      scores.vector = value.scores.vector;
+    }
+    if (value.scores.trait !== undefined && value.scores.trait !== null && validScore(value.scores.trait)) {
+      scores.trait = value.scores.trait;
+    }
+
     return {
       matchId: value.matchId,
       foundPetId: value.foundPetId,
@@ -314,12 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
       score: value.score,
       status: value.status,
       matchedAt,
-      scores: {
-        visual: value.scores.visual,
-        color: value.scores.color,
-        spatial: value.scores.spatial,
-        distanceMiles: value.scores.distanceMiles,
-      },
+      scores,
       lostPet,
       foundPet,
     };
@@ -388,24 +421,28 @@ document.addEventListener('DOMContentLoaded', () => {
       className: `image-panel-label ${accentClass}`,
     }));
 
+    const initialSrc = pet.imageUrl || (pet.images && pet.images.length > 0 ? (typeof pet.images[0] === 'string' ? pet.images[0] : (pet.images[0].url || pet.images[0].imageUrl || pet.images[0].object)) : null);
+
     const zoomButton = createElement('button', {
       className: 'zoom-btn btn btn-secondary',
-      text: pet.imageUrl ? '🔍 Zoom' : 'Image unavailable',
+      text: initialSrc ? '🔍 Zoom' : 'Image unavailable',
     });
     zoomButton.type = 'button';
-    if (pet.imageUrl) {
-      zoomButton.dataset.src = pet.imageUrl;
+    if (initialSrc) {
+      zoomButton.dataset.src = initialSrc;
+      zoomButton.setAttribute('data-src', initialSrc);
     } else {
       zoomButton.disabled = true;
     }
     header.append(zoomButton);
     panel.append(header);
 
-    if (pet.imageUrl) {
-      const image = createElement('img', {
+    let image = null;
+    if (initialSrc) {
+      image = createElement('img', {
         className: 'match-pet-image',
       });
-      image.src = pet.imageUrl;
+      image.src = initialSrc;
       image.alt = includeName ? `${pet.petName} photo` : 'Found pet photo';
       panel.append(image);
     } else {
@@ -416,6 +453,45 @@ document.addEventListener('DOMContentLoaded', () => {
       placeholder.setAttribute('role', 'img');
       placeholder.setAttribute('aria-label', includeName ? `${pet.petName} image unavailable` : 'Found pet image unavailable');
       panel.append(placeholder);
+    }
+
+    if (pet.images && pet.images.length > 1) {
+      const strip = createElement('div', {
+        className: 'thumbnail-strip',
+      });
+      const thumbButtons = [];
+      pet.images.forEach((img, idx) => {
+        const btn = createElement('button', {
+          className: `thumbnail-btn${idx === 0 ? ' is-active' : ''}`,
+        });
+        btn.type = 'button';
+        btn.setAttribute('aria-label', `View photo ${idx + 1}`);
+
+        const thumbSrc = typeof img === 'string' ? img : (img.url || img.imageUrl || img.object || '');
+        const thumbImg = createElement('img', {
+          className: 'thumbnail-img',
+        });
+        thumbImg.src = thumbSrc;
+        thumbImg.alt = includeName ? `${pet.petName} thumbnail ${idx + 1}` : `Found pet thumbnail ${idx + 1}`;
+        btn.append(thumbImg);
+
+        btn.addEventListener('click', () => {
+          thumbButtons.forEach(b => b.classList.remove('is-active'));
+          btn.classList.add('is-active');
+          if (image) {
+            image.src = thumbSrc;
+            image.alt = includeName ? `${pet.petName} photo ${idx + 1}` : `Found pet photo ${idx + 1}`;
+          }
+          zoomButton.dataset.src = thumbSrc;
+          zoomButton.setAttribute('data-src', thumbSrc);
+          zoomButton.disabled = false;
+          zoomButton.textContent = '🔍 Zoom';
+        });
+
+        thumbButtons.push(btn);
+        strip.append(btn);
+      });
+      panel.append(strip);
     }
 
     panel.append(
@@ -510,8 +586,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const scoreGrid = createElement('div', {
       className: 'score-grid',
     });
-    createScore(scoreGrid, 'Visual Feature Match:', m.scores.visual, 'score-visual');
-    createScore(scoreGrid, 'Color Alignment:', m.scores.color, 'score-color');
+    if (m.scores.vector !== undefined && m.scores.vector !== null) {
+      createScore(scoreGrid, '✨ Multimodal AI Vector Match:', m.scores.vector, 'score-vector');
+    }
+    createScore(scoreGrid, 'Discrete Trait Match:', m.scores.trait !== undefined ? m.scores.trait : m.scores.visual, 'score-visual');
+    if (m.scores.color !== undefined) {
+      createScore(scoreGrid, 'Color Alignment:', m.scores.color, 'score-color');
+    }
     createScore(scoreGrid, `Geospatial Proximity (${m.scores.distanceMiles} mi):`, m.scores.spatial, 'score-spatial');
     scores.append(scoreGrid);
 

@@ -42,6 +42,7 @@ type firestoreRecord struct {
 	LostReportedAt      time.Time `firestore:"lostReportedAt,omitempty"`
 	LostLatitude        *float64  `firestore:"lostLatitude,omitempty"`
 	LostLongitude       *float64  `firestore:"lostLongitude,omitempty"`
+	LostEmbedding       []float32 `firestore:"lostEmbedding,omitempty"`
 }
 
 type outboxIndexMigration struct {
@@ -905,7 +906,11 @@ func newFirestoreRecord(storeName, key string, data []byte) (firestoreRecord, er
 			record.LostReportedAt = state.ReportedAt
 			record.LostLatitude = &latitude
 			record.LostLongitude = &longitude
+			if len(state.Embedding) > 0 {
+				record.LostEmbedding = state.Embedding
+			}
 		}
+
 		return record, nil
 	}
 	if storeName != OutboxCollection {

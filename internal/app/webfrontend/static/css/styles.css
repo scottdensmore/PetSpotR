@@ -1022,6 +1022,40 @@ textarea:focus-visible,
   color: var(--text-secondary);
 }
 
+/* Multi-Photo Carousel & Thumbnail Strip */
+.thumbnail-strip {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.thumbnail-btn {
+  background: var(--bg-surface);
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0;
+  cursor: pointer;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: border-color var(--transition-fast);
+}
+
+.thumbnail-btn.is-active,
+.thumbnail-btn:focus-visible {
+  border-color: var(--accent-primary);
+  outline: none;
+}
+
+.thumbnail-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .pet-name {
   font-size: 1.1rem;
 }
@@ -1081,6 +1115,28 @@ textarea:focus-visible,
 .score-visual { --score-color: var(--brand-primary); }
 .score-color { --score-color: var(--brand-secondary); }
 .score-spatial { --score-color: var(--status-reunited); }
+
+.score-vector { --score-color: #8b5cf6; }
+
+.score-vector::-webkit-progress-value {
+  background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+}
+
+.score-vector::-moz-progress-bar {
+  background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+}
+
+.tag-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
 
 .match-controls {
   justify-content: flex-end;

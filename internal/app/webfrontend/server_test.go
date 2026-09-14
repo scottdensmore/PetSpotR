@@ -2,12 +2,14 @@ package webfrontend
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/identity"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
@@ -912,6 +914,12 @@ func TestAccessibilityFeatures(t *testing.T) {
 			`role="alert"`,
 			`id="location-error"`,
 			`id="reporterEmail-error"`,
+			`id="photo-count-badge"`,
+			`class="form-control photo-tag-select"`,
+			`class="btn btn-secondary btn-sm btn-remove-photo"`,
+			`Primary / Face`,
+			`Coat Pattern`,
+			`Collar & Tags`,
 		}
 		for _, snippet := range expectedSnippets {
 			if !strings.Contains(body, snippet) {
@@ -943,6 +951,12 @@ func TestAccessibilityFeatures(t *testing.T) {
 			`id="finder-email-error"`,
 			`id="found-form-status"`,
 			`role="alert"`,
+			`id="photo-count-badge"`,
+			`class="form-control photo-tag-select"`,
+			`class="btn btn-secondary btn-sm btn-remove-photo"`,
+			`Primary / Face`,
+			`Coat Pattern`,
+			`Collar & Tags`,
 		}
 		for _, snippet := range expectedSnippets {
 			if !strings.Contains(body, snippet) {
@@ -998,4 +1012,326 @@ func TestAccessibilityFeatures(t *testing.T) {
 			}
 		}
 	})
+}
+
+func newTestServer(t *testing.T) *Server {
+	t.Helper()
+	return NewServer()
+}
+
+func TestServer_MultiPhotoSubmission(t *testing.T) {
+	srv := newTestServer(t)
+
+	t.Run("POST /api/v1/lost-pets with 3 photos succeeds", func(t *testing.T) {
+		payload := `{
+			"petName": "Rusty",
+			"species": "Dog",
+			"breed": "Irish Setter",
+			"location": "Capitol Hill, Seattle, WA",
+			"reporterEmail": "owner@example.com",
+			"images": [
+				{"object": "images/lost-pets/rust-1/face.jpg", "tag": "primary"},
+				{"object": "images/lost-pets/rust-1/coat.jpg", "tag": "coat"},
+				{"object": "images/lost-pets/rust-1/collar.jpg", "tag": "collar"}
+			]
+		}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/lost-pets", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+
+		if w.Code != http.StatusCreated {
+			t.Fatalf("expected 201 Created, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("POST /api/v1/lost-pets with >3 photos returns 400", func(t *testing.T) {
+		payload := `{
+			"petName": "Rusty",
+			"species": "Dog",
+			"location": "Capitol Hill, Seattle, WA",
+			"reporterEmail": "owner@example.com",
+			"images": [
+				{"object": "images/1.jpg"},
+				{"object": "images/2.jpg"},
+				{"object": "images/3.jpg"},
+				{"object": "images/4.jpg"}
+			]
+		}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/lost-pets", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400 Bad Request, got %d", w.Code)
+		}
+	})
+
+	t.Run("POST /api/v1/found-pets with 3 photos succeeds", func(t *testing.T) {
+		payload := `{
+			"species": "Dog",
+			"breed": "Golden Retriever",
+			"location": "Capitol Hill, Seattle, WA",
+			"finderEmail": "finder@example.com",
+			"images": [
+				{"object": "images/found-pets/found-1/face.jpg", "tag": "primary"},
+				{"object": "images/found-pets/found-1/coat.jpg", "tag": "coat"},
+				{"object": "images/found-pets/found-1/collar.jpg", "tag": "collar"}
+			]
+		}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+
+		if w.Code != http.StatusCreated {
+			t.Fatalf("expected 201 Created, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("POST /api/v1/found-pets with >3 photos returns 400", func(t *testing.T) {
+		payload := `{
+			"species": "Dog",
+			"location": "Capitol Hill, Seattle, WA",
+			"finderEmail": "finder@example.com",
+			"images": [
+				{"object": "images/1.jpg"},
+				{"object": "images/2.jpg"},
+				{"object": "images/3.jpg"},
+				{"object": "images/4.jpg"}
+			]
+		}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400 Bad Request, got %d", w.Code)
+		}
+	})
+
+	t.Run("POST /api/v1/lost-pets mirrors primary photo to imageObject", func(t *testing.T) {
+		payload := `{
+			"petName": "Spot",
+			"species": "Dog",
+			"location": "Capitol Hill, Seattle, WA",
+			"reporterEmail": "spot@example.com",
+			"images": [
+				{"object": "images/spot-face.jpg", "tag": "face"},
+				{"object": "images/spot-primary.jpg", "tag": "primary"}
+			]
+		}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/lost-pets", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+
+		if w.Code != http.StatusCreated {
+			t.Fatalf("expected 201 Created, got %d: %s", w.Code, w.Body.String())
+		}
+
+		var resp struct {
+			Status string `json:"status"`
+			PetID  string `json:"petId"`
+		}
+		if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+			t.Fatalf("decode response: %v", err)
+		}
+		data, err := srv.stateStore.GetState(context.Background(), store.LostPetsCollection, resp.PetID)
+		if err != nil {
+			t.Fatalf("get state: %v", err)
+		}
+		var record domain.LostPetRecord
+		if err := json.Unmarshal(data, &record); err != nil {
+			t.Fatalf("unmarshal record: %v", err)
+		}
+		if record.ImageObject != "images/spot-primary.jpg" {
+			t.Errorf("expected ImageObject to mirror primary 'images/spot-primary.jpg', got %q", record.ImageObject)
+		}
+		if len(record.Images) != 2 {
+			t.Errorf("expected 2 images, got %d", len(record.Images))
+		}
+	})
+
+	t.Run("POST /api/v1/found-pets mirrors primary photo to imageObject", func(t *testing.T) {
+		payload := `{
+			"species": "Cat",
+			"location": "Capitol Hill, Seattle, WA",
+			"finderEmail": "finder@example.com",
+			"images": [
+				{"object": "images/found-coat.jpg", "tag": "coat"},
+				{"object": "images/found-primary.jpg", "tag": "primary"}
+			]
+		}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+
+		if w.Code != http.StatusCreated {
+			t.Fatalf("expected 201 Created, got %d: %s", w.Code, w.Body.String())
+		}
+
+		var resp struct {
+			Status string `json:"status"`
+			PetID  string `json:"petId"`
+		}
+		if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+			t.Fatalf("decode response: %v", err)
+		}
+		data, err := srv.stateStore.GetState(context.Background(), store.FoundPetsCollection, resp.PetID)
+		if err != nil {
+			t.Fatalf("get state: %v", err)
+		}
+		var record domain.FoundPetRecord
+		if err := json.Unmarshal(data, &record); err != nil {
+			t.Fatalf("unmarshal record: %v", err)
+		}
+		if record.ImageObject != "images/found-primary.jpg" {
+			t.Errorf("expected ImageObject to mirror primary 'images/found-primary.jpg', got %q", record.ImageObject)
+		}
+		if len(record.Images) != 2 {
+			t.Errorf("expected 2 images, got %d", len(record.Images))
+		}
+	})
+}
+
+func TestMatchesTemplate_ContainsMultimodalScoreClasses(t *testing.T) {
+	content, err := embeddedFiles.ReadFile("templates/matches.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(content)
+	if !strings.Contains(html, "matches-list-container") {
+		t.Error("matches.html missing matches-list-container")
+	}
+
+	cssContent, err := embeddedFiles.ReadFile("static/css/styles.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	css := string(cssContent)
+	expectedCSSClasses := []string{
+		".thumbnail-strip",
+		".thumbnail-btn",
+		".thumbnail-btn.is-active",
+		".thumbnail-img",
+		".score-vector",
+		".tag-badge",
+	}
+	for _, class := range expectedCSSClasses {
+		if !strings.Contains(css, class) {
+			t.Errorf("styles.css missing expected class: %q", class)
+		}
+	}
+
+	jsContent, err := embeddedFiles.ReadFile("static/js/match-dashboard.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	js := string(jsContent)
+	expectedJSSnippets := []string{
+		"thumbnail-strip",
+		"thumbnail-btn",
+		"thumbnail-img",
+		"score-vector",
+		"✨ Multimodal AI Vector Match:",
+		"Discrete Trait Match:",
+	}
+	for _, snippet := range expectedJSSnippets {
+		if !strings.Contains(js, snippet) {
+			t.Errorf("match-dashboard.js missing expected snippet: %q", snippet)
+		}
+	}
+}
+
+func TestServer_MatchesAPI_VectorScoreAndMultiImage(t *testing.T) {
+	memory := store.NewMemoryStore()
+	srv := NewServerWithStore(memory)
+
+	matchRecord := domain.MatchRecord{
+		MatchID:      "match-vector-101",
+		FoundPetID:   "found-301",
+		MatchedPetID: "lost-301",
+		Score:        0.95,
+		Status:       domain.MatchStatusPendingReview,
+		Scores: domain.MatchScoreBreakdown{
+			Vector:        0.96,
+			Trait:         0.92,
+			Visual:        0.90,
+			Color:         0.88,
+			Spatial:       0.85,
+			DistanceMiles: 1.2,
+		},
+		LostPet: domain.MatchPetDetail{
+			PetID:    "lost-301",
+			PetName:  "Cooper",
+			Breed:    "Golden Retriever",
+			ImageURL: "https://storage.petspotr.io/lost-cooper-face.jpg",
+			Location: "Capitol Hill, Seattle, WA",
+			Images: []domain.PetImage{
+				{Object: "images/lost-pets/lost-301/face.jpg", URL: "https://storage.petspotr.io/lost-cooper-face.jpg", Tag: domain.PetImageTagPrimary},
+				{Object: "images/lost-pets/lost-301/coat.jpg", URL: "https://storage.petspotr.io/lost-cooper-coat.jpg", Tag: domain.PetImageTagCoat},
+			},
+		},
+		FoundPet: domain.MatchPetDetail{
+			PetID:    "found-301",
+			Breed:    "Golden Retriever",
+			ImageURL: "https://storage.petspotr.io/found-cooper-face.jpg",
+			Location: "Capitol Hill, Seattle, WA",
+			Images: []domain.PetImage{
+				{Object: "images/found-pets/found-301/face.jpg", URL: "https://storage.petspotr.io/found-cooper-face.jpg", Tag: domain.PetImageTagPrimary},
+				{Object: "images/found-pets/found-301/collar.jpg", URL: "https://storage.petspotr.io/found-cooper-collar.jpg", Tag: domain.PetImageTagCollar},
+			},
+		},
+	}
+
+	data, err := json.Marshal(matchRecord)
+	if err != nil {
+		t.Fatalf("marshal match record: %v", err)
+	}
+	if err := memory.SaveState(context.Background(), store.MatchesCollection, matchRecord.MatchID, data); err != nil {
+		t.Fatalf("seed match state: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/matches", nil)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 OK, got %d", rec.Code)
+	}
+
+	var matches []domain.MatchRecord
+	if err := json.NewDecoder(rec.Body).Decode(&matches); err != nil {
+		t.Fatalf("decode matches response: %v", err)
+	}
+	if len(matches) != 1 {
+		t.Fatalf("expected 1 match, got %d", len(matches))
+	}
+
+	m := matches[0]
+	if m.MatchID != "match-vector-101" {
+		t.Errorf("expected match ID 'match-vector-101', got %q", m.MatchID)
+	}
+	if m.Scores.Vector != 0.96 {
+		t.Errorf("expected Scores.Vector 0.96, got %f", m.Scores.Vector)
+	}
+	if m.Scores.Trait != 0.92 {
+		t.Errorf("expected Scores.Trait 0.92, got %f", m.Scores.Trait)
+	}
+	if len(m.LostPet.Images) != 2 {
+		t.Fatalf("expected 2 lost pet images, got %d", len(m.LostPet.Images))
+	}
+	if m.LostPet.Images[0].Tag != domain.PetImageTagPrimary {
+		t.Errorf("expected lost pet image 0 tag 'primary', got %q", m.LostPet.Images[0].Tag)
+	}
+	if len(m.FoundPet.Images) != 2 {
+		t.Fatalf("expected 2 found pet images, got %d", len(m.FoundPet.Images))
+	}
+	if m.FoundPet.Images[1].Tag != domain.PetImageTagCollar {
+		t.Errorf("expected found pet image 1 tag 'collar', got %q", m.FoundPet.Images[1].Tag)
+	}
 }

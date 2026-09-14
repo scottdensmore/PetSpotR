@@ -50,15 +50,18 @@ type MatchScoreBreakdown struct {
 	Spatial       float64 `json:"spatial"`
 	DistanceMiles float64 `json:"distanceMiles"`
 	Threshold     float64 `json:"threshold,omitempty"`
+	Vector        float64 `json:"vector,omitempty"`
+	Trait         float64 `json:"trait,omitempty"`
 }
 
 // MatchPetDetail is the immutable report snapshot presented with a match.
 type MatchPetDetail struct {
-	PetID    string `json:"petId"`
-	PetName  string `json:"petName,omitempty"`
-	Breed    string `json:"breed"`
-	ImageURL string `json:"imageUrl"`
-	Location string `json:"location"`
+	PetID    string     `json:"petId"`
+	PetName  string     `json:"petName,omitempty"`
+	Breed    string     `json:"breed"`
+	ImageURL string     `json:"imageUrl"`
+	Location string     `json:"location"`
+	Images   []PetImage `json:"images,omitempty"`
 }
 
 // MatchRecord is the canonical durable candidate match. It is written before

@@ -18,9 +18,11 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/delivery"
 	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/embedding"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/outbox"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
+	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
@@ -1106,5 +1108,549 @@ func TestMatcherWorker_RecordsGemma4ModelProvenance(t *testing.T) {
 	}
 	if err := record.Validate(); err != nil {
 		t.Errorf("record.Validate() error: %v", err)
+	}
+}
+
+func TestWorker_HybridMultimodalMatching(t *testing.T) {
+	ctx := context.Background()
+	st := store.NewMemoryStore()
+	broker := pubsub.NewMemoryPubSub()
+	embedder := embedding.NewMockEmbedder()
+
+	worker := NewWorkerWithImageStore(st, broker, nil, nil)
+	worker.SetEmbedder(embedder)
+
+	// Verify Worker computes hybrid scores with Scores.Vector populated
+	now := time.Now().UTC()
+	emb, _ := embedder.EmbedText(ctx, "Golden Retriever Dog")
+
+	lostRecord := domain.LostPetRecord{
+		PetID:           "lost-1",
+		Species:         "Dog",
+		Status:          domain.LostPetStatusLost,
+		GeocodingStatus: domain.GeocodingVerified,
+		Coordinates:     &domain.LocationPoint{Latitude: 47.6062, Longitude: -122.3321},
+		ReportedAt:      now,
+		Embedding:       emb,
+		ImageObject:     "images/lost-pets/lost-1/image.jpg",
+		ImageAnalysis: verifiedCandidateAnalysis("lost-1", "images/lost-pets/lost-1/image.jpg", domain.PetImageTraits{
+			Breed: "Golden Retriever",
+		}),
+	}
+	data, _ := json.Marshal(lostRecord)
+	_ = st.SaveState(ctx, store.LostPetsCollection, "lost-1", data)
+
+	foundEvt := domain.FoundPetReportedV2{
+		PetID:           "found-1",
+		Species:         "Dog",
+		Breed:           "Golden Retriever",
+		GeocodingStatus: domain.GeocodingVerified,
+		Coordinates:     &domain.LocationPoint{Latitude: 47.6062, Longitude: -122.3321},
+		FoundAt:         now,
+		Images: []domain.PetImage{
+			{Object: "images/found/1/face.jpg", Tag: domain.PetImageTagPrimary, Embedding: emb},
+		},
+	}
+
+	// Verify candidate evaluation uses ComparePetsHybrid and preserves vector score
+	candidates, err := worker.EligibleLostPetCandidates(ctx, foundEvt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(candidates) != 1 {
+		t.Fatalf("expected 1 candidate, got %d", len(candidates))
+	}
+	if len(candidates[0].Embedding) != embedder.Dimension() {
+		t.Fatalf("expected %d-dim candidate embedding, got %d", embedder.Dimension(), len(candidates[0].Embedding))
+	}
+
+	// Verify ComparePetsHybrid produces vector score
+	res := scoring.ComparePetsHybrid(
+		candidates[0].Record.PetID,
+		foundEvt.PetID,
+		candidates[0].Record.Species,
+		foundEvt.Species,
+		candidates[0].DistanceMiles,
+		candidates[0].Traits,
+		&scoring.PetTraits{Breed: foundEvt.Breed},
+		candidates[0].Record.Embedding,
+		emb,
+	)
+	if res == nil || !res.IsMatch {
+		t.Fatalf("expected match, got %v", res)
+	}
+	if res.Scores.Vector <= 0 {
+		t.Errorf("expected positive vector score, got %f", res.Scores.Vector)
+	}
+	if res.ThresholdVersion != scoring.HybridThresholdVersion {
+		t.Errorf("expected threshold version %s, got %s", scoring.HybridThresholdVersion, res.ThresholdVersion)
+	}
+}
+
+func TestWorker_ProcessFoundPet_HybridVectorMatching(t *testing.T) {
+	ctx := context.Background()
+	st := store.NewMemoryStore()
+	ps := pubsub.NewMemoryPubSub()
+	if err := ps.Subscribe("matchFound", func(context.Context, []byte) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	images := blob.NewMemoryBlobStore("https://storage.petspotr.io")
+	grant, err := images.BeginImageUpload(ctx, blob.ImageUploadIntent{
+		Purpose: blob.ImagePurposeFoundPet, ContentType: "image/jpeg",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	imageBytes := encodedMatcherImage(t)
+	if _, err := images.UploadImage(ctx, grant.ObjectName, imageBytes); err != nil {
+		t.Fatal(err)
+	}
+	finalized, err := images.FinalizeImage(ctx, grant.ReportID, grant.ObjectName, grant.FinalizeToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	embedder := embedding.NewMockEmbedder()
+	emb, err := embedder.EmbedImage(ctx, imageBytes, "image/jpeg")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	foundAt := time.Now().UTC()
+	foundEvent := domain.FoundPetReportedV2{
+		PetID: grant.ReportID, ImageObject: finalized.ObjectName, FoundAt: foundAt,
+		Location: "Seattle, WA", GeocodingStatus: domain.GeocodingVerified,
+		Coordinates: matcherTestPoint(), CustodyStatus: domain.CustodyUnknown,
+		Species: "Dog", Breed: "Golden Retriever",
+		Status:    domain.FoundPetStatusFound,
+		Embedding: emb,
+		Images: []domain.PetImage{
+			{Object: finalized.ObjectName, Tag: domain.PetImageTagPrimary, Embedding: emb},
+		},
+	}
+	seedMatcherFoundPet(t, st, foundEvent)
+
+	// Seed lost pet with embedding and images
+	lostRecord := domain.LostPetRecord{
+		PetID:           "lost-101",
+		Species:         "Dog",
+		Breed:           "Golden Retriever",
+		PrimaryColor:    "Golden",
+		Status:          domain.LostPetStatusLost,
+		GeocodingStatus: domain.GeocodingVerified,
+		Coordinates:     matcherTestPoint(),
+		ReportedAt:      foundAt.Add(-time.Hour),
+		ImageObject:     "images/lost-pets/lost-101/image.jpg",
+		Embedding:       emb,
+		Images: []domain.PetImage{
+			{Object: "images/lost-pets/lost-101/image.jpg", Tag: domain.PetImageTagPrimary, Embedding: emb},
+		},
+		ImageAnalysis: verifiedCandidateAnalysis("lost-101", "images/lost-pets/lost-101/image.jpg", domain.PetImageTraits{
+			Breed: "Golden Retriever", PrimaryColor: "Golden",
+		}),
+	}
+	data, _ := json.Marshal(lostRecord)
+	_ = st.SaveState(ctx, store.LostPetsCollection, "lost-101", data)
+
+	deterministicClient := ollama.NewDeterministicClient(&ollama.GenerateResponse{
+		Model:      ollama.Gemma4Model,
+		Done:       true,
+		Response:   `{"breed":"Golden Retriever","primaryColor":"Golden","secondaryColor":"Cream","distinctiveMarkings":[],"eyeColor":"Brown"}`,
+		Provenance: ollama.DefaultGemma4Provenance(),
+	}, nil)
+
+	worker := NewWorkerWithImageStore(st, ps, deterministicClient, images)
+	worker.SetEmbedder(embedder)
+	foundData := verifiedFoundEventData(t, foundEvent)
+	if err := worker.ProcessFoundPet(ctx, foundData); err != nil {
+		t.Fatalf("ProcessFoundPet() error = %v", err)
+	}
+
+	matches, err := st.ListState(ctx, store.MatchesCollection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 1 {
+		t.Fatalf("expected 1 match, got %d", len(matches))
+	}
+	var record domain.MatchRecord
+	for _, data := range matches {
+		if err := json.Unmarshal(data, &record); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if record.Scores.Vector <= 0 {
+		t.Errorf("record.Scores.Vector = %f, want > 0", record.Scores.Vector)
+	}
+	if record.ThresholdVersion != scoring.HybridThresholdVersion {
+		t.Errorf("record.ThresholdVersion = %q, want %q", record.ThresholdVersion, scoring.HybridThresholdVersion)
+	}
+	if len(record.LostPet.Images) != 1 {
+		t.Errorf("record.LostPet.Images length = %d, want 1", len(record.LostPet.Images))
+	}
+	if len(record.FoundPet.Images) != 1 {
+		t.Errorf("record.FoundPet.Images length = %d, want 1", len(record.FoundPet.Images))
+	}
+}
+
+func TestWorker_ProcessLostPet_GeneratesCompositeEmbedding(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	images := blob.NewMemoryBlobStore("https://storage.petspotr.io")
+
+	grant1, err := images.BeginImageUpload(ctx, blob.ImageUploadIntent{
+		Purpose: blob.ImagePurposeLostPet, ContentType: "image/jpeg",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	imageBytes1 := encodedMatcherImage(t)
+	if _, err := images.UploadImage(ctx, grant1.ObjectName, imageBytes1); err != nil {
+		t.Fatal(err)
+	}
+	finalized1, err := images.FinalizeImage(ctx, grant1.ReportID, grant1.ObjectName, grant1.FinalizeToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	grant2, err := images.BeginImageUpload(ctx, blob.ImageUploadIntent{
+		Purpose: blob.ImagePurposeLostPet, ContentType: "image/jpeg",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	imageBytes2 := encodedMatcherImage(t)
+	if _, err := images.UploadImage(ctx, grant2.ObjectName, imageBytes2); err != nil {
+		t.Fatal(err)
+	}
+	finalized2, err := images.FinalizeImage(ctx, grant2.ReportID, grant2.ObjectName, grant2.FinalizeToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reportedAt := time.Date(2026, time.August, 17, 17, 0, 0, 0, time.UTC)
+	petID := grant1.ReportID
+	record := domain.LostPetRecord{
+		PetID:            petID,
+		Species:          "Dog",
+		Breed:            "Golden Retriever",
+		OwnerIdentityRef: "identity-" + petID,
+		ImageObject:      finalized1.ObjectName,
+		ReportedAt:       reportedAt,
+		Location:         "Seattle, WA",
+		GeocodingStatus:  domain.GeocodingVerified,
+		Coordinates:      matcherTestPoint(),
+		Status:           domain.LostPetStatusLost,
+		Images: []domain.PetImage{
+			{Object: finalized1.ObjectName, Tag: domain.PetImageTagPrimary},
+			{Object: finalized2.ObjectName, Tag: domain.PetImageTagFace},
+		},
+	}
+	stateData, err := json.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := stateStore.SaveState(ctx, store.LostPetsCollection, record.PetID, stateData); err != nil {
+		t.Fatal(err)
+	}
+
+	deterministicClient := ollama.NewDeterministicClient(&ollama.GenerateResponse{
+		Model:      ollama.Gemma4Model,
+		Done:       true,
+		Response:   `{"breed":"Golden Retriever","primaryColor":"Golden","secondaryColor":"Cream","distinctiveMarkings":["White patch"],"eyeColor":"Brown"}`,
+		Provenance: ollama.DefaultGemma4Provenance(),
+	}, nil)
+
+	embedder := embedding.NewMockEmbedder()
+	worker := NewWorkerWithImageStore(
+		stateStore,
+		pubsub.NewMemoryPubSub(),
+		deterministicClient,
+		images,
+	)
+	worker.SetEmbedder(embedder)
+	worker.now = func() time.Time { return reportedAt.Add(time.Minute) }
+
+	eventData, _ := encodeLostAnalysisEvent(t, domain.LostPetReportedV4{
+		PetID:           record.PetID,
+		Species:         record.Species,
+		Breed:           record.Breed,
+		ImageObject:     record.ImageObject,
+		Images:          record.Images,
+		ReportedAt:      record.ReportedAt,
+		Location:        record.Location,
+		GeocodingStatus: record.GeocodingStatus,
+		Coordinates:     record.Coordinates,
+		Status:          record.Status,
+	})
+
+	if err := worker.ProcessLostPet(ctx, eventData); err != nil {
+		t.Fatalf("ProcessLostPet() error = %v", err)
+	}
+
+	updatedData, err := stateStore.GetState(ctx, store.LostPetsCollection, record.PetID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var updated domain.LostPetRecord
+	if err := json.Unmarshal(updatedData, &updated); err != nil {
+		t.Fatal(err)
+	}
+	if updated.ImageAnalysis == nil || updated.ImageAnalysis.Status != domain.ImageTraitsVerified {
+		t.Fatalf("expected verified image analysis, got %#v", updated.ImageAnalysis)
+	}
+	if len(updated.Embedding) != embedder.Dimension() {
+		t.Fatalf("expected %d-dim composite embedding on record, got %d", embedder.Dimension(), len(updated.Embedding))
+	}
+	if err := domain.ValidateEmbedding(updated.Embedding); err != nil {
+		t.Fatalf("composite embedding validation failed: %v", err)
+	}
+	if len(updated.Images) != 2 {
+		t.Fatalf("expected 2 images, got %d", len(updated.Images))
+	}
+	for i, img := range updated.Images {
+		if len(img.Embedding) != embedder.Dimension() {
+			t.Fatalf("image[%d] (%s) embedding missing: got %d, want %d", i, img.Tag, len(img.Embedding), embedder.Dimension())
+		}
+		if err := domain.ValidateEmbedding(img.Embedding); err != nil {
+			t.Fatalf("image[%d] embedding validation failed: %v", i, err)
+		}
+	}
+}
+
+func TestWorker_ProcessFoundPet_GeneratesCompositeEmbedding(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	ps := pubsub.NewMemoryPubSub()
+	var matchPublished atomic.Bool
+	if err := ps.Subscribe("matchFound", func(context.Context, []byte) error {
+		matchPublished.Store(true)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	images := blob.NewMemoryBlobStore("https://storage.petspotr.io")
+	grant1, err := images.BeginImageUpload(ctx, blob.ImageUploadIntent{
+		Purpose: blob.ImagePurposeFoundPet, ContentType: "image/jpeg",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	imageBytes1 := encodedMatcherImage(t)
+	if _, err := images.UploadImage(ctx, grant1.ObjectName, imageBytes1); err != nil {
+		t.Fatal(err)
+	}
+	finalized1, err := images.FinalizeImage(ctx, grant1.ReportID, grant1.ObjectName, grant1.FinalizeToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	grant2, err := images.BeginImageUpload(ctx, blob.ImageUploadIntent{
+		Purpose: blob.ImagePurposeFoundPet, ContentType: "image/jpeg",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	imageBytes2 := encodedMatcherImage(t)
+	if _, err := images.UploadImage(ctx, grant2.ObjectName, imageBytes2); err != nil {
+		t.Fatal(err)
+	}
+	finalized2, err := images.FinalizeImage(ctx, grant2.ReportID, grant2.ObjectName, grant2.FinalizeToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	foundAt := time.Now().UTC()
+	petID := grant1.ReportID
+	embedder := embedding.NewMockEmbedder()
+
+	// Seed found pet record in durable state before processing
+	foundRecord := domain.FoundPetRecord{
+		PetID:           petID,
+		ImageObject:     finalized1.ObjectName,
+		FoundAt:         foundAt,
+		Location:        "Seattle, WA",
+		GeocodingStatus: domain.GeocodingVerified,
+		Coordinates:     matcherTestPoint(),
+		Species:         "Dog",
+		Breed:           "Golden Retriever",
+		Status:          domain.FoundPetStatusFound,
+		CustodyStatus:   domain.CustodyFinderHome,
+		Images: []domain.PetImage{
+			{Object: finalized1.ObjectName, Tag: domain.PetImageTagPrimary},
+			{Object: finalized2.ObjectName, Tag: domain.PetImageTagCoat},
+		},
+	}
+	foundData, err := json.Marshal(foundRecord)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := stateStore.SaveState(ctx, store.FoundPetsCollection, petID, foundData); err != nil {
+		t.Fatal(err)
+	}
+
+	// Also seed matching lost pet candidate so matching completes
+	lostEmb, _ := embedder.EmbedMultimodal(ctx, imageBytes1, "image/jpeg", "Dog Golden Retriever")
+	lostRecord := domain.LostPetRecord{
+		PetID:           "lost-match-target",
+		Species:         "Dog",
+		Breed:           "Golden Retriever",
+		PrimaryColor:    "Golden",
+		Status:          domain.LostPetStatusLost,
+		GeocodingStatus: domain.GeocodingVerified,
+		Coordinates:     matcherTestPoint(),
+		ReportedAt:      foundAt.Add(-time.Hour),
+		ImageObject:     "images/lost-pets/lost-match-target/image.jpg",
+		Embedding:       lostEmb,
+		Images: []domain.PetImage{
+			{Object: "images/lost-pets/lost-match-target/image.jpg", Tag: domain.PetImageTagPrimary, Embedding: lostEmb},
+		},
+		ImageAnalysis: verifiedCandidateAnalysis("lost-match-target", "images/lost-pets/lost-match-target/image.jpg", domain.PetImageTraits{
+			Breed: "Golden Retriever", PrimaryColor: "Golden",
+		}),
+	}
+	seedCandidateRecord(t, stateStore, lostRecord)
+
+	deterministicClient := ollama.NewDeterministicClient(&ollama.GenerateResponse{
+		Model:      ollama.Gemma4Model,
+		Done:       true,
+		Response:   `{"breed":"Golden Retriever","primaryColor":"Golden","secondaryColor":"Cream","distinctiveMarkings":[],"eyeColor":"Brown"}`,
+		Provenance: ollama.DefaultGemma4Provenance(),
+	}, nil)
+
+	worker := NewWorkerWithImageStore(stateStore, ps, deterministicClient, images)
+	worker.SetEmbedder(embedder)
+	worker.now = func() time.Time { return foundAt.Add(time.Minute) }
+
+	foundEvent := domain.FoundPetReportedV2{
+		PetID:           petID,
+		ImageObject:     finalized1.ObjectName,
+		FoundAt:         foundAt,
+		Location:        "Seattle, WA",
+		GeocodingStatus: domain.GeocodingVerified,
+		Coordinates:     matcherTestPoint(),
+		Species:         "Dog",
+		Breed:           "Golden Retriever",
+		Status:          domain.FoundPetStatusFound,
+		CustodyStatus:   domain.CustodyFinderHome,
+		Images: []domain.PetImage{
+			{Object: finalized1.ObjectName, Tag: domain.PetImageTagPrimary},
+			{Object: finalized2.ObjectName, Tag: domain.PetImageTagCoat},
+		},
+	}
+	eventBytes := verifiedFoundEventData(t, foundEvent)
+	if err := worker.ProcessFoundPet(ctx, eventBytes); err != nil {
+		t.Fatalf("ProcessFoundPet() error = %v", err)
+	}
+
+	updatedFoundData, err := stateStore.GetState(ctx, store.FoundPetsCollection, petID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var updated domain.FoundPetRecord
+	if err := json.Unmarshal(updatedFoundData, &updated); err != nil {
+		t.Fatal(err)
+	}
+	if len(updated.Embedding) != embedder.Dimension() {
+		t.Fatalf("expected %d-dim composite embedding on found record, got %d", embedder.Dimension(), len(updated.Embedding))
+	}
+	if err := domain.ValidateEmbedding(updated.Embedding); err != nil {
+		t.Fatalf("found composite embedding validation failed: %v", err)
+	}
+	if len(updated.Images) != 2 {
+		t.Fatalf("expected 2 images, got %d", len(updated.Images))
+	}
+	for i, img := range updated.Images {
+		if len(img.Embedding) != embedder.Dimension() {
+			t.Fatalf("image[%d] (%s) embedding missing: got %d, want %d", i, img.Tag, len(img.Embedding), embedder.Dimension())
+		}
+		if err := domain.ValidateEmbedding(img.Embedding); err != nil {
+			t.Fatalf("image[%d] embedding validation failed: %v", i, err)
+		}
+	}
+	if !matchPublished.Load() {
+		t.Fatal("expected matchFound to be published")
+	}
+}
+
+func TestWorker_ResolveFoundEmbedding_PersistsComputedEmbedding(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	images := blob.NewMemoryBlobStore("https://storage.petspotr.io")
+
+	grant, err := images.BeginImageUpload(ctx, blob.ImageUploadIntent{
+		Purpose: blob.ImagePurposeFoundPet, ContentType: "image/jpeg",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	imageBytes := encodedMatcherImage(t)
+	if _, err := images.UploadImage(ctx, grant.ObjectName, imageBytes); err != nil {
+		t.Fatal(err)
+	}
+	finalized, err := images.FinalizeImage(ctx, grant.ReportID, grant.ObjectName, grant.FinalizeToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	petID := grant.ReportID
+	initialRecord := domain.FoundPetRecord{
+		PetID:           petID,
+		ImageObject:     finalized.ObjectName,
+		FoundAt:         time.Now().UTC(),
+		Location:        "Seattle, WA",
+		GeocodingStatus: domain.GeocodingVerified,
+		Coordinates:     matcherTestPoint(),
+		Species:         "Dog",
+		Breed:           "Golden Retriever",
+		Status:          domain.FoundPetStatusFound,
+		CustodyStatus:   domain.CustodyFinderHome,
+		Images: []domain.PetImage{
+			{Object: finalized.ObjectName, Tag: domain.PetImageTagPrimary},
+		},
+	}
+	data, err := json.Marshal(initialRecord)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := stateStore.SaveState(ctx, store.FoundPetsCollection, petID, data); err != nil {
+		t.Fatal(err)
+	}
+
+	embedder := embedding.NewMockEmbedder()
+	worker := NewWorkerWithImageStore(stateStore, pubsub.NewMemoryPubSub(), nil, images)
+	worker.SetEmbedder(embedder)
+
+	foundEvt := domain.FoundPetReportedV2{
+		PetID:       petID,
+		ImageObject: finalized.ObjectName,
+		Species:     "Dog",
+		Breed:       "Golden Retriever",
+	}
+
+	emb := worker.resolveFoundEmbedding(ctx, foundEvt)
+	if len(emb) != embedder.Dimension() {
+		t.Fatalf("resolveFoundEmbedding() length = %d, want %d", len(emb), embedder.Dimension())
+	}
+
+	storedBytes, err := stateStore.GetState(ctx, store.FoundPetsCollection, petID)
+	if err != nil {
+		t.Fatalf("GetState() error = %v", err)
+	}
+	var storedRecord domain.FoundPetRecord
+	if err := json.Unmarshal(storedBytes, &storedRecord); err != nil {
+		t.Fatalf("unmarshal stored record: %v", err)
+	}
+	if len(storedRecord.Embedding) != embedder.Dimension() {
+		t.Fatalf("stored record Embedding length = %d, want %d", len(storedRecord.Embedding), embedder.Dimension())
+	}
+	if len(storedRecord.Images) == 0 || len(storedRecord.Images[0].Embedding) != embedder.Dimension() {
+		t.Fatalf("stored record Images[0] Embedding missing or wrong length")
+	}
+
+	workerWithoutEmbedder := NewWorkerWithImageStore(stateStore, pubsub.NewMemoryPubSub(), nil, nil)
+	secondEmb := workerWithoutEmbedder.resolveFoundEmbedding(ctx, domain.FoundPetReportedV2{PetID: petID})
+	if len(secondEmb) != embedder.Dimension() {
+		t.Fatalf("second resolveFoundEmbedding length = %d, want %d", len(secondEmb), embedder.Dimension())
 	}
 }

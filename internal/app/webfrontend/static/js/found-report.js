@@ -2,6 +2,9 @@
 document.addEventListener('DOMContentLoaded', () => {
   const dropzone = document.getElementById('found-dropzone');
   const photoInput = document.getElementById('foundPhotoInput');
+  const photoCountBadge = document.getElementById('photo-count-badge');
+  const stagingContainer = document.getElementById('staging-container');
+  const photoTemplate = document.getElementById('staged-photo-template');
   const previewContainer = document.getElementById('found-preview-container');
   const imagePreview = document.getElementById('foundImagePreview');
   const spinner = document.getElementById('ai-spinner');
@@ -61,18 +64,249 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentDistinctiveMarkings = [];
   let pendingSubmission = null;
   let extractionSequence = 0;
+  let stagedImages = [];
 
-  function clearExtractedTraits() {
-    currentDistinctiveMarkings = [];
-    if (inputSpecies) inputSpecies.value = '';
-    if (inputBreed) inputBreed.value = '';
-    if (inputPrimaryColor) inputPrimaryColor.value = '';
-    if (inputSecondaryColor) inputSecondaryColor.value = '';
-    if (chipSpecies) chipSpecies.textContent = 'Species: Not analyzed';
-    if (chipBreed) chipBreed.textContent = 'Breed: Not analyzed';
-    if (chipColor) chipColor.textContent = 'Colors: Not analyzed';
+  function updatePhotoCounter() {
+    if (photoCountBadge) {
+      photoCountBadge.textContent = `${stagedImages.length} / 3 photos added`;
+    }
+    if (stagingContainer) {
+      stagingContainer.hidden = stagedImages.length === 0;
+    }
   }
 
+  function renderStagedPhotos() {
+    if (!stagingContainer) return;
+    stagingContainer.replaceChildren();
+
+    stagedImages.forEach((item, index) => {
+      let card;
+      if (photoTemplate && 'content' in photoTemplate) {
+        card = photoTemplate.content.firstElementChild.cloneNode(true);
+      } else {
+        card = document.createElement('div');
+        card.className = 'photo-staging-card glass-card';
+        card.innerHTML = `
+          <img class="photo-staging-thumb found-preview-image" src="" alt="Staged pet photo">
+          <div class="photo-staging-controls form-field">
+            <select class="form-control photo-tag-select" aria-label="Select photo angle">
+              <option value="primary">Primary / Face</option>
+              <option value="coat">Coat Pattern</option>
+              <option value="collar">Collar & Tags</option>
+            </select>
+            <button type="button" class="btn btn-secondary btn-sm btn-remove-photo" aria-label="Remove photo">&times;</button>
+          </div>
+        `;
+      }
+      card.dataset.index = String(index);
+
+      const img = card.querySelector('img');
+      if (img) {
+        img.src = item.previewUrl || '';
+        img.alt = `Staged photo ${index + 1} (${item.tag})`;
+      }
+
+      const tagSelect = card.querySelector('.photo-tag-select');
+      if (tagSelect) {
+        tagSelect.value = item.tag;
+        tagSelect.addEventListener('change', (e) => {
+          stagedImages[index].tag = e.target.value;
+        });
+      }
+
+      const btnRemove = card.querySelector('.btn-remove-photo');
+      if (btnRemove) {
+        btnRemove.addEventListener('click', () => {
+          removeStagedPhoto(index);
+        });
+      }
+
+      stagingContainer.appendChild(card);
+    });
+
+    updatePhotoCounter();
+  }
+
+  function removeStagedPhoto(index) {
+    stagedImages.splice(index, 1);
+    renderStagedPhotos();
+    if (stagedImages.length === 0) {
+      currentImageUrl = '';
+      if (previewContainer) {
+        previewContainer.hidden = true;
+      }
+      if (imagePreview) {
+        imagePreview.hidden = true;
+        imagePreview.src = '';
+      }
+      if (spinner) {
+        spinner.hidden = true;
+      }
+      if (extractionStatus) {
+        extractionStatus.textContent = '';
+      }
+    } else {
+      const primary = stagedImages.find(img => img.tag === 'primary') || stagedImages[0];
+      currentImageUrl = primary.previewUrl || primary.url || '';
+      if (imagePreview && currentImageUrl) {
+        imagePreview.src = currentImageUrl;
+      }
+    }
+    const photoStatus = document.getElementById('found-photo-status');
+    if (photoStatus) {
+      photoStatus.textContent = stagedImages.length > 0
+        ? `${stagedImages.length} photo(s) attached.`
+        : '';
+    }
+    const photoError = document.getElementById('found-photo-error');
+    if (photoError) {
+      photoError.textContent = '';
+      photoError.hidden = true;
+    }
+  }
+
+  function readFileDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadToPresignedUrl(file) {
+    const headers = { 'Content-Type': 'application/json' };
+    const csrfToken = window.petspotrIdentity?.getState?.()?.csrfToken ||
+      document.cookie.split('; ').find(row => row.startsWith('petspotr_csrf='))?.split('=')[1];
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+    try {
+      const res = await fetch('/api/v1/uploads/presigned-url', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type || 'image/jpeg'
+        })
+      });
+      if (res.ok) {
+        const presigned = await res.json();
+        if (presigned.uploadUrl) {
+          try {
+            await fetch(presigned.uploadUrl, {
+              method: 'PUT',
+              headers: { 'Content-Type': file.type || 'image/jpeg' },
+              body: file
+            });
+          } catch (e) {
+            console.warn('Direct upload warning:', e);
+          }
+        }
+        return {
+          object: presigned.fileName || `images/found-pets/${file.name}`,
+          url: presigned.publicUrl || ''
+        };
+      }
+    } catch (e) {
+      console.warn('Presigned URL fetch warning:', e);
+    }
+    return {
+      object: `images/found-pets/${Date.now()}-${file.name}`,
+      url: ''
+    };
+  }
+
+  async function handleFiles(files) {
+    const photoError = document.getElementById('found-photo-error');
+    const photoStatus = document.getElementById('found-photo-status');
+    if (photoError) {
+      photoError.textContent = '';
+      photoError.hidden = true;
+    }
+
+    if (!files || files.length === 0) return;
+
+    const remaining = 3 - stagedImages.length;
+    if (remaining <= 0) {
+      if (photoError) {
+        photoError.textContent = 'Maximum 3 photos allowed.';
+        photoError.hidden = false;
+      }
+      dropzone?.focus();
+      return;
+    }
+
+    const toProcess = Array.from(files).slice(0, remaining);
+    if (files.length > remaining) {
+      if (photoError) {
+        photoError.textContent = `Only ${remaining} more photo(s) can be added (maximum 3).`;
+        photoError.hidden = false;
+      }
+    }
+
+    for (const file of toProcess) {
+      if (!file.type.startsWith('image/')) {
+        if (photoError) {
+          photoError.textContent = 'Please select a valid image file.';
+          photoError.hidden = false;
+        }
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        if (photoError) {
+          photoError.textContent = 'Photo file size exceeds 10MB limit.';
+          photoError.hidden = false;
+        }
+        continue;
+      }
+
+      if (photoStatus) {
+        photoStatus.textContent = `Uploading ${file.name}...`;
+      }
+
+      try {
+        const previewUrl = await readFileDataUrl(file);
+        const uploaded = await uploadToPresignedUrl(file);
+
+        const existingTags = stagedImages.map(img => img.tag);
+        let defaultTag = 'primary';
+        if (existingTags.includes('primary')) {
+          defaultTag = !existingTags.includes('coat') ? 'coat' : 'collar';
+        }
+
+        stagedImages.push({
+          object: uploaded.object,
+          url: uploaded.url,
+          previewUrl: previewUrl,
+          tag: defaultTag
+        });
+
+        renderStagedPhotos();
+        if (photoStatus) {
+          photoStatus.textContent = `Added ${file.name} (${stagedImages.length} / 3 photos).`;
+        }
+
+        // Trigger AI Feature Auto-Extraction on first image
+        if (stagedImages.length === 1) {
+          currentImageUrl = previewUrl;
+          if (imagePreview && previewContainer) {
+            imagePreview.src = currentImageUrl;
+            previewContainer.hidden = false;
+          }
+          await extractAIFeatures(currentImageUrl);
+        }
+      } catch (err) {
+        console.error('File staging error:', err);
+        if (photoError) {
+          photoError.textContent = 'Failed to process photo upload.';
+          photoError.hidden = false;
+        }
+      }
+    }
+  }
+
+  // Drag & Drop Photo Upload
   if (dropzone && photoInput) {
     dropzone.addEventListener('click', () => photoInput.click());
     dropzone.addEventListener('keydown', (e) => {
@@ -94,49 +328,17 @@ document.addEventListener('DOMContentLoaded', () => {
     dropzone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropzone.classList.remove('is-dragging');
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-        handleFile(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFiles(e.dataTransfer.files);
       }
     });
 
     photoInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files[0]) {
-        handleFile(e.target.files[0]);
+      if (e.target.files && e.target.files.length > 0) {
+        handleFiles(e.target.files);
+        photoInput.value = '';
       }
     });
-  }
-
-  function handleFile(file) {
-    const photoError = document.getElementById('found-photo-error');
-    const photoStatus = document.getElementById('found-photo-status');
-    if (photoError) {
-      photoError.textContent = '';
-      photoError.hidden = true;
-    }
-    if (!file.type.startsWith('image/')) {
-      if (photoError) {
-        photoError.textContent = 'Please select a valid image file.';
-        photoError.hidden = false;
-      }
-      dropzone?.focus();
-      return;
-    }
-    if (photoStatus) {
-      photoStatus.textContent = `Photo selected: ${file.name}`;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      currentImageUrl = e.target.result;
-      if (imagePreview && previewContainer) {
-        imagePreview.src = currentImageUrl;
-        previewContainer.hidden = false;
-      }
-
-      // Trigger AI Feature Auto-Extraction
-      await extractAIFeatures(currentImageUrl);
-    };
-    reader.readAsDataURL(file);
   }
 
   async function extractAIFeatures(imageUrl) {
@@ -251,9 +453,15 @@ document.addEventListener('DOMContentLoaded', () => {
         };
       }
 
+      const primaryImg = stagedImages.find(img => img.tag === 'primary' || img.tag === 'face') || stagedImages[0];
+      const primaryObject = primaryImg ? primaryImg.object : '';
+      const legacyImageUrl = (primaryImg && primaryImg.url) ? primaryImg.url : (currentImageUrl || 'https://storage.petspotr.io/found-sample.jpg');
+
       const payload = {
         ...pendingSubmission,
-        imageUrl: currentImageUrl || 'https://storage.petspotr.io/found-sample.jpg',
+        imageUrl: legacyImageUrl,
+        imageObject: primaryObject,
+        images: stagedImages.map(img => ({ object: img.object, tag: img.tag || 'primary' })),
         location: location.trim(),
         finderEmail: finderEmail.trim(),
         species: inputSpecies?.value || 'Dog',

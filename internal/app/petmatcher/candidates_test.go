@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/embedding"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/store"
@@ -405,11 +406,11 @@ func TestMatcherCandidateSelectionOrdersByScoreDistanceAndID(t *testing.T) {
 		{
 			name: "higher score wins despite later ID",
 			current: rankedCandidate{
-				candidate: lostPetCandidate{record: domain.LostPetRecord{PetID: "lost-alpha"}, distanceMiles: 1},
+				candidate: lostPetCandidate{Record: domain.LostPetRecord{PetID: "lost-alpha"}, DistanceMiles: 1},
 				result:    &domain.MatchResult{Score: 0.80},
 			},
 			challenger: rankedCandidate{
-				candidate: lostPetCandidate{record: domain.LostPetRecord{PetID: "lost-zulu"}, distanceMiles: 5},
+				candidate: lostPetCandidate{Record: domain.LostPetRecord{PetID: "lost-zulu"}, DistanceMiles: 5},
 				result:    &domain.MatchResult{Score: 0.90},
 			},
 			want: true,
@@ -417,11 +418,11 @@ func TestMatcherCandidateSelectionOrdersByScoreDistanceAndID(t *testing.T) {
 		{
 			name: "nearer candidate wins tied score despite later ID",
 			current: rankedCandidate{
-				candidate: lostPetCandidate{record: domain.LostPetRecord{PetID: "lost-alpha"}, distanceMiles: 5},
+				candidate: lostPetCandidate{Record: domain.LostPetRecord{PetID: "lost-alpha"}, DistanceMiles: 5},
 				result:    &domain.MatchResult{Score: 0.90},
 			},
 			challenger: rankedCandidate{
-				candidate: lostPetCandidate{record: domain.LostPetRecord{PetID: "lost-zulu"}, distanceMiles: 1},
+				candidate: lostPetCandidate{Record: domain.LostPetRecord{PetID: "lost-zulu"}, DistanceMiles: 1},
 				result:    &domain.MatchResult{Score: 0.90},
 			},
 			want: true,
@@ -429,11 +430,11 @@ func TestMatcherCandidateSelectionOrdersByScoreDistanceAndID(t *testing.T) {
 		{
 			name: "lower ID wins tied score and distance",
 			current: rankedCandidate{
-				candidate: lostPetCandidate{record: domain.LostPetRecord{PetID: "lost-zulu"}, distanceMiles: 1},
+				candidate: lostPetCandidate{Record: domain.LostPetRecord{PetID: "lost-zulu"}, DistanceMiles: 1},
 				result:    &domain.MatchResult{Score: 0.90},
 			},
 			challenger: rankedCandidate{
-				candidate: lostPetCandidate{record: domain.LostPetRecord{PetID: "lost-alpha"}, distanceMiles: 1},
+				candidate: lostPetCandidate{Record: domain.LostPetRecord{PetID: "lost-alpha"}, DistanceMiles: 1},
 				result:    &domain.MatchResult{Score: 0.90},
 			},
 			want: true,
@@ -580,4 +581,50 @@ func encodeFoundCandidateEvent(t *testing.T, event domain.FoundPetReportedV2) []
 		t.Fatal(err)
 	}
 	return data
+}
+
+func TestEligibleLostPetCandidatesPreservesVectorEmbedding(t *testing.T) {
+	ctx := context.Background()
+	st := store.NewMemoryStore()
+	now := time.Now().UTC()
+	point := matcherTestPoint()
+
+	embedder := embedding.NewMockEmbedder()
+	emb, err := embedder.EmbedText(ctx, "Poodle Dog")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	record := domain.LostPetRecord{
+		PetID: "lost-emb-test", Species: "Dog", Breed: "Poodle",
+		ReportedAt: now, Location: "Seattle, WA", GeocodingStatus: domain.GeocodingVerified,
+		Coordinates: point, Status: domain.LostPetStatusLost,
+		ImageObject: "images/lost-pets/lost-emb-test/image.jpg",
+		Embedding:   emb,
+		ImageAnalysis: verifiedCandidateAnalysis("lost-emb-test", "images/lost-pets/lost-emb-test/image.jpg", domain.PetImageTraits{
+			Breed: "Poodle",
+		}),
+	}
+	seedCandidateRecord(t, st, record)
+
+	worker := NewWorker(st, pubsub.NewMemoryPubSub(), nil)
+	worker.SetEmbedder(embedder)
+
+	candidates, err := worker.EligibleLostPetCandidates(ctx, domain.FoundPetReportedV2{
+		PetID: "found-test", FoundAt: now, Species: "Dog", Breed: "Poodle",
+		GeocodingStatus: domain.GeocodingVerified, Coordinates: point,
+		Status: domain.FoundPetStatusFound, CustodyStatus: domain.CustodyUnknown,
+	})
+	if err != nil {
+		t.Fatalf("EligibleLostPetCandidates() error = %v", err)
+	}
+	if len(candidates) != 1 {
+		t.Fatalf("expected 1 candidate, got %d", len(candidates))
+	}
+	if len(candidates[0].Embedding) != embedder.Dimension() {
+		t.Fatalf("expected candidate embedding length %d, got %d", embedder.Dimension(), len(candidates[0].Embedding))
+	}
+	if len(candidates[0].Record.Embedding) != embedder.Dimension() {
+		t.Fatalf("expected record embedding length %d, got %d", embedder.Dimension(), len(candidates[0].Record.Embedding))
+	}
 }

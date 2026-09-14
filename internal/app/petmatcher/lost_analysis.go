@@ -74,21 +74,27 @@ func (w *Worker) processClaimedLostPet(
 	inputEventID string,
 	lostEvent domain.LostPetReportedV4,
 ) error {
-	if lostEvent.ImageObject == "" {
+	imageObject := lostEvent.ImageObject
+	if imageObject == "" {
+		if primary, ok := domain.PrimaryPetImage(lostEvent.Images); ok {
+			imageObject = primary.Object
+		}
+	}
+	if imageObject == "" {
 		return nil
 	}
-	if !blob.IsFinalizedImageForPurpose(blob.ImagePurposeLostPet, lostEvent.PetID, lostEvent.ImageObject) {
+	if !blob.IsFinalizedImageForPurpose(blob.ImagePurposeLostPet, lostEvent.PetID, imageObject) {
 		return errors.New("pet-matcher: lost-pet event image is outside the lost-pet namespace")
 	}
 	record, err := w.loadLostPetRecord(ctx, lostEvent.PetID)
 	if err != nil {
 		return err
 	}
-	if record.ImageObject != lostEvent.ImageObject {
+	if record.ImageObject != "" && record.ImageObject != imageObject {
 		return errors.New("pet-matcher: lost-pet event image does not match durable state")
 	}
 	if record.ImageAnalysis != nil && record.ImageAnalysis.SourceEventID == inputEventID {
-		if record.ImageAnalysis.SourceImageObject != lostEvent.ImageObject {
+		if record.ImageAnalysis.SourceImageObject != imageObject {
 			return errors.New("pet-matcher: completed lost image analysis has mismatched provenance")
 		}
 		return record.ImageAnalysis.Validate()
@@ -99,7 +105,7 @@ func (w *Worker) processClaimedLostPet(
 	if w.ollamaClient == nil {
 		return errors.New("pet-matcher: Ollama client is not configured")
 	}
-	imageBytes, err := w.images.ReadFinalizedImage(ctx, lostEvent.ImageObject)
+	imageBytes, err := w.images.ReadFinalizedImage(ctx, imageObject)
 	if err != nil {
 		return fmt.Errorf("pet-matcher: read private lost-pet image: %w", err)
 	}
@@ -123,6 +129,30 @@ func (w *Worker) processClaimedLostPet(
 	if model == "" {
 		model = modelReq
 	}
+	imagesToProcess := lostEvent.Images
+	if len(imagesToProcess) == 0 {
+		imagesToProcess = record.Images
+	}
+	textDesc := strings.TrimSpace(lostEvent.Species + " " + lostEvent.Breed)
+	if lostEvent.Description != "" {
+		if textDesc != "" {
+			textDesc += " " + strings.TrimSpace(lostEvent.Description)
+		} else {
+			textDesc = strings.TrimSpace(lostEvent.Description)
+		}
+	}
+	processedImages, compositeEmbedding := computeMultiPhotoEmbeddings(
+		ctx,
+		w.embedder,
+		w.images,
+		imagesToProcess,
+		imageObject,
+		imageBytes,
+		textDesc,
+	)
+	if len(compositeEmbedding) == 0 && len(lostEvent.Embedding) > 0 {
+		compositeEmbedding = append([]float32(nil), lostEvent.Embedding...)
+	}
 	analysis := domain.NormalizeImageTraitAnalysis(&domain.ImageTraitAnalysis{
 		Status: domain.ImageTraitsVerified,
 		Traits: domain.PetImageTraits{
@@ -132,7 +162,7 @@ func (w *Worker) processClaimedLostPet(
 			EyeColor:            traits.EyeColor,
 		},
 		Model: model, AnalysisVersion: imageTraitAnalysisVersion,
-		SourceEventID: inputEventID, SourceImageObject: lostEvent.ImageObject,
+		SourceEventID: inputEventID, SourceImageObject: imageObject,
 		VerifiedAt: w.now().UTC(),
 	})
 	if err := analysis.Validate(); err != nil {
@@ -144,7 +174,7 @@ func (w *Worker) processClaimedLostPet(
 			return nil, fmt.Errorf("pet-matcher: decode durable lost-pet state: %w", err)
 		}
 		updated = domain.NormalizeLostPetRecord(updated)
-		if updated.PetID != lostEvent.PetID || updated.ImageObject != lostEvent.ImageObject {
+		if updated.PetID != lostEvent.PetID || (updated.ImageObject != "" && updated.ImageObject != imageObject) {
 			return nil, errors.New("pet-matcher: lost-pet image changed before analysis persistence")
 		}
 		if updated.ImageAnalysis != nil {
@@ -157,6 +187,19 @@ func (w *Worker) processClaimedLostPet(
 			return nil, fmt.Errorf("%w: lost-pet image already has analysis provenance", store.ErrConflict)
 		}
 		updated.ImageAnalysis = analysis
+		if len(compositeEmbedding) > 0 {
+			updated.Embedding = append([]float32(nil), compositeEmbedding...)
+		}
+		if len(processedImages) > 0 {
+			updated.Images = domain.NormalizePetImages(processedImages)
+		}
+		if len(updated.Embedding) > 0 && len(updated.Images) > 0 {
+			for i := range updated.Images {
+				if updated.Images[i].Tag == domain.PetImageTagPrimary && len(updated.Images[i].Embedding) == 0 {
+					updated.Images[i].Embedding = append([]float32(nil), updated.Embedding...)
+				}
+			}
+		}
 		return json.Marshal(updated)
 	})
 	if err != nil {

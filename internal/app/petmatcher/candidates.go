@@ -24,14 +24,18 @@ const (
 	matcherCandidateRadiusMiles = scoring.MatchRadiusMiles
 )
 
-type lostPetCandidate struct {
-	record        domain.LostPetRecord
-	distanceMiles float64
-	traits        *scoring.PetTraits
+// LostPetCandidate represents an eligible lost pet candidate evaluated for a match.
+type LostPetCandidate struct {
+	Record        domain.LostPetRecord
+	DistanceMiles float64
+	Traits        *scoring.PetTraits
+	Embedding     []float32
 }
 
+type lostPetCandidate = LostPetCandidate
+
 type rankedCandidate struct {
-	candidate lostPetCandidate
+	candidate LostPetCandidate
 	result    *domain.MatchResult
 }
 
@@ -39,16 +43,16 @@ func outranks(challenger, current rankedCandidate) bool {
 	if challenger.result.Score != current.result.Score {
 		return challenger.result.Score > current.result.Score
 	}
-	if challenger.candidate.distanceMiles != current.candidate.distanceMiles {
-		return challenger.candidate.distanceMiles < current.candidate.distanceMiles
+	if challenger.candidate.DistanceMiles != current.candidate.DistanceMiles {
+		return challenger.candidate.DistanceMiles < current.candidate.DistanceMiles
 	}
-	return challenger.candidate.record.PetID < current.candidate.record.PetID
+	return challenger.candidate.Record.PetID < current.candidate.Record.PetID
 }
 
 func (w *Worker) eligibleLostPetCandidates(
 	ctx context.Context,
 	found domain.FoundPetReportedV2,
-) ([]lostPetCandidate, error) {
+) ([]LostPetCandidate, error) {
 	if found.GeocodingStatus != domain.GeocodingVerified || found.Coordinates == nil {
 		return nil, nil
 	}
@@ -66,7 +70,7 @@ func (w *Worker) eligibleLostPetCandidates(
 		}
 	}
 
-	candidates := make([]lostPetCandidate, 0, len(rawCandidates))
+	candidates := make([]LostPetCandidate, 0, len(rawCandidates))
 	pendingImageTraits := false
 	for key, data := range rawCandidates {
 		var record domain.LostPetRecord
@@ -102,7 +106,13 @@ func (w *Worker) eligibleLostPetCandidates(
 			continue
 		}
 		if record.ImageObject == "" {
-			continue
+			if primary, ok := domain.PrimaryPetImage(record.Images); ok && primary.Object != "" {
+				record.ImageObject = primary.Object
+			} else if record.ImageAnalysis != nil && record.ImageAnalysis.SourceImageObject != "" {
+				record.ImageObject = record.ImageAnalysis.SourceImageObject
+			} else {
+				continue
+			}
 		}
 		if !blob.IsFinalizedImageForPurpose(blob.ImagePurposeLostPet, record.PetID, record.ImageObject) {
 			log.Printf("[Pet Matcher] Skipping lost-pet candidate %q with invalid image namespace", key)
@@ -128,17 +138,38 @@ func (w *Worker) eligibleLostPetCandidates(
 			DistinctiveMarkings: append([]string(nil), analysis.Traits.DistinctiveMarkings...),
 			EyeColor:            analysis.Traits.EyeColor,
 		}
-		candidates = append(candidates, lostPetCandidate{
-			record: record, distanceMiles: distanceMiles, traits: traits,
+		emb := record.Embedding
+		if len(emb) == 0 {
+			if primary, ok := domain.PrimaryPetImage(record.Images); ok && len(primary.Embedding) > 0 {
+				emb = primary.Embedding
+			}
+		}
+		record.Embedding = emb
+		if len(record.Images) == 0 && record.ImageObject != "" {
+			record.Images = []domain.PetImage{
+				{Object: record.ImageObject, Tag: domain.PetImageTagPrimary, Embedding: emb},
+			}
+		}
+		candidates = append(candidates, LostPetCandidate{
+			Record: record, DistanceMiles: distanceMiles, Traits: traits,
+			Embedding: emb,
 		})
 	}
 	if pendingImageTraits {
 		return nil, errLostImageTraitsPending
 	}
 	sort.Slice(candidates, func(i, j int) bool {
-		return candidates[i].record.PetID < candidates[j].record.PetID
+		return candidates[i].Record.PetID < candidates[j].Record.PetID
 	})
 	return candidates, nil
+}
+
+// EligibleLostPetCandidates returns candidate lost pets for a given found-pet report.
+func (w *Worker) EligibleLostPetCandidates(
+	ctx context.Context,
+	found domain.FoundPetReportedV2,
+) ([]LostPetCandidate, error) {
+	return w.eligibleLostPetCandidates(ctx, found)
 }
 
 func boundedCandidateQueries(found domain.FoundPetReportedV2) []store.LostPetCandidateQuery {

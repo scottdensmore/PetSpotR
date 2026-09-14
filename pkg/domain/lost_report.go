@@ -75,6 +75,7 @@ type LostPetReport struct {
 	ReporterEmail   string          `json:"reporterEmail"`
 	Phone           string          `json:"phone,omitempty"`
 	ImageObject     string          `json:"imageObject,omitempty"`
+	Images          []PetImage      `json:"images,omitempty"`
 	ReportedAt      time.Time       `json:"reportedAt"`
 	Location        string          `json:"location"`
 	GeocodingStatus GeocodingStatus `json:"geocodingStatus"`
@@ -95,6 +96,8 @@ type LostPetRecord struct {
 	Description      string                 `json:"description,omitempty"`
 	OwnerIdentityRef string                 `json:"ownerIdentityRef"`
 	ImageObject      string                 `json:"imageObject,omitempty"`
+	Images           []PetImage             `json:"images,omitempty"`
+	Embedding        []float32              `json:"embedding,omitempty"`
 	ReportedAt       time.Time              `json:"reportedAt"`
 	Location         string                 `json:"location"`
 	GeocodingStatus  GeocodingStatus        `json:"geocodingStatus"`
@@ -152,6 +155,8 @@ type LostPetReportedV4 struct {
 	PrimaryColor    string          `json:"primaryColor,omitempty"`
 	Description     string          `json:"description,omitempty"`
 	ImageObject     string          `json:"imageObject,omitempty"`
+	Images          []PetImage      `json:"images,omitempty"`
+	Embedding       []float32       `json:"embedding,omitempty"`
 	ReportedAt      time.Time       `json:"reportedAt"`
 	Location        string          `json:"location"`
 	GeocodingStatus GeocodingStatus `json:"geocodingStatus"`
@@ -284,6 +289,11 @@ func (e LostPetReportedV4) Validate() error {
 	if e.ReportedAt.IsZero() {
 		return errors.New("domain: reportedAt is required")
 	}
+	if len(e.Embedding) > 0 {
+		if err := ValidateEmbedding(e.Embedding); err != nil {
+			return err
+		}
+	}
 	return validateLostPetCanonicalFields(LostPetReport{
 		PetID:           e.PetID,
 		PetName:         e.PetName,
@@ -292,6 +302,7 @@ func (e LostPetReportedV4) Validate() error {
 		PrimaryColor:    e.PrimaryColor,
 		Description:     e.Description,
 		ImageObject:     e.ImageObject,
+		Images:          e.Images,
 		ReportedAt:      e.ReportedAt,
 		Location:        e.Location,
 		GeocodingStatus: e.GeocodingStatus,
@@ -328,6 +339,15 @@ func NormalizeLostPetReport(report LostPetReport) LostPetReport {
 	report.ReporterEmail = strings.ToLower(strings.TrimSpace(report.ReporterEmail))
 	report.Phone = strings.TrimSpace(report.Phone)
 	report.ImageObject = strings.TrimSpace(report.ImageObject)
+	report.Images = NormalizePetImages(report.Images)
+	if len(report.Images) == 0 && report.ImageObject != "" {
+		report.Images = []PetImage{{Object: report.ImageObject, Tag: PetImageTagPrimary}}
+	}
+	if report.ImageObject == "" {
+		if primary, ok := PrimaryPetImage(report.Images); ok {
+			report.ImageObject = primary.Object
+		}
+	}
 	report.Location = strings.TrimSpace(report.Location)
 	report.OwnedBy = normalizePrincipalRef(report.OwnedBy)
 	if !report.ReportedAt.IsZero() {
@@ -409,13 +429,18 @@ func normalizeLostPetReportedV4(event LostPetReportedV4) LostPetReportedV4 {
 		PrimaryColor:    event.PrimaryColor,
 		Description:     event.Description,
 		ImageObject:     event.ImageObject,
+		Images:          event.Images,
 		ReportedAt:      event.ReportedAt,
 		Location:        event.Location,
 		GeocodingStatus: event.GeocodingStatus,
 		Coordinates:     event.Coordinates,
 		Status:          event.Status,
 	})
-	return report.ReportedEvent()
+	res := report.ReportedEvent()
+	if len(event.Embedding) > 0 {
+		res.Embedding = append([]float32(nil), event.Embedding...)
+	}
+	return res
 }
 
 func (e LostPetReportedV3) current() LostPetReportedV4 {
@@ -470,6 +495,10 @@ func (r LostPetReport) Public() PublicLostPetReport {
 // Persisted separates private owner contact from the report aggregate.
 func (r LostPetReport) Persisted() (LostPetRecord, ReportContact) {
 	identityRef := reportIdentityRef("lost", r.PetID, "owner")
+	var emb []float32
+	if primary, ok := PrimaryPetImage(r.Images); ok && len(primary.Embedding) > 0 {
+		emb = append([]float32(nil), primary.Embedding...)
+	}
 	return LostPetRecord{
 			PetID:            r.PetID,
 			PetName:          r.PetName,
@@ -479,6 +508,8 @@ func (r LostPetReport) Persisted() (LostPetRecord, ReportContact) {
 			Description:      r.Description,
 			OwnerIdentityRef: identityRef,
 			ImageObject:      r.ImageObject,
+			Images:           clonePetImages(r.Images),
+			Embedding:        emb,
 			ReportedAt:       r.ReportedAt,
 			Location:         r.Location,
 			GeocodingStatus:  r.GeocodingStatus,
@@ -503,6 +534,7 @@ func NormalizeLostPetRecord(record LostPetRecord) LostPetRecord {
 		PrimaryColor:    record.PrimaryColor,
 		Description:     record.Description,
 		ImageObject:     record.ImageObject,
+		Images:          record.Images,
 		ReportedAt:      record.ReportedAt,
 		Location:        record.Location,
 		GeocodingStatus: record.GeocodingStatus,
@@ -513,6 +545,9 @@ func NormalizeLostPetRecord(record LostPetRecord) LostPetRecord {
 	normalized, _ := report.Persisted()
 	if identityRef := strings.TrimSpace(record.OwnerIdentityRef); identityRef != "" {
 		normalized.OwnerIdentityRef = identityRef
+	}
+	if len(record.Embedding) > 0 {
+		normalized.Embedding = append([]float32(nil), record.Embedding...)
 	}
 	normalized.ImageAnalysis = NormalizeImageTraitAnalysis(record.ImageAnalysis)
 	if record.LifecycleAudit != nil {
@@ -541,6 +576,10 @@ func (r LostPetRecord) Public() PublicLostPetReport {
 
 // ReportedEvent returns the contact-redacted current integration event.
 func (r LostPetReport) ReportedEvent() LostPetReportedV4 {
+	var emb []float32
+	if primary, ok := PrimaryPetImage(r.Images); ok && len(primary.Embedding) > 0 {
+		emb = append([]float32(nil), primary.Embedding...)
+	}
 	return LostPetReportedV4{
 		PetID:           r.PetID,
 		PetName:         r.PetName,
@@ -549,6 +588,8 @@ func (r LostPetReport) ReportedEvent() LostPetReportedV4 {
 		PrimaryColor:    r.PrimaryColor,
 		Description:     r.Description,
 		ImageObject:     r.ImageObject,
+		Images:          clonePetImages(r.Images),
+		Embedding:       emb,
 		ReportedAt:      r.ReportedAt,
 		Location:        r.Location,
 		GeocodingStatus: r.GeocodingStatus,
@@ -630,6 +671,9 @@ func validateLostPetLengths(r LostPetReport) error {
 		if utf8.RuneCountInString(field.value) > field.limit {
 			return fmt.Errorf("domain: %s exceeds %d characters", field.name, field.limit)
 		}
+	}
+	if err := ValidatePetImages(r.Images); err != nil {
+		return err
 	}
 	return nil
 }
