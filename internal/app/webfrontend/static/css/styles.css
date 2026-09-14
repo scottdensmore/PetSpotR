@@ -531,6 +531,11 @@ textarea:focus-visible,
   background: rgba(99, 102, 241, 0.15);
 }
 
+.dropzone[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .upload-icon {
   margin-bottom: 1rem;
   color: var(--brand-primary);
@@ -1044,10 +1049,13 @@ textarea:focus-visible,
   transition: border-color var(--transition-fast);
 }
 
-.thumbnail-btn.is-active,
-.thumbnail-btn:focus-visible {
+.thumbnail-btn.is-active {
   border-color: var(--accent-primary);
-  outline: none;
+}
+
+.thumbnail-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 .thumbnail-img {
