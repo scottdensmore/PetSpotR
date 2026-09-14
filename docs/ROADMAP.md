@@ -254,10 +254,11 @@ The following initiatives represent the active roadmap for PetSpotR:
 - [x] **Status-Coded Custom Pins & Popups**: Custom SVG pins styled by report status (Amber for lost, Emerald for found) with interactive popup cards linking to report details.
 - [x] **Strict CSP & Vendored Assets**: Vendored Leaflet 1.9.4 locally in `internal/app/webfrontend/static/vendor/leaflet/` to maintain strict defense-in-depth CSP (`script-src 'self'`, `style-src 'self'`).
 
-### Milestone 5.2: Web Push Alert Preferences & Notification Dashboard
-- **Notification Preferences UI**: Frontend settings panel allowing pet owners and community volunteers to manage alert channels.
-- **Geographic Alert Zones**: User-defined alert radii (e.g. within 5, 10, or 25 miles of a home postal code).
-- **In-App Notification Center**: Unread alert drawer displaying recent match notifications and status updates.
+### Milestone 5.2: Web Push Alert Preferences & Notification Dashboard (Complete)
+- [x] **Notification Preferences UI**: Frontend settings panel allowing pet owners and community volunteers to manage alert channels (Email, SMS, Instant Web Push via `push-notifier.js`).
+- [x] **Geographic Alert Zones**: User-defined alert radii (5, 10, 25, 50 miles) centered via "📍 Use My Location" (`navigator.geolocation`) or interactive Leaflet mini-map (`#zone-mini-map`) with radius circle preview.
+- [x] **In-App Notification Center**: Unread alert drawer displaying recent match notifications and status updates with unread badge counter, focus trap, and mark-all-as-read action.
+- [x] **Dual Identity Support & CSRF Security**: Authenticated preferences and notifications saved to Firestore with double-submit CSRF protection; anonymous guest alerts managed via `localStorage` with `Cache-Control: no-store`.
 
 ### Milestone 5.3: Hybrid Multimodal AI & Semantic Vector Search
 - **Firestore Vector Search**: Generate multimodal embedding vectors for pet photos and textual descriptions using Vertex AI / Gemma embeddings.
