@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <img class="photo-staging-thumb found-preview-image" src="" alt="Staged pet photo">
           <div class="photo-staging-controls form-field">
             <select class="form-control photo-tag-select" aria-label="Select photo angle">
-              <option value="face">Primary / Face</option>
+              <option value="primary">Primary / Face</option>
               <option value="coat">Coat Pattern</option>
               <option value="collar">Collar & Tags</option>
             </select>
@@ -130,6 +130,28 @@ document.addEventListener('DOMContentLoaded', () => {
   function removeStagedPhoto(index) {
     stagedImages.splice(index, 1);
     renderStagedPhotos();
+    if (stagedImages.length === 0) {
+      currentImageUrl = '';
+      if (previewContainer) {
+        previewContainer.hidden = true;
+      }
+      if (imagePreview) {
+        imagePreview.hidden = true;
+        imagePreview.src = '';
+      }
+      if (spinner) {
+        spinner.hidden = true;
+      }
+      if (extractionStatus) {
+        extractionStatus.textContent = '';
+      }
+    } else {
+      const primary = stagedImages.find(img => img.tag === 'primary') || stagedImages[0];
+      currentImageUrl = primary.previewUrl || primary.url || '';
+      if (imagePreview && currentImageUrl) {
+        imagePreview.src = currentImageUrl;
+      }
+    }
     const photoStatus = document.getElementById('found-photo-status');
     if (photoStatus) {
       photoStatus.textContent = stagedImages.length > 0
@@ -154,8 +176,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function uploadToPresignedUrl(file) {
     const headers = { 'Content-Type': 'application/json' };
-    if (window.petspotrIdentity?.currentSession?.csrfToken) {
-      headers['X-CSRF-Token'] = window.petspotrIdentity.currentSession.csrfToken;
+    const csrfToken = window.petspotrIdentity?.getState?.()?.csrfToken ||
+      document.cookie.split('; ').find(row => row.startsWith('petspotr_csrf='))?.split('=')[1];
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
     }
     try {
       const res = await fetch('/api/v1/uploads/presigned-url', {
@@ -246,8 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const uploaded = await uploadToPresignedUrl(file);
 
         const existingTags = stagedImages.map(img => img.tag);
-        let defaultTag = 'face';
-        if (existingTags.includes('face')) {
+        let defaultTag = 'primary';
+        if (existingTags.includes('primary')) {
           defaultTag = !existingTags.includes('coat') ? 'coat' : 'collar';
         }
 
@@ -437,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ...pendingSubmission,
         imageUrl: legacyImageUrl,
         imageObject: primaryObject,
-        images: stagedImages.map(img => ({ object: img.object, tag: img.tag })),
+        images: stagedImages.map(img => ({ object: img.object, tag: img.tag || 'primary' })),
         location: location.trim(),
         finderEmail: finderEmail.trim(),
         species: inputSpecies?.value || 'Dog',

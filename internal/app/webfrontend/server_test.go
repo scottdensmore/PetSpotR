@@ -1030,7 +1030,7 @@ func TestServer_MultiPhotoSubmission(t *testing.T) {
 			"location": "Capitol Hill, Seattle, WA",
 			"reporterEmail": "owner@example.com",
 			"images": [
-				{"object": "images/lost-pets/rust-1/face.jpg", "tag": "face"},
+				{"object": "images/lost-pets/rust-1/face.jpg", "tag": "primary"},
 				{"object": "images/lost-pets/rust-1/coat.jpg", "tag": "coat"},
 				{"object": "images/lost-pets/rust-1/collar.jpg", "tag": "collar"}
 			]
@@ -1075,7 +1075,7 @@ func TestServer_MultiPhotoSubmission(t *testing.T) {
 			"location": "Capitol Hill, Seattle, WA",
 			"finderEmail": "finder@example.com",
 			"images": [
-				{"object": "images/found-pets/found-1/face.jpg", "tag": "face"},
+				{"object": "images/found-pets/found-1/face.jpg", "tag": "primary"},
 				{"object": "images/found-pets/found-1/coat.jpg", "tag": "coat"},
 				{"object": "images/found-pets/found-1/collar.jpg", "tag": "collar"}
 			]
