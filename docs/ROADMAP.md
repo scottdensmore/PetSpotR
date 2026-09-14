@@ -260,7 +260,8 @@ The following initiatives represent the active roadmap for PetSpotR:
 - [x] **In-App Notification Center**: Unread alert drawer displaying recent match notifications and status updates with unread badge counter, focus trap, and mark-all-as-read action.
 - [x] **Dual Identity Support & CSRF Security**: Authenticated preferences and notifications saved to Firestore with double-submit CSRF protection; anonymous guest alerts managed via `localStorage` with `Cache-Control: no-store`.
 
-### Milestone 5.3: Hybrid Multimodal AI & Semantic Vector Search
-- **Firestore Vector Search**: Generate multimodal embedding vectors for pet photos and textual descriptions using Vertex AI / Gemma embeddings.
-- **Hybrid Similarity Ranking**: Combine cosine distance vector ranking with deterministic rule-based trait scoring for higher precision matches.
-- **Multi-Photo Ingestion**: Support multiple images per pet report (facial profile, distinct coat patterns, identifying collar tags).
+### Milestone 5.3: Hybrid Multimodal AI & Semantic Vector Search (Complete)
+- [x] **Firestore Vector Search & Embeddings**: Pluggable multimodal embedder (`pkg/embedding`) supporting Vertex AI (`multimodalembedding@001`), Ollama, and deterministic offline `MockEmbedder` (768-dimensional normalized vectors). Vectors indexed and persisted on Firestore candidate records.
+- [x] **Hybrid Similarity Ranking**: Tri-factor linear ranking ($0.40 \times \text{Vector} + 0.35 \times \text{Trait} + 0.25 \times \text{Spatial}$) with strict species veto in `pkg/scoring`, falling back seamlessly to legacy dual scoring when embeddings are absent.
+- [x] **Multi-Photo Ingestion & Upload Dropzone**: Support up to 3 photos per pet report with tag classification (`primary`, `face`, `coat`, `collar`), client preview staging, and full backward-compatible mirroring with legacy `ImageObject`.
+- [x] **Match Dashboard Multi-Angle Comparison**: Interactive photo thumbnail strip and multimodal AI vector match progress bar on `/matches` with strict CSP compliance.
