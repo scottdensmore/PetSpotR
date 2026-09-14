@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -19,6 +20,8 @@ import (
 )
 
 func main() {
+	backfillEmbeddings := flag.Bool("backfill-embeddings", false, "Run the backfill job to compute missing vector embeddings and exit")
+	flag.Parse()
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8083"
@@ -83,6 +86,16 @@ func main() {
 		log.Fatalf("Failed to prepare lost-pet candidate index: %v", err)
 	}
 	worker := petmatcher.NewWorkerWithImageStore(matcherStateStore, messagingRuntime.Publisher, oc, storageRuntime.Images)
+
+	if *backfillEmbeddings {
+		log.Printf("Starting backfill-embeddings job")
+		processed, complete, err := worker.BackfillEmbeddings(ctx, 100)
+		if err != nil {
+			log.Fatalf("Backfill failed: %v", err)
+		}
+		log.Printf("Backfill completed. Processed: %d, Complete: %v", processed, complete)
+		return
+	}
 
 	var authorizer pubsub.PushAuthorizer
 	if pushConfig.Mode == runtimeconfig.ModeGCP {

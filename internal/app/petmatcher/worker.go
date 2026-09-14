@@ -32,6 +32,7 @@ type Store interface {
 	store.StateStore
 	store.DeliveryOperationStore
 	store.LostPetCandidateStore
+	store.PetEmbeddingBackfillStore
 }
 
 type matcherResultRecord struct {
