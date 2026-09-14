@@ -3,6 +3,7 @@ package petmatcher
 import (
 	"context"
 	"math"
+	"net/http"
 	"strings"
 
 	"github.com/scottdensmore/petspotr/pkg/blob"
@@ -103,7 +104,11 @@ func computeMultiPhotoEmbeddings(
 			}
 		}
 		if len(imgBytes) > 0 {
-			if emb, err := embedder.EmbedMultimodal(ctx, imgBytes, "image/jpeg", cleanDesc); err == nil && len(emb) > 0 {
+			mimeType := http.DetectContentType(imgBytes)
+			if mimeType == "application/octet-stream" || !strings.HasPrefix(mimeType, "image/") {
+				mimeType = "image/jpeg"
+			}
+			if emb, err := embedder.EmbedMultimodal(ctx, imgBytes, mimeType, cleanDesc); err == nil && len(emb) > 0 {
 				resultImages[i].Embedding = emb
 				vectors = append(vectors, emb)
 			}

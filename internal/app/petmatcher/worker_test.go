@@ -1572,3 +1572,85 @@ func TestWorker_ProcessFoundPet_GeneratesCompositeEmbedding(t *testing.T) {
 		t.Fatal("expected matchFound to be published")
 	}
 }
+
+func TestWorker_ResolveFoundEmbedding_PersistsComputedEmbedding(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+	images := blob.NewMemoryBlobStore("https://storage.petspotr.io")
+
+	grant, err := images.BeginImageUpload(ctx, blob.ImageUploadIntent{
+		Purpose: blob.ImagePurposeFoundPet, ContentType: "image/jpeg",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	imageBytes := encodedMatcherImage(t)
+	if _, err := images.UploadImage(ctx, grant.ObjectName, imageBytes); err != nil {
+		t.Fatal(err)
+	}
+	finalized, err := images.FinalizeImage(ctx, grant.ReportID, grant.ObjectName, grant.FinalizeToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	petID := grant.ReportID
+	initialRecord := domain.FoundPetRecord{
+		PetID:           petID,
+		ImageObject:     finalized.ObjectName,
+		FoundAt:         time.Now().UTC(),
+		Location:        "Seattle, WA",
+		GeocodingStatus: domain.GeocodingVerified,
+		Coordinates:     matcherTestPoint(),
+		Species:         "Dog",
+		Breed:           "Golden Retriever",
+		Status:          domain.FoundPetStatusFound,
+		CustodyStatus:   domain.CustodyFinderHome,
+		Images: []domain.PetImage{
+			{Object: finalized.ObjectName, Tag: domain.PetImageTagPrimary},
+		},
+	}
+	data, err := json.Marshal(initialRecord)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := stateStore.SaveState(ctx, store.FoundPetsCollection, petID, data); err != nil {
+		t.Fatal(err)
+	}
+
+	embedder := embedding.NewMockEmbedder()
+	worker := NewWorkerWithImageStore(stateStore, pubsub.NewMemoryPubSub(), nil, images)
+	worker.SetEmbedder(embedder)
+
+	foundEvt := domain.FoundPetReportedV2{
+		PetID:       petID,
+		ImageObject: finalized.ObjectName,
+		Species:     "Dog",
+		Breed:       "Golden Retriever",
+	}
+
+	emb := worker.resolveFoundEmbedding(ctx, foundEvt)
+	if len(emb) != embedder.Dimension() {
+		t.Fatalf("resolveFoundEmbedding() length = %d, want %d", len(emb), embedder.Dimension())
+	}
+
+	storedBytes, err := stateStore.GetState(ctx, store.FoundPetsCollection, petID)
+	if err != nil {
+		t.Fatalf("GetState() error = %v", err)
+	}
+	var storedRecord domain.FoundPetRecord
+	if err := json.Unmarshal(storedBytes, &storedRecord); err != nil {
+		t.Fatalf("unmarshal stored record: %v", err)
+	}
+	if len(storedRecord.Embedding) != embedder.Dimension() {
+		t.Fatalf("stored record Embedding length = %d, want %d", len(storedRecord.Embedding), embedder.Dimension())
+	}
+	if len(storedRecord.Images) == 0 || len(storedRecord.Images[0].Embedding) != embedder.Dimension() {
+		t.Fatalf("stored record Images[0] Embedding missing or wrong length")
+	}
+
+	workerWithoutEmbedder := NewWorkerWithImageStore(stateStore, pubsub.NewMemoryPubSub(), nil, nil)
+	secondEmb := workerWithoutEmbedder.resolveFoundEmbedding(ctx, domain.FoundPetReportedV2{PetID: petID})
+	if len(secondEmb) != embedder.Dimension() {
+		t.Fatalf("second resolveFoundEmbedding length = %d, want %d", len(secondEmb), embedder.Dimension())
+	}
+}

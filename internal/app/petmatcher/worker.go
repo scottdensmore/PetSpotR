@@ -520,7 +520,7 @@ func (w *Worker) resolveFoundEmbedding(ctx context.Context, foundEvt domain.Foun
 			imagesToProcess = record.Images
 		}
 	}
-	_, composite := computeMultiPhotoEmbeddings(
+	processedImages, composite := computeMultiPhotoEmbeddings(
 		ctx,
 		w.embedder,
 		w.images,
@@ -529,5 +529,29 @@ func (w *Worker) resolveFoundEmbedding(ctx context.Context, foundEvt domain.Foun
 		nil,
 		textDesc,
 	)
+	if len(composite) > 0 && w.store != nil && foundEvt.PetID != "" {
+		_ = w.store.UpdateState(ctx, store.FoundPetsCollection, foundEvt.PetID, func(current []byte) ([]byte, error) {
+			var updated domain.FoundPetRecord
+			if err := json.Unmarshal(current, &updated); err != nil {
+				return nil, fmt.Errorf("pet-matcher: decode durable found-pet state: %w", err)
+			}
+			updated = domain.NormalizeFoundPetRecord(updated)
+			if updated.PetID != foundEvt.PetID {
+				return nil, errors.New("pet-matcher: durable found-pet identity does not match event")
+			}
+			updated.Embedding = append([]float32(nil), composite...)
+			if len(processedImages) > 0 {
+				updated.Images = domain.NormalizePetImages(processedImages)
+			}
+			if len(updated.Embedding) > 0 && len(updated.Images) > 0 {
+				for i := range updated.Images {
+					if updated.Images[i].Tag == domain.PetImageTagPrimary && len(updated.Images[i].Embedding) == 0 {
+						updated.Images[i].Embedding = append([]float32(nil), updated.Embedding...)
+					}
+				}
+			}
+			return json.Marshal(updated)
+		})
+	}
 	return composite
 }
