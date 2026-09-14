@@ -45,6 +45,7 @@ type ReportCommand struct {
 	ReporterEmail   string
 	Phone           string
 	ImageObject     string
+	Images          []domain.PetImage
 	ReportedAt      time.Time
 	Location        string
 	GeocodingStatus domain.GeocodingStatus
@@ -451,6 +452,7 @@ func (s *Service) ReportLostPet(
 		ReporterEmail:   command.ReporterEmail,
 		Phone:           command.Phone,
 		ImageObject:     command.ImageObject,
+		Images:          command.Images,
 		ReportedAt:      command.ReportedAt,
 		Location:        command.Location,
 		GeocodingStatus: command.GeocodingStatus,

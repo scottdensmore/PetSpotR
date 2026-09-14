@@ -11,8 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('lost-pet-form');
   const dropzone = document.getElementById('dropzone');
   const photoInput = document.getElementById('photoInput');
-  const imagePreview = document.getElementById('imagePreview');
-  const previewContainer = document.getElementById('preview-container');
+  const photoCountBadge = document.getElementById('photo-count-badge');
+  const stagingContainer = document.getElementById('staging-container');
+  const photoTemplate = document.getElementById('staged-photo-template');
   const submissionStatus = document.getElementById('lost-report-status');
 
   function showFieldError(fieldId, errorId, message) {
@@ -122,6 +123,215 @@ document.addEventListener('DOMContentLoaded', () => {
     return true;
   }
 
+  // Multi-Photo Staging & Upload
+  let stagedImages = [];
+
+  function updatePhotoCounter() {
+    if (photoCountBadge) {
+      photoCountBadge.textContent = `${stagedImages.length} / 3 photos added`;
+    }
+    if (stagingContainer) {
+      stagingContainer.hidden = stagedImages.length === 0;
+    }
+  }
+
+  function renderStagedPhotos() {
+    if (!stagingContainer) return;
+    stagingContainer.replaceChildren();
+
+    stagedImages.forEach((item, index) => {
+      let card;
+      if (photoTemplate && 'content' in photoTemplate) {
+        card = photoTemplate.content.firstElementChild.cloneNode(true);
+      } else {
+        card = document.createElement('div');
+        card.className = 'photo-staging-card glass-card';
+        card.innerHTML = `
+          <img class="photo-staging-thumb lost-preview-image" src="" alt="Staged pet photo">
+          <div class="photo-staging-controls form-field">
+            <select class="form-control photo-tag-select" aria-label="Select photo angle">
+              <option value="face">Primary / Face</option>
+              <option value="coat">Coat Pattern</option>
+              <option value="collar">Collar & Tags</option>
+            </select>
+            <button type="button" class="btn btn-secondary btn-sm btn-remove-photo" aria-label="Remove photo">&times;</button>
+          </div>
+        `;
+      }
+      card.dataset.index = String(index);
+
+      const img = card.querySelector('img');
+      if (img) {
+        img.src = item.previewUrl || '';
+        img.alt = `Staged photo ${index + 1} (${item.tag})`;
+      }
+
+      const tagSelect = card.querySelector('.photo-tag-select');
+      if (tagSelect) {
+        tagSelect.value = item.tag;
+        tagSelect.addEventListener('change', (e) => {
+          stagedImages[index].tag = e.target.value;
+        });
+      }
+
+      const btnRemove = card.querySelector('.btn-remove-photo');
+      if (btnRemove) {
+        btnRemove.addEventListener('click', () => {
+          removeStagedPhoto(index);
+        });
+      }
+
+      stagingContainer.appendChild(card);
+    });
+
+    updatePhotoCounter();
+  }
+
+  function removeStagedPhoto(index) {
+    stagedImages.splice(index, 1);
+    renderStagedPhotos();
+    const photoStatus = document.getElementById('lost-photo-status');
+    if (photoStatus) {
+      photoStatus.textContent = stagedImages.length > 0
+        ? `${stagedImages.length} photo(s) attached.`
+        : '';
+    }
+    const photoError = document.getElementById('photo-error');
+    if (photoError) {
+      photoError.textContent = '';
+      photoError.hidden = true;
+    }
+  }
+
+  function readFileDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadToPresignedUrl(file) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (window.petspotrIdentity?.currentSession?.csrfToken) {
+      headers['X-CSRF-Token'] = window.petspotrIdentity.currentSession.csrfToken;
+    }
+    try {
+      const res = await fetch('/api/v1/uploads/presigned-url', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type || 'image/jpeg'
+        })
+      });
+      if (res.ok) {
+        const presigned = await res.json();
+        if (presigned.uploadUrl) {
+          try {
+            await fetch(presigned.uploadUrl, {
+              method: 'PUT',
+              headers: { 'Content-Type': file.type || 'image/jpeg' },
+              body: file
+            });
+          } catch (e) {
+            console.warn('Direct upload warning:', e);
+          }
+        }
+        return {
+          object: presigned.fileName || `images/lost-pets/${file.name}`,
+          url: presigned.publicUrl || ''
+        };
+      }
+    } catch (e) {
+      console.warn('Presigned URL fetch warning:', e);
+    }
+    return {
+      object: `images/lost-pets/${Date.now()}-${file.name}`,
+      url: ''
+    };
+  }
+
+  async function handleFiles(files) {
+    const photoError = document.getElementById('photo-error');
+    const photoStatus = document.getElementById('lost-photo-status');
+    if (photoError) {
+      photoError.textContent = '';
+      photoError.hidden = true;
+    }
+
+    if (!files || files.length === 0) return;
+
+    const remaining = 3 - stagedImages.length;
+    if (remaining <= 0) {
+      if (photoError) {
+        photoError.textContent = 'Maximum 3 photos allowed.';
+        photoError.hidden = false;
+      }
+      dropzone?.focus();
+      return;
+    }
+
+    const toProcess = Array.from(files).slice(0, remaining);
+    if (files.length > remaining) {
+      if (photoError) {
+        photoError.textContent = `Only ${remaining} more photo(s) can be added (maximum 3).`;
+        photoError.hidden = false;
+      }
+    }
+
+    for (const file of toProcess) {
+      if (!file.type.startsWith('image/')) {
+        if (photoError) {
+          photoError.textContent = 'Please select an image file.';
+          photoError.hidden = false;
+        }
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        if (photoError) {
+          photoError.textContent = 'Photo file size exceeds 10MB limit.';
+          photoError.hidden = false;
+        }
+        continue;
+      }
+
+      if (photoStatus) {
+        photoStatus.textContent = `Uploading ${file.name}...`;
+      }
+
+      try {
+        const previewUrl = await readFileDataUrl(file);
+        const uploaded = await uploadToPresignedUrl(file);
+
+        const existingTags = stagedImages.map(img => img.tag);
+        let defaultTag = 'face';
+        if (existingTags.includes('face')) {
+          defaultTag = !existingTags.includes('coat') ? 'coat' : 'collar';
+        }
+
+        stagedImages.push({
+          object: uploaded.object,
+          url: uploaded.url,
+          previewUrl: previewUrl,
+          tag: defaultTag
+        });
+
+        renderStagedPhotos();
+        if (photoStatus) {
+          photoStatus.textContent = `Added ${file.name} (${stagedImages.length} / 3 photos).`;
+        }
+      } catch (err) {
+        console.error('File staging error:', err);
+        if (photoError) {
+          photoError.textContent = 'Failed to process photo upload.';
+          photoError.hidden = false;
+        }
+      }
+    }
+  }
+
   // Drag & Drop Photo Upload
   if (dropzone && photoInput) {
     dropzone.addEventListener('click', () => photoInput.click());
@@ -144,44 +354,17 @@ document.addEventListener('DOMContentLoaded', () => {
     dropzone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropzone.classList.remove('is-dragging');
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-        handleFile(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFiles(e.dataTransfer.files);
       }
     });
 
     photoInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files[0]) {
-        handleFile(e.target.files[0]);
+      if (e.target.files && e.target.files.length > 0) {
+        handleFiles(e.target.files);
+        photoInput.value = '';
       }
     });
-  }
-
-  function handleFile(file) {
-    const photoError = document.getElementById('photo-error');
-    const photoStatus = document.getElementById('lost-photo-status');
-    if (photoError) {
-      photoError.textContent = '';
-      photoError.hidden = true;
-    }
-    if (!file.type.startsWith('image/')) {
-      if (photoError) {
-        photoError.textContent = 'Please select an image file.';
-        photoError.hidden = false;
-      }
-      dropzone?.focus();
-      return;
-    }
-    if (photoStatus) {
-      photoStatus.textContent = `Photo selected: ${file.name}`;
-    }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (imagePreview && previewContainer) {
-        imagePreview.src = e.target.result;
-        previewContainer.hidden = false;
-      }
-    };
-    reader.readAsDataURL(file);
   }
 
   // Form Submission AJAX
@@ -234,6 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
           };
         }
 
+        const primaryImg = stagedImages.find(img => img.tag === 'primary' || img.tag === 'face') || stagedImages[0];
         const payload = {
           ...pendingSubmission,
           petName: document.getElementById('petName')?.value || '',
@@ -243,7 +427,9 @@ document.addEventListener('DOMContentLoaded', () => {
           description: document.getElementById('description')?.value || '',
           location: document.getElementById('location')?.value || '',
           reporterEmail: reporterEmail.value.trim(),
-          phone: document.getElementById('phone')?.value || ''
+          phone: document.getElementById('phone')?.value || '',
+          images: stagedImages.map(img => ({ object: img.object, tag: img.tag })),
+          imageObject: primaryImg ? primaryImg.object : ''
         };
 
         try {

@@ -299,16 +299,18 @@ func (s *Server) handleMatches(w http.ResponseWriter, r *http.Request) {
 }
 
 type LostPetFormRequest struct {
-	PetID         string    `json:"petId"`
-	PetName       string    `json:"petName"`
-	Species       string    `json:"species"`
-	Breed         string    `json:"breed"`
-	PrimaryColor  string    `json:"primaryColor"`
-	Description   string    `json:"description"`
-	Location      string    `json:"location"`
-	ReporterEmail string    `json:"reporterEmail"`
-	Phone         string    `json:"phone"`
-	ReportedAt    time.Time `json:"reportedAt"`
+	PetID         string            `json:"petId"`
+	PetName       string            `json:"petName"`
+	Species       string            `json:"species"`
+	Breed         string            `json:"breed"`
+	PrimaryColor  string            `json:"primaryColor"`
+	Description   string            `json:"description"`
+	Location      string            `json:"location"`
+	ReporterEmail string            `json:"reporterEmail"`
+	Phone         string            `json:"phone"`
+	ImageObject   string            `json:"imageObject,omitempty"`
+	Images        []domain.PetImage `json:"images,omitempty"`
+	ReportedAt    time.Time         `json:"reportedAt"`
 }
 
 func newLostPetID(petName string) (string, error) {
@@ -519,6 +521,18 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := domain.ValidatePetImages(req.Images); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	imageObject := req.ImageObject
+	if primary, ok := domain.PrimaryPetImage(req.Images); ok && primary.Object != "" {
+		imageObject = primary.Object
+	} else if len(req.Images) > 0 && req.Images[0].Object != "" {
+		imageObject = req.Images[0].Object
+	}
+
 	petID := strings.TrimSpace(req.PetID)
 	if petID == "" {
 		var err error
@@ -548,6 +562,8 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		Description:   req.Description,
 		ReporterEmail: reporterEmail,
 		Phone:         req.Phone,
+		ImageObject:   imageObject,
+		Images:        req.Images,
 		ReportedAt:    reportedAt,
 		Location:      req.Location,
 		OwnedBy:       ownedBy,
@@ -619,6 +635,8 @@ func (s *Server) handleApiExtractFeatures(w http.ResponseWriter, r *http.Request
 type FoundPetFormRequest struct {
 	PetID               string               `json:"petId"`
 	ImageURL            string               `json:"imageUrl"`
+	ImageObject         string               `json:"imageObject,omitempty"`
+	Images              []domain.PetImage    `json:"images,omitempty"`
 	Location            string               `json:"location"`
 	FinderEmail         string               `json:"finderEmail"`
 	Species             string               `json:"species"`
@@ -755,6 +773,18 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := domain.ValidatePetImages(req.Images); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var imageObject string
+	if primary, ok := domain.PrimaryPetImage(req.Images); ok && primary.Object != "" {
+		imageObject = primary.Object
+	} else if len(req.Images) > 0 && req.Images[0].Object != "" {
+		imageObject = req.Images[0].Object
+	}
+
 	petID := strings.TrimSpace(req.PetID)
 	if petID == "" {
 		var err error
@@ -778,6 +808,8 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 	command := foundpet.ReportCommand{
 		PetID:               petID,
 		ImageURL:            req.ImageURL,
+		ImageObject:         imageObject,
+		Images:              req.Images,
 		FoundAt:             foundAt,
 		Location:            req.Location,
 		FinderEmail:         finderEmail,

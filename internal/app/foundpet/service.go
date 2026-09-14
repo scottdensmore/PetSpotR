@@ -46,6 +46,7 @@ type ReportCommand struct {
 	PetID               string
 	ImageURL            string
 	ImageObject         string
+	Images              []domain.PetImage
 	FoundAt             time.Time
 	Location            string
 	GeocodingStatus     domain.GeocodingStatus
@@ -432,6 +433,7 @@ func (s *Service) ReportFoundPet(
 		PetID:               command.PetID,
 		ImageURL:            command.ImageURL,
 		ImageObject:         command.ImageObject,
+		Images:              command.Images,
 		FoundAt:             command.FoundAt,
 		Location:            command.Location,
 		GeocodingStatus:     command.GeocodingStatus,

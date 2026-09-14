@@ -107,14 +107,28 @@
             <span class="dropzone-title">Drag & drop photo here, or click to browse</span>
             <span id="dropzone-help" class="dropzone-help">Supports JPG, PNG, WEBP up to 10MB</span>
           </button>
-          <input type="file" id="photoInput" accept="image/*" hidden>
+          <input type="file" id="photoInput" accept="image/*" multiple hidden>
+          <div class="photo-counter-panel">
+            <span id="photo-count-badge" class="photo-count-badge mapped-count-badge">0 / 3 photos added</span>
+          </div>
           <p id="lost-photo-status" class="upload-status" role="status" aria-live="polite"></p>
           <p id="photo-error" class="field-error" role="alert" aria-live="assertive" hidden></p>
 
-          <div id="preview-container" class="image-preview" hidden>
-            <p class="image-preview-title">Live Photo Preview:</p>
-            <img id="imagePreview" src="" alt="Pet Preview" class="lost-preview-image">
-          </div>
+          <div id="staging-container" class="staged-photos-container form-grid" role="region" aria-label="Staged pet photos" hidden></div>
+
+          <template id="staged-photo-template">
+            <div class="photo-staging-card glass-card">
+              <img class="photo-staging-thumb lost-preview-image" src="" alt="Staged pet photo">
+              <div class="photo-staging-controls form-field">
+                <select class="form-control photo-tag-select" aria-label="Select photo angle">
+                  <option value="face">Primary / Face</option>
+                  <option value="coat">Coat Pattern</option>
+                  <option value="collar">Collar & Tags</option>
+                </select>
+                <button type="button" class="btn btn-secondary btn-sm btn-remove-photo" aria-label="Remove photo">&times;</button>
+              </div>
+            </div>
+          </template>
         </div>
 
         <!-- Step 3: Location Picker -->

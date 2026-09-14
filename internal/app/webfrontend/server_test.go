@@ -2,12 +2,14 @@ package webfrontend
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/identity"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
@@ -912,6 +914,12 @@ func TestAccessibilityFeatures(t *testing.T) {
 			`role="alert"`,
 			`id="location-error"`,
 			`id="reporterEmail-error"`,
+			`id="photo-count-badge"`,
+			`class="form-control photo-tag-select"`,
+			`class="btn btn-secondary btn-sm btn-remove-photo"`,
+			`Primary / Face`,
+			`Coat Pattern`,
+			`Collar & Tags`,
 		}
 		for _, snippet := range expectedSnippets {
 			if !strings.Contains(body, snippet) {
@@ -943,6 +951,12 @@ func TestAccessibilityFeatures(t *testing.T) {
 			`id="finder-email-error"`,
 			`id="found-form-status"`,
 			`role="alert"`,
+			`id="photo-count-badge"`,
+			`class="form-control photo-tag-select"`,
+			`class="btn btn-secondary btn-sm btn-remove-photo"`,
+			`Primary / Face`,
+			`Coat Pattern`,
+			`Collar & Tags`,
 		}
 		for _, snippet := range expectedSnippets {
 			if !strings.Contains(body, snippet) {
@@ -996,6 +1010,190 @@ func TestAccessibilityFeatures(t *testing.T) {
 			if !strings.Contains(body, snippet) {
 				t.Errorf("styles.css missing expected accessibility snippet: %q", snippet)
 			}
+		}
+	})
+}
+
+func newTestServer(t *testing.T) *Server {
+	t.Helper()
+	return NewServer()
+}
+
+func TestServer_MultiPhotoSubmission(t *testing.T) {
+	srv := newTestServer(t)
+
+	t.Run("POST /api/v1/lost-pets with 3 photos succeeds", func(t *testing.T) {
+		payload := `{
+			"petName": "Rusty",
+			"species": "Dog",
+			"breed": "Irish Setter",
+			"location": "Capitol Hill, Seattle, WA",
+			"reporterEmail": "owner@example.com",
+			"images": [
+				{"object": "images/lost-pets/rust-1/face.jpg", "tag": "face"},
+				{"object": "images/lost-pets/rust-1/coat.jpg", "tag": "coat"},
+				{"object": "images/lost-pets/rust-1/collar.jpg", "tag": "collar"}
+			]
+		}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/lost-pets", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+
+		if w.Code != http.StatusCreated {
+			t.Fatalf("expected 201 Created, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("POST /api/v1/lost-pets with >3 photos returns 400", func(t *testing.T) {
+		payload := `{
+			"petName": "Rusty",
+			"species": "Dog",
+			"location": "Capitol Hill, Seattle, WA",
+			"reporterEmail": "owner@example.com",
+			"images": [
+				{"object": "images/1.jpg"},
+				{"object": "images/2.jpg"},
+				{"object": "images/3.jpg"},
+				{"object": "images/4.jpg"}
+			]
+		}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/lost-pets", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400 Bad Request, got %d", w.Code)
+		}
+	})
+
+	t.Run("POST /api/v1/found-pets with 3 photos succeeds", func(t *testing.T) {
+		payload := `{
+			"species": "Dog",
+			"breed": "Golden Retriever",
+			"location": "Capitol Hill, Seattle, WA",
+			"finderEmail": "finder@example.com",
+			"images": [
+				{"object": "images/found-pets/found-1/face.jpg", "tag": "face"},
+				{"object": "images/found-pets/found-1/coat.jpg", "tag": "coat"},
+				{"object": "images/found-pets/found-1/collar.jpg", "tag": "collar"}
+			]
+		}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+
+		if w.Code != http.StatusCreated {
+			t.Fatalf("expected 201 Created, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("POST /api/v1/found-pets with >3 photos returns 400", func(t *testing.T) {
+		payload := `{
+			"species": "Dog",
+			"location": "Capitol Hill, Seattle, WA",
+			"finderEmail": "finder@example.com",
+			"images": [
+				{"object": "images/1.jpg"},
+				{"object": "images/2.jpg"},
+				{"object": "images/3.jpg"},
+				{"object": "images/4.jpg"}
+			]
+		}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400 Bad Request, got %d", w.Code)
+		}
+	})
+
+	t.Run("POST /api/v1/lost-pets mirrors primary photo to imageObject", func(t *testing.T) {
+		payload := `{
+			"petName": "Spot",
+			"species": "Dog",
+			"location": "Capitol Hill, Seattle, WA",
+			"reporterEmail": "spot@example.com",
+			"images": [
+				{"object": "images/spot-face.jpg", "tag": "face"},
+				{"object": "images/spot-primary.jpg", "tag": "primary"}
+			]
+		}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/lost-pets", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+
+		if w.Code != http.StatusCreated {
+			t.Fatalf("expected 201 Created, got %d: %s", w.Code, w.Body.String())
+		}
+
+		var resp struct {
+			Status string `json:"status"`
+			PetID  string `json:"petId"`
+		}
+		if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+			t.Fatalf("decode response: %v", err)
+		}
+		data, err := srv.stateStore.GetState(context.Background(), store.LostPetsCollection, resp.PetID)
+		if err != nil {
+			t.Fatalf("get state: %v", err)
+		}
+		var record domain.LostPetRecord
+		if err := json.Unmarshal(data, &record); err != nil {
+			t.Fatalf("unmarshal record: %v", err)
+		}
+		if record.ImageObject != "images/spot-primary.jpg" {
+			t.Errorf("expected ImageObject to mirror primary 'images/spot-primary.jpg', got %q", record.ImageObject)
+		}
+		if len(record.Images) != 2 {
+			t.Errorf("expected 2 images, got %d", len(record.Images))
+		}
+	})
+
+	t.Run("POST /api/v1/found-pets mirrors primary photo to imageObject", func(t *testing.T) {
+		payload := `{
+			"species": "Cat",
+			"location": "Capitol Hill, Seattle, WA",
+			"finderEmail": "finder@example.com",
+			"images": [
+				{"object": "images/found-coat.jpg", "tag": "coat"},
+				{"object": "images/found-primary.jpg", "tag": "primary"}
+			]
+		}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/found-pets", strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+
+		if w.Code != http.StatusCreated {
+			t.Fatalf("expected 201 Created, got %d: %s", w.Code, w.Body.String())
+		}
+
+		var resp struct {
+			Status string `json:"status"`
+			PetID  string `json:"petId"`
+		}
+		if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+			t.Fatalf("decode response: %v", err)
+		}
+		data, err := srv.stateStore.GetState(context.Background(), store.FoundPetsCollection, resp.PetID)
+		if err != nil {
+			t.Fatalf("get state: %v", err)
+		}
+		var record domain.FoundPetRecord
+		if err := json.Unmarshal(data, &record); err != nil {
+			t.Fatalf("unmarshal record: %v", err)
+		}
+		if record.ImageObject != "images/found-primary.jpg" {
+			t.Errorf("expected ImageObject to mirror primary 'images/found-primary.jpg', got %q", record.ImageObject)
+		}
+		if len(record.Images) != 2 {
+			t.Errorf("expected 2 images, got %d", len(record.Images))
 		}
 	})
 }
