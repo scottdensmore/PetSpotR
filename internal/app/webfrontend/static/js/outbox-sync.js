@@ -10,6 +10,7 @@
   const STORE_NAME = 'outbox_reports';
 
   let dbInstance = null;
+  let openPromise = null;
   let isSyncing = false;
 
   /**
@@ -58,13 +59,65 @@
   }
 
   /**
+   * Resets any stranded 'syncing' records back to 'pending'.
+   * Recovers drafts stranded by tab closure, page refresh, or crashes during sync.
+   */
+  function recoverStrandedRecords(db) {
+    if (!db || !db.objectStoreNames.contains(STORE_NAME)) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.getAll();
+        req.onsuccess = function () {
+          const records = req.result || [];
+          const syncing = records.filter((r) => r.status === 'syncing');
+          if (syncing.length === 0) {
+            return resolve();
+          }
+          let remaining = syncing.length;
+          for (const record of syncing) {
+            record.status = 'pending';
+            const putReq = store.put(record);
+            putReq.onsuccess = function () {
+              remaining--;
+              if (remaining === 0) resolve();
+            };
+            putReq.onerror = function () {
+              remaining--;
+              if (remaining === 0) resolve();
+            };
+          }
+        };
+        req.onerror = function () {
+          resolve();
+        };
+        tx.oncomplete = function () {
+          resolve();
+        };
+        tx.onerror = function () {
+          resolve();
+        };
+      } catch (err) {
+        resolve();
+      }
+    });
+  }
+
+  /**
    * Opens or upgrades the petspotr_offline_db database.
    * Creates outbox_reports object store with 'id' keyPath,
    * and 'by_status' and 'by_created' indexes.
+   * Caches in-flight openPromise to prevent concurrent opening races.
    */
   function openDB() {
     if (dbInstance) {
       return Promise.resolve(dbInstance);
+    }
+    if (openPromise) {
+      return openPromise;
     }
 
     const idb = getIndexedDB();
@@ -72,7 +125,7 @@
       return Promise.reject(new Error('IndexedDB is not supported in this environment'));
     }
 
-    return new Promise((resolve, reject) => {
+    openPromise = new Promise((resolve, reject) => {
       const request = idb.open(DB_NAME, DB_VERSION);
 
       request.onupgradeneeded = function (event) {
@@ -84,22 +137,33 @@
         }
       };
 
-      request.onsuccess = function () {
+      request.onsuccess = async function () {
         dbInstance = request.result;
         dbInstance.onclose = function () {
           dbInstance = null;
+          openPromise = null;
         };
         dbInstance.onerror = function (err) {
           console.warn('IndexedDB connection error:', err);
         };
+
+        try {
+          await recoverStrandedRecords(dbInstance);
+        } catch (e) {
+          console.warn('Failed to recover stranded outbox records:', e);
+        }
+
         resolve(dbInstance);
       };
 
       request.onerror = function () {
         dbInstance = null;
+        openPromise = null;
         reject(request.error);
       };
     });
+
+    return openPromise;
   }
 
   /**
@@ -130,11 +194,39 @@
    */
   async function enqueueReport({ type = 'lost', payload = {}, photos = [] } = {}) {
     const id = generateUUID();
+    const normalizedPhotos = (Array.isArray(photos) ? photos : []).map((photo, index) => {
+      const isBlob =
+        (typeof Blob !== 'undefined' && photo instanceof Blob) ||
+        (photo && typeof photo.slice === 'function' && typeof photo.size === 'number');
+
+      if (isBlob) {
+        return {
+          fileName: photo.name || `photo-${Date.now()}-${index + 1}.jpg`,
+          contentType: photo.type || 'image/jpeg',
+          tag: index === 0 ? 'primary' : 'face',
+          blob: photo
+        };
+      }
+
+      return {
+        fileName:
+          photo.fileName ||
+          (photo.blob && photo.blob.name) ||
+          `photo-${Date.now()}-${index + 1}.jpg`,
+        contentType:
+          photo.contentType ||
+          (photo.blob && photo.blob.type) ||
+          'image/jpeg',
+        tag: photo.tag || (index === 0 ? 'primary' : 'face'),
+        blob: photo.blob || photo
+      };
+    });
+
     const record = {
       id,
       type,
       payload: payload || {},
-      photos: Array.isArray(photos) ? photos : [],
+      photos: normalizedPhotos,
       status: 'pending',
       attempts: 0,
       createdAt: new Date().toISOString()
@@ -390,6 +482,9 @@
     let failed = 0;
 
     try {
+      const db = await openDB();
+      await recoverStrandedRecords(db);
+
       const pendingReports = await getPendingReports();
       if (!pendingReports || pendingReports.length === 0) {
         return { synced: 0, failed: 0 };
