@@ -174,3 +174,258 @@ func TestComparePetsAtDistanceUsesExplicitVerifiedDistance(t *testing.T) {
 		t.Fatalf("negative-distance result = %#v, want nil", result)
 	}
 }
+
+func TestCosineSimilarity(t *testing.T) {
+	tests := []struct {
+		name      string
+		u         []float32
+		v         []float32
+		wantScore float64
+		tolerance float64
+	}{
+		{
+			name:      "identical vectors",
+			u:         []float32{1, 0, 0},
+			v:         []float32{1, 0, 0},
+			wantScore: 1.0,
+			tolerance: 1e-4,
+		},
+		{
+			name:      "orthogonal vectors",
+			u:         []float32{1, 0, 0},
+			v:         []float32{0, 1, 0},
+			wantScore: 0.0,
+			tolerance: 1e-4,
+		},
+		{
+			name:      "opposite vectors clamped to 0",
+			u:         []float32{1, 0, 0},
+			v:         []float32{-1, 0, 0},
+			wantScore: 0.0,
+			tolerance: 1e-4,
+		},
+		{
+			name:      "empty vectors return 0",
+			u:         nil,
+			v:         []float32{1, 0},
+			wantScore: 0.0,
+			tolerance: 1e-4,
+		},
+		{
+			name:      "both vectors nil return 0",
+			u:         nil,
+			v:         nil,
+			wantScore: 0.0,
+			tolerance: 1e-4,
+		},
+		{
+			name:      "mismatched lengths return 0",
+			u:         []float32{1, 0},
+			v:         []float32{1, 0, 0},
+			wantScore: 0.0,
+			tolerance: 1e-4,
+		},
+		{
+			name:      "zero vectors return 0",
+			u:         []float32{0, 0, 0},
+			v:         []float32{0, 0, 0},
+			wantScore: 0.0,
+			tolerance: 1e-4,
+		},
+		{
+			name:      "45-degree angle vectors",
+			u:         []float32{1, 1},
+			v:         []float32{1, 0},
+			wantScore: 1.0 / math.Sqrt(2),
+			tolerance: 1e-4,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := scoring.CosineSimilarity(tt.u, tt.v)
+			if math.Abs(got-tt.wantScore) > tt.tolerance {
+				t.Errorf("CosineSimilarity() = %v, want %v", got, tt.wantScore)
+			}
+		})
+	}
+}
+
+func TestHybridTriFactorScoring(t *testing.T) {
+	t.Run("linear combination weights", func(t *testing.T) {
+		// 0.40 * 1.0 + 0.35 * 0.8 + 0.25 * 0.6 = 0.40 + 0.28 + 0.15 = 0.83
+		score := scoring.CalculateHybridMatchScore(1.0, 0.8, 0.6)
+		expected := 0.83
+		if math.Abs(score-expected) > 1e-4 {
+			t.Errorf("CalculateHybridMatchScore = %f, want %f", score, expected)
+		}
+	})
+
+	t.Run("clamping at upper and lower bounds", func(t *testing.T) {
+		if s := scoring.CalculateHybridMatchScore(2.0, 2.0, 2.0); s > 1.0 {
+			t.Errorf("expected clamp to 1.0, got %f", s)
+		}
+		if s := scoring.CalculateHybridMatchScore(-1.0, -1.0, -1.0); s < 0.0 {
+			t.Errorf("expected clamp to 0.0, got %f", s)
+		}
+	})
+
+	t.Run("species mismatch hard veto", func(t *testing.T) {
+		traits1 := &scoring.PetTraits{Breed: "Golden Retriever"}
+		traits2 := &scoring.PetTraits{Breed: "Golden Retriever"}
+		u := []float32{1, 0}
+		v := []float32{1, 0}
+		result := scoring.ComparePetsHybrid("lost-1", "found-1", "Dog", "Cat", 0.5, traits1, traits2, u, v)
+		if result == nil {
+			t.Fatal("expected non-nil MatchResult")
+		}
+		if result.IsMatch || result.Score != 0.0 {
+			t.Fatalf("expected species veto score 0.0 and IsMatch=false, got score=%f, isMatch=%t", result.Score, result.IsMatch)
+		}
+		if result.Scores == nil || result.Scores.Vector != 0.0 {
+			t.Fatalf("expected vector score 0.0 in breakdown on veto, got %+v", result.Scores)
+		}
+		if result.ThresholdVersion != scoring.HybridThresholdVersion {
+			t.Errorf("expected threshold version %s, got %s", scoring.HybridThresholdVersion, result.ThresholdVersion)
+		}
+	})
+
+	t.Run("species matching is case-insensitive", func(t *testing.T) {
+		traits1 := &scoring.PetTraits{Breed: "Golden Retriever"}
+		traits2 := &scoring.PetTraits{Breed: "Golden Retriever"}
+		u := []float32{1, 0}
+		v := []float32{1, 0}
+		result := scoring.ComparePetsHybrid("lost-1", "found-1", "Dog", "dog", 0.0, traits1, traits2, u, v)
+		if result == nil {
+			t.Fatal("expected non-nil MatchResult")
+		}
+		if result.Score == 0.0 {
+			t.Fatalf("expected non-zero score for case-insensitive matching species, got 0.0")
+		}
+	})
+
+	t.Run("tri-factor scoring with both embeddings", func(t *testing.T) {
+		traits1 := &scoring.PetTraits{Breed: "Golden Retriever", PrimaryColor: "Golden"}
+		traits2 := &scoring.PetTraits{Breed: "Golden Retriever", PrimaryColor: "Golden"}
+		// traits: Breed 0.40 + PrimaryColor 0.20 + Markings 0.20 = 0.80
+		// spatial: 0 miles = 1.0
+		// vector: identical = 1.0
+		// hybrid: 0.40 * 1.0 + 0.35 * 0.80 + 0.25 * 1.0 = 0.40 + 0.28 + 0.25 = 0.93
+		u := []float32{1, 0, 0}
+		v := []float32{1, 0, 0}
+		result := scoring.ComparePetsHybrid("lost-1", "found-1", "Dog", "Dog", 0.0, traits1, traits2, u, v)
+		if result == nil {
+			t.Fatal("expected non-nil MatchResult")
+		}
+		expected := 0.93
+		if math.Abs(result.Score-expected) > 1e-3 {
+			t.Fatalf("expected hybrid score ~%f, got %f", expected, result.Score)
+		}
+		if !result.IsMatch {
+			t.Errorf("expected IsMatch=true, got false")
+		}
+		if result.Scores == nil {
+			t.Fatal("expected non-nil Scores breakdown")
+		}
+		if math.Abs(result.Scores.Vector-1.0) > 1e-4 {
+			t.Errorf("expected breakdown Vector 1.0, got %f", result.Scores.Vector)
+		}
+		if math.Abs(result.Scores.Trait-0.80) > 1e-4 {
+			t.Errorf("expected breakdown Trait 0.80, got %f", result.Scores.Trait)
+		}
+		if math.Abs(result.Scores.Visual-0.80) > 1e-4 {
+			t.Errorf("expected breakdown Visual 0.80, got %f", result.Scores.Visual)
+		}
+		if math.Abs(result.Scores.Spatial-1.0) > 1e-4 {
+			t.Errorf("expected breakdown Spatial 1.0, got %f", result.Scores.Spatial)
+		}
+		if result.Scores.DistanceMiles != 0.0 {
+			t.Errorf("expected DistanceMiles 0.0, got %f", result.Scores.DistanceMiles)
+		}
+		if result.Scores.Threshold != scoring.MatchThreshold {
+			t.Errorf("expected Threshold %f, got %f", scoring.MatchThreshold, result.Scores.Threshold)
+		}
+		if result.ThresholdVersion != scoring.HybridThresholdVersion {
+			t.Errorf("expected threshold version %s, got %s", scoring.HybridThresholdVersion, result.ThresholdVersion)
+		}
+	})
+
+	t.Run("fallback when embeddings missing", func(t *testing.T) {
+		traits1 := &scoring.PetTraits{Breed: "Golden Retriever", DistinctiveMarkings: []string{"scar"}}
+		traits2 := &scoring.PetTraits{Breed: "Golden Retriever", DistinctiveMarkings: []string{"spot"}}
+		// traits match = 0.40 breed (different markings = 0.0), spatial = 1.0 (0 miles)
+		// legacy: 0.70 * 0.40 + 0.30 * 1.0 = 0.28 + 0.30 = 0.58
+		result := scoring.ComparePetsHybrid("lost-1", "found-1", "Dog", "Dog", 0.0, traits1, traits2, nil, nil)
+		if result == nil {
+			t.Fatal("expected non-nil MatchResult")
+		}
+		expected := 0.58
+		if math.Abs(result.Score-expected) > 1e-3 {
+			t.Fatalf("expected fallback score ~%f, got %f", expected, result.Score)
+		}
+		if result.Scores.Vector != 0.0 {
+			t.Fatalf("expected vector score 0.0 when fallback, got %f", result.Scores.Vector)
+		}
+		if math.Abs(result.Scores.Trait-0.40) > 1e-4 {
+			t.Fatalf("expected trait score 0.40, got %f", result.Scores.Trait)
+		}
+	})
+
+	t.Run("fallback when one embedding is missing", func(t *testing.T) {
+		traits1 := &scoring.PetTraits{Breed: "Golden Retriever", DistinctiveMarkings: []string{"scar"}}
+		traits2 := &scoring.PetTraits{Breed: "Golden Retriever", DistinctiveMarkings: []string{"spot"}}
+		u := []float32{1, 0, 0}
+
+		// lost has embedding, found does not
+		r1 := scoring.ComparePetsHybrid("lost-1", "found-1", "Dog", "Dog", 0.0, traits1, traits2, u, nil)
+		if r1 == nil {
+			t.Fatal("expected non-nil MatchResult")
+		}
+		expected := 0.58
+		if math.Abs(r1.Score-expected) > 1e-3 {
+			t.Fatalf("expected fallback score ~%f, got %f", expected, r1.Score)
+		}
+		if r1.Scores.Vector != 0.0 {
+			t.Fatalf("expected vector score 0.0 when fallback, got %f", r1.Scores.Vector)
+		}
+
+		// lost does not have embedding, found does
+		r2 := scoring.ComparePetsHybrid("lost-1", "found-1", "Dog", "Dog", 0.0, traits1, traits2, nil, u)
+		if r2 == nil {
+			t.Fatal("expected non-nil MatchResult")
+		}
+		if math.Abs(r2.Score-expected) > 1e-3 {
+			t.Fatalf("expected fallback score ~%f, got %f", expected, r2.Score)
+		}
+		if r2.Scores.Vector != 0.0 {
+			t.Fatalf("expected vector score 0.0 when fallback, got %f", r2.Scores.Vector)
+		}
+	})
+
+	t.Run("invalid distance returns nil", func(t *testing.T) {
+		traits := &scoring.PetTraits{Breed: "Beagle"}
+		u := []float32{1, 0}
+		if r := scoring.ComparePetsHybrid("l1", "f1", "Dog", "Dog", -1.0, traits, traits, u, u); r != nil {
+			t.Fatalf("expected nil for negative distance, got %+v", r)
+		}
+		if r := scoring.ComparePetsHybrid("l1", "f1", "Dog", "Dog", math.NaN(), traits, traits, u, u); r != nil {
+			t.Fatalf("expected nil for NaN distance, got %+v", r)
+		}
+		if r := scoring.ComparePetsHybrid("l1", "f1", "Dog", "Dog", math.Inf(1), traits, traits, u, u); r != nil {
+			t.Fatalf("expected nil for Inf distance, got %+v", r)
+		}
+	})
+
+	t.Run("invalid pet IDs return nil", func(t *testing.T) {
+		traits := &scoring.PetTraits{Breed: "Beagle"}
+		u := []float32{1, 0}
+		if r := scoring.ComparePetsHybrid("", "f1", "Dog", "Dog", 1.0, traits, traits, u, u); r != nil {
+			t.Fatalf("expected nil for empty lost pet ID, got %+v", r)
+		}
+		if r := scoring.ComparePetsHybrid("l1", "", "Dog", "Dog", 1.0, traits, traits, u, u); r != nil {
+			t.Fatalf("expected nil for empty found pet ID, got %+v", r)
+		}
+		if r := scoring.ComparePetsHybrid("", "f1", "Dog", "Cat", 1.0, traits, traits, u, u); r != nil {
+			t.Fatalf("expected nil for empty lost pet ID even on species mismatch, got %+v", r)
+		}
+	})
+}

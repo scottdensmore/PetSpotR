@@ -9,14 +9,18 @@ import (
 )
 
 const (
-	WeightBreed           = 0.40
-	WeightPrimaryColor    = 0.20
-	WeightSecondaryColor  = 0.10
-	WeightMarkings        = 0.20
-	WeightEyeColor        = 0.10
-	MatchThreshold        = 0.70
-	MatchRadiusMiles      = 15.0
-	MatchThresholdVersion = "visual-spatial-v1"
+	WeightBreed            = 0.40
+	WeightPrimaryColor     = 0.20
+	WeightSecondaryColor   = 0.10
+	WeightMarkings         = 0.20
+	WeightEyeColor         = 0.10
+	MatchThreshold         = 0.70
+	MatchRadiusMiles       = 15.0
+	MatchThresholdVersion  = "visual-spatial-v1"
+	WeightVectorSimilarity = 0.40
+	WeightTraitSimilarity  = 0.35
+	WeightSpatialProximity = 0.25
+	HybridThresholdVersion = "hybrid-multimodal-v1"
 )
 
 // CalculateMatchScore computes a weighted similarity score between 0.0 and 1.0.
@@ -73,6 +77,11 @@ func CalculateCombinedMatchScore(visualScore, spatialScore float64) float64 {
 	return math.Min(1.0, math.Max(0.0, combined))
 }
 
+// CalculateLegacyMatchScore combines visual similarity (70% weight) and spatial proximity (30% weight).
+func CalculateLegacyMatchScore(traitScore, spatialScore float64) float64 {
+	return CalculateCombinedMatchScore(traitScore, spatialScore)
+}
+
 // ComparePets generates a validated domain.MatchResult from two pet trait sets.
 func ComparePets(lostPetID, foundPetID string, lostTraits, foundTraits *PetTraits) *domain.MatchResult {
 	return ComparePetsGeo(lostPetID, foundPetID, "", "", lostTraits, foundTraits)
@@ -122,6 +131,120 @@ func ComparePetsAtDistance(lostPetID, foundPetID string, distMiles float64, lost
 		return nil
 	}
 
+	return res
+}
+
+// CosineSimilarity computes cosine similarity between two float32 vectors, clamped to [0.0, 1.0].
+func CosineSimilarity(u, v []float32) float64 {
+	if len(u) == 0 || len(v) == 0 || len(u) != len(v) {
+		return 0.0
+	}
+	var dot, normU, normV float64
+	for i := range u {
+		dot += float64(u[i]) * float64(v[i])
+		normU += float64(u[i]) * float64(u[i])
+		normV += float64(v[i]) * float64(v[i])
+	}
+	if normU <= 0 || normV <= 0 {
+		return 0.0
+	}
+	denom := math.Sqrt(normU) * math.Sqrt(normV)
+	if denom <= 0 || math.IsNaN(denom) || math.IsInf(denom, 0) {
+		return 0.0
+	}
+	sim := dot / denom
+	if math.IsNaN(sim) || math.IsInf(sim, 0) {
+		return 0.0
+	}
+	return math.Min(1.0, math.Max(0.0, sim))
+}
+
+// CalculateHybridMatchScore combines semantic vector (40%), discrete traits (35%), and spatial proximity (25%).
+func CalculateHybridMatchScore(vectorScore, traitScore, spatialScore float64) float64 {
+	combined := (WeightVectorSimilarity * vectorScore) +
+		(WeightTraitSimilarity * traitScore) +
+		(WeightSpatialProximity * spatialScore)
+	return math.Min(1.0, math.Max(0.0, combined))
+}
+
+// ComparePetsHybrid scores two reports using tri-factor weights and enforces the hard species veto.
+func ComparePetsHybrid(
+	lostPetID, foundPetID string,
+	lostSpecies, foundSpecies string,
+	distMiles float64,
+	lostTraits, foundTraits *PetTraits,
+	lostEmbedding, foundEmbedding []float32,
+) *domain.MatchResult {
+	if math.IsNaN(distMiles) || math.IsInf(distMiles, 0) || distMiles < 0 {
+		return nil
+	}
+
+	traitScore := CalculateMatchScore(lostTraits, foundTraits)
+	spatialScore := CalculateDistanceScore(distMiles, MatchRadiusMiles)
+	colorScore := calculateColorScore(lostTraits, foundTraits)
+
+	// Hard species veto
+	cleanLostSpecies := strings.TrimSpace(lostSpecies)
+	cleanFoundSpecies := strings.TrimSpace(foundSpecies)
+	if cleanLostSpecies != "" && cleanFoundSpecies != "" && !strings.EqualFold(cleanLostSpecies, cleanFoundSpecies) {
+		res := &domain.MatchResult{
+			FoundPetID:   foundPetID,
+			MatchedPetID: lostPetID,
+			Score:        0.0,
+			IsMatch:      false,
+			Details:      "Species mismatch veto (score forced to 0.0)",
+			Scores: &domain.MatchScoreBreakdown{
+				Visual:        traitScore,
+				Trait:         traitScore,
+				Color:         colorScore,
+				Spatial:       spatialScore,
+				DistanceMiles: distMiles,
+				Threshold:     MatchThreshold,
+				Vector:        0.0,
+			},
+			ThresholdVersion: HybridThresholdVersion,
+		}
+		if err := res.Validate(); err != nil {
+			return nil
+		}
+		return res
+	}
+
+	var combinedScore float64
+	var vectorScore float64
+	hasVector := len(lostEmbedding) > 0 && len(foundEmbedding) > 0
+	if hasVector {
+		vectorScore = CosineSimilarity(lostEmbedding, foundEmbedding)
+		combinedScore = CalculateHybridMatchScore(vectorScore, traitScore, spatialScore)
+	} else {
+		combinedScore = CalculateCombinedMatchScore(traitScore, spatialScore)
+	}
+
+	isMatch := combinedScore >= MatchThreshold
+	details := fmt.Sprintf("Hybrid match score: %.2f (Vector: %.2f, Trait: %.2f, Spatial: %.2f, Distance: %.1f mi, Threshold: %.2f)",
+		combinedScore, vectorScore, traitScore, spatialScore, distMiles, MatchThreshold)
+
+	res := &domain.MatchResult{
+		FoundPetID:   foundPetID,
+		MatchedPetID: lostPetID,
+		Score:        combinedScore,
+		IsMatch:      isMatch,
+		Details:      details,
+		Scores: &domain.MatchScoreBreakdown{
+			Visual:        traitScore,
+			Trait:         traitScore,
+			Color:         colorScore,
+			Spatial:       spatialScore,
+			DistanceMiles: distMiles,
+			Threshold:     MatchThreshold,
+			Vector:        vectorScore,
+		},
+		ThresholdVersion: HybridThresholdVersion,
+	}
+
+	if err := res.Validate(); err != nil {
+		return nil
+	}
 	return res
 }
 
