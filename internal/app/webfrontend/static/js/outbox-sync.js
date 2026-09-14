@@ -416,6 +416,12 @@
     const indicator = document.getElementById('offline-indicator');
     const statusText = document.getElementById('offline-status-text');
     const countBadge = document.getElementById('outbox-count-badge');
+    const dirNotice = document.getElementById('offline-directory-notice');
+
+    if (dirNotice) {
+      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+      dirNotice.hidden = isOnline;
+    }
 
     if (countBadge) {
       if (count > 0) {

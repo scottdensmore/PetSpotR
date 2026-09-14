@@ -529,6 +529,56 @@ func TestRenderedPagesDeclareFavicon(t *testing.T) {
 	}
 }
 
+func TestRenderedPagesDeclareOfflineUI(t *testing.T) {
+	srv := NewDemoServer()
+	expectedSnippets := []string{
+		`<link rel="manifest" href="/manifest.webmanifest">`,
+		`<meta name="theme-color" content="#4f46e5">`,
+		`id="offline-indicator"`,
+		`class="offline-pill"`,
+		`id="offline-status-text"`,
+		`id="outbox-count-badge"`,
+		`id="toast-container"`,
+		`<script src="/static/js/outbox-sync.js" defer></script>`,
+	}
+
+	for _, path := range []string{"/", "/report-lost", "/report-found", "/matches", "/pets"} {
+		t.Run(path, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, path, nil)
+			rec := httptest.NewRecorder()
+
+			srv.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("expected status 200 OK, got %d", rec.Code)
+			}
+			body := rec.Body.String()
+			for _, snippet := range expectedSnippets {
+				if !strings.Contains(body, snippet) {
+					t.Errorf("path %s expected body to contain %q", path, snippet)
+				}
+			}
+		})
+	}
+
+	t.Run("/pets directory notice banner", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/pets", nil)
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200 OK, got %d", rec.Code)
+		}
+		body := rec.Body.String()
+		wantBanner := `id="offline-directory-notice"`
+		if !strings.Contains(body, wantBanner) {
+			t.Errorf("/pets expected body to contain %q", wantBanner)
+		}
+	})
+}
+
+
 func TestNewServerStartsWithoutDemoMatches(t *testing.T) {
 	srv := NewServer()
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/matches", nil)
