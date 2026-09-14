@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/delivery"
 	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/embedding"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/outbox"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
@@ -48,6 +50,7 @@ type Worker struct {
 	now          func() time.Time
 	lease        time.Duration
 	images       blob.ImageStore
+	embedder     embedding.Embedder
 }
 
 // NewWorker constructs a Worker instance.
@@ -70,7 +73,27 @@ func NewWorkerWithImageStore(st Store, br pubsub.Publisher, oc *ollama.Client, i
 		now:          time.Now,
 		lease:        defaultMatcherLease,
 		images:       images,
+		embedder:     embedding.NewMockEmbedder(),
 	}
+}
+
+// SetEmbedder sets the embedder used for vector embeddings.
+func (w *Worker) SetEmbedder(e embedding.Embedder) {
+	if e == nil {
+		e = embedding.NewMockEmbedder()
+	}
+	w.embedder = e
+}
+
+// Embedder returns the configured embedder.
+func (w *Worker) Embedder() embedding.Embedder {
+	return w.embedder
+}
+
+// WithEmbedder sets the embedder and returns the worker for fluent chaining.
+func (w *Worker) WithEmbedder(e embedding.Embedder) *Worker {
+	w.SetEmbedder(e)
+	return w
 }
 
 // Start registers the foundPet matching and lostPet image-analysis subscriptions.
@@ -183,16 +206,22 @@ func (w *Worker) processClaimedFoundPet(
 		return err
 	}
 
+	foundEmbedding := w.resolveFoundEmbedding(ctx, foundEvt)
+
 	// 2. Score every eligible candidate and choose a deterministic winner.
 	var winner *rankedCandidate
 	for index := range candidates {
 		candidate := candidates[index]
-		result := scoring.ComparePetsAtDistance(
+		result := scoring.ComparePetsHybrid(
 			candidate.record.PetID,
 			foundEvt.PetID,
+			candidate.record.Species,
+			foundEvt.Species,
 			candidate.distanceMiles,
 			candidate.traits,
 			foundTraits,
+			candidate.record.Embedding,
+			foundEmbedding,
 		)
 		if result == nil || !result.IsMatch {
 			continue
@@ -224,6 +253,12 @@ func (w *Worker) processClaimedFoundPet(
 		matchedAt := w.now().UTC()
 		lostBreed := lostTraits.Breed
 		foundBreed := foundTraits.Breed
+		foundImages := foundEvt.Images
+		if len(foundImages) == 0 && foundEvt.ImageObject != "" {
+			foundImages = []domain.PetImage{
+				{Object: foundEvt.ImageObject, Tag: domain.PetImageTagPrimary, Embedding: foundEmbedding},
+			}
+		}
 		matchRecord := domain.MatchRecord{
 			MatchID:          matchID,
 			FoundPetID:       foundEvt.PetID,
@@ -241,12 +276,14 @@ func (w *Worker) processClaimedFoundPet(
 				PetName:  lostRecord.PetName,
 				Breed:    lostBreed,
 				Location: lostRecord.Location,
+				Images:   lostRecord.Images,
 			},
 			FoundPet: domain.MatchPetDetail{
 				PetID:    foundEvt.PetID,
 				Breed:    foundBreed,
 				ImageURL: foundEvt.ImageURL,
 				Location: foundEvt.Location,
+				Images:   foundImages,
 			},
 		}
 		if err := matchRecord.Validate(); err != nil {
@@ -443,6 +480,46 @@ func (w *Worker) publishMatcherResult(ctx context.Context, result matcherResultR
 	}
 	if record.Status != outbox.StatusPublished {
 		return fmt.Errorf("pet-matcher: matchFound publication: %w", delivery.ErrOperationInProgress)
+	}
+	return nil
+}
+
+func (w *Worker) resolveFoundEmbedding(ctx context.Context, foundEvt domain.FoundPetReportedV2) []float32 {
+	if len(foundEvt.Embedding) > 0 {
+		return append([]float32(nil), foundEvt.Embedding...)
+	}
+	if primary, ok := domain.PrimaryPetImage(foundEvt.Images); ok && len(primary.Embedding) > 0 {
+		return append([]float32(nil), primary.Embedding...)
+	}
+	for _, img := range foundEvt.Images {
+		if len(img.Embedding) > 0 {
+			return append([]float32(nil), img.Embedding...)
+		}
+	}
+	if record, err := w.loadFoundPetRecord(ctx, foundEvt.PetID); err == nil {
+		if len(record.Embedding) > 0 {
+			return append([]float32(nil), record.Embedding...)
+		}
+		if primary, ok := domain.PrimaryPetImage(record.Images); ok && len(primary.Embedding) > 0 {
+			return append([]float32(nil), primary.Embedding...)
+		}
+	}
+	if w.embedder == nil {
+		return nil
+	}
+	objectName := foundEvt.ImageObject
+	if objectName == "" {
+		if primary, ok := domain.PrimaryPetImage(foundEvt.Images); ok {
+			objectName = primary.Object
+		}
+	}
+	textDesc := strings.TrimSpace(foundEvt.Species + " " + foundEvt.Breed)
+	if w.images != nil && objectName != "" {
+		if imageBytes, err := w.images.ReadFinalizedImage(ctx, objectName); err == nil && len(imageBytes) > 0 {
+			if emb, err := w.embedder.EmbedMultimodal(ctx, imageBytes, "image/jpeg", textDesc); err == nil && len(emb) > 0 {
+				return emb
+			}
+		}
 	}
 	return nil
 }

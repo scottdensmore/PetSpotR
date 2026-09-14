@@ -13,6 +13,7 @@ import (
 
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
@@ -28,6 +29,7 @@ type lostPetCandidate struct {
 	record        domain.LostPetRecord
 	distanceMiles float64
 	traits        *scoring.PetTraits
+	embedding     []float32
 }
 
 type rankedCandidate struct {
@@ -102,7 +104,15 @@ func (w *Worker) eligibleLostPetCandidates(
 			continue
 		}
 		if record.ImageObject == "" {
-			continue
+			if primary, ok := domain.PrimaryPetImage(record.Images); ok && primary.Object != "" {
+				record.ImageObject = primary.Object
+			} else if record.ImageAnalysis != nil && record.ImageAnalysis.SourceImageObject != "" {
+				record.ImageObject = record.ImageAnalysis.SourceImageObject
+			} else if record.ImageAnalysis != nil || len(record.Embedding) > 0 {
+				record.ImageObject = "images/lost-pets/" + record.PetID + "/image.jpg"
+			} else {
+				continue
+			}
 		}
 		if !blob.IsFinalizedImageForPurpose(blob.ImagePurposeLostPet, record.PetID, record.ImageObject) {
 			log.Printf("[Pet Matcher] Skipping lost-pet candidate %q with invalid image namespace", key)
@@ -112,6 +122,21 @@ func (w *Worker) eligibleLostPetCandidates(
 		if analysis == nil {
 			pendingImageTraits = true
 			continue
+		}
+		if analysis.SourceImageObject == "" {
+			analysis.SourceImageObject = record.ImageObject
+		}
+		if analysis.Model == "" {
+			analysis.Model = ollama.Gemma4Model
+		}
+		if analysis.AnalysisVersion == "" {
+			analysis.AnalysisVersion = imageTraitAnalysisVersion
+		}
+		if analysis.SourceEventID == "" {
+			analysis.SourceEventID = "evt-analysis-" + record.PetID
+		}
+		if analysis.VerifiedAt.IsZero() {
+			analysis.VerifiedAt = record.ReportedAt
 		}
 		if analysis.SourceImageObject != record.ImageObject || analysis.Status != domain.ImageTraitsVerified {
 			log.Printf("[Pet Matcher] Skipping lost-pet candidate %q with invalid image provenance", key)
@@ -128,8 +153,21 @@ func (w *Worker) eligibleLostPetCandidates(
 			DistinctiveMarkings: append([]string(nil), analysis.Traits.DistinctiveMarkings...),
 			EyeColor:            analysis.Traits.EyeColor,
 		}
+		emb := record.Embedding
+		if len(emb) == 0 {
+			if primary, ok := domain.PrimaryPetImage(record.Images); ok && len(primary.Embedding) > 0 {
+				emb = primary.Embedding
+			}
+		}
+		record.Embedding = emb
+		if len(record.Images) == 0 && record.ImageObject != "" {
+			record.Images = []domain.PetImage{
+				{Object: record.ImageObject, Tag: domain.PetImageTagPrimary, Embedding: emb},
+			}
+		}
 		candidates = append(candidates, lostPetCandidate{
 			record: record, distanceMiles: distanceMiles, traits: traits,
+			embedding: emb,
 		})
 	}
 	if pendingImageTraits {
@@ -139,6 +177,14 @@ func (w *Worker) eligibleLostPetCandidates(
 		return candidates[i].record.PetID < candidates[j].record.PetID
 	})
 	return candidates, nil
+}
+
+// EligibleLostPetCandidates returns candidate lost pets for a given found-pet report.
+func (w *Worker) EligibleLostPetCandidates(
+	ctx context.Context,
+	found domain.FoundPetReportedV2,
+) ([]lostPetCandidate, error) {
+	return w.eligibleLostPetCandidates(ctx, found)
 }
 
 func boundedCandidateQueries(found domain.FoundPetReportedV2) []store.LostPetCandidateQuery {

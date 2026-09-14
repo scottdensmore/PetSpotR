@@ -123,6 +123,17 @@ func (w *Worker) processClaimedLostPet(
 	if model == "" {
 		model = modelReq
 	}
+	var lostEmbedding []float32
+	if len(lostEvent.Embedding) > 0 {
+		lostEmbedding = append([]float32(nil), lostEvent.Embedding...)
+	} else if primary, ok := domain.PrimaryPetImage(lostEvent.Images); ok && len(primary.Embedding) > 0 {
+		lostEmbedding = append([]float32(nil), primary.Embedding...)
+	} else if w.embedder != nil && len(imageBytes) > 0 {
+		textDesc := strings.TrimSpace(lostEvent.Species + " " + lostEvent.Breed)
+		if emb, embErr := w.embedder.EmbedMultimodal(ctx, imageBytes, "image/jpeg", textDesc); embErr == nil && len(emb) > 0 {
+			lostEmbedding = emb
+		}
+	}
 	analysis := domain.NormalizeImageTraitAnalysis(&domain.ImageTraitAnalysis{
 		Status: domain.ImageTraitsVerified,
 		Traits: domain.PetImageTraits{
@@ -157,6 +168,28 @@ func (w *Worker) processClaimedLostPet(
 			return nil, fmt.Errorf("%w: lost-pet image already has analysis provenance", store.ErrConflict)
 		}
 		updated.ImageAnalysis = analysis
+		if len(updated.Embedding) == 0 && len(lostEmbedding) > 0 {
+			updated.Embedding = append([]float32(nil), lostEmbedding...)
+		}
+		if len(updated.Images) > 0 {
+			for i := range updated.Images {
+				if updated.Images[i].Object == lostEvent.ImageObject && len(updated.Images[i].Embedding) == 0 && len(lostEmbedding) > 0 {
+					updated.Images[i].Embedding = append([]float32(nil), lostEmbedding...)
+				}
+			}
+		} else if len(lostEvent.Images) > 0 {
+			updated.Images = domain.NormalizePetImages(lostEvent.Images)
+		} else if lostEvent.ImageObject != "" {
+			var imgEmb []float32
+			if len(lostEmbedding) > 0 {
+				imgEmb = lostEmbedding
+			} else if len(updated.Embedding) > 0 {
+				imgEmb = updated.Embedding
+			}
+			updated.Images = []domain.PetImage{
+				{Object: lostEvent.ImageObject, Tag: domain.PetImageTagPrimary, Embedding: imgEmb},
+			}
+		}
 		return json.Marshal(updated)
 	})
 	if err != nil {

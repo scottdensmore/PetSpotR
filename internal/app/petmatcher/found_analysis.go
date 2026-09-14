@@ -47,6 +47,17 @@ func (w *Worker) foundImageTraits(
 	if err != nil {
 		return nil, "", err
 	}
+	var foundEmbedding []float32
+	if len(foundEvent.Embedding) > 0 {
+		foundEmbedding = append([]float32(nil), foundEvent.Embedding...)
+	} else if primary, ok := domain.PrimaryPetImage(foundEvent.Images); ok && len(primary.Embedding) > 0 {
+		foundEmbedding = append([]float32(nil), primary.Embedding...)
+	} else if w.embedder != nil && len(imageBytes) > 0 {
+		textDesc := strings.TrimSpace(foundEvent.Species + " " + foundEvent.Breed)
+		if emb, embErr := w.embedder.EmbedMultimodal(ctx, imageBytes, "image/jpeg", textDesc); embErr == nil && len(emb) > 0 {
+			foundEmbedding = emb
+		}
+	}
 	analysis := domain.NormalizeImageTraitAnalysis(&domain.ImageTraitAnalysis{
 		Status: domain.ImageTraitsVerified,
 		Traits: domain.PetImageTraits{
@@ -78,6 +89,28 @@ func (w *Worker) foundImageTraits(
 			return current, nil
 		}
 		updated.ImageAnalysis = analysis
+		if len(updated.Embedding) == 0 && len(foundEmbedding) > 0 {
+			updated.Embedding = append([]float32(nil), foundEmbedding...)
+		}
+		if len(updated.Images) > 0 {
+			for i := range updated.Images {
+				if updated.Images[i].Object == foundEvent.ImageObject && len(updated.Images[i].Embedding) == 0 && len(foundEmbedding) > 0 {
+					updated.Images[i].Embedding = append([]float32(nil), foundEmbedding...)
+				}
+			}
+		} else if len(foundEvent.Images) > 0 {
+			updated.Images = domain.NormalizePetImages(foundEvent.Images)
+		} else if foundEvent.ImageObject != "" {
+			var imgEmb []float32
+			if len(foundEmbedding) > 0 {
+				imgEmb = foundEmbedding
+			} else if len(updated.Embedding) > 0 {
+				imgEmb = updated.Embedding
+			}
+			updated.Images = []domain.PetImage{
+				{Object: foundEvent.ImageObject, Tag: domain.PetImageTagPrimary, Embedding: imgEmb},
+			}
+		}
 		return json.Marshal(updated)
 	})
 	if err != nil {
