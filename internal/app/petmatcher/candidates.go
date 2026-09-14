@@ -13,7 +13,6 @@ import (
 
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
@@ -25,15 +24,18 @@ const (
 	matcherCandidateRadiusMiles = scoring.MatchRadiusMiles
 )
 
-type lostPetCandidate struct {
-	record        domain.LostPetRecord
-	distanceMiles float64
-	traits        *scoring.PetTraits
-	embedding     []float32
+// LostPetCandidate represents an eligible lost pet candidate evaluated for a match.
+type LostPetCandidate struct {
+	Record        domain.LostPetRecord
+	DistanceMiles float64
+	Traits        *scoring.PetTraits
+	Embedding     []float32
 }
 
+type lostPetCandidate = LostPetCandidate
+
 type rankedCandidate struct {
-	candidate lostPetCandidate
+	candidate LostPetCandidate
 	result    *domain.MatchResult
 }
 
@@ -41,16 +43,16 @@ func outranks(challenger, current rankedCandidate) bool {
 	if challenger.result.Score != current.result.Score {
 		return challenger.result.Score > current.result.Score
 	}
-	if challenger.candidate.distanceMiles != current.candidate.distanceMiles {
-		return challenger.candidate.distanceMiles < current.candidate.distanceMiles
+	if challenger.candidate.DistanceMiles != current.candidate.DistanceMiles {
+		return challenger.candidate.DistanceMiles < current.candidate.DistanceMiles
 	}
-	return challenger.candidate.record.PetID < current.candidate.record.PetID
+	return challenger.candidate.Record.PetID < current.candidate.Record.PetID
 }
 
 func (w *Worker) eligibleLostPetCandidates(
 	ctx context.Context,
 	found domain.FoundPetReportedV2,
-) ([]lostPetCandidate, error) {
+) ([]LostPetCandidate, error) {
 	if found.GeocodingStatus != domain.GeocodingVerified || found.Coordinates == nil {
 		return nil, nil
 	}
@@ -68,7 +70,7 @@ func (w *Worker) eligibleLostPetCandidates(
 		}
 	}
 
-	candidates := make([]lostPetCandidate, 0, len(rawCandidates))
+	candidates := make([]LostPetCandidate, 0, len(rawCandidates))
 	pendingImageTraits := false
 	for key, data := range rawCandidates {
 		var record domain.LostPetRecord
@@ -108,8 +110,6 @@ func (w *Worker) eligibleLostPetCandidates(
 				record.ImageObject = primary.Object
 			} else if record.ImageAnalysis != nil && record.ImageAnalysis.SourceImageObject != "" {
 				record.ImageObject = record.ImageAnalysis.SourceImageObject
-			} else if record.ImageAnalysis != nil || len(record.Embedding) > 0 {
-				record.ImageObject = "images/lost-pets/" + record.PetID + "/image.jpg"
 			} else {
 				continue
 			}
@@ -122,21 +122,6 @@ func (w *Worker) eligibleLostPetCandidates(
 		if analysis == nil {
 			pendingImageTraits = true
 			continue
-		}
-		if analysis.SourceImageObject == "" {
-			analysis.SourceImageObject = record.ImageObject
-		}
-		if analysis.Model == "" {
-			analysis.Model = ollama.Gemma4Model
-		}
-		if analysis.AnalysisVersion == "" {
-			analysis.AnalysisVersion = imageTraitAnalysisVersion
-		}
-		if analysis.SourceEventID == "" {
-			analysis.SourceEventID = "evt-analysis-" + record.PetID
-		}
-		if analysis.VerifiedAt.IsZero() {
-			analysis.VerifiedAt = record.ReportedAt
 		}
 		if analysis.SourceImageObject != record.ImageObject || analysis.Status != domain.ImageTraitsVerified {
 			log.Printf("[Pet Matcher] Skipping lost-pet candidate %q with invalid image provenance", key)
@@ -165,16 +150,16 @@ func (w *Worker) eligibleLostPetCandidates(
 				{Object: record.ImageObject, Tag: domain.PetImageTagPrimary, Embedding: emb},
 			}
 		}
-		candidates = append(candidates, lostPetCandidate{
-			record: record, distanceMiles: distanceMiles, traits: traits,
-			embedding: emb,
+		candidates = append(candidates, LostPetCandidate{
+			Record: record, DistanceMiles: distanceMiles, Traits: traits,
+			Embedding: emb,
 		})
 	}
 	if pendingImageTraits {
 		return nil, errLostImageTraitsPending
 	}
 	sort.Slice(candidates, func(i, j int) bool {
-		return candidates[i].record.PetID < candidates[j].record.PetID
+		return candidates[i].Record.PetID < candidates[j].Record.PetID
 	})
 	return candidates, nil
 }
@@ -183,7 +168,7 @@ func (w *Worker) eligibleLostPetCandidates(
 func (w *Worker) EligibleLostPetCandidates(
 	ctx context.Context,
 	found domain.FoundPetReportedV2,
-) ([]lostPetCandidate, error) {
+) ([]LostPetCandidate, error) {
 	return w.eligibleLostPetCandidates(ctx, found)
 }
 

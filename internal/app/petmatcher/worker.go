@@ -213,14 +213,14 @@ func (w *Worker) processClaimedFoundPet(
 	for index := range candidates {
 		candidate := candidates[index]
 		result := scoring.ComparePetsHybrid(
-			candidate.record.PetID,
+			candidate.Record.PetID,
 			foundEvt.PetID,
-			candidate.record.Species,
+			candidate.Record.Species,
 			foundEvt.Species,
-			candidate.distanceMiles,
-			candidate.traits,
+			candidate.DistanceMiles,
+			candidate.Traits,
 			foundTraits,
-			candidate.record.Embedding,
+			candidate.Record.Embedding,
 			foundEmbedding,
 		)
 		if result == nil || !result.IsMatch {
@@ -233,8 +233,8 @@ func (w *Worker) processClaimedFoundPet(
 	}
 	if winner != nil {
 		matchResult := winner.result
-		lostRecord := winner.candidate.record
-		lostTraits := winner.candidate.traits
+		lostRecord := winner.candidate.Record
+		lostTraits := winner.candidate.Traits
 		lostPetID := lostRecord.PetID
 		matchResult.SourceEventID = inputEventID
 		if foundModel == "" {
@@ -514,12 +514,20 @@ func (w *Worker) resolveFoundEmbedding(ctx context.Context, foundEvt domain.Foun
 		}
 	}
 	textDesc := strings.TrimSpace(foundEvt.Species + " " + foundEvt.Breed)
-	if w.images != nil && objectName != "" {
-		if imageBytes, err := w.images.ReadFinalizedImage(ctx, objectName); err == nil && len(imageBytes) > 0 {
-			if emb, err := w.embedder.EmbedMultimodal(ctx, imageBytes, "image/jpeg", textDesc); err == nil && len(emb) > 0 {
-				return emb
-			}
+	imagesToProcess := foundEvt.Images
+	if len(imagesToProcess) == 0 {
+		if record, err := w.loadFoundPetRecord(ctx, foundEvt.PetID); err == nil {
+			imagesToProcess = record.Images
 		}
 	}
-	return nil
+	_, composite := computeMultiPhotoEmbeddings(
+		ctx,
+		w.embedder,
+		w.images,
+		imagesToProcess,
+		objectName,
+		nil,
+		textDesc,
+	)
+	return composite
 }

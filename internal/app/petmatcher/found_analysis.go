@@ -20,26 +20,32 @@ func (w *Worker) foundImageTraits(
 	inputEventID string,
 	foundEvent domain.FoundPetReportedV2,
 ) (*scoring.PetTraits, string, error) {
-	if foundEvent.ImageObject == "" {
+	imageObject := foundEvent.ImageObject
+	if imageObject == "" {
+		if primary, ok := domain.PrimaryPetImage(foundEvent.Images); ok {
+			imageObject = primary.Object
+		}
+	}
+	if imageObject == "" {
 		return w.generateFoundImageTraits(ctx, foundEvent.ImageURL)
 	}
-	if !blob.IsFinalizedImageForPurpose(blob.ImagePurposeFoundPet, foundEvent.PetID, foundEvent.ImageObject) {
+	if !blob.IsFinalizedImageForPurpose(blob.ImagePurposeFoundPet, foundEvent.PetID, imageObject) {
 		return nil, "", errors.New("pet-matcher: found-pet event image is outside the found-pet namespace")
 	}
 	record, err := w.loadFoundPetRecord(ctx, foundEvent.PetID)
 	if err != nil {
 		return nil, "", err
 	}
-	if record.ImageObject != foundEvent.ImageObject {
+	if record.ImageObject != "" && record.ImageObject != imageObject {
 		return nil, "", errors.New("pet-matcher: found-pet event image does not match durable state")
 	}
 	if record.ImageAnalysis != nil {
-		return verifiedFoundTraits(record.ImageAnalysis, inputEventID, foundEvent.ImageObject)
+		return verifiedFoundTraits(record.ImageAnalysis, inputEventID, imageObject)
 	}
 	if w.images == nil {
 		return nil, "", errors.New("pet-matcher: private image store is not configured")
 	}
-	imageBytes, err := w.images.ReadFinalizedImage(ctx, foundEvent.ImageObject)
+	imageBytes, err := w.images.ReadFinalizedImage(ctx, imageObject)
 	if err != nil {
 		return nil, "", fmt.Errorf("pet-matcher: read private found-pet image: %w", err)
 	}
@@ -47,16 +53,22 @@ func (w *Worker) foundImageTraits(
 	if err != nil {
 		return nil, "", err
 	}
-	var foundEmbedding []float32
-	if len(foundEvent.Embedding) > 0 {
-		foundEmbedding = append([]float32(nil), foundEvent.Embedding...)
-	} else if primary, ok := domain.PrimaryPetImage(foundEvent.Images); ok && len(primary.Embedding) > 0 {
-		foundEmbedding = append([]float32(nil), primary.Embedding...)
-	} else if w.embedder != nil && len(imageBytes) > 0 {
-		textDesc := strings.TrimSpace(foundEvent.Species + " " + foundEvent.Breed)
-		if emb, embErr := w.embedder.EmbedMultimodal(ctx, imageBytes, "image/jpeg", textDesc); embErr == nil && len(emb) > 0 {
-			foundEmbedding = emb
-		}
+	imagesToProcess := foundEvent.Images
+	if len(imagesToProcess) == 0 {
+		imagesToProcess = record.Images
+	}
+	textDesc := strings.TrimSpace(foundEvent.Species + " " + foundEvent.Breed)
+	processedImages, compositeEmbedding := computeMultiPhotoEmbeddings(
+		ctx,
+		w.embedder,
+		w.images,
+		imagesToProcess,
+		imageObject,
+		imageBytes,
+		textDesc,
+	)
+	if len(compositeEmbedding) == 0 && len(foundEvent.Embedding) > 0 {
+		compositeEmbedding = append([]float32(nil), foundEvent.Embedding...)
 	}
 	analysis := domain.NormalizeImageTraitAnalysis(&domain.ImageTraitAnalysis{
 		Status: domain.ImageTraitsVerified,
@@ -67,7 +79,7 @@ func (w *Worker) foundImageTraits(
 			EyeColor:            traits.EyeColor,
 		},
 		Model: model, AnalysisVersion: imageTraitAnalysisVersion,
-		SourceEventID: inputEventID, SourceImageObject: foundEvent.ImageObject,
+		SourceEventID: inputEventID, SourceImageObject: imageObject,
 		VerifiedAt: w.now().UTC(),
 	})
 	if err := analysis.Validate(); err != nil {
@@ -79,36 +91,27 @@ func (w *Worker) foundImageTraits(
 			return nil, fmt.Errorf("pet-matcher: decode durable found-pet state: %w", err)
 		}
 		updated = domain.NormalizeFoundPetRecord(updated)
-		if updated.PetID != foundEvent.PetID || updated.ImageObject != foundEvent.ImageObject {
+		if updated.PetID != foundEvent.PetID || (updated.ImageObject != "" && updated.ImageObject != imageObject) {
 			return nil, errors.New("pet-matcher: found-pet image changed before analysis persistence")
 		}
 		if updated.ImageAnalysis != nil {
-			if _, _, err := verifiedFoundTraits(updated.ImageAnalysis, inputEventID, foundEvent.ImageObject); err != nil {
+			if _, _, err := verifiedFoundTraits(updated.ImageAnalysis, inputEventID, imageObject); err != nil {
 				return nil, err
 			}
 			return current, nil
 		}
 		updated.ImageAnalysis = analysis
-		if len(updated.Embedding) == 0 && len(foundEmbedding) > 0 {
-			updated.Embedding = append([]float32(nil), foundEmbedding...)
+		if len(compositeEmbedding) > 0 {
+			updated.Embedding = append([]float32(nil), compositeEmbedding...)
 		}
-		if len(updated.Images) > 0 {
+		if len(processedImages) > 0 {
+			updated.Images = domain.NormalizePetImages(processedImages)
+		}
+		if len(updated.Embedding) > 0 && len(updated.Images) > 0 {
 			for i := range updated.Images {
-				if updated.Images[i].Object == foundEvent.ImageObject && len(updated.Images[i].Embedding) == 0 && len(foundEmbedding) > 0 {
-					updated.Images[i].Embedding = append([]float32(nil), foundEmbedding...)
+				if updated.Images[i].Tag == domain.PetImageTagPrimary && len(updated.Images[i].Embedding) == 0 {
+					updated.Images[i].Embedding = append([]float32(nil), updated.Embedding...)
 				}
-			}
-		} else if len(foundEvent.Images) > 0 {
-			updated.Images = domain.NormalizePetImages(foundEvent.Images)
-		} else if foundEvent.ImageObject != "" {
-			var imgEmb []float32
-			if len(foundEmbedding) > 0 {
-				imgEmb = foundEmbedding
-			} else if len(updated.Embedding) > 0 {
-				imgEmb = updated.Embedding
-			}
-			updated.Images = []domain.PetImage{
-				{Object: foundEvent.ImageObject, Tag: domain.PetImageTagPrimary, Embedding: imgEmb},
 			}
 		}
 		return json.Marshal(updated)
@@ -120,7 +123,7 @@ func (w *Worker) foundImageTraits(
 	if err != nil {
 		return nil, "", err
 	}
-	return verifiedFoundTraits(committed.ImageAnalysis, inputEventID, foundEvent.ImageObject)
+	return verifiedFoundTraits(committed.ImageAnalysis, inputEventID, imageObject)
 }
 
 func (w *Worker) generateFoundImageTraits(ctx context.Context, image string) (*scoring.PetTraits, string, error) {
