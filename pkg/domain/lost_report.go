@@ -289,6 +289,11 @@ func (e LostPetReportedV4) Validate() error {
 	if e.ReportedAt.IsZero() {
 		return errors.New("domain: reportedAt is required")
 	}
+	if len(e.Embedding) > 0 {
+		if err := ValidateEmbedding(e.Embedding); err != nil {
+			return err
+		}
+	}
 	return validateLostPetCanonicalFields(LostPetReport{
 		PetID:           e.PetID,
 		PetName:         e.PetName,
@@ -338,8 +343,10 @@ func NormalizeLostPetReport(report LostPetReport) LostPetReport {
 	if len(report.Images) == 0 && report.ImageObject != "" {
 		report.Images = []PetImage{{Object: report.ImageObject, Tag: PetImageTagPrimary}}
 	}
-	if len(report.Images) > 0 && report.ImageObject == "" {
-		report.ImageObject = report.Images[0].Object
+	if report.ImageObject == "" {
+		if primary, ok := PrimaryPetImage(report.Images); ok {
+			report.ImageObject = primary.Object
+		}
 	}
 	report.Location = strings.TrimSpace(report.Location)
 	report.OwnedBy = normalizePrincipalRef(report.OwnedBy)
@@ -489,8 +496,8 @@ func (r LostPetReport) Public() PublicLostPetReport {
 func (r LostPetReport) Persisted() (LostPetRecord, ReportContact) {
 	identityRef := reportIdentityRef("lost", r.PetID, "owner")
 	var emb []float32
-	if len(r.Images) > 0 && len(r.Images[0].Embedding) > 0 {
-		emb = append([]float32(nil), r.Images[0].Embedding...)
+	if primary, ok := PrimaryPetImage(r.Images); ok && len(primary.Embedding) > 0 {
+		emb = append([]float32(nil), primary.Embedding...)
 	}
 	return LostPetRecord{
 			PetID:            r.PetID,
@@ -570,8 +577,8 @@ func (r LostPetRecord) Public() PublicLostPetReport {
 // ReportedEvent returns the contact-redacted current integration event.
 func (r LostPetReport) ReportedEvent() LostPetReportedV4 {
 	var emb []float32
-	if len(r.Images) > 0 && len(r.Images[0].Embedding) > 0 {
-		emb = append([]float32(nil), r.Images[0].Embedding...)
+	if primary, ok := PrimaryPetImage(r.Images); ok && len(primary.Embedding) > 0 {
+		emb = append([]float32(nil), primary.Embedding...)
 	}
 	return LostPetReportedV4{
 		PetID:           r.PetID,
@@ -582,7 +589,7 @@ func (r LostPetReport) ReportedEvent() LostPetReportedV4 {
 		Description:     r.Description,
 		ImageObject:     r.ImageObject,
 		Images:          clonePetImages(r.Images),
-		Embedding:        emb,
+		Embedding:       emb,
 		ReportedAt:      r.ReportedAt,
 		Location:        r.Location,
 		GeocodingStatus: r.GeocodingStatus,

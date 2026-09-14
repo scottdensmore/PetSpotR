@@ -182,6 +182,11 @@ func (e FoundPetReportedV2) Validate() error {
 	if e.FoundAt.IsZero() {
 		return errors.New("domain: foundAt is required")
 	}
+	if len(e.Embedding) > 0 {
+		if err := ValidateEmbedding(e.Embedding); err != nil {
+			return err
+		}
+	}
 	return FoundPetReport{
 		PetID:               e.PetID,
 		ImageURL:            e.ImageURL,
@@ -230,8 +235,10 @@ func NormalizeFoundPetReport(report FoundPetReport) FoundPetReport {
 	if len(report.Images) == 0 && report.ImageObject != "" {
 		report.Images = []PetImage{{Object: report.ImageObject, Tag: PetImageTagPrimary}}
 	}
-	if len(report.Images) > 0 && report.ImageObject == "" {
-		report.ImageObject = report.Images[0].Object
+	if report.ImageObject == "" {
+		if primary, ok := PrimaryPetImage(report.Images); ok {
+			report.ImageObject = primary.Object
+		}
 	}
 	if !report.FoundAt.IsZero() {
 		report.FoundAt = report.FoundAt.UTC()
@@ -261,8 +268,10 @@ func NormalizeFoundPetReport(report FoundPetReport) FoundPetReport {
 // Validate checks the canonical found-pet aggregate at the application boundary.
 func (r FoundPetReport) Validate() error {
 	imageObj := r.ImageObject
-	if imageObj == "" && len(r.Images) > 0 {
-		imageObj = r.Images[0].Object
+	if imageObj == "" {
+		if primary, ok := PrimaryPetImage(r.Images); ok {
+			imageObj = primary.Object
+		}
 	}
 	legacy := FoundPetEvent{
 		PetID:       r.PetID,
@@ -345,8 +354,8 @@ func (r FoundPetReport) Public() PublicFoundPetReport {
 func (r FoundPetReport) Persisted() (FoundPetRecord, ReportContact) {
 	identityRef := reportIdentityRef("found", r.PetID, "finder")
 	var emb []float32
-	if len(r.Images) > 0 && len(r.Images[0].Embedding) > 0 {
-		emb = append([]float32(nil), r.Images[0].Embedding...)
+	if primary, ok := PrimaryPetImage(r.Images); ok && len(primary.Embedding) > 0 {
+		emb = append([]float32(nil), primary.Embedding...)
 	}
 	return FoundPetRecord{
 			PetID:               r.PetID,
@@ -432,8 +441,8 @@ func (r FoundPetRecord) Public() PublicFoundPetReport {
 // ReportedEvent returns the contact-redacted payload-v2 integration event.
 func (r FoundPetReport) ReportedEvent() FoundPetReportedV2 {
 	var emb []float32
-	if len(r.Images) > 0 && len(r.Images[0].Embedding) > 0 {
-		emb = append([]float32(nil), r.Images[0].Embedding...)
+	if primary, ok := PrimaryPetImage(r.Images); ok && len(primary.Embedding) > 0 {
+		emb = append([]float32(nil), primary.Embedding...)
 	}
 	return FoundPetReportedV2{
 		PetID:               r.PetID,
