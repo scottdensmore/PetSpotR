@@ -3,6 +3,8 @@ package embedding
 import (
 	"fmt"
 	"strings"
+
+	"golang.org/x/oauth2"
 )
 
 // Config configures the multimodal embedder.
@@ -13,6 +15,7 @@ type Config struct {
 	Location    string
 	OllamaURL   string
 	OllamaModel string
+	TokenSource oauth2.TokenSource // optional custom token source for vertex provider
 }
 
 // NewEmbedder constructs an Embedder according to configuration.
@@ -25,7 +28,11 @@ func NewEmbedder(cfg Config) (Embedder, error) {
 		if cfg.ProjectID == "" {
 			return nil, fmt.Errorf("embedding: projectID is required for vertex provider")
 		}
-		return NewVertexAIEmbedder(cfg.ProjectID, cfg.Location), nil
+		embedder := NewVertexAIEmbedder(cfg.ProjectID, cfg.Location)
+		if cfg.TokenSource != nil {
+			embedder.SetTokenSource(cfg.TokenSource)
+		}
+		return embedder, nil
 	case "ollama":
 		return NewOllamaEmbedder(cfg.OllamaURL, cfg.OllamaModel), nil
 	default:

@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"time"
 )
@@ -45,6 +47,7 @@ func (o *OllamaEmbedder) Dimension() int {
 }
 
 // EmbedImage computes an embedding vector from raw image bytes and MIME type.
+// Note: Ollama text embedding models do not support direct image inputs.
 func (o *OllamaEmbedder) EmbedImage(ctx context.Context, imageBytes []byte, mimeType string) ([]float32, error) {
 	return o.EmbedMultimodal(ctx, imageBytes, mimeType, "")
 }
@@ -59,6 +62,13 @@ func (o *OllamaEmbedder) EmbedMultimodal(ctx context.Context, imageBytes []byte,
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if len(imageBytes) > 0 && text == "" {
+		return nil, errors.New("embedding: ollama model does not support direct image embedding; text description required")
+	}
+	if text == "" {
+		return nil, errors.New("embedding: text description required for ollama embeddings")
+	}
+
 	url := fmt.Sprintf("%s/api/embeddings", o.baseURL)
 	payload := map[string]any{
 		"model":  o.model,
@@ -99,5 +109,22 @@ func (o *OllamaEmbedder) EmbedMultimodal(ctx context.Context, imageBytes []byte,
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
 	}
+
+	if len(result.Embedding) != o.dimension {
+		return nil, fmt.Errorf("ollama embedding: unexpected dimension %d (expected %d)", len(result.Embedding), o.dimension)
+	}
+
+	var sumSq float64
+	for _, x := range result.Embedding {
+		sumSq += float64(x) * float64(x)
+	}
+	norm := float32(math.Sqrt(sumSq))
+	if norm <= 0 {
+		return nil, errors.New("ollama embedding: vector norm is zero")
+	}
+	for i := range result.Embedding {
+		result.Embedding[i] /= norm
+	}
+
 	return result.Embedding, nil
 }
