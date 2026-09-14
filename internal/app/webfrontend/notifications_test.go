@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -508,3 +509,32 @@ func TestNotifications_MethodNotAllowed(t *testing.T) {
 		}
 	}
 }
+
+func TestNotifications_TemplateElementsPresent(t *testing.T) {
+	srv := NewServer()
+	req := httptest.NewRequest(http.MethodGet, "/pets", nil)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected HTTP 200, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	requiredElements := []string{
+		`id="btn-notification-drawer"`,
+		`id="notification-badge"`,
+		`id="notification-drawer"`,
+		`id="notification-list"`,
+		`id="notification-preferences-modal"`,
+		`id="zone-mini-map"`,
+		`/static/js/notification-center.js`,
+	}
+
+	for _, elem := range requiredElements {
+		if !strings.Contains(body, elem) {
+			t.Errorf("expected pets.html to contain %s", elem)
+		}
+	}
+}
+

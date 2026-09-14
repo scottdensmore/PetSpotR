@@ -30,6 +30,13 @@
       </nav>
 
       <div class="nav-actions">
+        <button id="btn-notification-drawer" class="btn-icon notification-bell-btn" aria-label="Open notifications" aria-expanded="false" title="Notifications">
+          <svg class="bell-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span id="notification-badge" class="badge-unread hidden" aria-live="polite">0</span>
+        </button>
         <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
         <a href="/report-lost" class="btn btn-primary" id="btn-report-lost">Report Lost Pet</a>
         <a href="/report-found" class="btn btn-secondary" id="btn-report-found">Found a Pet</a>
@@ -206,6 +213,87 @@
     {{ end }}
   </main>
 
+  <div id="drawer-backdrop" class="drawer-backdrop hidden" tabindex="-1"></div>
+  <aside id="notification-drawer" class="notification-drawer" role="dialog" aria-label="Notifications" aria-modal="true" aria-hidden="true">
+    <div class="drawer-header">
+      <div class="drawer-title-group">
+        <h2>Notifications</h2>
+        <span id="drawer-unread-count" class="badge badge-secondary">0 unread</span>
+      </div>
+      <div class="drawer-actions">
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-mark-all-read" title="Mark all as read">✓ Read all</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-open-preferences" title="Notification preferences">⚙️ Settings</button>
+        <button type="button" class="btn btn-icon btn-sm" id="btn-close-drawer" aria-label="Close notifications">✕</button>
+      </div>
+    </div>
+    <div class="drawer-content" id="notification-list-container">
+      <div id="notification-list" class="notification-list" role="feed" aria-busy="false"></div>
+      <div id="notification-empty" class="empty-state notification-empty hidden">
+        <div class="empty-icon" aria-hidden="true">🐾</div>
+        <p class="empty-state-title">You're all caught up!</p>
+        <p class="text-secondary">New match alerts and neighborhood updates will appear here.</p>
+      </div>
+    </div>
+  </aside>
+
+  <div id="preferences-backdrop" class="modal-backdrop hidden" tabindex="-1"></div>
+  <div id="notification-preferences-modal" class="glass-card preferences-modal hidden" role="dialog" aria-modal="true" aria-labelledby="pref-modal-title">
+    <div class="modal-header">
+      <h2 id="pref-modal-title">Alert & Zone Preferences</h2>
+      <button type="button" class="btn-icon" id="btn-close-preferences" aria-label="Close settings">✕</button>
+    </div>
+    <form id="preferences-form" class="preferences-form">
+      <fieldset class="pref-fieldset">
+        <legend class="pref-legend">Delivery Channels</legend>
+        <div class="pref-channel-row">
+          <label class="pref-toggle-label">
+            <input type="checkbox" id="pref-email-enabled" name="emailEnabled">
+            <span>Email Alerts</span>
+          </label>
+          <input type="email" id="pref-email-address" name="email" class="form-control" placeholder="your.email@example.com">
+        </div>
+        <div class="pref-channel-row">
+          <label class="pref-toggle-label">
+            <input type="checkbox" id="pref-sms-enabled" name="smsEnabled">
+            <span>SMS Text Alerts</span>
+          </label>
+          <input type="tel" id="pref-phone-number" name="phone" class="form-control" placeholder="+12065550199">
+        </div>
+        <div class="pref-channel-row">
+          <label class="pref-toggle-label">
+            <input type="checkbox" id="pref-push-enabled" name="pushEnabled">
+            <span>Instant Web Push</span>
+          </label>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-enable-push">Enable Push Alerts</button>
+        </div>
+      </fieldset>
+      <fieldset class="pref-fieldset">
+        <legend class="pref-legend">Neighborhood Alert Zone</legend>
+        <label class="pref-toggle-label">
+          <input type="checkbox" id="pref-geozone-enabled" name="geoZoneEnabled" checked>
+          <span>Notify me of lost pets reported in my neighborhood</span>
+        </label>
+        <div class="pref-geo-controls">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-pref-geolocation">📍 Use My Location</button>
+          <label for="pref-radius">Alert Radius:</label>
+          <select id="pref-radius" name="radiusMiles" class="form-control">
+            <option value="5">5 miles</option>
+            <option value="10" selected>10 miles</option>
+            <option value="25">25 miles</option>
+            <option value="50">50 miles</option>
+          </select>
+        </div>
+        <input type="hidden" id="pref-lat" name="lat">
+        <input type="hidden" id="pref-lng" name="lng">
+        <div id="zone-mini-map" class="zone-mini-map" role="region" aria-label="Interactive alert zone mini map"></div>
+      </fieldset>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-preferences">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="btn-save-preferences">Save Preferences</button>
+      </div>
+    </form>
+  </div>
+
   <footer>
     <div class="container footer-content">
       <p>&copy; 2026 PetSpotR. Event-driven Go & GCP AI Microservices.</p>
@@ -217,5 +305,7 @@
   <script src="/static/vendor/leaflet/leaflet.js"></script>
   <script src="/static/js/theme.js"></script>
   <script src="/static/js/pet-directory.js"></script>
+  <script src="/static/js/push-notifier.js"></script>
+  <script src="/static/js/notification-center.js"></script>
 </body>
 </html>
