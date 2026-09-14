@@ -75,3 +75,58 @@ func TestMemoryStoreRejectsInvalidLostPetCandidateQuery(t *testing.T) {
 		t.Fatal("QueryLostPetCandidates() error = nil, want invalid-bounds error")
 	}
 }
+
+func TestQueryLostPetCandidates_PreservesEmbeddings(t *testing.T) {
+	ctx := context.Background()
+	stateStore := store.NewMemoryStore()
+
+	now := time.Now().UTC()
+	emb := make([]float32, 768)
+	emb[0] = 1.0
+
+	record := domain.LostPetRecord{
+		PetID:           "lost-vec-1",
+		Species:         "Dog",
+		Status:          domain.LostPetStatusLost,
+		GeocodingStatus: domain.GeocodingVerified,
+		Coordinates:     &domain.LocationPoint{Latitude: 47.6062, Longitude: -122.3321},
+		ReportedAt:      now,
+		Embedding:       emb,
+	}
+	data, err := json.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := stateStore.SaveState(ctx, store.LostPetsCollection, record.PetID, data); err != nil {
+		t.Fatal(err)
+	}
+
+	query := store.LostPetCandidateQuery{
+		Status:          string(domain.LostPetStatusLost),
+		GeocodingStatus: string(domain.GeocodingVerified),
+		Species:         "Dog",
+		ReportedAfter:   now.Add(-time.Hour),
+		ReportedBefore:  now.Add(time.Hour),
+		MinLatitude:     47.0,
+		MaxLatitude:     48.0,
+		MinLongitude:    -123.0,
+		MaxLongitude:    -122.0,
+	}
+
+	results, err := stateStore.QueryLostPetCandidates(ctx, query)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resData, ok := results["lost-vec-1"]
+	if !ok {
+		t.Fatal("expected candidate lost-vec-1 not returned")
+	}
+	var decoded domain.LostPetRecord
+	if err := json.Unmarshal(resData, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if len(decoded.Embedding) != 768 || decoded.Embedding[0] != 1.0 {
+		t.Fatalf("expected preserved embedding, got len=%d", len(decoded.Embedding))
+	}
+}

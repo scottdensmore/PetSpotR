@@ -191,7 +191,7 @@ func indexedLostPetCandidate(key string, data []byte) (firestoreRecord, bool) {
 }
 
 func lostPetCandidateIndexUpdates(record firestoreRecord) []firestore.Update {
-	return []firestore.Update{
+	updates := []firestore.Update{
 		{Path: "lostStatus", Value: record.LostStatus},
 		{Path: "lostGeocodingStatus", Value: record.LostGeocodingStatus},
 		{Path: "lostSpecies", Value: *record.LostSpecies},
@@ -199,4 +199,8 @@ func lostPetCandidateIndexUpdates(record firestoreRecord) []firestore.Update {
 		{Path: "lostLatitude", Value: *record.LostLatitude},
 		{Path: "lostLongitude", Value: *record.LostLongitude},
 	}
+	if len(record.LostEmbedding) > 0 {
+		updates = append(updates, firestore.Update{Path: "lostEmbedding", Value: record.LostEmbedding})
+	}
+	return updates
 }

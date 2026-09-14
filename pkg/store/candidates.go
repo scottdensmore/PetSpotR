@@ -48,6 +48,7 @@ type lostPetCandidateState struct {
 		Latitude  float64 `json:"latitude"`
 		Longitude float64 `json:"longitude"`
 	} `json:"coordinates"`
+	Embedding []float32 `json:"embedding,omitempty"`
 }
 
 func (q LostPetCandidateQuery) validate() error {
