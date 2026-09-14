@@ -65,6 +65,7 @@ type FoundPetReport struct {
 	PetID               string          `json:"petId"`
 	ImageURL            string          `json:"imageUrl,omitempty"`
 	ImageObject         string          `json:"imageObject,omitempty"`
+	Images              []PetImage      `json:"images,omitempty"`
 	FoundAt             time.Time       `json:"foundAt"`
 	Location            string          `json:"location"`
 	GeocodingStatus     GeocodingStatus `json:"geocodingStatus"`
@@ -87,6 +88,8 @@ type FoundPetRecord struct {
 	PetID               string                  `json:"petId"`
 	ImageURL            string                  `json:"imageUrl,omitempty"`
 	ImageObject         string                  `json:"imageObject,omitempty"`
+	Images              []PetImage              `json:"images,omitempty"`
+	Embedding           []float32               `json:"embedding,omitempty"`
 	FoundAt             time.Time               `json:"foundAt"`
 	Location            string                  `json:"location"`
 	GeocodingStatus     GeocodingStatus         `json:"geocodingStatus"`
@@ -111,6 +114,8 @@ type FoundPetReportedV2 struct {
 	PetID               string          `json:"petId"`
 	ImageURL            string          `json:"imageUrl,omitempty"`
 	ImageObject         string          `json:"imageObject,omitempty"`
+	Images              []PetImage      `json:"images,omitempty"`
+	Embedding           []float32       `json:"embedding,omitempty"`
 	FoundAt             time.Time       `json:"foundAt"`
 	Location            string          `json:"location"`
 	GeocodingStatus     GeocodingStatus `json:"geocodingStatus"`
@@ -181,6 +186,7 @@ func (e FoundPetReportedV2) Validate() error {
 		PetID:               e.PetID,
 		ImageURL:            e.ImageURL,
 		ImageObject:         e.ImageObject,
+		Images:              e.Images,
 		FoundAt:             e.FoundAt,
 		Location:            e.Location,
 		GeocodingStatus:     e.GeocodingStatus,
@@ -220,6 +226,13 @@ func NormalizeFoundPetReport(report FoundPetReport) FoundPetReport {
 	report.PetID = strings.TrimSpace(report.PetID)
 	report.ImageURL = strings.TrimSpace(report.ImageURL)
 	report.ImageObject = strings.TrimSpace(report.ImageObject)
+	report.Images = NormalizePetImages(report.Images)
+	if len(report.Images) == 0 && report.ImageObject != "" {
+		report.Images = []PetImage{{Object: report.ImageObject, Tag: PetImageTagPrimary}}
+	}
+	if len(report.Images) > 0 && report.ImageObject == "" {
+		report.ImageObject = report.Images[0].Object
+	}
 	if !report.FoundAt.IsZero() {
 		report.FoundAt = report.FoundAt.UTC()
 	}
@@ -247,10 +260,14 @@ func NormalizeFoundPetReport(report FoundPetReport) FoundPetReport {
 
 // Validate checks the canonical found-pet aggregate at the application boundary.
 func (r FoundPetReport) Validate() error {
+	imageObj := r.ImageObject
+	if imageObj == "" && len(r.Images) > 0 {
+		imageObj = r.Images[0].Object
+	}
 	legacy := FoundPetEvent{
 		PetID:       r.PetID,
 		ImageURL:    r.ImageURL,
-		ImageObject: r.ImageObject,
+		ImageObject: imageObj,
 		FoundAt:     r.FoundAt,
 		Location:    r.Location,
 	}
@@ -327,10 +344,16 @@ func (r FoundPetReport) Public() PublicFoundPetReport {
 // Persisted separates private finder contact from the report aggregate.
 func (r FoundPetReport) Persisted() (FoundPetRecord, ReportContact) {
 	identityRef := reportIdentityRef("found", r.PetID, "finder")
+	var emb []float32
+	if len(r.Images) > 0 && len(r.Images[0].Embedding) > 0 {
+		emb = append([]float32(nil), r.Images[0].Embedding...)
+	}
 	return FoundPetRecord{
 			PetID:               r.PetID,
 			ImageURL:            r.ImageURL,
 			ImageObject:         r.ImageObject,
+			Images:              clonePetImages(r.Images),
+			Embedding:           emb,
 			FoundAt:             r.FoundAt,
 			Location:            r.Location,
 			GeocodingStatus:     r.GeocodingStatus,
@@ -357,6 +380,7 @@ func NormalizeFoundPetRecord(record FoundPetRecord) FoundPetRecord {
 		PetID:               record.PetID,
 		ImageURL:            record.ImageURL,
 		ImageObject:         record.ImageObject,
+		Images:              record.Images,
 		FoundAt:             record.FoundAt,
 		Location:            record.Location,
 		GeocodingStatus:     record.GeocodingStatus,
@@ -373,6 +397,9 @@ func NormalizeFoundPetRecord(record FoundPetRecord) FoundPetRecord {
 	normalized, _ := report.Persisted()
 	if identityRef := strings.TrimSpace(record.FinderIdentityRef); identityRef != "" {
 		normalized.FinderIdentityRef = identityRef
+	}
+	if len(record.Embedding) > 0 {
+		normalized.Embedding = append([]float32(nil), record.Embedding...)
 	}
 	normalized.ImageAnalysis = NormalizeImageTraitAnalysis(record.ImageAnalysis)
 	if record.LifecycleAudit != nil {
@@ -404,10 +431,16 @@ func (r FoundPetRecord) Public() PublicFoundPetReport {
 
 // ReportedEvent returns the contact-redacted payload-v2 integration event.
 func (r FoundPetReport) ReportedEvent() FoundPetReportedV2 {
+	var emb []float32
+	if len(r.Images) > 0 && len(r.Images[0].Embedding) > 0 {
+		emb = append([]float32(nil), r.Images[0].Embedding...)
+	}
 	return FoundPetReportedV2{
 		PetID:               r.PetID,
 		ImageURL:            r.ImageURL,
 		ImageObject:         r.ImageObject,
+		Images:              clonePetImages(r.Images),
+		Embedding:           emb,
 		FoundAt:             r.FoundAt,
 		Location:            r.Location,
 		GeocodingStatus:     r.GeocodingStatus,
@@ -427,6 +460,7 @@ func normalizeFoundPetReported(event FoundPetReportedV2) FoundPetReportedV2 {
 		PetID:               event.PetID,
 		ImageURL:            event.ImageURL,
 		ImageObject:         event.ImageObject,
+		Images:              event.Images,
 		FoundAt:             event.FoundAt,
 		Location:            event.Location,
 		GeocodingStatus:     event.GeocodingStatus,
@@ -439,7 +473,11 @@ func normalizeFoundPetReported(event FoundPetReportedV2) FoundPetReportedV2 {
 		CustodyStatus:       event.CustodyStatus,
 		Status:              event.Status,
 	})
-	return report.ReportedEvent()
+	res := report.ReportedEvent()
+	if len(event.Embedding) > 0 {
+		res.Embedding = append([]float32(nil), event.Embedding...)
+	}
+	return res
 }
 
 func normalizeCustodyStatus(status CustodyStatus) CustodyStatus {
@@ -512,6 +550,9 @@ func validateFoundPetLengths(r FoundPetReport) error {
 		if utf8.RuneCountInString(marking) > 200 {
 			return errors.New("domain: distinctiveMarkings item exceeds 200 characters")
 		}
+	}
+	if err := ValidatePetImages(r.Images); err != nil {
+		return err
 	}
 	return nil
 }
