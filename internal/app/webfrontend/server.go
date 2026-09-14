@@ -32,7 +32,7 @@ import (
 //go:embed static/* templates/*
 var embeddedFiles embed.FS
 
-const contentSecurityPolicy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://storage.petspotr.io https://*.tile.openstreetmap.org; connect-src 'self'; worker-src 'self'"
+const contentSecurityPolicy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://storage.petspotr.io https://*.tile.openstreetmap.org; connect-src 'self' https://storage.petspotr.io; worker-src 'self'"
 
 // Server encapsulates HTTP routes and handlers for the PetSpotR Web Frontend.
 type Server struct {
@@ -1528,7 +1528,7 @@ func (s *Server) securityPolicy() string {
 	if !s.identityClientConfig.Enabled {
 		return contentSecurityPolicy
 	}
-	connectSources := "'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com"
+	connectSources := "'self' https://storage.petspotr.io https://identitytoolkit.googleapis.com https://securetoken.googleapis.com"
 	frameSources := "https://" + s.identityClientConfig.AuthDomain
 	if emulatorURL := strings.TrimSpace(s.identityClientConfig.AuthEmulatorURL); emulatorURL != "" {
 		connectSources += " " + emulatorURL

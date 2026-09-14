@@ -143,5 +143,5 @@ func (w *Worker) BackfillEmbeddings(ctx context.Context, batchSize int) (process
 		}
 	}
 
-	return totalProcessed, !anyRemaining && totalProcessed == 0, nil
+	return totalProcessed, !anyRemaining, nil
 }

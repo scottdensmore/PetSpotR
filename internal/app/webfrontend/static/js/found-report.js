@@ -66,6 +66,17 @@ document.addEventListener('DOMContentLoaded', () => {
   let extractionSequence = 0;
   let stagedImages = [];
 
+  function clearExtractedTraits() {
+    currentDistinctiveMarkings = [];
+    if (inputSpecies) inputSpecies.value = '';
+    if (inputBreed) inputBreed.value = '';
+    if (inputPrimaryColor) inputPrimaryColor.value = '';
+    if (inputSecondaryColor) inputSecondaryColor.value = '';
+    if (chipSpecies) chipSpecies.textContent = 'Species: Not analyzed';
+    if (chipBreed) chipBreed.textContent = 'Breed: Not analyzed';
+    if (chipColor) chipColor.textContent = 'Colors: Not analyzed';
+  }
+
   function updatePhotoCount() {
     if (photoCountBadge) {
       photoCountBadge.textContent = `${stagedImages.length} / 3 photos added`;
@@ -296,8 +307,8 @@ document.addEventListener('DOMContentLoaded', () => {
           photoStatus.textContent = `Added ${file.name} (${stagedImages.length} / 3 photos).`;
         }
 
-        // Trigger AI Feature Auto-Extraction on first image
-        if (stagedImages.length === 1) {
+        // Trigger AI Feature Auto-Extraction on primary/first uploaded image of batch
+        if (file === toProcess[0]) {
           currentImageUrl = previewUrl;
           if (imagePreview && previewContainer) {
             imagePreview.src = currentImageUrl;

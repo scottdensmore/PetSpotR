@@ -52,6 +52,10 @@ for (const pagePath of renderedPages) {
       await expect(page.locator(`#${id}`)).toBeFocused();
     }
     await page.keyboard.press('Tab');
+    if (pagePath === '/pets') {
+      await expect(page.locator('#btn-notification-drawer')).toBeFocused();
+      await page.keyboard.press('Tab');
+    }
     await expect(page.locator('#theme-toggle')).toBeFocused();
 
     const scrollY = await page.evaluate(() => {
