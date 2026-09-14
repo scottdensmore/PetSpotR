@@ -537,4 +537,3 @@ func TestNotifications_TemplateElementsPresent(t *testing.T) {
 		}
 	}
 }
-
