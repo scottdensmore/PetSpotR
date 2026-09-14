@@ -46,6 +46,16 @@ document.addEventListener('DOMContentLoaded', () => {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    const reporterEmail = form.reporterEmail?.value || document.getElementById('reporterEmail')?.value || '';
+    if (!reporterEmail.trim()) {
+      const errorEl = document.getElementById('lost-form-error') || document.getElementById('reporterEmail-error');
+      if (errorEl) {
+        errorEl.textContent = 'Please enter a contact email address.';
+        errorEl.hidden = false;
+      }
+      return;
+    }
+
     if (!navigator.onLine) {
       await handleOfflineSubmission();
       return;
@@ -59,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         primaryColor: form.primaryColor?.value || document.getElementById('primaryColor')?.value || '',
         description: form.description?.value || document.getElementById('description')?.value || '',
         location: form.location?.value || document.getElementById('location')?.value || '',
-        reporterEmail: form.reporterEmail?.value || document.getElementById('reporterEmail')?.value || '',
+        reporterEmail: reporterEmail.trim(),
         phone: form.phone?.value || document.getElementById('phone')?.value || '',
         reportedAt: new Date().toISOString()
       };
@@ -70,14 +80,27 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify(payload)
       });
 
-      if (!resp.ok) {
-        throw new Error(`Report submission failed with status ${resp.status}`);
+      if (resp.ok) {
+        form.reset();
+        stagedImages = [];
+      } else {
+        const errorEl = document.getElementById('lost-form-error');
+        if (errorEl) {
+          errorEl.textContent = 'Failed to submit report. Please check input fields.';
+          errorEl.hidden = false;
+        }
       }
-      form.reset();
-      stagedImages = [];
     } catch (err) {
-      console.warn('Network error submitting lost pet report, falling back to outbox:', err);
-      await handleOfflineSubmission();
+      if (!navigator.onLine || err instanceof TypeError || (err.message && err.message.toLowerCase().includes('failed to fetch'))) {
+        await handleOfflineSubmission();
+        return;
+      }
+      console.error('Submission error:', err);
+      const errorEl = document.getElementById('lost-form-error');
+      if (errorEl) {
+        errorEl.textContent = 'Network error submitting report.';
+        errorEl.hidden = false;
+      }
     }
   });
 });

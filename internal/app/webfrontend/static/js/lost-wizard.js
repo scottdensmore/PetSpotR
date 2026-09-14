@@ -447,14 +447,19 @@ document.addEventListener('DOMContentLoaded', () => {
       setSubmissionBusy(true);
 
       try {
+        clearFormError();
+        const reporterEmail = document.getElementById('reporterEmail');
+        if (!reporterEmail || !reporterEmail.value.trim()) {
+          showFieldError('reporterEmail', 'reporterEmail-error', 'Please enter a contact email address.');
+          return;
+        }
+        clearFieldError('reporterEmail', 'reporterEmail-error');
+
         if (!navigator.onLine) {
           await handleOfflineSubmission();
           return;
         }
 
-        const reporterEmail = document.getElementById('reporterEmail');
-
-        clearFormError();
         let identityState = null;
         if (window.petspotrIdentity) {
           try {
@@ -480,11 +485,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
         }
-        if (!reporterEmail || !reporterEmail.value.trim()) {
-          showFieldError('reporterEmail', 'reporterEmail-error', 'Please enter a contact email address.');
-          return;
-        }
-        clearFieldError('reporterEmail', 'reporterEmail-error');
 
         if (!pendingSubmission) {
           pendingSubmission = {
@@ -532,8 +532,11 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         } catch (err) {
           console.error('Submission error:', err);
-          await handleOfflineSubmission();
-          return;
+          if (!navigator.onLine || err instanceof TypeError || (err.message && err.message.toLowerCase().includes('failed to fetch'))) {
+            await handleOfflineSubmission();
+            return;
+          }
+          showFormError('Network error submitting report.');
         }
       } finally {
         submissionInFlight = false;

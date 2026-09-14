@@ -490,17 +490,40 @@ document.addEventListener('DOMContentLoaded', () => {
       setSubmissionBusy(true);
 
       try {
-        if (!navigator.onLine) {
-          await handleOfflineSubmission();
-          return;
-        }
-
         const location = document.getElementById('foundLocation')?.value || '';
         const finderEmail = document.getElementById('finderEmail')?.value || '';
 
         clearFormError();
         const locationInput = document.getElementById('foundLocation');
         const emailInput = document.getElementById('finderEmail');
+
+        let hasError = false;
+        if (!location.trim()) {
+          showFieldError('foundLocation', 'found-location-error', 'Please enter found location.');
+          hasError = true;
+        } else {
+          clearFieldError('foundLocation', 'found-location-error');
+        }
+
+        if (!finderEmail.trim()) {
+          showFieldError('finderEmail', 'finder-email-error', 'Please enter finder contact email.');
+          if (!hasError) {
+            emailInput?.focus();
+          }
+          hasError = true;
+        } else {
+          clearFieldError('finderEmail', 'finder-email-error');
+        }
+
+        if (hasError) {
+          showFormError('Please enter found location and finder contact email.');
+          return;
+        }
+
+        if (!navigator.onLine) {
+          await handleOfflineSubmission();
+          return;
+        }
 
         let identityState = null;
         if (window.petspotrIdentity) {
@@ -526,29 +549,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showFormError('Identity services are temporarily unavailable. Please try again.');
             return;
           }
-        }
-
-        let hasError = false;
-        if (!location.trim()) {
-          showFieldError('foundLocation', 'found-location-error', 'Please enter found location.');
-          hasError = true;
-        } else {
-          clearFieldError('foundLocation', 'found-location-error');
-        }
-
-        if (!finderEmail.trim()) {
-          showFieldError('finderEmail', 'finder-email-error', 'Please enter finder contact email.');
-          if (!hasError) {
-            emailInput?.focus();
-          }
-          hasError = true;
-        } else {
-          clearFieldError('finderEmail', 'finder-email-error');
-        }
-
-        if (hasError) {
-          showFormError('Please enter found location and finder contact email.');
-          return;
         }
         if (!pendingSubmission) {
           pendingSubmission = {
@@ -600,8 +600,11 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         } catch (err) {
           console.error('Submission error:', err);
-          await handleOfflineSubmission();
-          return;
+          if (!navigator.onLine || err instanceof TypeError || (err.message && err.message.toLowerCase().includes('failed to fetch'))) {
+            await handleOfflineSubmission();
+            return;
+          }
+          showFormError('Network error submitting found pet report.');
         }
       } finally {
         submissionInFlight = false;
