@@ -3,6 +3,7 @@ package store
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -203,4 +204,60 @@ func lostPetCandidateIndexUpdates(record firestoreRecord) []firestore.Update {
 		updates = append(updates, firestore.Update{Path: "lostEmbedding", Value: record.LostEmbedding})
 	}
 	return updates
+}
+
+// ScanActiveReportsMissingEmbeddings scans active reports using cursor pagination.
+func (s *FirestoreStore) ScanActiveReportsMissingEmbeddings(ctx context.Context, collectionName string, limitBatch int, cursor string) (map[string][]byte, string, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, "", err
+	}
+	if collectionName != LostPetsCollection && collectionName != FoundPetsCollection {
+		return nil, "", errors.New("store: unsupported collection for embedding scan")
+	}
+
+	collection, err := s.collection(collectionName)
+	if err != nil {
+		return nil, "", err
+	}
+
+	query := collection.OrderBy("key", firestore.Asc)
+	if cursor != "" {
+		query = query.StartAfter(cursor)
+	}
+
+	documents := query.Limit(limitBatch).Documents(ctx)
+	defer documents.Stop()
+
+	result := make(map[string][]byte)
+	nextCursor := ""
+
+	for {
+		snapshot, err := documents.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return nil, "", fmt.Errorf("store: scan missing embeddings %s: %w", collectionName, err)
+		}
+
+		var record firestoreRecord
+		if err := snapshot.DataTo(&record); err != nil {
+			return nil, "", fmt.Errorf("store: decode scan record %s: %w", snapshot.Ref.ID, err)
+		}
+
+		nextCursor = record.Key
+
+		var state struct {
+			Status    string    `json:"status"`
+			Embedding []float32 `json:"embedding"`
+		}
+		if err := json.Unmarshal(record.Data, &state); err != nil {
+			continue
+		}
+		if (state.Status == "lost" || state.Status == "found") && len(state.Embedding) == 0 {
+			result[record.Key] = bytes.Clone(record.Data)
+		}
+	}
+
+	return result, nextCursor, nil
 }

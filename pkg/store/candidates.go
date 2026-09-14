@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sort"
 	"strings"
 	"time"
 )
@@ -30,6 +31,11 @@ type LostPetCandidateQuery struct {
 // matcher instead of a full lost-pet collection scan.
 type LostPetCandidateStore interface {
 	QueryLostPetCandidates(ctx context.Context, query LostPetCandidateQuery) (map[string][]byte, error)
+}
+
+// PetEmbeddingBackfillStore supports scanning collections for active reports without vector embeddings.
+type PetEmbeddingBackfillStore interface {
+	ScanActiveReportsMissingEmbeddings(ctx context.Context, collection string, limit int, cursor string) (map[string][]byte, string, error)
 }
 
 // LostPetCandidateIndexBackfiller upgrades opaque legacy lost-pet documents
@@ -115,4 +121,46 @@ func (m *MemoryStore) BackfillLostPetCandidateIndexes(ctx context.Context, limit
 		return 0, false, errors.New("store: lost-pet candidate index backfill limit must be between 1 and 400")
 	}
 	return 0, true, nil
+}
+
+func (m *MemoryStore) ScanActiveReportsMissingEmbeddings(ctx context.Context, collection string, limit int, cursor string) (map[string][]byte, string, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, "", err
+	}
+	if collection != LostPetsCollection && collection != FoundPetsCollection {
+		return nil, "", errors.New("store: unsupported collection for embedding scan")
+	}
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var keys []string
+	for key, data := range m.items[collection] {
+		if key <= cursor {
+			continue
+		}
+		var state struct {
+			Status    string    `json:"status"`
+			Embedding []float32 `json:"embedding"`
+		}
+		if err := json.Unmarshal(data, &state); err != nil {
+			continue
+		}
+		if (state.Status == "lost" || state.Status == "found") && len(state.Embedding) == 0 {
+			keys = append(keys, key)
+		}
+	}
+	sort.Strings(keys)
+
+	result := make(map[string][]byte)
+	nextCursor := ""
+	for i, key := range keys {
+		if i >= limit {
+			break
+		}
+		result[key] = bytes.Clone(m.items[collection][key])
+		nextCursor = key
+	}
+
+	return result, nextCursor, nil
 }
