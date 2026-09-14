@@ -66,14 +66,22 @@ document.addEventListener('DOMContentLoaded', () => {
   let extractionSequence = 0;
   let stagedImages = [];
 
-  function updatePhotoCounter() {
+  function updatePhotoCount() {
     if (photoCountBadge) {
       photoCountBadge.textContent = `${stagedImages.length} / 3 photos added`;
     }
     if (stagingContainer) {
       stagingContainer.hidden = stagedImages.length === 0;
     }
+    if (dropzone) {
+      if (stagedImages.length >= 3) {
+        dropzone.setAttribute('aria-disabled', 'true');
+      } else {
+        dropzone.setAttribute('aria-disabled', 'false');
+      }
+    }
   }
+  const updatePhotoCounter = updatePhotoCount;
 
   function renderStagedPhotos() {
     if (!stagingContainer) return;
@@ -124,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
       stagingContainer.appendChild(card);
     });
 
-    updatePhotoCounter();
+    updatePhotoCount();
   }
 
   function removeStagedPhoto(index) {
@@ -226,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!files || files.length === 0) return;
+    if (stagedImages.length >= 3) return;
 
     const remaining = 3 - stagedImages.length;
     if (remaining <= 0) {
@@ -308,16 +317,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Drag & Drop Photo Upload
   if (dropzone && photoInput) {
-    dropzone.addEventListener('click', () => photoInput.click());
+    dropzone.addEventListener('click', () => {
+      if (stagedImages.length >= 3) return;
+      photoInput.click();
+    });
     dropzone.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
+        if (stagedImages.length >= 3) return;
         photoInput.click();
       }
     });
 
     dropzone.addEventListener('dragover', (e) => {
       e.preventDefault();
+      if (stagedImages.length >= 3) return;
       dropzone.classList.add('is-dragging');
     });
 
@@ -328,17 +342,24 @@ document.addEventListener('DOMContentLoaded', () => {
     dropzone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropzone.classList.remove('is-dragging');
+      if (stagedImages.length >= 3) return;
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         handleFiles(e.dataTransfer.files);
       }
     });
 
     photoInput.addEventListener('change', (e) => {
+      if (stagedImages.length >= 3) {
+        photoInput.value = '';
+        return;
+      }
       if (e.target.files && e.target.files.length > 0) {
         handleFiles(e.target.files);
         photoInput.value = '';
       }
     });
+
+    updatePhotoCount();
   }
 
   async function extractAIFeatures(imageUrl) {

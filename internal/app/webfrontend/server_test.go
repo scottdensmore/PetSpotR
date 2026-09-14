@@ -1335,3 +1335,78 @@ func TestServer_MatchesAPI_VectorScoreAndMultiImage(t *testing.T) {
 		t.Errorf("expected found pet image 1 tag 'collar', got %q", m.FoundPet.Images[1].Tag)
 	}
 }
+
+func TestFrontendAccessibility_MultiPhotoAndCarousel(t *testing.T) {
+	t.Parallel()
+
+	// 1. styles.css focus-visible for thumbnail-btn
+	cssContent, err := embeddedFiles.ReadFile("static/css/styles.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	css := string(cssContent)
+	expectedCSS := []string{
+		".thumbnail-btn:focus-visible",
+		"outline: 2px solid var(--accent-primary)",
+		"outline-offset: 2px",
+		".dropzone[aria-disabled=\"true\"]",
+	}
+	for _, snip := range expectedCSS {
+		if !strings.Contains(css, snip) {
+			t.Errorf("styles.css missing expected accessibility snippet: %q", snip)
+		}
+	}
+
+	// 2. match-dashboard.js accessible selection state
+	dashContent, err := embeddedFiles.ReadFile("static/js/match-dashboard.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dashJS := string(dashContent)
+	expectedDashSnippets := []string{
+		"aria-current",
+		"btn.setAttribute('aria-current', idx === i ? 'true' : 'false')",
+		"btn.setAttribute('aria-label', 'View photo ' + (i + 1) + (img.tag ? ' (' + img.tag + ')' : ''))",
+	}
+	for _, snip := range expectedDashSnippets {
+		if !strings.Contains(dashJS, snip) {
+			t.Errorf("match-dashboard.js missing expected accessible selection snippet: %q", snip)
+		}
+	}
+
+	// 3. lost-wizard.js dropzone aria-disabled and file ignore
+	lostContent, err := embeddedFiles.ReadFile("static/js/lost-wizard.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lostJS := string(lostContent)
+	expectedLostSnippets := []string{
+		"updatePhotoCount",
+		"dropzone.setAttribute('aria-disabled', 'true')",
+		"dropzone.setAttribute('aria-disabled', 'false')",
+		"stagedImages.length >= 3",
+	}
+	for _, snip := range expectedLostSnippets {
+		if !strings.Contains(lostJS, snip) {
+			t.Errorf("lost-wizard.js missing expected snippet: %q", snip)
+		}
+	}
+
+	// 4. found-report.js dropzone aria-disabled and file ignore
+	foundContent, err := embeddedFiles.ReadFile("static/js/found-report.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundJS := string(foundContent)
+	expectedFoundSnippets := []string{
+		"updatePhotoCount",
+		"dropzone.setAttribute('aria-disabled', 'true')",
+		"dropzone.setAttribute('aria-disabled', 'false')",
+		"stagedImages.length >= 3",
+	}
+	for _, snip := range expectedFoundSnippets {
+		if !strings.Contains(foundJS, snip) {
+			t.Errorf("found-report.js missing expected snippet: %q", snip)
+		}
+	}
+}

@@ -460,27 +460,30 @@ document.addEventListener('DOMContentLoaded', () => {
         className: 'thumbnail-strip',
       });
       const thumbButtons = [];
-      pet.images.forEach((img, idx) => {
+      pet.images.forEach((img, i) => {
         const btn = createElement('button', {
-          className: `thumbnail-btn${idx === 0 ? ' is-active' : ''}`,
+          className: `thumbnail-btn${i === 0 ? ' is-active' : ''}`,
         });
         btn.type = 'button';
-        btn.setAttribute('aria-label', `View photo ${idx + 1}`);
+        btn.setAttribute('aria-current', i === 0 ? 'true' : 'false');
+        btn.setAttribute('aria-label', 'View photo ' + (i + 1) + (img.tag ? ' (' + img.tag + ')' : ''));
 
         const thumbSrc = typeof img === 'string' ? img : (img.url || img.imageUrl || img.object || '');
         const thumbImg = createElement('img', {
           className: 'thumbnail-img',
         });
         thumbImg.src = thumbSrc;
-        thumbImg.alt = includeName ? `${pet.petName} thumbnail ${idx + 1}` : `Found pet thumbnail ${idx + 1}`;
+        thumbImg.alt = includeName ? `${pet.petName} thumbnail ${i + 1}` : `Found pet thumbnail ${i + 1}`;
         btn.append(thumbImg);
 
         btn.addEventListener('click', () => {
-          thumbButtons.forEach(b => b.classList.remove('is-active'));
-          btn.classList.add('is-active');
+          thumbButtons.forEach((btn, idx) => {
+            btn.classList.toggle('is-active', idx === i);
+            btn.setAttribute('aria-current', idx === i ? 'true' : 'false');
+          });
           if (image) {
             image.src = thumbSrc;
-            image.alt = includeName ? `${pet.petName} photo ${idx + 1}` : `Found pet photo ${idx + 1}`;
+            image.alt = includeName ? `${pet.petName} photo ${i + 1}` : `Found pet photo ${i + 1}`;
           }
           zoomButton.dataset.src = thumbSrc;
           zoomButton.setAttribute('data-src', thumbSrc);
