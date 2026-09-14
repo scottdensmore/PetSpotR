@@ -364,6 +364,7 @@ func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 		ReporterEmail   string                 `json:"reporterEmail"`
 		Phone           string                 `json:"phone"`
 		ImageObject     string                 `json:"imageObject"`
+		Images          []domain.PetImage      `json:"images"`
 		ReportedAt      time.Time              `json:"reportedAt"`
 		Location        string                 `json:"location"`
 		GeocodingStatus domain.GeocodingStatus `json:"geocodingStatus"`
@@ -394,6 +395,11 @@ func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		request.ImageObject = finalized.ObjectName
+		for i := range request.Images {
+			if request.Images[i].Tag == domain.PetImageTagPrimary {
+				request.Images[i].Object = finalized.ObjectName
+			}
+		}
 	}
 
 	result, err := s.ReportLostPet(r.Context(), ReportCommand{
@@ -406,6 +412,7 @@ func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 		ReporterEmail:   request.ReporterEmail,
 		Phone:           request.Phone,
 		ImageObject:     request.ImageObject,
+		Images:          request.Images,
 		ReportedAt:      request.ReportedAt,
 		Location:        request.Location,
 		GeocodingStatus: request.GeocodingStatus,

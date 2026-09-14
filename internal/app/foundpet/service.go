@@ -341,6 +341,7 @@ func (s *Service) HandleFoundPet(w http.ResponseWriter, r *http.Request) {
 		PetID               string                 `json:"petId"`
 		ImageURL            string                 `json:"imageUrl"`
 		ImageObject         string                 `json:"imageObject"`
+		Images              []domain.PetImage      `json:"images"`
 		FoundAt             time.Time              `json:"foundAt"`
 		Location            string                 `json:"location"`
 		GeocodingStatus     domain.GeocodingStatus `json:"geocodingStatus"`
@@ -378,12 +379,18 @@ func (s *Service) HandleFoundPet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		request.ImageObject = finalized.ObjectName
+		for i := range request.Images {
+			if request.Images[i].Tag == domain.PetImageTagPrimary {
+				request.Images[i].Object = finalized.ObjectName
+			}
+		}
 	}
 
 	result, err := s.ReportFoundPet(ctx, ReportCommand{
 		PetID:               request.PetID,
 		ImageURL:            request.ImageURL,
 		ImageObject:         request.ImageObject,
+		Images:              request.Images,
 		FoundAt:             request.FoundAt,
 		Location:            request.Location,
 		GeocodingStatus:     request.GeocodingStatus,
