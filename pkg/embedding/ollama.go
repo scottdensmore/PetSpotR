@@ -3,37 +3,75 @@ package embedding
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 )
 
+var _ Embedder = (*OllamaEmbedder)(nil)
+
 // OllamaEmbedder calls Ollama embedding API for private GPU Cloud Run deployments.
 type OllamaEmbedder struct {
-	baseURL    string
-	model      string
-	httpClient *http.Client
-	dimension  int
+	baseURL     string
+	model       string
+	visionModel string
+	httpClient  *http.Client
+	dimension   int
 }
 
 // NewOllamaEmbedder creates an Ollama embedder instance.
-func NewOllamaEmbedder(baseURL, model string) *OllamaEmbedder {
+// If visionModel is provided and non-empty, it is used for image embeddings;
+// otherwise it defaults to model or fallback ("nomic-embed-text").
+func NewOllamaEmbedder(baseURL, model string, visionModel ...string) *OllamaEmbedder {
 	if baseURL == "" {
 		baseURL = "http://localhost:11434"
 	}
 	if model == "" {
 		model = "nomic-embed-text"
 	}
-	return &OllamaEmbedder{
-		baseURL:    baseURL,
-		model:      model,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
-		dimension:  768,
+	vm := model
+	if len(visionModel) > 0 && strings.TrimSpace(visionModel[0]) != "" {
+		vm = strings.TrimSpace(visionModel[0])
 	}
+	return &OllamaEmbedder{
+		baseURL:     baseURL,
+		model:       model,
+		visionModel: vm,
+		httpClient:  &http.Client{Timeout: 30 * time.Second},
+		dimension:   768,
+	}
+}
+
+// SetVisionModel sets the vision model used for image embeddings.
+func (o *OllamaEmbedder) SetVisionModel(model string) {
+	if strings.TrimSpace(model) != "" {
+		o.visionModel = strings.TrimSpace(model)
+	}
+}
+
+// VisionModel returns the configured vision model.
+func (o *OllamaEmbedder) VisionModel() string {
+	if o.visionModel != "" {
+		return o.visionModel
+	}
+	if o.model != "" {
+		return o.model
+	}
+	return "nomic-embed-text"
+}
+
+// Model returns the configured text model.
+func (o *OllamaEmbedder) Model() string {
+	if o.model != "" {
+		return o.model
+	}
+	return "nomic-embed-text"
 }
 
 // SetHTTPClient overrides the HTTP client (primarily for testing).
@@ -43,37 +81,80 @@ func (o *OllamaEmbedder) SetHTTPClient(client *http.Client) {
 
 // Dimension returns the vector dimensionality (768).
 func (o *OllamaEmbedder) Dimension() int {
+	if o.dimension <= 0 {
+		return 768
+	}
 	return o.dimension
 }
 
 // EmbedImage computes an embedding vector from raw image bytes and MIME type.
-// Note: Ollama text embedding models do not support direct image inputs.
+// If image bytes are present, they are base64 encoded and sent to the Ollama API
+// with the configured vision model.
 func (o *OllamaEmbedder) EmbedImage(ctx context.Context, imageBytes []byte, mimeType string) ([]float32, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if len(imageBytes) == 0 {
+		return nil, errors.New("embedding: image bytes cannot be empty")
+	}
 	return o.EmbedMultimodal(ctx, imageBytes, mimeType, "")
 }
 
 // EmbedText computes an embedding vector from descriptive text.
 func (o *OllamaEmbedder) EmbedText(ctx context.Context, text string) ([]float32, error) {
-	return o.EmbedMultimodal(ctx, nil, "", text)
-}
-
-// EmbedMultimodal combines image bytes and contextual text into a single normalized vector.
-func (o *OllamaEmbedder) EmbedMultimodal(ctx context.Context, imageBytes []byte, mimeType string, text string) ([]float32, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
-	}
-	if len(imageBytes) > 0 && text == "" {
-		return nil, errors.New("embedding: ollama model does not support direct image embedding; text description required")
 	}
 	if text == "" {
 		return nil, errors.New("embedding: text description required for ollama embeddings")
 	}
+	model := o.model
+	if model == "" {
+		model = "nomic-embed-text"
+	}
+	return o.embed(ctx, model, text, nil)
+}
+
+// EmbedMultimodal combines image bytes and contextual text into a single normalized vector.
+// If image bytes are present, both base64-encoded image and text prompt are sent.
+// If only text is present, EmbedText is used.
+func (o *OllamaEmbedder) EmbedMultimodal(ctx context.Context, imageBytes []byte, mimeType string, text string) ([]float32, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if len(imageBytes) == 0 && text == "" {
+		return nil, errors.New("embedding: text description or image required for ollama embeddings")
+	}
+	if len(imageBytes) == 0 {
+		return o.EmbedText(ctx, text)
+	}
+
+	model := o.visionModel
+	if model == "" {
+		model = o.model
+	}
+	if model == "" {
+		model = "nomic-embed-text"
+	}
+
+	b64Image := base64.StdEncoding.EncodeToString(imageBytes)
+	return o.embed(ctx, model, text, []string{b64Image})
+}
+
+func (o *OllamaEmbedder) embed(ctx context.Context, model, prompt string, images []string) ([]float32, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 
 	url := fmt.Sprintf("%s/api/embeddings", o.baseURL)
 	payload := map[string]any{
-		"model":  o.model,
-		"prompt": text,
+		"model":  model,
+		"prompt": prompt,
 	}
+	if len(images) > 0 {
+		payload["images"] = images
+	}
+
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
@@ -107,11 +188,16 @@ func (o *OllamaEmbedder) EmbedMultimodal(ctx context.Context, imageBytes []byte,
 		Embedding []float32 `json:"embedding"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ollama embedding: failed to decode response: %w", err)
 	}
 
-	if len(result.Embedding) != o.dimension {
-		return nil, fmt.Errorf("ollama embedding: unexpected dimension %d (expected %d)", len(result.Embedding), o.dimension)
+	if len(result.Embedding) == 0 {
+		return nil, errors.New("ollama embedding: empty embedding returned")
+	}
+
+	dim := o.Dimension()
+	if len(result.Embedding) != dim {
+		return nil, fmt.Errorf("ollama embedding: unexpected dimension %d (expected %d)", len(result.Embedding), dim)
 	}
 
 	var sumSq float64

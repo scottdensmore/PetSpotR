@@ -15,6 +15,7 @@ type Config struct {
 	Location    string
 	OllamaURL   string
 	OllamaModel string
+	VisionModel string
 	TokenSource oauth2.TokenSource // optional custom token source for vertex provider
 }
 
@@ -34,7 +35,7 @@ func NewEmbedder(cfg Config) (Embedder, error) {
 		}
 		return embedder, nil
 	case "ollama":
-		return NewOllamaEmbedder(cfg.OllamaURL, cfg.OllamaModel), nil
+		return NewOllamaEmbedder(cfg.OllamaURL, cfg.OllamaModel, cfg.VisionModel), nil
 	default:
 		return nil, fmt.Errorf("embedding: unknown provider %q", cfg.Provider)
 	}
