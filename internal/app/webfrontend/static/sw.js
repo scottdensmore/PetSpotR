@@ -67,6 +67,19 @@ async function pruneTileCache(cache, maxEntries) {
   }
 }
 
+// Helper to construct an offline fallback response with X-PetSpotR-Offline header
+async function createOfflineResponse(cachedResponse) {
+  if (!cachedResponse) return null;
+  const bodyBlob = await cachedResponse.blob();
+  const offlineHeaders = new Headers(cachedResponse.headers);
+  offlineHeaders.set('X-PetSpotR-Offline', 'true');
+  return new Response(bodyBlob, {
+    status: cachedResponse.status,
+    statusText: cachedResponse.statusText,
+    headers: offlineHeaders
+  });
+}
+
 // Fetch routing and caching strategies
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') {
@@ -76,7 +89,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // 1. OSM Raster Map Tiles (*.tile.openstreetmap.org): Cache-First
-  if (url.hostname.includes('tile.openstreetmap.org')) {
+  if (url.hostname === 'tile.openstreetmap.org' || url.hostname.endsWith('.tile.openstreetmap.org')) {
     event.respondWith(
       caches.open(TILE_CACHE).then(async (cache) => {
         const cachedResponse = await cache.match(event.request);
@@ -141,30 +154,18 @@ self.addEventListener('fetch', (event) => {
         }
         if (networkResponse && networkResponse.status >= 500) {
           const cachedResponse = await cache.match(event.request);
-          if (cachedResponse) {
-            const blob = await cachedResponse.blob();
-            const headers = new Headers(cachedResponse.headers);
-            headers.set('X-PetSpotR-Offline', 'true');
-            return new Response(blob, {
-              status: cachedResponse.status,
-              statusText: cachedResponse.statusText,
-              headers: headers
-            });
+          const offlineResponse = await createOfflineResponse(cachedResponse);
+          if (offlineResponse) {
+            return offlineResponse;
           }
         }
         return networkResponse;
       } catch (err) {
         clearTimeout(timeoutId);
         const cachedResponse = await cache.match(event.request);
-        if (cachedResponse) {
-          const blob = await cachedResponse.blob();
-          const headers = new Headers(cachedResponse.headers);
-          headers.set('X-PetSpotR-Offline', 'true');
-          return new Response(blob, {
-            status: cachedResponse.status,
-            statusText: cachedResponse.statusText,
-            headers: headers
-          });
+        const offlineResponse = await createOfflineResponse(cachedResponse);
+        if (offlineResponse) {
+          return offlineResponse;
         }
         throw err;
       }

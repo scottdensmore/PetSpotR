@@ -35,6 +35,9 @@ test.describe.serial('Offline PWA & Background Sync User Journeys', () => {
 
     // 3. Reload /pets while offline; assert HTTP 200, DOM contains .glass-nav and #offline-indicator is visible with text "Offline"
     const reloadResponse = await page.reload();
+    // In Playwright Chromium, navigating to a new document while offline emulation is active
+    // can reset internal CDP network state; toggling re-asserts offline emulation so that
+    // navigator.onLine and offline event handlers fire reliably.
     await context.setOffline(false);
     await context.setOffline(true);
 
@@ -45,6 +48,9 @@ test.describe.serial('Offline PWA & Background Sync User Journeys', () => {
 
     // 4. Navigate to / while offline; assert HTTP 200, DOM contains .glass-nav and #offline-indicator is visible with text "Offline"
     const homeResponse = await page.goto('/');
+    // In Playwright Chromium, navigating to a new document while offline emulation is active
+    // can reset internal CDP network state; toggling re-asserts offline emulation so that
+    // navigator.onLine and offline event handlers fire reliably.
     await context.setOffline(false);
     await context.setOffline(true);
 
@@ -58,6 +64,9 @@ test.describe.serial('Offline PWA & Background Sync User Journeys', () => {
     // While offline, visit /report-lost
     await context.setOffline(true);
     const response = await page.goto('/report-lost');
+    // In Playwright Chromium, navigating to a new document while offline emulation is active
+    // can reset internal CDP network state; toggling re-asserts offline emulation so that
+    // navigator.onLine and offline event handlers fire reliably.
     await context.setOffline(false);
     await context.setOffline(true);
     expect(response?.status()).toBe(200);
