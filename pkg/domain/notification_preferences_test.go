@@ -61,6 +61,36 @@ func TestNotificationPreferences_Validation(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "radius exceeds max 100 when geo zone enabled",
+			pref: NotificationPreferences{
+				UserID:         "user-123",
+				GeoZoneEnabled: true,
+				Coordinates:    LocationPoint{Latitude: 47.6062, Longitude: -122.3321},
+				RadiusMiles:    101.0,
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid sms preference",
+			pref: NotificationPreferences{
+				UserID:     "user-123",
+				SMSEnabled: true,
+				Phone:      "+12065550100",
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid email and phone ignored when channels disabled",
+			pref: NotificationPreferences{
+				UserID:       "user-123",
+				EmailEnabled: false,
+				Email:        "invalid",
+				SMSEnabled:   false,
+				Phone:        "invalid",
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {

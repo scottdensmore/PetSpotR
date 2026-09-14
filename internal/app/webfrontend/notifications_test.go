@@ -497,6 +497,7 @@ func TestNotifications_MethodNotAllowed(t *testing.T) {
 		{http.MethodDelete, "/api/v1/notifications"},
 		{http.MethodGet, "/api/v1/notifications/mark-read"},
 		{http.MethodDelete, "/api/v1/notifications/mark-read"},
+		{http.MethodPost, "/api/v1/notifications/preferences"},
 		{http.MethodDelete, "/api/v1/notifications/preferences"},
 	}
 
@@ -508,6 +509,72 @@ func TestNotifications_MethodNotAllowed(t *testing.T) {
 			t.Errorf("%s %s returned %d, want 405", d.method, d.path, rec.Code)
 		}
 	}
+}
+
+func TestNotifications_ExpiredSessionReturnsUnauthorized(t *testing.T) {
+	memStore := store.NewMemoryStore()
+	sessionMgr := &stubSessionManager{
+		verifyErr: identity.ErrUnauthenticated,
+	}
+	srv := NewServerWithOptions(memStore, ServerOptions{
+		IdentitySessions: sessionMgr,
+	})
+
+	expiredCookie := &http.Cookie{
+		Name:  srv.sessionCookieName(),
+		Value: "expired-or-invalid-session",
+	}
+
+	t.Run("PUT preferences with expired session returns 401", func(t *testing.T) {
+		prefPayload := domain.NotificationPreferences{
+			RadiusMiles: 15.0,
+		}
+		bodyBytes, _ := json.Marshal(prefPayload)
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/notifications/preferences", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		req.AddCookie(expiredCookie)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("PUT preferences with expired session returned %d, want 401", rec.Code)
+		}
+	})
+
+	t.Run("POST mark-read with expired session returns 401", func(t *testing.T) {
+		markPayload := domain.MarkNotificationsReadRequest{
+			All: true,
+		}
+		bodyBytes, _ := json.Marshal(markPayload)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/notifications/mark-read", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		req.AddCookie(expiredCookie)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("POST mark-read with expired session returned %d, want 401", rec.Code)
+		}
+	})
+
+	t.Run("empty session cookie is treated as guest", func(t *testing.T) {
+		prefPayload := domain.NotificationPreferences{
+			RadiusMiles: 15.0,
+		}
+		bodyBytes, _ := json.Marshal(prefPayload)
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/notifications/preferences", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		req.AddCookie(&http.Cookie{
+			Name:  srv.sessionCookieName(),
+			Value: "",
+		})
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("PUT preferences with empty session cookie returned %d, want 200", rec.Code)
+		}
+	})
 }
 
 func TestNotifications_TemplateElementsPresent(t *testing.T) {
@@ -529,6 +596,8 @@ func TestNotifications_TemplateElementsPresent(t *testing.T) {
 		`id="notification-preferences-modal"`,
 		`id="zone-mini-map"`,
 		`/static/js/notification-center.js`,
+		`aria-label="Email address"`,
+		`aria-label="Phone number"`,
 	}
 
 	for _, elem := range requiredElements {

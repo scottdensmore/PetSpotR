@@ -29,6 +29,28 @@ func (s *Server) authenticatedPrincipal(r *http.Request) *identity.Principal {
 	return &principal
 }
 
+// resolveMutationPrincipal returns the verified principal for mutation requests.
+// If a session cookie is present in the request, session verification MUST succeed.
+// If verification fails, it writes 401 Unauthorized and returns (nil, false).
+// Only when no session cookie is present (or the cookie is empty) does it return (nil, true) to allow guest handling.
+func (s *Server) resolveMutationPrincipal(w http.ResponseWriter, r *http.Request) (*identity.Principal, bool) {
+	cookie, err := r.Cookie(s.sessionCookieName())
+	if errors.Is(err, http.ErrNoCookie) || (err == nil && strings.TrimSpace(cookie.Value) == "") {
+		return nil, true
+	}
+	if err != nil || s.identitySessions == nil {
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return nil, false
+	}
+	principal, err := s.identitySessions.VerifySession(r.Context(), cookie.Value)
+	if err != nil {
+		s.setSessionCookie(w, "", -1, time.Unix(1, 0))
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return nil, false
+	}
+	return &principal, true
+}
+
 // handleApiNotifications handles GET /api/v1/notifications for both authenticated users and guests.
 func (s *Server) handleApiNotifications(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -136,6 +158,11 @@ func (s *Server) handleApiNotificationsMarkRead(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	principal, ok := s.resolveMutationPrincipal(w, r)
+	if !ok {
+		return
+	}
+
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req domain.MarkNotificationsReadRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -143,7 +170,6 @@ func (s *Server) handleApiNotificationsMarkRead(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	principal := s.authenticatedPrincipal(r)
 	if principal == nil {
 		// Guests manage notification read state locally in the client
 		w.Header().Set("Content-Type", "application/json")
@@ -260,6 +286,11 @@ func (s *Server) handleApiNotificationsPreferences(w http.ResponseWriter, r *htt
 		_ = json.NewEncoder(w).Encode(pref)
 
 	case http.MethodPut:
+		principal, ok := s.resolveMutationPrincipal(w, r)
+		if !ok {
+			return
+		}
+
 		r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 		var pref domain.NotificationPreferences
 		if err := json.NewDecoder(r.Body).Decode(&pref); err != nil {
@@ -272,7 +303,6 @@ func (s *Server) handleApiNotificationsPreferences(w http.ResponseWriter, r *htt
 			return
 		}
 
-		principal := s.authenticatedPrincipal(r)
 		if principal != nil {
 			if !s.validCSRF(r) {
 				http.Error(w, "Invalid CSRF token", http.StatusForbidden)
