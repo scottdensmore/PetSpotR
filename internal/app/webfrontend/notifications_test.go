@@ -45,6 +45,9 @@ func TestNotifications_GuestFeedAndDefaultPreferences(t *testing.T) {
 	if recPref.Code != http.StatusOK {
 		t.Fatalf("GET /api/v1/notifications/preferences returned %d, want 200", recPref.Code)
 	}
+	if got := recPref.Header().Get("Cache-Control"); got != "no-store" {
+		t.Errorf("GET preferences Cache-Control = %q, want %q", got, "no-store")
+	}
 
 	var pref domain.NotificationPreferences
 	if err := json.NewDecoder(recPref.Body).Decode(&pref); err != nil {
@@ -71,8 +74,9 @@ func TestNotifications_GuestFeedAndDefaultPreferences(t *testing.T) {
 		t.Fatalf("unexpected mark-read response for guest: %#v", markResp)
 	}
 
-	// 4. PUT /api/v1/notifications/preferences for guest returns 200 with validated payload
+	// 4. PUT /api/v1/notifications/preferences for guest returns 200 with validated payload and blank userId
 	validPref := domain.NotificationPreferences{
+		UserID:      "spoofed-user-id",
 		RadiusMiles: 15.0,
 	}
 	prefBytes, _ := json.Marshal(validPref)
@@ -84,12 +88,18 @@ func TestNotifications_GuestFeedAndDefaultPreferences(t *testing.T) {
 	if putRec.Code != http.StatusOK {
 		t.Fatalf("PUT /api/v1/notifications/preferences for guest returned %d, want 200", putRec.Code)
 	}
+	if got := putRec.Header().Get("Cache-Control"); got != "no-store" {
+		t.Errorf("PUT preferences Cache-Control = %q, want %q", got, "no-store")
+	}
 	var putResult domain.NotificationPreferences
 	if err := json.NewDecoder(putRec.Body).Decode(&putResult); err != nil {
 		t.Fatalf("failed to decode put preferences: %v", err)
 	}
 	if putResult.RadiusMiles != 15.0 {
 		t.Errorf("expected radius 15.0, got %f", putResult.RadiusMiles)
+	}
+	if putResult.UserID != "" {
+		t.Errorf("expected guest UserID to be blanked, got %q", putResult.UserID)
 	}
 }
 
@@ -208,6 +218,9 @@ func TestNotifications_AuthenticatedPreferences(t *testing.T) {
 	if getRec.Code != http.StatusOK {
 		t.Fatalf("GET authenticated preferences returned %d, want 200", getRec.Code)
 	}
+	if got := getRec.Header().Get("Cache-Control"); got != "no-store" {
+		t.Errorf("GET authenticated preferences Cache-Control = %q, want %q", got, "no-store")
+	}
 	var defPref domain.NotificationPreferences
 	if err := json.NewDecoder(getRec.Body).Decode(&defPref); err != nil {
 		t.Fatalf("failed to decode default preferences: %v", err)
@@ -268,6 +281,9 @@ func TestNotifications_AuthenticatedPreferences(t *testing.T) {
 	if putRec.Code != http.StatusOK {
 		t.Fatalf("PUT preferences with CSRF returned %d, want 200; body: %s", putRec.Code, putRec.Body.String())
 	}
+	if got := putRec.Header().Get("Cache-Control"); got != "no-store" {
+		t.Errorf("PUT preferences Cache-Control = %q, want %q", got, "no-store")
+	}
 	var savedPref domain.NotificationPreferences
 	if err := json.NewDecoder(putRec.Body).Decode(&savedPref); err != nil {
 		t.Fatalf("failed to decode saved preferences: %v", err)
@@ -287,6 +303,9 @@ func TestNotifications_AuthenticatedPreferences(t *testing.T) {
 
 	if getRec2.Code != http.StatusOK {
 		t.Fatalf("GET preferences returned %d, want 200", getRec2.Code)
+	}
+	if got := getRec2.Header().Get("Cache-Control"); got != "no-store" {
+		t.Errorf("GET saved preferences Cache-Control = %q, want %q", got, "no-store")
 	}
 	var retrievedPref domain.NotificationPreferences
 	if err := json.NewDecoder(getRec2.Body).Decode(&retrievedPref); err != nil {

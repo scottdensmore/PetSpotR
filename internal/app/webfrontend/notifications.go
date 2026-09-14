@@ -211,6 +211,8 @@ func (s *Server) handleApiNotificationsMarkRead(w http.ResponseWriter, r *http.R
 
 // handleApiNotificationsPreferences handles GET and PUT for /api/v1/notifications/preferences.
 func (s *Server) handleApiNotificationsPreferences(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+
 	switch r.Method {
 	case http.MethodGet:
 		principal := s.authenticatedPrincipal(r)
@@ -291,6 +293,7 @@ func (s *Server) handleApiNotificationsPreferences(w http.ResponseWriter, r *htt
 				return
 			}
 		} else {
+			pref.UserID = ""
 			pref.UpdatedAt = time.Now().UTC()
 		}
 
