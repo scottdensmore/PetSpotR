@@ -191,6 +191,34 @@ func (s *Server) routes() {
 	// Page & Health routes
 	s.mux.HandleFunc("/", s.handleIndex)
 	s.mux.HandleFunc("/sw.js", s.handleServiceWorker)
+	s.mux.HandleFunc("/manifest.webmanifest", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			respondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
+			return
+		}
+		data, err := embeddedFiles.ReadFile("static/manifest.webmanifest")
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/manifest+json; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		_, _ = w.Write(data)
+	})
+	s.mux.HandleFunc("/offline.html", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			respondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
+			return
+		}
+		data, err := embeddedFiles.ReadFile("templates/offline.html")
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		_, _ = w.Write(data)
+	})
 	s.mux.HandleFunc("/pets", s.handlePets)
 	s.mux.HandleFunc("/report-lost", s.handleReportLost)
 	s.mux.HandleFunc("/report-found", s.handleReportFound)
@@ -1551,4 +1579,8 @@ func (s *Server) Close() {
 	if s.rateLimiter != nil {
 		s.rateLimiter.Close()
 	}
+}
+
+func respondWithError(w http.ResponseWriter, code int, message string) {
+	http.Error(w, message, code)
 }

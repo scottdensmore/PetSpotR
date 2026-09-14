@@ -296,6 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         stagedImages.push({
+          file,
           object: uploaded.object,
           url: uploaded.url,
           previewUrl: previewUrl,
@@ -419,116 +420,195 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function handleOfflineSubmission() {
+    const stagedPhotos = stagedImages.map(img => ({
+      fileName: img.file ? img.file.name : (img.fileName || 'photo.jpg'),
+      contentType: img.file ? (img.file.type || 'image/jpeg') : (img.contentType || 'image/jpeg'),
+      tag: img.tag || 'primary',
+      blob: img.file
+    }));
+
+    const payload = {
+      petId: (pendingSubmission && pendingSubmission.petId) || `found-${crypto.randomUUID()}`,
+      species: inputSpecies?.value || document.getElementById('foundSpecies')?.value || 'Dog',
+      breed: inputBreed?.value || document.getElementById('foundBreed')?.value || '',
+      primaryColor: inputPrimaryColor?.value || document.getElementById('foundPrimaryColor')?.value || '',
+      secondaryColor: inputSecondaryColor?.value || document.getElementById('foundSecondaryColor')?.value || '',
+      distinctiveMarkings: currentDistinctiveMarkings,
+      custodyStatus: document.getElementById('custodyStatus')?.value || 'Finder Home',
+      location: document.getElementById('foundLocation')?.value || '',
+      finderEmail: document.getElementById('finderEmail')?.value || '',
+      foundAt: (pendingSubmission && pendingSubmission.foundAt) || new Date().toISOString()
+    };
+
+    if (window.PetSpotROutbox) {
+      await window.PetSpotROutbox.enqueueReport({ type: 'found', payload, photos: stagedPhotos });
+      window.PetSpotROutbox.showToast('Report saved offline. It will submit automatically when you reconnect.');
+    }
+
+    pendingSubmission = null;
+    if (form) form.reset();
+    stagedImages = [];
+    renderStagedPhotos();
+    currentImageUrl = '';
+    if (previewContainer) previewContainer.hidden = true;
+    if (imagePreview) {
+      imagePreview.hidden = true;
+      imagePreview.src = '';
+    }
+    if (spinner) spinner.hidden = true;
+    if (extractionStatus) extractionStatus.textContent = '';
+    const photoStatus = document.getElementById('found-photo-status');
+    if (photoStatus) photoStatus.textContent = '';
+    const photoError = document.getElementById('found-photo-error');
+    if (photoError) {
+      photoError.textContent = '';
+      photoError.hidden = true;
+    }
+    clearExtractedTraits();
+    clearFormError();
+    clearFieldError('foundLocation', 'found-location-error');
+    clearFieldError('finderEmail', 'finder-email-error');
+  }
+
   // Form Submission
   if (form) {
+    let submissionInFlight = false;
+    const btnSubmitFound = document.getElementById('btn-submit-found');
+
+    function setSubmissionBusy(busy) {
+      if (form) form.setAttribute('aria-busy', String(busy));
+      if (btnSubmitFound) {
+        btnSubmitFound.setAttribute('aria-disabled', String(busy));
+      }
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const location = document.getElementById('foundLocation')?.value || '';
-      const finderEmail = document.getElementById('finderEmail')?.value || '';
-
-      clearFormError();
-      const locationInput = document.getElementById('foundLocation');
-      const emailInput = document.getElementById('finderEmail');
-
-      let identityState = null;
-      if (window.petspotrIdentity) {
-        try {
-          identityState = await window.petspotrIdentity.requireSession();
-        } catch (error) {
-          if (error.code === 'identity-required') {
-            window.petspotrIdentity.focusSignIn();
-            const idError = document.getElementById('identity-error');
-            if (idError) {
-              idError.textContent = 'Sign in with Google before submitting your report.';
-              idError.hidden = false;
-            }
-            showFormError('Sign in with Google before submitting your report.');
-            return;
-          }
-          console.error('Identity error:', error);
-          const idError = document.getElementById('identity-error');
-          if (idError) {
-            idError.textContent = 'Identity services are temporarily unavailable. Please try again.';
-            idError.hidden = false;
-          }
-          showFormError('Identity services are temporarily unavailable. Please try again.');
-          return;
-        }
-      }
-
-      let hasError = false;
-      if (!location.trim()) {
-        showFieldError('foundLocation', 'found-location-error', 'Please enter found location.');
-        hasError = true;
-      } else {
-        clearFieldError('foundLocation', 'found-location-error');
-      }
-
-      if (!finderEmail.trim()) {
-        showFieldError('finderEmail', 'finder-email-error', 'Please enter finder contact email.');
-        if (!hasError) {
-          emailInput?.focus();
-        }
-        hasError = true;
-      } else {
-        clearFieldError('finderEmail', 'finder-email-error');
-      }
-
-      if (hasError) {
-        showFormError('Please enter found location and finder contact email.');
-        return;
-      }
-      if (!pendingSubmission) {
-        pendingSubmission = {
-          petId: `found-${crypto.randomUUID()}`,
-          foundAt: new Date().toISOString()
-        };
-      }
-
-      const primaryImg = stagedImages.find(img => img.tag === 'primary' || img.tag === 'face') || stagedImages[0];
-      const primaryObject = primaryImg ? primaryImg.object : '';
-      const legacyImageUrl = (primaryImg && primaryImg.url) ? primaryImg.url : (currentImageUrl || 'https://storage.petspotr.io/found-sample.jpg');
-
-      const payload = {
-        ...pendingSubmission,
-        imageUrl: legacyImageUrl,
-        imageObject: primaryObject,
-        images: stagedImages.map(img => ({ object: img.object, tag: img.tag || 'primary' })),
-        location: location.trim(),
-        finderEmail: finderEmail.trim(),
-        species: inputSpecies?.value || 'Dog',
-        breed: inputBreed?.value || '',
-        primaryColor: inputPrimaryColor?.value || '',
-        secondaryColor: inputSecondaryColor?.value || '',
-        distinctiveMarkings: currentDistinctiveMarkings,
-        custodyStatus: document.getElementById('custodyStatus')?.value || 'Finder Home'
-      };
+      if (submissionInFlight) return;
+      submissionInFlight = true;
+      setSubmissionBusy(true);
 
       try {
-        const headers = { 'Content-Type': 'application/json' };
-        if (identityState?.enabled) {
-          headers['X-CSRF-Token'] = identityState.csrfToken;
-        }
-        const resp = await fetch('/api/v1/found-pets', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload)
-        });
+        const location = document.getElementById('foundLocation')?.value || '';
+        const finderEmail = document.getElementById('finderEmail')?.value || '';
 
-        if (resp.ok) {
-          pendingSubmission = null;
-          const modal = document.getElementById('found-success-modal');
-          if (modal) {
-            modal.hidden = false;
-            document.getElementById('found-success-return')?.focus();
-          }
+        clearFormError();
+        const locationInput = document.getElementById('foundLocation');
+        const emailInput = document.getElementById('finderEmail');
+
+        let hasError = false;
+        if (!location.trim()) {
+          showFieldError('foundLocation', 'found-location-error', 'Please enter found location.');
+          hasError = true;
         } else {
-          if (resp.status < 500) pendingSubmission = null;
-          showFormError('Failed to submit found pet report.');
+          clearFieldError('foundLocation', 'found-location-error');
         }
-      } catch (err) {
-        console.error('Submission error:', err);
-        showFormError('Network error submitting found pet report.');
+
+        if (!finderEmail.trim()) {
+          showFieldError('finderEmail', 'finder-email-error', 'Please enter finder contact email.');
+          if (!hasError) {
+            emailInput?.focus();
+          }
+          hasError = true;
+        } else {
+          clearFieldError('finderEmail', 'finder-email-error');
+        }
+
+        if (hasError) {
+          showFormError('Please enter found location and finder contact email.');
+          return;
+        }
+
+        if (!navigator.onLine) {
+          await handleOfflineSubmission();
+          return;
+        }
+
+        let identityState = null;
+        if (window.petspotrIdentity) {
+          try {
+            identityState = await window.petspotrIdentity.requireSession();
+          } catch (error) {
+            if (error.code === 'identity-required') {
+              window.petspotrIdentity.focusSignIn();
+              const idError = document.getElementById('identity-error');
+              if (idError) {
+                idError.textContent = 'Sign in with Google before submitting your report.';
+                idError.hidden = false;
+              }
+              showFormError('Sign in with Google before submitting your report.');
+              return;
+            }
+            console.error('Identity error:', error);
+            const idError = document.getElementById('identity-error');
+            if (idError) {
+              idError.textContent = 'Identity services are temporarily unavailable. Please try again.';
+              idError.hidden = false;
+            }
+            showFormError('Identity services are temporarily unavailable. Please try again.');
+            return;
+          }
+        }
+        if (!pendingSubmission) {
+          pendingSubmission = {
+            petId: `found-${crypto.randomUUID()}`,
+            foundAt: new Date().toISOString()
+          };
+        }
+
+        const primaryImg = stagedImages.find(img => img.tag === 'primary' || img.tag === 'face') || stagedImages[0];
+        const primaryObject = primaryImg ? primaryImg.object : '';
+        const legacyImageUrl = (primaryImg && primaryImg.url) ? primaryImg.url : (currentImageUrl || 'https://storage.petspotr.io/found-sample.jpg');
+
+        const payload = {
+          ...pendingSubmission,
+          imageUrl: legacyImageUrl,
+          imageObject: primaryObject,
+          images: stagedImages.map(img => ({ object: img.object, tag: img.tag || 'primary' })),
+          location: location.trim(),
+          finderEmail: finderEmail.trim(),
+          species: inputSpecies?.value || 'Dog',
+          breed: inputBreed?.value || '',
+          primaryColor: inputPrimaryColor?.value || '',
+          secondaryColor: inputSecondaryColor?.value || '',
+          distinctiveMarkings: currentDistinctiveMarkings,
+          custodyStatus: document.getElementById('custodyStatus')?.value || 'Finder Home'
+        };
+
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          if (identityState?.enabled) {
+            headers['X-CSRF-Token'] = identityState.csrfToken;
+          }
+          const resp = await fetch('/api/v1/found-pets', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload)
+          });
+
+          if (resp.ok) {
+            pendingSubmission = null;
+            const modal = document.getElementById('found-success-modal');
+            if (modal) {
+              modal.hidden = false;
+              document.getElementById('found-success-return')?.focus();
+            }
+          } else {
+            if (resp.status < 500) pendingSubmission = null;
+            showFormError('Failed to submit found pet report.');
+          }
+        } catch (err) {
+          console.error('Submission error:', err);
+          if (!navigator.onLine || err instanceof TypeError || (err.message && err.message.toLowerCase().includes('failed to fetch'))) {
+            await handleOfflineSubmission();
+            return;
+          }
+          showFormError('Network error submitting found pet report.');
+        }
+      } finally {
+        submissionInFlight = false;
+        setSubmissionBusy(false);
       }
     });
   }

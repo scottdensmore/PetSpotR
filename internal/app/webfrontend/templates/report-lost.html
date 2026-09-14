@@ -6,6 +6,8 @@
   <meta name="description" content="Report a lost pet on PetSpotR - Multi-step AI matching report wizard.">
   <title>Report Lost Pet — PetSpotR</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
   <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
@@ -29,6 +31,11 @@
       </nav>
 
       <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
         <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode"></button>
       </div>
     </div>
@@ -194,8 +201,10 @@
     </div>
   </footer>
 
+  <div id="toast-container" class="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
   <script src="/static/js/theme.js"></script>
   <script src="/static/js/identity-session.js"></script>
   <script src="/static/js/lost-wizard.js"></script>
+  <script src="/static/js/outbox-sync.js" defer></script>
 </body>
 </html>

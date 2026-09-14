@@ -1,0 +1,16 @@
+{
+  "name": "PetSpotR — Lost & Found Pet Recovery",
+  "short_name": "PetSpotR",
+  "description": "AI-powered lost and found pet recovery platform.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/static/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
