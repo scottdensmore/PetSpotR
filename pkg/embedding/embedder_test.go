@@ -192,6 +192,65 @@ func TestEmbedderFactory(t *testing.T) {
 		}
 	})
 
+	t.Run("ollama provider with vision model configured", func(t *testing.T) {
+		embedder, err := embedding.NewEmbedder(embedding.Config{
+			Provider:    "ollama",
+			OllamaURL:   "http://localhost:11434",
+			OllamaModel: "nomic-embed-text",
+			VisionModel: "gemma4:e2b",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		ollamaEmb, ok := embedder.(*embedding.OllamaEmbedder)
+		if !ok {
+			t.Fatalf("expected *OllamaEmbedder, got %T", embedder)
+		}
+		if ollamaEmb.VisionModel() != "gemma4:e2b" {
+			t.Fatalf("expected vision model gemma4:e2b, got %s", ollamaEmb.VisionModel())
+		}
+		if ollamaEmb.Model() != "nomic-embed-text" {
+			t.Fatalf("expected model nomic-embed-text, got %s", ollamaEmb.Model())
+		}
+	})
+
+	t.Run("ollama provider without vision model defaults to model", func(t *testing.T) {
+		embedder, err := embedding.NewEmbedder(embedding.Config{
+			Provider:    "ollama",
+			OllamaURL:   "http://localhost:11434",
+			OllamaModel: "custom-text-model",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		ollamaEmb, ok := embedder.(*embedding.OllamaEmbedder)
+		if !ok {
+			t.Fatalf("expected *OllamaEmbedder, got %T", embedder)
+		}
+		if ollamaEmb.VisionModel() != "custom-text-model" {
+			t.Fatalf("expected vision model custom-text-model, got %s", ollamaEmb.VisionModel())
+		}
+	})
+
+	t.Run("ollama provider with empty models defaults to fallback", func(t *testing.T) {
+		embedder, err := embedding.NewEmbedder(embedding.Config{
+			Provider: "ollama",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		ollamaEmb, ok := embedder.(*embedding.OllamaEmbedder)
+		if !ok {
+			t.Fatalf("expected *OllamaEmbedder, got %T", embedder)
+		}
+		if ollamaEmb.VisionModel() != "nomic-embed-text" {
+			t.Fatalf("expected fallback vision model nomic-embed-text, got %s", ollamaEmb.VisionModel())
+		}
+		if ollamaEmb.Model() != "nomic-embed-text" {
+			t.Fatalf("expected fallback model nomic-embed-text, got %s", ollamaEmb.Model())
+		}
+	})
+
 	t.Run("unknown provider returns error", func(t *testing.T) {
 		_, err := embedding.NewEmbedder(embedding.Config{
 			Provider: "unsupported-provider",
@@ -523,29 +582,147 @@ func TestOllamaEmbedder(t *testing.T) {
 		}
 	})
 
-	t.Run("image only returns explicit unsupported error", func(t *testing.T) {
-		o := embedding.NewOllamaEmbedder("http://localhost:11434", "nomic-embed-text")
-		_, err := o.EmbedImage(ctx, []byte{1, 2, 3}, "image/jpeg")
-		if err == nil {
-			t.Fatal("expected error when trying to embed image with text-only Ollama model")
+	t.Run("successful image embedding with configured vision model asserts payload and normalization", func(t *testing.T) {
+		dummyImage := []byte{0x89, 0x50, 0x4E, 0x47, 0x01, 0x02, 0x03, 0x04}
+		expectedB64 := base64.StdEncoding.EncodeToString(dummyImage)
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodPost {
+				t.Errorf("expected POST, got %s", r.Method)
+			}
+			if r.URL.Path != "/api/embeddings" {
+				t.Errorf("expected /api/embeddings, got %s", r.URL.Path)
+			}
+			if r.Header.Get("Content-Type") != "application/json" {
+				t.Errorf("expected application/json, got %s", r.Header.Get("Content-Type"))
+			}
+
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("reading body: %v", err)
+			}
+			var reqPayload struct {
+				Model  string   `json:"model"`
+				Prompt string   `json:"prompt"`
+				Images []string `json:"images"`
+			}
+			if err := json.Unmarshal(bodyBytes, &reqPayload); err != nil {
+				t.Fatalf("unmarshaling request: %v", err)
+			}
+			if reqPayload.Model != "gemma4:e2b" {
+				t.Errorf("expected model gemma4:e2b, got %s", reqPayload.Model)
+			}
+			if len(reqPayload.Images) != 1 || reqPayload.Images[0] != expectedB64 {
+				t.Errorf("expected base64 image %s, got %v", expectedB64, reqPayload.Images)
+			}
+
+			raw := make([]float32, 768)
+			for i := range raw {
+				raw[i] = 3.0
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"embedding": raw})
+		}))
+		defer server.Close()
+
+		o := embedding.NewOllamaEmbedder(server.URL, "nomic-embed-text", "gemma4:e2b")
+		o.SetHTTPClient(server.Client())
+
+		vec, err := o.EmbedImage(ctx, dummyImage, "image/png")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
-		if !strings.Contains(err.Error(), "does not support direct image embedding") {
-			t.Fatalf("expected error message about unsupported direct image embedding, got: %v", err)
+		if len(vec) != 768 {
+			t.Fatalf("expected 768 dim vector, got %d", len(vec))
+		}
+
+		var sumSq float64
+		for _, x := range vec {
+			sumSq += float64(x) * float64(x)
+		}
+		norm := math.Sqrt(sumSq)
+		if math.Abs(norm-1.0) > 1e-4 {
+			t.Fatalf("expected unit norm 1.0, got %f", norm)
 		}
 	})
 
-	t.Run("multimodal with text and image embeds text description", func(t *testing.T) {
+	t.Run("successful multimodal embedding with image and text sends both and normalizes", func(t *testing.T) {
+		dummyImage := []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x05, 0x06, 0x07, 0x08}
+		expectedB64 := base64.StdEncoding.EncodeToString(dummyImage)
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			bodyBytes, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Fatalf("reading body: %v", err)
 			}
 			var reqPayload struct {
-				Prompt string `json:"prompt"`
+				Model  string   `json:"model"`
+				Prompt string   `json:"prompt"`
+				Images []string `json:"images"`
 			}
-			_ = json.Unmarshal(bodyBytes, &reqPayload)
-			if reqPayload.Prompt != "brown tabby cat" {
-				t.Errorf("expected prompt 'brown tabby cat', got %s", reqPayload.Prompt)
+			if err := json.Unmarshal(bodyBytes, &reqPayload); err != nil {
+				t.Fatalf("unmarshaling request: %v", err)
+			}
+			if reqPayload.Model != "gemma4:e2b" {
+				t.Errorf("expected vision model gemma4:e2b, got %s", reqPayload.Model)
+			}
+			if reqPayload.Prompt != "golden retriever puppy" {
+				t.Errorf("expected prompt 'golden retriever puppy', got %s", reqPayload.Prompt)
+			}
+			if len(reqPayload.Images) != 1 || reqPayload.Images[0] != expectedB64 {
+				t.Errorf("expected base64 image %s, got %v", expectedB64, reqPayload.Images)
+			}
+
+			raw := make([]float32, 768)
+			for i := range raw {
+				raw[i] = 1.5
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"embedding": raw})
+		}))
+		defer server.Close()
+
+		o := embedding.NewOllamaEmbedder(server.URL, "nomic-embed-text", "gemma4:e2b")
+		o.SetHTTPClient(server.Client())
+
+		vec, err := o.EmbedMultimodal(ctx, dummyImage, "image/jpeg", "golden retriever puppy")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(vec) != 768 {
+			t.Fatalf("expected 768 dim vector, got %d", len(vec))
+		}
+
+		var sumSq float64
+		for _, x := range vec {
+			sumSq += float64(x) * float64(x)
+		}
+		norm := math.Sqrt(sumSq)
+		if math.Abs(norm-1.0) > 1e-4 {
+			t.Fatalf("expected unit norm 1.0, got %f", norm)
+		}
+	})
+
+	t.Run("multimodal with only text delegates to EmbedText", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("reading body: %v", err)
+			}
+			var reqPayload struct {
+				Model  string   `json:"model"`
+				Prompt string   `json:"prompt"`
+				Images []string `json:"images"`
+			}
+			if err := json.Unmarshal(bodyBytes, &reqPayload); err != nil {
+				t.Fatalf("unmarshaling request: %v", err)
+			}
+			if reqPayload.Model != "nomic-embed-text" {
+				t.Errorf("expected text model nomic-embed-text, got %s", reqPayload.Model)
+			}
+			if reqPayload.Prompt != "husky dog" {
+				t.Errorf("expected prompt 'husky dog', got %s", reqPayload.Prompt)
+			}
+			if len(reqPayload.Images) != 0 {
+				t.Errorf("expected no images in text-only delegation, got %v", reqPayload.Images)
 			}
 
 			raw := make([]float32, 768)
@@ -556,15 +733,139 @@ func TestOllamaEmbedder(t *testing.T) {
 		}))
 		defer server.Close()
 
-		o := embedding.NewOllamaEmbedder(server.URL, "nomic-embed-text")
+		o := embedding.NewOllamaEmbedder(server.URL, "nomic-embed-text", "gemma4:e2b")
 		o.SetHTTPClient(server.Client())
 
-		vec, err := o.EmbedMultimodal(ctx, []byte{1, 2, 3}, "image/jpeg", "brown tabby cat")
+		vec, err := o.EmbedMultimodal(ctx, nil, "", "husky dog")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		if len(vec) != 768 {
 			t.Fatalf("expected 768 dim vector, got %d", len(vec))
+		}
+	})
+
+	t.Run("image embedding without configured vision model defaults to model fallback", func(t *testing.T) {
+		dummyImage := []byte{1, 2, 3, 4}
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var reqPayload struct {
+				Model  string   `json:"model"`
+				Images []string `json:"images"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&reqPayload)
+			if reqPayload.Model != "custom-fallback" {
+				t.Errorf("expected model custom-fallback, got %s", reqPayload.Model)
+			}
+			if len(reqPayload.Images) != 1 {
+				t.Errorf("expected 1 image, got %d", len(reqPayload.Images))
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"embedding": make([]float32, 768)})
+		}))
+		defer server.Close()
+
+		o := embedding.NewOllamaEmbedder(server.URL, "custom-fallback")
+		o.SetHTTPClient(server.Client())
+
+		_, err := o.EmbedImage(ctx, dummyImage, "image/png")
+		if err == nil || !strings.Contains(err.Error(), "vector norm is zero") {
+			t.Fatalf("expected vector norm is zero error, got %v", err)
+		}
+	})
+
+	t.Run("empty image bytes returns error", func(t *testing.T) {
+		o := embedding.NewOllamaEmbedder("http://localhost:11434", "nomic-embed-text")
+		if _, err := o.EmbedImage(ctx, nil, "image/jpeg"); err == nil {
+			t.Fatal("expected error on nil image bytes")
+		}
+		if _, err := o.EmbedImage(ctx, []byte{}, "image/jpeg"); err == nil {
+			t.Fatal("expected error on empty image bytes")
+		}
+	})
+
+	t.Run("empty inputs in EmbedMultimodal returns error", func(t *testing.T) {
+		o := embedding.NewOllamaEmbedder("http://localhost:11434", "nomic-embed-text")
+		if _, err := o.EmbedMultimodal(ctx, nil, "", ""); err == nil {
+			t.Fatal("expected error when both image and text are empty")
+		}
+		if _, err := o.EmbedMultimodal(ctx, []byte{}, "", ""); err == nil {
+			t.Fatal("expected error when empty image bytes and empty text are provided")
+		}
+	})
+
+	t.Run("empty embedding array in response returns error", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"embedding": []float32{}})
+		}))
+		defer server.Close()
+
+		o := embedding.NewOllamaEmbedder(server.URL, "nomic-embed-text")
+		o.SetHTTPClient(server.Client())
+
+		_, err := o.EmbedText(ctx, "test")
+		if err == nil {
+			t.Fatal("expected error on empty embedding in response")
+		}
+	})
+
+	t.Run("empty json response body returns error", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+		}))
+		defer server.Close()
+
+		o := embedding.NewOllamaEmbedder(server.URL, "nomic-embed-text")
+		o.SetHTTPClient(server.Client())
+
+		_, err := o.EmbedText(ctx, "test")
+		if err == nil {
+			t.Fatal("expected error on response without embedding field")
+		}
+	})
+
+	t.Run("empty response body returns error", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		o := embedding.NewOllamaEmbedder(server.URL, "nomic-embed-text")
+		o.SetHTTPClient(server.Client())
+
+		_, err := o.EmbedText(ctx, "test")
+		if err == nil {
+			t.Fatal("expected error on empty response body")
+		}
+	})
+
+	t.Run("zero vector norm returns error", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"embedding": make([]float32, 768)})
+		}))
+		defer server.Close()
+
+		o := embedding.NewOllamaEmbedder(server.URL, "nomic-embed-text")
+		o.SetHTTPClient(server.Client())
+
+		_, err := o.EmbedText(ctx, "test")
+		if err == nil {
+			t.Fatal("expected error on zero vector norm")
+		}
+		if !strings.Contains(err.Error(), "vector norm is zero") {
+			t.Fatalf("expected 'vector norm is zero' error, got: %v", err)
+		}
+	})
+
+	t.Run("SetVisionModel and getters", func(t *testing.T) {
+		o := embedding.NewOllamaEmbedder("http://localhost:11434", "text-model", "initial-vision")
+		if o.Model() != "text-model" {
+			t.Fatalf("expected text-model, got %s", o.Model())
+		}
+		if o.VisionModel() != "initial-vision" {
+			t.Fatalf("expected initial-vision, got %s", o.VisionModel())
+		}
+		o.SetVisionModel("updated-vision")
+		if o.VisionModel() != "updated-vision" {
+			t.Fatalf("expected updated-vision, got %s", o.VisionModel())
 		}
 	})
 
@@ -617,9 +918,15 @@ func TestOllamaEmbedder(t *testing.T) {
 		canceledCtx, cancel := context.WithCancel(context.Background())
 		cancel()
 
-		o := embedding.NewOllamaEmbedder("http://localhost:11434", "nomic-embed-text")
+		o := embedding.NewOllamaEmbedder("http://localhost:11434", "nomic-embed-text", "gemma4:e2b")
 		if _, err := o.EmbedText(canceledCtx, "test"); err == nil {
-			t.Fatal("expected error on canceled context")
+			t.Fatal("expected error on canceled context for EmbedText")
+		}
+		if _, err := o.EmbedImage(canceledCtx, []byte{1, 2, 3}, "image/jpeg"); err == nil {
+			t.Fatal("expected error on canceled context for EmbedImage")
+		}
+		if _, err := o.EmbedMultimodal(canceledCtx, []byte{1, 2, 3}, "image/jpeg", "test"); err == nil {
+			t.Fatal("expected error on canceled context for EmbedMultimodal")
 		}
 	})
 }
