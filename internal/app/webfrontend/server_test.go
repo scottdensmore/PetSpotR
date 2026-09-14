@@ -1553,3 +1553,61 @@ func TestManifestAndOfflinePage(t *testing.T) {
 	})
 }
 
+func TestOfflineFormInterceptionSnippets(t *testing.T) {
+	t.Parallel()
+
+	// 1. lost-wizard.js offline interception
+	lostWizardContent, err := embeddedFiles.ReadFile("static/js/lost-wizard.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lostWizardJS := string(lostWizardContent)
+	expectedLostWizardSnippets := []string{
+		"!navigator.onLine",
+		"window.PetSpotROutbox",
+		"enqueueReport({ type: 'lost'",
+		"showToast('Report saved offline. It will submit automatically when you reconnect.')",
+	}
+	for _, snip := range expectedLostWizardSnippets {
+		if !strings.Contains(lostWizardJS, snip) {
+			t.Errorf("lost-wizard.js missing expected snippet: %q", snip)
+		}
+	}
+
+	// 2. lost-report.js offline interception
+	lostReportContent, err := embeddedFiles.ReadFile("static/js/lost-report.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lostReportJS := string(lostReportContent)
+	expectedLostReportSnippets := []string{
+		"!navigator.onLine",
+		"window.PetSpotROutbox",
+		"enqueueReport",
+		"Report saved offline",
+	}
+	for _, snip := range expectedLostReportSnippets {
+		if !strings.Contains(lostReportJS, snip) {
+			t.Errorf("lost-report.js missing expected snippet: %q", snip)
+		}
+	}
+
+	// 3. found-report.js offline interception
+	foundReportContent, err := embeddedFiles.ReadFile("static/js/found-report.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundReportJS := string(foundReportContent)
+	expectedFoundSnippets := []string{
+		"!navigator.onLine",
+		"window.PetSpotROutbox",
+		"enqueueReport({ type: 'found'",
+		"showToast('Report saved offline. It will submit automatically when you reconnect.')",
+	}
+	for _, snip := range expectedFoundSnippets {
+		if !strings.Contains(foundReportJS, snip) {
+			t.Errorf("found-report.js missing expected snippet: %q", snip)
+		}
+	}
+}
+
