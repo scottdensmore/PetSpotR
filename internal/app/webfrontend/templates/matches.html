@@ -105,26 +105,65 @@
     <!-- Private Participant Conversation -->
     <div id="match-thread-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="match-thread-title" aria-describedby="match-thread-help" hidden>
       <div class="glass-card modal-panel match-thread-panel">
-        <div class="modal-heading-row">
-          <h2 id="match-thread-title">Private match messages</h2>
-          <button class="icon-button match-thread-close" type="button" aria-label="Close private messages">&times;</button>
+        <div class="modal-heading-row match-thread-header">
+          <div class="match-thread-title-wrap">
+            <h2 id="match-thread-title">Private match messages</h2>
+            <div id="match-thread-presence" class="presence-badge" role="status" aria-live="polite">
+              <span id="match-presence-dot" class="presence-dot status-offline" aria-hidden="true"></span>
+              <span id="match-presence-text" class="presence-text">Offline</span>
+            </div>
+          </div>
+          <div class="modal-heading-actions">
+            <button type="button" class="btn btn-secondary btn-sm btn-reunion-action" id="btn-chat-resolve-reunion" title="Mark as Reunited">🎉 Mark as Reunited</button>
+            <button class="icon-button match-thread-close" type="button" aria-label="Close private messages">&times;</button>
+          </div>
         </div>
         <p id="match-thread-help" class="text-secondary text-small">Messages are shared only with the reporter and finder for this match. PetSpotR never reveals either participant's contact details here.</p>
+        <div id="match-thread-resolved-banner" class="reunion-banner" role="alert" hidden>
+          <div class="reunion-banner-icon" aria-hidden="true">🎉</div>
+          <div class="reunion-banner-body">
+            <strong class="reunion-banner-title">Pet Reunited!</strong>
+            <p class="reunion-banner-text">This match has been confirmed and resolved as reunited. Conversation is now archived.</p>
+          </div>
+        </div>
         <p id="match-thread-status" class="text-secondary" role="status" aria-live="polite" hidden></p>
         <p id="match-thread-error" class="identity-error" role="alert" hidden></p>
         <ol id="match-thread-messages" class="match-thread-messages" aria-label="Private match conversation"></ol>
+        <div id="match-thread-typing" class="typing-indicator" role="status" aria-live="polite" hidden>
+          <div class="typing-dots" aria-hidden="true">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+          <span class="typing-text" id="match-thread-typing-text">Other participant is typing...</span>
+        </div>
         <p id="match-thread-empty" class="text-secondary" hidden>No private messages yet.</p>
         <p id="match-thread-readonly" class="text-secondary" hidden>This conversation is read-only because the match is closed.</p>
         <form id="match-thread-form">
           <input type="hidden" id="match-thread-match-id" value="">
+          <div id="match-thread-staged-tray" class="staged-tray" hidden aria-label="Staged verification photos">
+            <div class="staged-thumbs" id="match-thread-staged-thumbs"></div>
+          </div>
           <div class="form-field form-field-last">
             <label for="match-thread-message" class="form-label">Message</label>
-            <textarea class="form-control" id="match-thread-message" rows="4" maxlength="1000" required aria-describedby="match-thread-message-help"></textarea>
+            <textarea class="form-control" id="match-thread-message" rows="3" maxlength="1000" required aria-describedby="match-thread-message-help"></textarea>
             <p id="match-thread-message-help" class="text-secondary text-small">Up to 1,000 characters. Do not include private contact details.</p>
           </div>
-          <div class="modal-actions">
-            <button type="button" class="btn btn-secondary match-thread-close">Close</button>
-            <button type="submit" class="btn btn-primary" id="match-thread-send">Send message</button>
+          <div class="modal-actions compose-row">
+            <div class="compose-attachments">
+              <input type="file" id="match-thread-file-input" class="visually-hidden" accept="image/jpeg,image/png,image/webp" multiple aria-label="Select photos to attach">
+              <button type="button" class="btn btn-secondary btn-attach" id="match-thread-attach-btn" title="Attach photos">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+                <span>Attach Photo</span>
+              </button>
+            </div>
+            <div class="compose-submit-actions">
+              <button type="button" class="btn btn-secondary match-thread-close">Close</button>
+              <button type="submit" class="btn btn-primary" id="match-thread-send">Send message</button>
+            </div>
           </div>
         </form>
       </div>
