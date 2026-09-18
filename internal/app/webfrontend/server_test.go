@@ -1687,4 +1687,3 @@ func TestMatchesReunionRoomUI(t *testing.T) {
 		}
 	})
 }
-

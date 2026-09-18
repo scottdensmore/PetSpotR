@@ -291,6 +291,3 @@ func TestReunionStreamEvent_JSON(t *testing.T) {
 		}
 	})
 }
-
-
-

@@ -1234,6 +1234,7 @@ document.addEventListener('DOMContentLoaded', () => {
               uploadError.status = res.status;
               throw uploadError;
             }
+            const presigned = await res.json();
             if (presigned.uploadUrl) {
               const putRes = await fetch(presigned.uploadUrl, {
                 method: 'PUT',
