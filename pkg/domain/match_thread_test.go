@@ -145,6 +145,19 @@ func TestAppendMediatedMessageWithImages(t *testing.T) {
 			{" leading/space.jpg"},
 			{"trailing/space.jpg "},
 			{strings.Repeat("a", 1025)},
+			{"http://evil.com/exploit.jpg"},
+			{"https://evil.com/exploit.jpg"},
+			{"//evil.com/exploit.jpg"},
+			{"../secret.jpg"},
+			{"images/../secret.jpg"},
+			{"images/foo/../../secret.jpg"},
+			{"javascript:alert(1)"},
+			{"data:image/png;base64,abc"},
+			{"/images/photo.jpg"},
+			{"https://storage.petspotr.io/"},
+			{"https://storage.petspotr.io//evil.com"},
+			{"https://storage.petspotr.io/../secret.jpg"},
+			{"images\\secret.jpg"},
 		}
 		for _, invalid := range invalidCases {
 			_, _, _, err := record.AppendMediatedMessageWithImages(
@@ -153,6 +166,42 @@ func TestAppendMediatedMessageWithImages(t *testing.T) {
 			if !errors.Is(err, domain.ErrInvalidMediatedMessage) {
 				t.Fatalf("expected ErrInvalidMediatedMessage for %v, got %v", invalid, err)
 			}
+		}
+	})
+
+	t.Run("accepts valid storage and relative image paths", func(t *testing.T) {
+		validCases := [][]string{
+			{"images/reunions/match-123/collar.jpg"},
+			{"https://storage.petspotr.io/images/reunions/match-123/collar.jpg"},
+			{"reunions/match-123/photo.jpg"},
+			{"collar.jpg"},
+		}
+		for i, valid := range validCases {
+			_, msg, created, err := record.AppendMediatedMessageWithImages(
+				reporter, "idem-valid-"+string(rune('a'+i)), "photo", valid, now,
+			)
+			if err != nil || !created {
+				t.Fatalf("expected success for %v, got err=%v, created=%v", valid, err, created)
+			}
+			if len(msg.Images) != 1 || msg.Images[0] != valid[0] {
+				t.Fatalf("expected image %q, got %v", valid[0], msg.Images)
+			}
+		}
+	})
+
+	t.Run("validates image paths on record validation", func(t *testing.T) {
+		corrupted := record
+		corrupted.Messages = []domain.MediatedMatchMessage{
+			{
+				MessageID:  "msg-corrupt",
+				SenderRole: domain.MatchParticipantRoleReporter,
+				Message:    "Hello",
+				Images:     []string{"http://evil.com/exploit.jpg"},
+				SentAt:     now,
+			},
+		}
+		if err := corrupted.Validate(); err == nil {
+			t.Fatal("expected Validate() error for external image URL, got nil")
 		}
 	})
 

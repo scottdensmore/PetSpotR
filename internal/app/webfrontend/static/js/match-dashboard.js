@@ -352,12 +352,36 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function resolveImageUrl(val) {
-    if (typeof val !== 'string' || !val.trim()) return null;
+    if (typeof val !== 'string' || !val.trim() || val.length > 2048) return null;
     let url = val.trim();
     if (!url.startsWith('https://') && !url.startsWith('http://') && !url.startsWith('/')) {
       url = 'https://storage.petspotr.io/' + url.replace(/^\/+/, '');
     }
-    return trustedImageURL(url);
+
+    let parsed;
+    try {
+      parsed = new URL(url, window.location.origin);
+    } catch (_) {
+      return null;
+    }
+
+    if (parsed.username || parsed.password) return null;
+
+    const isLocal = parsed.hostname === window.location.hostname;
+    const isAllowedHost = allowedImageHosts.has(parsed.hostname);
+    if (!isLocal && !isAllowedHost) {
+      return null;
+    }
+
+    if (isAllowedHost && parsed.protocol !== 'https:') {
+      return null;
+    }
+
+    if (isLocal && parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+
+    return trustedImageURL(parsed.href);
   }
 
   function normalizeThreadMessage(value) {
@@ -390,6 +414,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (message.messageId) {
       item.dataset.messageId = message.messageId;
     }
+    if (message.sentAt) {
+      const timeMs = message.sentAt instanceof Date ? message.sentAt.getTime() : new Date(message.sentAt).getTime();
+      item.dataset.timestamp = String(timeMs);
+      item.dataset.sentAt = message.sentAt instanceof Date ? message.sentAt.toISOString() : new Date(message.sentAt).toISOString();
+    }
+    item._messageData = message;
     const meta = createElement('div', { className: 'match-thread-message-meta' });
     meta.append(
       createElement('strong', { text: message.senderRole === 'reporter' ? 'Reporter' : 'Finder' }),
@@ -421,12 +451,61 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderThreadMessages(messages) {
     if (!threadMessages) return;
-    const normalized = Array.isArray(messages)
-      ? messages.map(normalizeThreadMessage).filter(message => message !== null).slice(0, 100)
+    const normalizedIncoming = Array.isArray(messages)
+      ? messages.map(normalizeThreadMessage).filter(message => message !== null)
       : [];
-    const items = normalized.map(createThreadMessageElement);
-    threadMessages.replaceChildren(...items);
-    if (threadEmpty) threadEmpty.hidden = items.length !== 0;
+
+    const existingMap = new Map();
+    const existingElements = Array.from(threadMessages.querySelectorAll('li.match-thread-message'));
+    for (const el of existingElements) {
+      const id = el.dataset.messageId;
+      if (id) {
+        const time = el._messageData?.sentAt
+          ? el._messageData.sentAt.getTime()
+          : (el.dataset.timestamp ? Number(el.dataset.timestamp) : (el.dataset.sentAt ? new Date(el.dataset.sentAt).getTime() : 0));
+        existingMap.set(id, { element: el, time, messageId: id });
+      }
+    }
+
+    const mergedMap = new Map();
+    for (const msg of normalizedIncoming) {
+      const existing = existingMap.get(msg.messageId);
+      if (existing) {
+        mergedMap.set(msg.messageId, {
+          element: existing.element,
+          time: msg.sentAt.getTime(),
+          messageId: msg.messageId,
+        });
+      } else {
+        const element = createThreadMessageElement(msg);
+        mergedMap.set(msg.messageId, {
+          element,
+          time: msg.sentAt.getTime(),
+          messageId: msg.messageId,
+        });
+      }
+    }
+
+    // Preserve any already rendered DOM messages (e.g. real-time SSE messages that arrived while loading)
+    for (const [id, entry] of existingMap.entries()) {
+      if (!mergedMap.has(id)) {
+        mergedMap.set(id, entry);
+      }
+    }
+
+    const sortedEntries = Array.from(mergedMap.values()).sort((a, b) => a.time - b.time);
+    const finalEntries = sortedEntries.length > 100 ? sortedEntries.slice(-100) : sortedEntries;
+    const finalElements = finalEntries.map(e => e.element);
+
+    const currentChildren = Array.from(threadMessages.children);
+    const orderChanged = currentChildren.length !== finalElements.length ||
+      currentChildren.some((child, idx) => child !== finalElements[idx]);
+
+    if (orderChanged) {
+      threadMessages.replaceChildren(...finalElements);
+    }
+
+    if (threadEmpty) threadEmpty.hidden = finalElements.length !== 0;
     threadMessages.scrollTop = threadMessages.scrollHeight;
   }
 
@@ -441,7 +520,19 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     const item = createThreadMessageElement(message);
-    threadMessages.append(item);
+    const timeMs = message.sentAt.getTime();
+    const existing = Array.from(threadMessages.querySelectorAll('li.match-thread-message'));
+    const nextItem = existing.find(el => {
+      const t = el._messageData?.sentAt
+        ? el._messageData.sentAt.getTime()
+        : (el.dataset.timestamp ? Number(el.dataset.timestamp) : (el.dataset.sentAt ? new Date(el.dataset.sentAt).getTime() : 0));
+      return t > timeMs;
+    });
+    if (nextItem) {
+      threadMessages.insertBefore(item, nextItem);
+    } else {
+      threadMessages.append(item);
+    }
     if (threadEmpty) threadEmpty.hidden = true;
     threadMessages.scrollTop = threadMessages.scrollHeight;
     try {
@@ -902,8 +993,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (loadRevision !== threadRevision || loadIdentityRevision !== identityRevision ||
           activeThread?.matchId !== match.matchId) return false;
       console.error('Failed to load private match messages:', error);
-      threadMessages?.replaceChildren();
-      if (threadEmpty) threadEmpty.hidden = true;
+      if (threadMessages && threadMessages.children.length === 0) {
+        threadMessages.replaceChildren();
+        if (threadEmpty) threadEmpty.hidden = true;
+      }
       setThreadStatus('Private messages could not be loaded. Try again.', true);
       return false;
     }
@@ -955,6 +1048,7 @@ document.addEventListener('DOMContentLoaded', () => {
       evtSource.addEventListener('open', () => {
         if (activeThread?.matchId !== matchID || activeEventSource !== evtSource) return;
         setPresenceUI('online');
+        void loadThread(activeThread, threadRevision, identityRevision);
       });
 
       evtSource.addEventListener('error', () => {

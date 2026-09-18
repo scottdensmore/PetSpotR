@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"path"
 	"slices"
 	"strings"
 	"time"
@@ -94,7 +95,7 @@ func (r MatchParticipantRecord) AppendMediatedMessageWithImages(
 	if len(images) > 0 {
 		cleanImages = make([]string, len(images))
 		for i, img := range images {
-			if !utf8.ValidString(img) || strings.TrimSpace(img) == "" || strings.TrimSpace(img) != img || len(img) > 1024 {
+			if !validMediatedImagePath(img) {
 				return MatchParticipantRecord{}, MediatedMatchMessage{}, false,
 					fmt.Errorf("%w: invalid image attachment", ErrInvalidMediatedMessage)
 			}
@@ -164,12 +165,44 @@ func validateMediatedMatchMessages(
 			return errors.New("domain: too many image attachments")
 		}
 		for _, img := range message.Images {
-			if !utf8.ValidString(img) || strings.TrimSpace(img) == "" || strings.TrimSpace(img) != img || len(img) > 1024 {
+			if !validMediatedImagePath(img) {
 				return errors.New("domain: invalid image attachment")
 			}
 		}
 	}
 	return nil
+}
+
+const allowedStorageImagePrefix = "https://storage.petspotr.io/"
+
+func validMediatedImagePath(img string) bool {
+	if !utf8.ValidString(img) || strings.TrimSpace(img) == "" || strings.TrimSpace(img) != img || len(img) > 1024 {
+		return false
+	}
+	for _, r := range img {
+		if (r < 0x20 && r != '\t') || r == 0x7f {
+			return false
+		}
+	}
+	if strings.HasPrefix(img, "//") || strings.Contains(img, "\\") {
+		return false
+	}
+	if strings.HasPrefix(img, allowedStorageImagePrefix) {
+		remainder := strings.TrimPrefix(img, allowedStorageImagePrefix)
+		if remainder == "" || strings.HasPrefix(remainder, "/") {
+			return false
+		}
+		cleaned := path.Clean(remainder)
+		return cleaned == remainder && !strings.HasPrefix(cleaned, ".")
+	}
+	if strings.Contains(img, ":") {
+		return false
+	}
+	cleaned := path.Clean(img)
+	if cleaned != img || strings.HasPrefix(cleaned, "/") || strings.HasPrefix(cleaned, ".") {
+		return false
+	}
+	return true
 }
 
 func validMediatedMessageText(message string) bool {

@@ -12,6 +12,7 @@ const TEST_1X1_PNG = Buffer.from(
 interface SSEServer {
   port: number;
   broadcast: (event: string, data: unknown) => void;
+  dropConnections: () => void;
   close: () => Promise<void>;
 }
 
@@ -63,6 +64,14 @@ function startSSEServer(): Promise<SSEServer> {
               clients.delete(client);
             }
           }
+        },
+        dropConnections: () => {
+          for (const client of clients) {
+            try {
+              client.destroy();
+            } catch (_) {}
+          }
+          clients.clear();
         },
         close: () =>
           new Promise<void>((done) => {
@@ -508,6 +517,104 @@ test.describe('Multi-User Real-Time Reunion Chat & Resolution Journey', () => {
     } finally {
       await ownerContext.close();
       await finderContext.close();
+    }
+  });
+
+  test('should merge real-time and catch-up messages safely and filter untrusted image hosts', async ({ browser }) => {
+    const ownerContext = await browser.newContext({ bypassCSP: true });
+
+    try {
+      const messages: Array<{
+        messageId: string;
+        senderRole: string;
+        message: string;
+        images?: string[];
+        sentAt: string;
+      }> = [
+        {
+          messageId: 'msg-initial-1',
+          senderRole: 'reporter',
+          message: 'Initial message from owner',
+          sentAt: new Date(Date.now() - 60000).toISOString(),
+        },
+      ];
+
+      const matchStatus = 'CONFIRMED';
+      const getMatchStatus = () => matchStatus;
+
+      const ownerPage = await setupParticipantContext(
+        ownerContext,
+        {
+          issuer: 'https://accounts.google.com',
+          subject: 'owner-sub-1',
+          email: 'owner@example.com',
+        },
+        getMatchStatus,
+        messages,
+        'reporter'
+      );
+
+      await ownerPage.goto(`${WEB_FRONTEND_URL}/matches`);
+      await ownerPage.locator('article[data-match-id="match-e2e-realtime"]')
+        .getByRole('button', { name: 'Open private messages' }).click();
+      await expect(ownerPage.locator('#match-thread-modal')).toBeVisible();
+      await expect(ownerPage.locator('#match-presence-text')).toHaveText('Online');
+
+      // Verify initial message is displayed
+      const initialEl = ownerPage.locator('#match-thread-messages .match-thread-message[data-message-id="msg-initial-1"]');
+      await expect(initialEl).toBeVisible();
+
+      // Broadcast an SSE message (real-time arrival while thread was loaded)
+      const sseMsg = {
+        messageId: 'msg-sse-realtime',
+        senderRole: 'finder',
+        message: 'Real-time message while connected',
+        sentAt: new Date(Date.now() - 30000).toISOString(),
+      };
+      sseServer.broadcast('message', sseMsg);
+
+      // Verify the SSE message appears in the DOM
+      const sseEl = ownerPage.locator('#match-thread-messages .match-thread-message[data-message-id="msg-sse-realtime"]');
+      await expect(sseEl).toBeVisible();
+
+      // Add a catch-up message to backend history that includes both trusted and untrusted image URLs
+      const catchUpMsg = {
+        messageId: 'msg-catchup-3',
+        senderRole: 'finder',
+        message: 'Catch-up message with image attachments',
+        images: [
+          'images/reunions/trusted-collar.png',
+          'http://evil.com/exploit.png',
+          'https://untrusted-host.example.com/tracker.png',
+        ],
+        sentAt: new Date().toISOString(),
+      };
+      messages.push(catchUpMsg);
+
+      // Drop SSE connection so EventSource reconnects and fires 'open', triggering history catch-up
+      sseServer.dropConnections();
+
+      // Wait for EventSource to reconnect and status to return to 'Online'
+      await expect(ownerPage.locator('#match-presence-text')).toHaveText('Online');
+
+      // Verify catch-up message appeared
+      const catchUpEl = ownerPage.locator('#match-thread-messages .match-thread-message[data-message-id="msg-catchup-3"]');
+      await expect(catchUpEl).toBeVisible();
+
+      // Verify the real-time SSE message was NOT dropped or destroyed during catch-up!
+      await expect(sseEl).toBeVisible();
+      await expect(initialEl).toBeVisible();
+
+      // Verify all 3 messages are displayed in DOM
+      await expect(ownerPage.locator('#match-thread-messages .match-thread-message')).toHaveCount(3);
+
+      // Verify image filtering: only the trusted image from allowed host/relative path is rendered
+      // http://evil.com and https://untrusted-host.example.com must be rejected
+      const thumbnails = catchUpEl.locator('img.thumbnail-img');
+      await expect(thumbnails).toHaveCount(1);
+      await expect(thumbnails.first()).toHaveAttribute('src', /storage\.petspotr\.io\/images\/reunions\/trusted-collar\.png/);
+    } finally {
+      await ownerContext.close();
     }
   });
 });
