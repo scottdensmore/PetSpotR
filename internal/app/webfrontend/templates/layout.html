@@ -6,6 +6,8 @@
   <meta name="description" content="PetSpotR - AI-powered event-driven lost and found pet matching platform built with Go, Gemma models, and GCP Cloud Run.">
   <title>PetSpotR — AI Lost & Found Pet Recovery Platform</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
   <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
@@ -29,6 +31,11 @@
       </nav>
 
       <div class="nav-actions home-nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
         <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
         <button id="btn-enable-push" class="btn btn-secondary btn-compact">🔔 Enable Push Alerts</button>
         <a href="/report-lost" class="btn btn-primary" id="btn-report-lost">Report Lost Pet</a>
@@ -86,7 +93,9 @@
     </div>
   </footer>
 
+  <div id="toast-container" class="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
   <script src="/static/js/theme.js"></script>
   <script src="/static/js/push-notifier.js"></script>
+  <script src="/static/js/outbox-sync.js" defer></script>
 </body>
 </html>

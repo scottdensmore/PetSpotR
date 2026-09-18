@@ -529,6 +529,55 @@ func TestRenderedPagesDeclareFavicon(t *testing.T) {
 	}
 }
 
+func TestRenderedPagesDeclareOfflineUI(t *testing.T) {
+	srv := NewDemoServer()
+	expectedSnippets := []string{
+		`<link rel="manifest" href="/manifest.webmanifest">`,
+		`<meta name="theme-color" content="#4f46e5">`,
+		`id="offline-indicator"`,
+		`class="offline-pill"`,
+		`id="offline-status-text"`,
+		`id="outbox-count-badge"`,
+		`id="toast-container"`,
+		`<script src="/static/js/outbox-sync.js" defer></script>`,
+	}
+
+	for _, path := range []string{"/", "/report-lost", "/report-found", "/matches", "/pets"} {
+		t.Run(path, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, path, nil)
+			rec := httptest.NewRecorder()
+
+			srv.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("expected status 200 OK, got %d", rec.Code)
+			}
+			body := rec.Body.String()
+			for _, snippet := range expectedSnippets {
+				if !strings.Contains(body, snippet) {
+					t.Errorf("path %s expected body to contain %q", path, snippet)
+				}
+			}
+		})
+	}
+
+	t.Run("/pets directory notice banner", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/pets", nil)
+		rec := httptest.NewRecorder()
+
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200 OK, got %d", rec.Code)
+		}
+		body := rec.Body.String()
+		wantBanner := `id="offline-directory-notice"`
+		if !strings.Contains(body, wantBanner) {
+			t.Errorf("/pets expected body to contain %q", wantBanner)
+		}
+	})
+}
+
 func TestNewServerStartsWithoutDemoMatches(t *testing.T) {
 	srv := NewServer()
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/matches", nil)
@@ -1406,6 +1455,156 @@ func TestFrontendAccessibility_MultiPhotoAndCarousel(t *testing.T) {
 	}
 	for _, snip := range expectedFoundSnippets {
 		if !strings.Contains(foundJS, snip) {
+			t.Errorf("found-report.js missing expected snippet: %q", snip)
+		}
+	}
+}
+
+func TestManifestAndOfflinePage(t *testing.T) {
+	t.Parallel()
+	srv := NewServer()
+
+	t.Run("GET /manifest.webmanifest", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/manifest.webmanifest", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+		}
+		contentType := rec.Header().Get("Content-Type")
+		if !strings.HasPrefix(contentType, "application/manifest+json") {
+			t.Errorf("Content-Type = %q, want application/manifest+json", contentType)
+		}
+		cacheControl := rec.Header().Get("Cache-Control")
+		if cacheControl != "public, max-age=86400" {
+			t.Errorf("Cache-Control = %q, want public, max-age=86400", cacheControl)
+		}
+		var manifest map[string]any
+		if err := json.Unmarshal(rec.Body.Bytes(), &manifest); err != nil {
+			t.Fatalf("invalid json manifest: %v", err)
+		}
+		if manifest["name"] != "PetSpotR — Lost & Found Pet Recovery" {
+			t.Errorf("manifest name = %v, want PetSpotR — Lost & Found Pet Recovery", manifest["name"])
+		}
+	})
+
+	t.Run("HEAD /manifest.webmanifest", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodHead, "/manifest.webmanifest", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+		}
+	})
+
+	t.Run("POST /manifest.webmanifest returns 405", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/manifest.webmanifest", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusMethodNotAllowed {
+			t.Fatalf("status = %d, want %d", rec.Code, http.StatusMethodNotAllowed)
+		}
+	})
+
+	t.Run("GET /offline.html", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/offline.html", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+		}
+		contentType := rec.Header().Get("Content-Type")
+		if !strings.HasPrefix(contentType, "text/html") {
+			t.Errorf("Content-Type = %q, want text/html", contentType)
+		}
+		cacheControl := rec.Header().Get("Cache-Control")
+		if cacheControl != "public, max-age=86400" {
+			t.Errorf("Cache-Control = %q, want public, max-age=86400", cacheControl)
+		}
+		body := rec.Body.String()
+		if !strings.Contains(body, "You're Offline") {
+			t.Errorf("body does not contain 'You're Offline': %s", body)
+		}
+	})
+
+	t.Run("HEAD /offline.html", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodHead, "/offline.html", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+		}
+	})
+
+	t.Run("POST /offline.html returns 405", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/offline.html", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusMethodNotAllowed {
+			t.Fatalf("status = %d, want %d", rec.Code, http.StatusMethodNotAllowed)
+		}
+	})
+}
+
+func TestOfflineFormInterceptionSnippets(t *testing.T) {
+	t.Parallel()
+
+	// 1. lost-wizard.js offline interception
+	lostWizardContent, err := embeddedFiles.ReadFile("static/js/lost-wizard.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lostWizardJS := string(lostWizardContent)
+	expectedLostWizardSnippets := []string{
+		"!navigator.onLine",
+		"window.PetSpotROutbox",
+		"enqueueReport({ type: 'lost'",
+		"showToast('Report saved offline. It will submit automatically when you reconnect.')",
+	}
+	for _, snip := range expectedLostWizardSnippets {
+		if !strings.Contains(lostWizardJS, snip) {
+			t.Errorf("lost-wizard.js missing expected snippet: %q", snip)
+		}
+	}
+
+	// 2. lost-report.js offline interception
+	lostReportContent, err := embeddedFiles.ReadFile("static/js/lost-report.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lostReportJS := string(lostReportContent)
+	expectedLostReportSnippets := []string{
+		"!navigator.onLine",
+		"window.PetSpotROutbox",
+		"enqueueReport",
+		"Report saved offline",
+	}
+	for _, snip := range expectedLostReportSnippets {
+		if !strings.Contains(lostReportJS, snip) {
+			t.Errorf("lost-report.js missing expected snippet: %q", snip)
+		}
+	}
+
+	// 3. found-report.js offline interception
+	foundReportContent, err := embeddedFiles.ReadFile("static/js/found-report.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundReportJS := string(foundReportContent)
+	expectedFoundSnippets := []string{
+		"!navigator.onLine",
+		"window.PetSpotROutbox",
+		"enqueueReport({ type: 'found'",
+		"showToast('Report saved offline. It will submit automatically when you reconnect.')",
+	}
+	for _, snip := range expectedFoundSnippets {
+		if !strings.Contains(foundReportJS, snip) {
 			t.Errorf("found-report.js missing expected snippet: %q", snip)
 		}
 	}

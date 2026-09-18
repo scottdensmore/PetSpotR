@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnNext = document.getElementById('btn-next');
   const btnSubmit = document.getElementById('btn-submit');
   const form = document.getElementById('lost-pet-form');
+  if (form) form.dataset.wizardBound = 'true';
   const dropzone = document.getElementById('dropzone');
   const photoInput = document.getElementById('photoInput');
   const photoCountBadge = document.getElementById('photo-count-badge');
@@ -323,6 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         stagedImages.push({
+          file,
           object: uploaded.object,
           url: uploaded.url,
           previewUrl: previewUrl,
@@ -390,6 +392,52 @@ document.addEventListener('DOMContentLoaded', () => {
     updatePhotoCount();
   }
 
+  // Helper to persist report offline via PetSpotROutbox and reset wizard
+  async function handleOfflineSubmission() {
+    const stagedPhotos = stagedImages.map(img => ({
+      fileName: img.file ? img.file.name : (img.fileName || 'photo.jpg'),
+      contentType: img.file ? (img.file.type || 'image/jpeg') : (img.contentType || 'image/jpeg'),
+      tag: img.tag || 'primary',
+      blob: img.file
+    }));
+
+    const reporterEmail = document.getElementById('reporterEmail');
+    const payload = {
+      petName: document.getElementById('petName')?.value || '',
+      species: document.getElementById('species')?.value || 'Dog',
+      breed: document.getElementById('breed')?.value || '',
+      primaryColor: document.getElementById('primaryColor')?.value || '',
+      description: document.getElementById('description')?.value || '',
+      location: document.getElementById('location')?.value || '',
+      reporterEmail: reporterEmail ? reporterEmail.value.trim() : '',
+      phone: document.getElementById('phone')?.value || '',
+      reportedAt: (pendingSubmission && pendingSubmission.reportedAt) || new Date().toISOString()
+    };
+
+    if (window.PetSpotROutbox) {
+      await window.PetSpotROutbox.enqueueReport({ type: 'lost', payload, photos: stagedPhotos });
+      window.PetSpotROutbox.showToast('Report saved offline. It will submit automatically when you reconnect.');
+    }
+
+    pendingSubmission = null;
+    if (form) form.reset();
+    stagedImages = [];
+    renderStagedPhotos();
+    const photoStatus = document.getElementById('lost-photo-status');
+    if (photoStatus) photoStatus.textContent = '';
+    const photoError = document.getElementById('photo-error');
+    if (photoError) {
+      photoError.textContent = '';
+      photoError.hidden = true;
+    }
+    clearFormError();
+    clearFieldError('petName', 'petName-error');
+    clearFieldError('location', 'location-error');
+    clearFieldError('reporterEmail', 'reporterEmail-error');
+    currentStep = 1;
+    showStep(currentStep);
+  }
+
   // Form Submission AJAX
   if (form) {
     form.addEventListener('submit', async (e) => {
@@ -399,9 +447,19 @@ document.addEventListener('DOMContentLoaded', () => {
       setSubmissionBusy(true);
 
       try {
-        const reporterEmail = document.getElementById('reporterEmail');
-
         clearFormError();
+        const reporterEmail = document.getElementById('reporterEmail');
+        if (!reporterEmail || !reporterEmail.value.trim()) {
+          showFieldError('reporterEmail', 'reporterEmail-error', 'Please enter a contact email address.');
+          return;
+        }
+        clearFieldError('reporterEmail', 'reporterEmail-error');
+
+        if (!navigator.onLine) {
+          await handleOfflineSubmission();
+          return;
+        }
+
         let identityState = null;
         if (window.petspotrIdentity) {
           try {
@@ -427,11 +485,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
         }
-        if (!reporterEmail || !reporterEmail.value.trim()) {
-          showFieldError('reporterEmail', 'reporterEmail-error', 'Please enter a contact email address.');
-          return;
-        }
-        clearFieldError('reporterEmail', 'reporterEmail-error');
 
         if (!pendingSubmission) {
           pendingSubmission = {
@@ -479,6 +532,10 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         } catch (err) {
           console.error('Submission error:', err);
+          if (!navigator.onLine || err instanceof TypeError || (err.message && err.message.toLowerCase().includes('failed to fetch'))) {
+            await handleOfflineSubmission();
+            return;
+          }
           showFormError('Network error submitting report.');
         }
       } finally {

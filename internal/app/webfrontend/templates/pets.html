@@ -6,6 +6,8 @@
   <meta name="description" content="Browse active lost and found pet reports in the PetSpotR community with deterministic filters and search.">
   <title>Public Pet Directory — PetSpotR AI</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
   <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="/static/css/styles.css">
 </head>
@@ -30,6 +32,11 @@
       </nav>
 
       <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
         <button id="btn-notification-drawer" class="btn-icon notification-bell-btn" aria-label="Open notifications" aria-expanded="false" title="Notifications">
           <svg class="bell-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -131,6 +138,11 @@
       <div id="pets-map" class="pets-map" role="region" aria-label="Map showing active lost and found pet markers"></div>
       <div class="map-status-overlay" id="map-status-overlay" aria-live="polite"></div>
     </section>
+
+    <div id="offline-directory-notice" class="offline-notice-banner" role="status" hidden>
+      <span class="banner-icon" aria-hidden="true">ℹ️</span>
+      <span>Viewing cached pet directory. Real-time updates and new reports will refresh when reconnected.</span>
+    </div>
 
     <!-- Active Reports Grid -->
     <section class="pets-grid" id="pets-grid" aria-label="Pet reports listing">
@@ -301,11 +313,13 @@
     </div>
   </footer>
 
+  <div id="toast-container" class="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
   <script id="pets-data" type="application/json">{{ .PetsJSON }}</script>
   <script src="/static/vendor/leaflet/leaflet.js"></script>
   <script src="/static/js/theme.js"></script>
   <script src="/static/js/pet-directory.js"></script>
   <script src="/static/js/push-notifier.js"></script>
   <script src="/static/js/notification-center.js"></script>
+  <script src="/static/js/outbox-sync.js" defer></script>
 </body>
 </html>
