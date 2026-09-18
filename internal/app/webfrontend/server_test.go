@@ -1628,11 +1628,11 @@ func TestMatchesReunionRoomUI(t *testing.T) {
 			`class="presence-badge"`,
 			`class="presence-dot`,
 			`class="presence-text"`,
+			`role="status" aria-live="polite" aria-atomic="true"`,
 			`id="match-thread-typing"`,
-			`role="status" aria-live="polite"`,
 			`id="match-thread-resolved-banner"`,
 			`class="reunion-banner"`,
-			`role="alert"`,
+			`role="alert" aria-live="assertive" aria-atomic="true"`,
 			`id="btn-chat-resolve-reunion"`,
 			`id="match-thread-attach-btn"`,
 			`id="match-thread-file-input"`,
@@ -1675,6 +1675,9 @@ func TestMatchesReunionRoomUI(t *testing.T) {
 			`.btn-attach`,
 			`.staged-tray`,
 			`.staged-thumbs`,
+			`@media (prefers-reduced-motion: reduce)`,
+			`.typing-dot`,
+			`animation: none !important;`,
 		}
 
 		for _, snippet := range expectedSnippets {
