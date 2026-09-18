@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return token || '';
   }
 
-  async function sendPresence(matchId, status) {
+  async function sendPresence(matchId, status, keepalive = false) {
     if (!matchId) return;
     try {
       const csrfToken = await getCsrfToken();
@@ -209,6 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST',
         headers,
         body: JSON.stringify({ matchId, status }),
+        keepalive,
       });
     } catch (_) {
       // Best-effort presence update
@@ -1233,19 +1234,16 @@ document.addEventListener('DOMContentLoaded', () => {
               uploadError.status = res.status;
               throw uploadError;
             }
-            const presigned = await res.json();
             if (presigned.uploadUrl) {
-              try {
-                const putRes = await fetch(presigned.uploadUrl, {
-                  method: 'PUT',
-                  headers: { 'Content-Type': staged.file.type || 'image/jpeg' },
-                  body: staged.file,
-                });
-                if (!putRes.ok) {
-                  console.warn('Direct upload warning, status:', putRes.status);
-                }
-              } catch (putErr) {
-                console.warn('Direct upload error:', putErr);
+              const putRes = await fetch(presigned.uploadUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': staged.file.type || 'image/jpeg' },
+                body: staged.file,
+              });
+              if (!putRes.ok) {
+                const putErr = new Error(`Direct photo upload failed (${putRes.status})`);
+                putErr.status = putRes.status;
+                throw putErr;
               }
             }
             const key = presigned.fileName || presigned.object || staged.file.name;
@@ -1486,7 +1484,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.addEventListener('beforeunload', () => {
     if (activeThread?.matchId) {
-      void sendPresence(activeThread.matchId, 'idle');
+      void sendPresence(activeThread.matchId, 'idle', true);
     }
     if (activeEventSource) {
       activeEventSource.close();
