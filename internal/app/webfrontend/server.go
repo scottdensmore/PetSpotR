@@ -680,19 +680,21 @@ func (s *Server) handleApiExtractFeatures(w http.ResponseWriter, r *http.Request
 }
 
 type FoundPetFormRequest struct {
-	PetID               string               `json:"petId"`
-	ImageURL            string               `json:"imageUrl"`
-	ImageObject         string               `json:"imageObject,omitempty"`
-	Images              []domain.PetImage    `json:"images,omitempty"`
-	Location            string               `json:"location"`
-	FinderEmail         string               `json:"finderEmail"`
-	Species             string               `json:"species"`
-	Breed               string               `json:"breed"`
-	PrimaryColor        string               `json:"primaryColor"`
-	SecondaryColor      string               `json:"secondaryColor"`
-	DistinctiveMarkings []string             `json:"distinctiveMarkings"`
-	CustodyStatus       domain.CustodyStatus `json:"custodyStatus"`
-	FoundAt             time.Time            `json:"foundAt"`
+	PetID               string                `json:"petId"`
+	ImageURL            string                `json:"imageUrl"`
+	ImageObject         string                `json:"imageObject,omitempty"`
+	Images              []domain.PetImage     `json:"images,omitempty"`
+	Location            string                `json:"location"`
+	Coordinates         *domain.LocationPoint `json:"coordinates,omitempty"`
+	Description         string                `json:"description,omitempty"`
+	FinderEmail         string                `json:"finderEmail"`
+	Species             string                `json:"species"`
+	Breed               string                `json:"breed"`
+	PrimaryColor        string                `json:"primaryColor"`
+	SecondaryColor      string                `json:"secondaryColor"`
+	DistinctiveMarkings []string              `json:"distinctiveMarkings"`
+	CustodyStatus       domain.CustodyStatus  `json:"custodyStatus"`
+	FoundAt             time.Time             `json:"foundAt"`
 }
 
 func newFoundPetID() (string, error) {
@@ -1920,6 +1922,7 @@ func (s *Server) handleFinderLanding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Permissions-Policy", "camera=(self), geolocation=(self), microphone=()")
 	w.WriteHeader(http.StatusOK)
 	if r.Method != http.MethodHead {
 		_, _ = w.Write(buf.Bytes())

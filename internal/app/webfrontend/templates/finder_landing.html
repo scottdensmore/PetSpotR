@@ -39,7 +39,7 @@
     </div>
   </header>
 
-  <main class="container finder-landing-container">
+  <main class="container finder-landing-container" data-pet-id="{{.PetID}}" data-pet-species="{{.Species}}" data-pet-name="{{.PetName}}">
     <article class="glass-card finder-hero-card">
       <div class="finder-hero-media">
         {{ if .HasPhoto }}
@@ -98,9 +98,11 @@
 
     <!-- Finder Action CTAs -->
     <section class="finder-cta-group" aria-label="Finder Actions">
+      <input type="file" id="finder-camera-input" accept="image/*" capture="environment" class="hidden" aria-label="Take or choose photo of pet">
       <a href="{{.ReportFoundURL}}" id="btn-finder-found" class="btn btn-primary btn-lg finder-btn btn-finder-found">
         <span class="btn-icon">📷</span> I Have Found This Pet
       </a>
+      <a href="{{.ReportFoundURL}}" class="finder-manual-link">Or fill out detailed found pet report without camera</a>
       <button type="button" id="btn-finder-message" class="btn btn-secondary btn-lg finder-btn btn-finder-message">
         <span class="btn-icon">💬</span> Send Private Message to Owner
       </button>
@@ -173,6 +175,7 @@
         <p class="text-secondary finder-privacy-note">
           Provide any sighting details to help the owner pinpoint {{.PetName}}'s location.
         </p>
+        <div id="sighting-gps-status" class="gps-status-readout" role="status">Acquiring GPS location...</div>
         <div class="form-group">
           <label for="sighting-location" class="form-label">Location / Cross Streets <span class="required">*</span></label>
           <input type="text" id="sighting-location" class="form-control" required placeholder="e.g. Near Cal Anderson Park water reservoir">
@@ -185,10 +188,53 @@
           <label for="sighting-notes" class="form-label">Notes / Heading Direction</label>
           <textarea id="sighting-notes" class="form-control" rows="3" placeholder="Running northbound toward Denny Way, seemed cautious..."></textarea>
         </div>
+        <div class="form-group">
+          <label for="sighting-finder-email" class="form-label">Your Email (Optional, to receive updates)</label>
+          <input type="email" id="sighting-finder-email" class="form-control" placeholder="your.email@domain.com">
+        </div>
         <div id="sighting-feedback" class="form-feedback hidden" role="status"></div>
         <div class="modal-actions">
           <button type="submit" class="btn btn-primary btn-full" id="btn-submit-sighting">Submit Sighting</button>
           <button type="button" class="btn btn-secondary btn-full" data-close-modal="sighting">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Camera Found Report Modal -->
+  <div id="modal-finder-camera" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="camera-modal-title">
+    <div class="glass-card finder-modal-card">
+      <div class="modal-header">
+        <h2 id="camera-modal-title">📷 Found Pet Photo &amp; Location</h2>
+        <button type="button" class="btn-icon" data-close-modal="camera" aria-label="Close modal">✕</button>
+      </div>
+      <form id="form-finder-camera" class="finder-modal-form">
+        <p class="text-secondary finder-privacy-note">
+          Confirm the photo and your street location to submit an immediate found pet report for {{.PetName}}.
+        </p>
+        <div class="camera-preview-container">
+          <img id="camera-preview-img" class="camera-preview-thumbnail hidden" src="" alt="Captured pet preview">
+        </div>
+        <div class="form-group">
+          <label class="form-label">GPS Location Status</label>
+          <div id="camera-gps-status" class="gps-status-readout" role="status">Acquiring GPS location...</div>
+        </div>
+        <div class="form-group">
+          <label for="camera-finder-location" class="form-label">Location Description</label>
+          <input type="text" id="camera-finder-location" class="form-control" placeholder="e.g. 12th &amp; Pine, Seattle, WA">
+        </div>
+        <div class="form-group">
+          <label for="camera-finder-notes" class="form-label">Additional Notes (Optional)</label>
+          <textarea id="camera-finder-notes" class="form-control" rows="2" placeholder="Pet condition, collar details, safe in yard..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="camera-finder-email" class="form-label">Your Email (Optional)</label>
+          <input type="email" id="camera-finder-email" class="form-control" placeholder="your.email@domain.com">
+        </div>
+        <div id="camera-feedback" class="form-feedback hidden" role="status"></div>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary btn-full" id="btn-submit-camera-report">Submit Found Report</button>
+          <button type="button" class="btn btn-secondary btn-full" data-close-modal="camera">Cancel</button>
         </div>
       </form>
     </div>

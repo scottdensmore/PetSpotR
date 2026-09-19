@@ -3373,6 +3373,50 @@ footer {
   border: 1px solid rgba(99, 102, 241, 0.2);
 }
 
+/* Finder Camera & Geolocation Elements */
+.finder-manual-link {
+  display: block;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-decoration: underline;
+  margin-top: -0.25rem;
+  margin-bottom: 0.5rem;
+  transition: color var(--transition-fast);
+}
+
+.finder-manual-link:hover {
+  color: var(--text-primary);
+}
+
+.camera-preview-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-subtle);
+  max-height: 220px;
+}
+
+.camera-preview-thumbnail {
+  max-width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.gps-status-readout {
+  font-size: 0.85rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
 /* Responsive adjustments */
 @media (min-width: 640px) {
   .finder-hero-card {

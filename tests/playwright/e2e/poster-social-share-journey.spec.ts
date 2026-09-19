@@ -26,6 +26,12 @@ test.describe('User Journey: Pet Recovery Poster & Dynamic Social Sharing', () =
     } catch {
       // Ignore unsupported permissions across non-chromium browser contexts
     }
+    try {
+      await context.grantPermissions(['geolocation'], { origin: WEB_FRONTEND_URL });
+      await context.setGeolocation({ latitude: 47.6152, longitude: -122.3211 });
+    } catch (e) {
+      console.warn('Geolocation grant warning:', e);
+    }
   });
 
   test('should open poster customizer, update reward and emergency notes, and verify live preview', async ({ page }) => {
@@ -163,7 +169,16 @@ test.describe('User Journey: Pet Recovery Poster & Dynamic Social Sharing', () =
     const twitterCard = page.locator('meta[name="twitter:card"][content="summary_large_image"]');
     await expect(twitterCard).toBeAttached();
 
-    // 4. Asserts primary CTAs are visible and interactive
+    // 4. Asserts primary CTAs and camera elements are visible and interactive
+    const cameraInput = page.locator('#finder-camera-input');
+    await expect(cameraInput).toBeAttached();
+    await expect(cameraInput).toHaveAttribute('accept', 'image/*');
+    await expect(cameraInput).toHaveAttribute('capture', 'environment');
+
+    const manualFallbackLink = page.locator('.finder-manual-link');
+    await expect(manualFallbackLink).toBeVisible();
+    await expect(manualFallbackLink).toHaveAttribute('href', /\/report-found\?matchedPetId=demo-lost-1/);
+
     const btnFound = page.locator('#btn-finder-found');
     const btnMessage = page.locator('#btn-finder-message');
     const btnSighting = page.locator('#btn-finder-sighting');
@@ -198,6 +213,118 @@ test.describe('User Journey: Pet Recovery Poster & Dynamic Social Sharing', () =
 
     // Close sighting modal
     await page.locator('#modal-finder-sighting .btn-icon').click();
+    await expect(sightingModal).toBeHidden();
+  });
+
+  test('should handle camera capture, geolocation, and real API submissions on mobile finder landing page', async ({ page }) => {
+    // 1. Navigate to /p/demo-lost-1
+    await page.goto(`${WEB_FRONTEND_URL}/p/demo-lost-1`);
+
+    // 2. Asserts camera input and accessible fallback link
+    const cameraInput = page.locator('#finder-camera-input');
+    await expect(cameraInput).toBeAttached();
+
+    const manualFallbackLink = page.locator('.finder-manual-link');
+    await expect(manualFallbackLink).toBeVisible();
+
+    // 3. Verifies clicking #btn-finder-found triggers camera input click
+    await page.evaluate(() => {
+      (window as any).__cameraInputClicked = false;
+      document.getElementById('finder-camera-input')?.addEventListener('click', () => {
+        (window as any).__cameraInputClicked = true;
+      });
+    });
+    await page.locator('#btn-finder-found').click();
+    const wasClicked = await page.evaluate(() => (window as any).__cameraInputClicked);
+    expect(wasClicked).toBe(true);
+
+    // 4. Sets input file on #finder-camera-input, verifies modal opens, preview renders, and submits report
+    await cameraInput.setInputFiles({
+      name: 'captured-pet.jpg',
+      mimeType: 'image/jpeg',
+      buffer: Buffer.from('fake-jpeg-image-data-for-finder'),
+    });
+
+    const cameraModal = page.locator('#modal-finder-camera');
+    await expect(cameraModal).toBeVisible();
+    await expect(cameraModal).not.toHaveClass(/hidden/);
+
+    const previewImg = page.locator('#camera-preview-img');
+    await expect(previewImg).toBeVisible();
+    await expect(previewImg).not.toHaveClass(/hidden/);
+
+    const gpsStatus = page.locator('#camera-gps-status');
+    await expect(gpsStatus).toBeVisible();
+    await expect(gpsStatus).toContainText(/GPS Acquired|Acquiring GPS/i);
+
+    // Submit camera found report and assert real API call
+    const [cameraReq] = await Promise.all([
+      page.waitForRequest(req => req.url().includes('/api/v1/found-pets') && req.method() === 'POST'),
+      page.locator('#btn-submit-camera-report').click(),
+    ]);
+    const cameraPayload = JSON.parse(cameraReq.postData() || '{}');
+    expect(cameraPayload.species).toBe('Dog');
+    expect(cameraPayload.imageObject).toContain('images/found-pets/');
+    expect(cameraPayload.images).toBeDefined();
+    expect(cameraPayload.images.length).toBeGreaterThan(0);
+    if (cameraPayload.coordinates) {
+      expect(cameraPayload.coordinates.latitude).toBeCloseTo(47.6152, 2);
+      expect(cameraPayload.coordinates.longitude).toBeCloseTo(-122.3211, 2);
+    }
+
+    const cameraFeedback = page.locator('#camera-feedback');
+    await expect(cameraFeedback).toBeVisible();
+    await expect(cameraFeedback).toContainText('Found pet report submitted');
+    await expect(cameraModal).toBeHidden();
+
+    // 5. Submit private message to owner and assert real API call
+    await page.locator('#btn-finder-message').click();
+    const messageModal = page.locator('#modal-finder-message');
+    await expect(messageModal).toBeVisible();
+
+    await page.locator('#contact-sender-name').fill('Neighbor Sam');
+    await page.locator('#contact-sender-phone').fill('sam@example.com');
+    await page.locator('#contact-message-body').fill('I spotted your golden retriever near 12th & Pine!');
+
+    const [contactReq] = await Promise.all([
+      page.waitForRequest(req => req.url().includes('/api/v1/reunions/contact') && req.method() === 'POST'),
+      page.locator('#btn-submit-contact-message').click(),
+    ]);
+    const contactPayload = JSON.parse(contactReq.postData() || '{}');
+    expect(contactPayload.senderEmail).toBe('sam@example.com');
+    expect(contactPayload.message).toContain('I spotted your golden retriever');
+    expect(contactPayload.matchId).toBe('demo-lost-1');
+
+    const contactFeedback = page.locator('#contact-feedback');
+    await expect(contactFeedback).toBeVisible();
+    await expect(contactFeedback).toContainText('Message dispatched');
+    await expect(messageModal).toBeHidden();
+
+    // 6. Submit quick sighting report and assert real API call
+    await page.locator('#btn-finder-sighting').click();
+    const sightingModal = page.locator('#modal-finder-sighting');
+    await expect(sightingModal).toBeVisible();
+
+    await page.locator('#sighting-location').fill('15th Ave & Pine St');
+    await page.locator('#sighting-time').fill('5 minutes ago');
+    await page.locator('#sighting-notes').fill('Trotting safely towards Volunteer Park');
+
+    const [sightingReq] = await Promise.all([
+      page.waitForRequest(req => req.url().includes('/api/v1/found-pets') && req.method() === 'POST'),
+      page.locator('#btn-submit-sighting').click(),
+    ]);
+    const sightingPayload = JSON.parse(sightingReq.postData() || '{}');
+    expect(sightingPayload.species).toBe('Dog');
+    expect(sightingPayload.location).toBe('15th Ave & Pine St');
+    expect(sightingPayload.description).toContain('Trotting safely');
+    if (sightingPayload.coordinates) {
+      expect(sightingPayload.coordinates.latitude).toBeCloseTo(47.6152, 2);
+      expect(sightingPayload.coordinates.longitude).toBeCloseTo(-122.3211, 2);
+    }
+
+    const sightingFeedback = page.locator('#sighting-feedback');
+    await expect(sightingFeedback).toBeVisible();
+    await expect(sightingFeedback).toContainText('Sighting reported');
     await expect(sightingModal).toBeHidden();
   });
 
