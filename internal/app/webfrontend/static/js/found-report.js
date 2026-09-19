@@ -19,6 +19,70 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputBreed = document.getElementById('foundBreed');
   const inputPrimaryColor = document.getElementById('foundPrimaryColor');
   const inputSecondaryColor = document.getElementById('foundSecondaryColor');
+  const foundMicrochipInput = document.getElementById('found-pet-microchip');
+  const foundMicrochipFeedback = document.getElementById('found-microchip-feedback');
+
+  const icarPrefixMap = {
+    '985': 'HomeAgain',
+    '981': 'AKC Reunite',
+    '977': 'PetLink',
+    '982': '24Petwatch',
+    '965': 'BuddyID',
+  };
+
+  function validateMicrochipInput(value) {
+    if (!value) {
+      return { valid: true, empty: true, message: '' };
+    }
+    const clean = value.replace(/[\s\-\*]/g, '');
+    if (!clean) {
+      return { valid: true, empty: true, message: '' };
+    }
+    if (clean.length === 15 && /^\d{15}$/.test(clean)) {
+      const prefix = clean.slice(0, 3);
+      const registry = icarPrefixMap[prefix] || 'Standard ISO Registry';
+      return {
+        valid: true,
+        empty: false,
+        message: `✓ Valid 15-Digit ISO Microchip • ${registry}`,
+      };
+    }
+    if (clean.length === 9 && /^\d{9}$/.test(clean)) {
+      return {
+        valid: true,
+        empty: false,
+        message: '✓ Valid 9-Digit Avid Microchip • Avid Registry',
+      };
+    }
+    if (clean.length === 10 && /^[0-9a-zA-Z]{10}$/.test(clean)) {
+      return {
+        valid: true,
+        empty: false,
+        message: '✓ Valid 10-Character Euro/Trovan Microchip',
+      };
+    }
+    return {
+      valid: false,
+      empty: false,
+      message: 'ℹ️ Standard microchips are 15 digits (ISO), 9 digits (Avid), or 10 alphanumeric (Euro).',
+    };
+  }
+
+  if (foundMicrochipInput && foundMicrochipFeedback) {
+    foundMicrochipInput.addEventListener('input', () => {
+      const res = validateMicrochipInput(foundMicrochipInput.value);
+      if (res.empty) {
+        foundMicrochipFeedback.textContent = '';
+        foundMicrochipFeedback.className = 'microchip-feedback-msg';
+      } else if (res.valid) {
+        foundMicrochipFeedback.textContent = res.message;
+        foundMicrochipFeedback.className = 'microchip-feedback-msg valid';
+      } else {
+        foundMicrochipFeedback.textContent = res.message;
+        foundMicrochipFeedback.className = 'microchip-feedback-msg invalid';
+      }
+    });
+  }
 
   function showFieldError(fieldId, errorId, message) {
     const field = document.getElementById(fieldId);
@@ -75,6 +139,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (chipSpecies) chipSpecies.textContent = 'Species: Not analyzed';
     if (chipBreed) chipBreed.textContent = 'Breed: Not analyzed';
     if (chipColor) chipColor.textContent = 'Colors: Not analyzed';
+    if (foundMicrochipFeedback) {
+      foundMicrochipFeedback.textContent = '';
+      foundMicrochipFeedback.className = 'microchip-feedback-msg';
+    }
   }
 
   function updatePhotoCount() {
@@ -436,6 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
       secondaryColor: inputSecondaryColor?.value || document.getElementById('foundSecondaryColor')?.value || '',
       distinctiveMarkings: currentDistinctiveMarkings,
       custodyStatus: document.getElementById('custodyStatus')?.value || 'Finder Home',
+      microchipId: foundMicrochipInput ? foundMicrochipInput.value.trim() : '',
       location: document.getElementById('foundLocation')?.value || '',
       finderEmail: document.getElementById('finderEmail')?.value || '',
       foundAt: (pendingSubmission && pendingSubmission.foundAt) || new Date().toISOString()
@@ -464,6 +533,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (photoError) {
       photoError.textContent = '';
       photoError.hidden = true;
+    }
+    if (foundMicrochipFeedback) {
+      foundMicrochipFeedback.textContent = '';
+      foundMicrochipFeedback.className = 'microchip-feedback-msg';
     }
     clearExtractedTraits();
     clearFormError();
@@ -573,7 +646,8 @@ document.addEventListener('DOMContentLoaded', () => {
           primaryColor: inputPrimaryColor?.value || '',
           secondaryColor: inputSecondaryColor?.value || '',
           distinctiveMarkings: currentDistinctiveMarkings,
-          custodyStatus: document.getElementById('custodyStatus')?.value || 'Finder Home'
+          custodyStatus: document.getElementById('custodyStatus')?.value || 'Finder Home',
+          microchipId: foundMicrochipInput ? foundMicrochipInput.value.trim() : ''
         };
 
         try {

@@ -100,9 +100,15 @@
             </div>
           </div>
 
-          <div class="form-field form-field-last">
+          <div class="form-field">
             <label for="description" class="form-label">Distinguishing Features & Description</label>
             <textarea class="form-control" id="description" name="description" rows="3" placeholder="e.g. White chest patch, wearing red collar with tag"></textarea>
+          </div>
+
+          <div class="form-field form-field-last">
+            <label for="lost-pet-microchip" class="form-label">Microchip ID (Optional)</label>
+            <input class="form-control" type="text" id="lost-pet-microchip" name="microchipId" placeholder="e.g. 985141000123456" aria-describedby="microchip-feedback">
+            <div id="microchip-feedback" class="microchip-feedback-msg" role="status" aria-live="polite"></div>
           </div>
         </div>
 

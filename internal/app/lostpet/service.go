@@ -36,20 +36,22 @@ type ReportMetadata struct {
 // ReportCommand carries one lost-pet report from an HTTP adapter into the
 // canonical application service.
 type ReportCommand struct {
-	PetID           string
-	PetName         string
-	Species         string
-	Breed           string
-	PrimaryColor    string
-	Description     string
-	ReporterEmail   string
-	Phone           string
-	ImageObject     string
-	Images          []domain.PetImage
-	ReportedAt      time.Time
-	Location        string
-	GeocodingStatus domain.GeocodingStatus
-	Coordinates     *domain.LocationPoint
+	PetID             string
+	PetName           string
+	Species           string
+	Breed             string
+	PrimaryColor      string
+	Description       string
+	ReporterEmail     string
+	Phone             string
+	ImageObject       string
+	Images            []domain.PetImage
+	ReportedAt        time.Time
+	Location          string
+	GeocodingStatus   domain.GeocodingStatus
+	Coordinates       *domain.LocationPoint
+	MicrochipID       string
+	MicrochipRegistry string
 	// OwnedBy is trusted transport identity, never a caller-supplied JSON field.
 	OwnedBy *domain.PrincipalRef
 }
@@ -369,6 +371,7 @@ func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 		Location        string                 `json:"location"`
 		GeocodingStatus domain.GeocodingStatus `json:"geocodingStatus"`
 		Coordinates     *domain.LocationPoint  `json:"coordinates"`
+		MicrochipID     string                 `json:"microchipId"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid JSON payload: %v", err))
@@ -417,6 +420,7 @@ func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 		Location:        request.Location,
 		GeocodingStatus: request.GeocodingStatus,
 		Coordinates:     request.Coordinates,
+		MicrochipID:     request.MicrochipID,
 	}, ReportMetadata{
 		CorrelationID: r.Header.Get("X-Correlation-ID"),
 		TraceID:       r.Header.Get("X-Trace-ID"),
@@ -450,21 +454,23 @@ func (s *Service) ReportLostPet(
 	metadata ReportMetadata,
 ) (ReportResult, error) {
 	report := domain.NormalizeLostPetReport(domain.LostPetReport{
-		PetID:           command.PetID,
-		PetName:         command.PetName,
-		Species:         command.Species,
-		Breed:           command.Breed,
-		PrimaryColor:    command.PrimaryColor,
-		Description:     command.Description,
-		ReporterEmail:   command.ReporterEmail,
-		Phone:           command.Phone,
-		ImageObject:     command.ImageObject,
-		Images:          command.Images,
-		ReportedAt:      command.ReportedAt,
-		Location:        command.Location,
-		GeocodingStatus: command.GeocodingStatus,
-		Coordinates:     command.Coordinates,
-		OwnedBy:         command.OwnedBy,
+		PetID:             command.PetID,
+		PetName:           command.PetName,
+		Species:           command.Species,
+		Breed:             command.Breed,
+		PrimaryColor:      command.PrimaryColor,
+		Description:       command.Description,
+		ReporterEmail:     command.ReporterEmail,
+		Phone:             command.Phone,
+		ImageObject:       command.ImageObject,
+		Images:            command.Images,
+		ReportedAt:        command.ReportedAt,
+		Location:          command.Location,
+		GeocodingStatus:   command.GeocodingStatus,
+		Coordinates:       command.Coordinates,
+		OwnedBy:           command.OwnedBy,
+		MicrochipID:       command.MicrochipID,
+		MicrochipRegistry: command.MicrochipRegistry,
 	})
 	if err := report.Validate(); err != nil {
 		return ReportResult{}, &invalidReportError{cause: err}

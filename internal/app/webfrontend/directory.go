@@ -37,6 +37,8 @@ type PublicPetDirectoryItem struct {
 	Coordinates         *domain.LocationPoint  `json:"coordinates,omitempty"`
 	GeocodingStatus     domain.GeocodingStatus `json:"geocodingStatus,omitempty"`
 	CustodyStatus       domain.CustodyStatus   `json:"custodyStatus,omitempty"`
+	MicrochipID         string                 `json:"microchipId,omitempty"`
+	MicrochipRegistry   string                 `json:"microchipRegistry,omitempty"`
 }
 
 // DirectoryQueryParams defines validated filters and pagination options.
@@ -243,18 +245,20 @@ func (s *Server) queryDirectoryPets(
 
 			pub := rec.Public()
 			item := PublicPetDirectoryItem{
-				PetID:           pub.PetID,
-				ReportType:      "lost",
-				Status:          "lost",
-				PetName:         pub.PetName,
-				Species:         pub.Species,
-				Breed:           pub.Breed,
-				PrimaryColor:    pub.PrimaryColor,
-				Description:     pub.Description,
-				Location:        pub.Location,
-				ReportedAt:      pub.ReportedAt.UTC(),
-				Coordinates:     pub.Coordinates,
-				GeocodingStatus: pub.GeocodingStatus,
+				PetID:             pub.PetID,
+				ReportType:        "lost",
+				Status:            "lost",
+				PetName:           pub.PetName,
+				Species:           pub.Species,
+				Breed:             pub.Breed,
+				PrimaryColor:      pub.PrimaryColor,
+				Description:       pub.Description,
+				Location:          pub.Location,
+				ReportedAt:        pub.ReportedAt.UTC(),
+				Coordinates:       pub.Coordinates,
+				GeocodingStatus:   pub.GeocodingStatus,
+				MicrochipID:       pub.MicrochipID,
+				MicrochipRegistry: pub.MicrochipRegistry,
 			}
 			items = append(items, item)
 		}
@@ -308,6 +312,8 @@ func (s *Server) queryDirectoryPets(
 				Coordinates:         pub.Coordinates,
 				GeocodingStatus:     pub.GeocodingStatus,
 				CustodyStatus:       pub.CustodyStatus,
+				MicrochipID:         pub.MicrochipID,
+				MicrochipRegistry:   pub.MicrochipRegistry,
 			}
 			items = append(items, item)
 		}

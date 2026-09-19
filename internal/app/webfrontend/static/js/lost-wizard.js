@@ -16,6 +16,70 @@ document.addEventListener('DOMContentLoaded', () => {
   const stagingContainer = document.getElementById('staging-container');
   const photoTemplate = document.getElementById('staged-photo-template');
   const submissionStatus = document.getElementById('lost-report-status');
+  const microchipInput = document.getElementById('lost-pet-microchip');
+  const microchipFeedback = document.getElementById('microchip-feedback');
+
+  const icarPrefixMap = {
+    '985': 'HomeAgain',
+    '981': 'AKC Reunite',
+    '977': 'PetLink',
+    '982': '24Petwatch',
+    '965': 'BuddyID',
+  };
+
+  function validateMicrochipInput(value) {
+    if (!value) {
+      return { valid: true, empty: true, message: '' };
+    }
+    const clean = value.replace(/[\s\-\*]/g, '');
+    if (!clean) {
+      return { valid: true, empty: true, message: '' };
+    }
+    if (clean.length === 15 && /^\d{15}$/.test(clean)) {
+      const prefix = clean.slice(0, 3);
+      const registry = icarPrefixMap[prefix] || 'Standard ISO Registry';
+      return {
+        valid: true,
+        empty: false,
+        message: `✓ Valid 15-Digit ISO Microchip • ${registry}`,
+      };
+    }
+    if (clean.length === 9 && /^\d{9}$/.test(clean)) {
+      return {
+        valid: true,
+        empty: false,
+        message: '✓ Valid 9-Digit Avid Microchip • Avid Registry',
+      };
+    }
+    if (clean.length === 10 && /^[0-9a-zA-Z]{10}$/.test(clean)) {
+      return {
+        valid: true,
+        empty: false,
+        message: '✓ Valid 10-Character Euro/Trovan Microchip',
+      };
+    }
+    return {
+      valid: false,
+      empty: false,
+      message: 'ℹ️ Standard microchips are 15 digits (ISO), 9 digits (Avid), or 10 alphanumeric (Euro).',
+    };
+  }
+
+  if (microchipInput && microchipFeedback) {
+    microchipInput.addEventListener('input', () => {
+      const res = validateMicrochipInput(microchipInput.value);
+      if (res.empty) {
+        microchipFeedback.textContent = '';
+        microchipFeedback.className = 'microchip-feedback-msg';
+      } else if (res.valid) {
+        microchipFeedback.textContent = res.message;
+        microchipFeedback.className = 'microchip-feedback-msg valid';
+      } else {
+        microchipFeedback.textContent = res.message;
+        microchipFeedback.className = 'microchip-feedback-msg invalid';
+      }
+    });
+  }
 
   function showFieldError(fieldId, errorId, message) {
     const field = document.getElementById(fieldId);
@@ -408,6 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
       breed: document.getElementById('breed')?.value || '',
       primaryColor: document.getElementById('primaryColor')?.value || '',
       description: document.getElementById('description')?.value || '',
+      microchipId: microchipInput ? microchipInput.value.trim() : '',
       location: document.getElementById('location')?.value || '',
       reporterEmail: reporterEmail ? reporterEmail.value.trim() : '',
       phone: document.getElementById('phone')?.value || '',
@@ -434,6 +499,10 @@ document.addEventListener('DOMContentLoaded', () => {
     clearFieldError('petName', 'petName-error');
     clearFieldError('location', 'location-error');
     clearFieldError('reporterEmail', 'reporterEmail-error');
+    if (microchipFeedback) {
+      microchipFeedback.textContent = '';
+      microchipFeedback.className = 'microchip-feedback-msg';
+    }
     currentStep = 1;
     showStep(currentStep);
   }
@@ -501,6 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
           breed: document.getElementById('breed')?.value || '',
           primaryColor: document.getElementById('primaryColor')?.value || '',
           description: document.getElementById('description')?.value || '',
+          microchipId: microchipInput ? microchipInput.value.trim() : '',
           location: document.getElementById('location')?.value || '',
           reporterEmail: reporterEmail.value.trim(),
           phone: document.getElementById('phone')?.value || '',

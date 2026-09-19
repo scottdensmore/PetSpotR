@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/scottdensmore/petspotr/pkg/microchip"
 )
 
 // LostPetReportedPayloadVersion is the current contact-redacted integration
@@ -63,49 +65,60 @@ const (
 	GeocodingUnavailable GeocodingStatus = "unavailable"
 )
 
+const (
+	SpeciesDog   = "Dog"
+	SpeciesCat   = "Cat"
+	SpeciesBird  = "Bird"
+	SpeciesOther = "Other"
+)
+
 // LostPetReport is the canonical application-boundary model for a lost-pet
 // report. Persisted separates its private contact into ReportContact.
 type LostPetReport struct {
-	PetID           string          `json:"petId"`
-	PetName         string          `json:"petName,omitempty"`
-	Species         string          `json:"species,omitempty"`
-	Breed           string          `json:"breed,omitempty"`
-	PrimaryColor    string          `json:"primaryColor,omitempty"`
-	Description     string          `json:"description,omitempty"`
-	ReporterEmail   string          `json:"reporterEmail"`
-	Phone           string          `json:"phone,omitempty"`
-	ImageObject     string          `json:"imageObject,omitempty"`
-	Images          []PetImage      `json:"images,omitempty"`
-	ReportedAt      time.Time       `json:"reportedAt"`
-	Location        string          `json:"location"`
-	GeocodingStatus GeocodingStatus `json:"geocodingStatus"`
-	Coordinates     *LocationPoint  `json:"coordinates,omitempty"`
-	Status          LostPetStatus   `json:"status"`
-	OwnedBy         *PrincipalRef   `json:"-"`
+	PetID             string          `json:"petId"`
+	PetName           string          `json:"petName,omitempty"`
+	Species           string          `json:"species,omitempty"`
+	Breed             string          `json:"breed,omitempty"`
+	PrimaryColor      string          `json:"primaryColor,omitempty"`
+	Description       string          `json:"description,omitempty"`
+	ReporterEmail     string          `json:"reporterEmail"`
+	Phone             string          `json:"phone,omitempty"`
+	ImageObject       string          `json:"imageObject,omitempty"`
+	Images            []PetImage      `json:"images,omitempty"`
+	ReportedAt        time.Time       `json:"reportedAt"`
+	Location          string          `json:"location"`
+	GeocodingStatus   GeocodingStatus `json:"geocodingStatus"`
+	Coordinates       *LocationPoint  `json:"coordinates,omitempty"`
+	Status            LostPetStatus   `json:"status"`
+	OwnedBy           *PrincipalRef   `json:"-"`
+	MicrochipID       string          `json:"microchipId,omitempty"`
+	MicrochipRegistry string          `json:"microchipRegistry,omitempty"`
 }
 
 // LostPetRecord is the persisted lost-pet aggregate. Private owner contact is
 // stored separately and linked by OwnerIdentityRef. OwnedBy identifies the
 // authenticated resource owner when the producer supplied one.
 type LostPetRecord struct {
-	PetID            string                 `json:"petId"`
-	PetName          string                 `json:"petName,omitempty"`
-	Species          string                 `json:"species,omitempty"`
-	Breed            string                 `json:"breed,omitempty"`
-	PrimaryColor     string                 `json:"primaryColor,omitempty"`
-	Description      string                 `json:"description,omitempty"`
-	OwnerIdentityRef string                 `json:"ownerIdentityRef"`
-	ImageObject      string                 `json:"imageObject,omitempty"`
-	Images           []PetImage             `json:"images,omitempty"`
-	Embedding        []float32              `json:"embedding,omitempty"`
-	ReportedAt       time.Time              `json:"reportedAt"`
-	Location         string                 `json:"location"`
-	GeocodingStatus  GeocodingStatus        `json:"geocodingStatus"`
-	Coordinates      *LocationPoint         `json:"coordinates,omitempty"`
-	Status           LostPetStatus          `json:"status"`
-	ImageAnalysis    *ImageTraitAnalysis    `json:"imageAnalysis,omitempty"`
-	OwnedBy          *PrincipalRef          `json:"ownedBy,omitempty"`
-	LifecycleAudit   *LostPetLifecycleAudit `json:"lifecycleAudit,omitempty"`
+	PetID             string                 `json:"petId"`
+	PetName           string                 `json:"petName,omitempty"`
+	Species           string                 `json:"species,omitempty"`
+	Breed             string                 `json:"breed,omitempty"`
+	PrimaryColor      string                 `json:"primaryColor,omitempty"`
+	Description       string                 `json:"description,omitempty"`
+	OwnerIdentityRef  string                 `json:"ownerIdentityRef"`
+	ImageObject       string                 `json:"imageObject,omitempty"`
+	Images            []PetImage             `json:"images,omitempty"`
+	Embedding         []float32              `json:"embedding,omitempty"`
+	ReportedAt        time.Time              `json:"reportedAt"`
+	Location          string                 `json:"location"`
+	GeocodingStatus   GeocodingStatus        `json:"geocodingStatus"`
+	Coordinates       *LocationPoint         `json:"coordinates,omitempty"`
+	Status            LostPetStatus          `json:"status"`
+	ImageAnalysis     *ImageTraitAnalysis    `json:"imageAnalysis,omitempty"`
+	OwnedBy           *PrincipalRef          `json:"ownedBy,omitempty"`
+	LifecycleAudit    *LostPetLifecycleAudit `json:"lifecycleAudit,omitempty"`
+	MicrochipID       string                 `json:"microchipId,omitempty"`
+	MicrochipRegistry string                 `json:"microchipRegistry,omitempty"`
 }
 
 // LostPetReportedV2 is the additive payload-v2 integration event. Its legacy
@@ -148,20 +161,22 @@ type LostPetReportedV3 struct {
 // exposing owner contact. Internal consumers may use the object through their
 // own storage identity; public lost-pet DTOs deliberately omit it.
 type LostPetReportedV4 struct {
-	PetID           string          `json:"petId"`
-	PetName         string          `json:"petName,omitempty"`
-	Species         string          `json:"species,omitempty"`
-	Breed           string          `json:"breed,omitempty"`
-	PrimaryColor    string          `json:"primaryColor,omitempty"`
-	Description     string          `json:"description,omitempty"`
-	ImageObject     string          `json:"imageObject,omitempty"`
-	Images          []PetImage      `json:"images,omitempty"`
-	Embedding       []float32       `json:"embedding,omitempty"`
-	ReportedAt      time.Time       `json:"reportedAt"`
-	Location        string          `json:"location"`
-	GeocodingStatus GeocodingStatus `json:"geocodingStatus"`
-	Coordinates     *LocationPoint  `json:"coordinates,omitempty"`
-	Status          LostPetStatus   `json:"status"`
+	PetID             string          `json:"petId"`
+	PetName           string          `json:"petName,omitempty"`
+	Species           string          `json:"species,omitempty"`
+	Breed             string          `json:"breed,omitempty"`
+	PrimaryColor      string          `json:"primaryColor,omitempty"`
+	Description       string          `json:"description,omitempty"`
+	ImageObject       string          `json:"imageObject,omitempty"`
+	Images            []PetImage      `json:"images,omitempty"`
+	Embedding         []float32       `json:"embedding,omitempty"`
+	ReportedAt        time.Time       `json:"reportedAt"`
+	Location          string          `json:"location"`
+	GeocodingStatus   GeocodingStatus `json:"geocodingStatus"`
+	Coordinates       *LocationPoint  `json:"coordinates,omitempty"`
+	Status            LostPetStatus   `json:"status"`
+	MicrochipID       string          `json:"microchipId,omitempty"`
+	MicrochipRegistry string          `json:"microchipRegistry,omitempty"`
 }
 
 // DecodeLostPetReported reads every lost-pet payload shape published by the
@@ -314,17 +329,19 @@ func (e LostPetReportedV4) Validate() error {
 // PublicLostPetReport is the unauthenticated lost-pet listing DTO. It cannot
 // serialize reporter contact details because those fields are absent by type.
 type PublicLostPetReport struct {
-	PetID           string          `json:"petId"`
-	PetName         string          `json:"petName,omitempty"`
-	Species         string          `json:"species,omitempty"`
-	Breed           string          `json:"breed,omitempty"`
-	PrimaryColor    string          `json:"primaryColor,omitempty"`
-	Description     string          `json:"description,omitempty"`
-	ReportedAt      time.Time       `json:"reportedAt"`
-	Location        string          `json:"location"`
-	GeocodingStatus GeocodingStatus `json:"geocodingStatus,omitempty"`
-	Coordinates     *LocationPoint  `json:"coordinates,omitempty"`
-	Status          LostPetStatus   `json:"status,omitempty"`
+	PetID             string          `json:"petId"`
+	PetName           string          `json:"petName,omitempty"`
+	Species           string          `json:"species,omitempty"`
+	Breed             string          `json:"breed,omitempty"`
+	PrimaryColor      string          `json:"primaryColor,omitempty"`
+	Description       string          `json:"description,omitempty"`
+	ReportedAt        time.Time       `json:"reportedAt"`
+	Location          string          `json:"location"`
+	GeocodingStatus   GeocodingStatus `json:"geocodingStatus,omitempty"`
+	Coordinates       *LocationPoint  `json:"coordinates,omitempty"`
+	Status            LostPetStatus   `json:"status,omitempty"`
+	MicrochipID       string          `json:"microchipId,omitempty"`
+	MicrochipRegistry string          `json:"microchipRegistry,omitempty"`
 }
 
 // NormalizeLostPetReport canonicalizes user-supplied values before validation,
@@ -361,6 +378,18 @@ func NormalizeLostPetReport(report LostPetReport) LostPetReport {
 			report.GeocodingStatus = GeocodingUnavailable
 		} else {
 			report.GeocodingStatus = GeocodingPending
+		}
+	}
+	report.MicrochipID = strings.TrimSpace(report.MicrochipID)
+	report.MicrochipRegistry = strings.TrimSpace(report.MicrochipRegistry)
+	if report.MicrochipID != "" {
+		val := microchip.ValidateAndNormalize(report.MicrochipID)
+		if val.Valid {
+			report.MicrochipID = val.NormalizedID
+			if report.MicrochipRegistry == "" {
+				reg := microchip.IdentifyIssuingRegistry(val.NormalizedID)
+				report.MicrochipRegistry = reg.RegistryName
+			}
 		}
 	}
 	return report
@@ -422,19 +451,21 @@ func validateLostPetCanonicalFields(r LostPetReport) error {
 
 func normalizeLostPetReportedV4(event LostPetReportedV4) LostPetReportedV4 {
 	report := NormalizeLostPetReport(LostPetReport{
-		PetID:           event.PetID,
-		PetName:         event.PetName,
-		Species:         event.Species,
-		Breed:           event.Breed,
-		PrimaryColor:    event.PrimaryColor,
-		Description:     event.Description,
-		ImageObject:     event.ImageObject,
-		Images:          event.Images,
-		ReportedAt:      event.ReportedAt,
-		Location:        event.Location,
-		GeocodingStatus: event.GeocodingStatus,
-		Coordinates:     event.Coordinates,
-		Status:          event.Status,
+		PetID:             event.PetID,
+		PetName:           event.PetName,
+		Species:           event.Species,
+		Breed:             event.Breed,
+		PrimaryColor:      event.PrimaryColor,
+		Description:       event.Description,
+		ImageObject:       event.ImageObject,
+		Images:            event.Images,
+		ReportedAt:        event.ReportedAt,
+		Location:          event.Location,
+		GeocodingStatus:   event.GeocodingStatus,
+		Coordinates:       event.Coordinates,
+		Status:            event.Status,
+		MicrochipID:       event.MicrochipID,
+		MicrochipRegistry: event.MicrochipRegistry,
 	})
 	res := report.ReportedEvent()
 	if len(event.Embedding) > 0 {
@@ -478,17 +509,19 @@ func (e LostPetReportedV2) redacted() LostPetReportedV3 {
 // Public returns the redacted listing representation of the aggregate.
 func (r LostPetReport) Public() PublicLostPetReport {
 	return PublicLostPetReport{
-		PetID:           r.PetID,
-		PetName:         r.PetName,
-		Species:         r.Species,
-		Breed:           r.Breed,
-		PrimaryColor:    r.PrimaryColor,
-		Description:     r.Description,
-		ReportedAt:      r.ReportedAt,
-		Location:        r.Location,
-		GeocodingStatus: r.GeocodingStatus,
-		Coordinates:     cloneLocationPoint(r.Coordinates),
-		Status:          r.Status,
+		PetID:             r.PetID,
+		PetName:           r.PetName,
+		Species:           r.Species,
+		Breed:             r.Breed,
+		PrimaryColor:      r.PrimaryColor,
+		Description:       r.Description,
+		ReportedAt:        r.ReportedAt,
+		Location:          r.Location,
+		GeocodingStatus:   r.GeocodingStatus,
+		Coordinates:       cloneLocationPoint(r.Coordinates),
+		Status:            r.Status,
+		MicrochipID:       microchip.MaskMicrochip(r.MicrochipID),
+		MicrochipRegistry: r.MicrochipRegistry,
 	}
 }
 
@@ -500,22 +533,24 @@ func (r LostPetReport) Persisted() (LostPetRecord, ReportContact) {
 		emb = append([]float32(nil), primary.Embedding...)
 	}
 	return LostPetRecord{
-			PetID:            r.PetID,
-			PetName:          r.PetName,
-			Species:          r.Species,
-			Breed:            r.Breed,
-			PrimaryColor:     r.PrimaryColor,
-			Description:      r.Description,
-			OwnerIdentityRef: identityRef,
-			ImageObject:      r.ImageObject,
-			Images:           clonePetImages(r.Images),
-			Embedding:        emb,
-			ReportedAt:       r.ReportedAt,
-			Location:         r.Location,
-			GeocodingStatus:  r.GeocodingStatus,
-			Coordinates:      cloneLocationPoint(r.Coordinates),
-			Status:           r.Status,
-			OwnedBy:          normalizePrincipalRef(r.OwnedBy),
+			PetID:             r.PetID,
+			PetName:           r.PetName,
+			Species:           r.Species,
+			Breed:             r.Breed,
+			PrimaryColor:      r.PrimaryColor,
+			Description:       r.Description,
+			OwnerIdentityRef:  identityRef,
+			ImageObject:       r.ImageObject,
+			Images:            clonePetImages(r.Images),
+			Embedding:         emb,
+			ReportedAt:        r.ReportedAt,
+			Location:          r.Location,
+			GeocodingStatus:   r.GeocodingStatus,
+			Coordinates:       cloneLocationPoint(r.Coordinates),
+			Status:            r.Status,
+			OwnedBy:           normalizePrincipalRef(r.OwnedBy),
+			MicrochipID:       r.MicrochipID,
+			MicrochipRegistry: r.MicrochipRegistry,
 		}, NormalizeReportContact(ReportContact{
 			IdentityRef: identityRef,
 			Email:       r.ReporterEmail,
@@ -527,20 +562,22 @@ func (r LostPetReport) Persisted() (LostPetRecord, ReportContact) {
 // records that predate explicit identity references.
 func NormalizeLostPetRecord(record LostPetRecord) LostPetRecord {
 	report := NormalizeLostPetReport(LostPetReport{
-		PetID:           record.PetID,
-		PetName:         record.PetName,
-		Species:         record.Species,
-		Breed:           record.Breed,
-		PrimaryColor:    record.PrimaryColor,
-		Description:     record.Description,
-		ImageObject:     record.ImageObject,
-		Images:          record.Images,
-		ReportedAt:      record.ReportedAt,
-		Location:        record.Location,
-		GeocodingStatus: record.GeocodingStatus,
-		Coordinates:     record.Coordinates,
-		Status:          record.Status,
-		OwnedBy:         record.OwnedBy,
+		PetID:             record.PetID,
+		PetName:           record.PetName,
+		Species:           record.Species,
+		Breed:             record.Breed,
+		PrimaryColor:      record.PrimaryColor,
+		Description:       record.Description,
+		ImageObject:       record.ImageObject,
+		Images:            record.Images,
+		ReportedAt:        record.ReportedAt,
+		Location:          record.Location,
+		GeocodingStatus:   record.GeocodingStatus,
+		Coordinates:       record.Coordinates,
+		Status:            record.Status,
+		OwnedBy:           record.OwnedBy,
+		MicrochipID:       record.MicrochipID,
+		MicrochipRegistry: record.MicrochipRegistry,
 	})
 	normalized, _ := report.Persisted()
 	if identityRef := strings.TrimSpace(record.OwnerIdentityRef); identityRef != "" {
@@ -560,17 +597,19 @@ func NormalizeLostPetRecord(record LostPetRecord) LostPetRecord {
 // Public returns the unauthenticated representation of persisted state.
 func (r LostPetRecord) Public() PublicLostPetReport {
 	return PublicLostPetReport{
-		PetID:           r.PetID,
-		PetName:         r.PetName,
-		Species:         r.Species,
-		Breed:           r.Breed,
-		PrimaryColor:    r.PrimaryColor,
-		Description:     r.Description,
-		ReportedAt:      r.ReportedAt,
-		Location:        r.Location,
-		GeocodingStatus: r.GeocodingStatus,
-		Coordinates:     cloneLocationPoint(r.Coordinates),
-		Status:          r.Status,
+		PetID:             r.PetID,
+		PetName:           r.PetName,
+		Species:           r.Species,
+		Breed:             r.Breed,
+		PrimaryColor:      r.PrimaryColor,
+		Description:       r.Description,
+		ReportedAt:        r.ReportedAt,
+		Location:          r.Location,
+		GeocodingStatus:   r.GeocodingStatus,
+		Coordinates:       cloneLocationPoint(r.Coordinates),
+		Status:            r.Status,
+		MicrochipID:       microchip.MaskMicrochip(r.MicrochipID),
+		MicrochipRegistry: r.MicrochipRegistry,
 	}
 }
 
@@ -581,20 +620,22 @@ func (r LostPetReport) ReportedEvent() LostPetReportedV4 {
 		emb = append([]float32(nil), primary.Embedding...)
 	}
 	return LostPetReportedV4{
-		PetID:           r.PetID,
-		PetName:         r.PetName,
-		Species:         r.Species,
-		Breed:           r.Breed,
-		PrimaryColor:    r.PrimaryColor,
-		Description:     r.Description,
-		ImageObject:     r.ImageObject,
-		Images:          clonePetImages(r.Images),
-		Embedding:       emb,
-		ReportedAt:      r.ReportedAt,
-		Location:        r.Location,
-		GeocodingStatus: r.GeocodingStatus,
-		Coordinates:     cloneLocationPoint(r.Coordinates),
-		Status:          r.Status,
+		PetID:             r.PetID,
+		PetName:           r.PetName,
+		Species:           r.Species,
+		Breed:             r.Breed,
+		PrimaryColor:      r.PrimaryColor,
+		Description:       r.Description,
+		ImageObject:       r.ImageObject,
+		Images:            clonePetImages(r.Images),
+		Embedding:         emb,
+		ReportedAt:        r.ReportedAt,
+		Location:          r.Location,
+		GeocodingStatus:   r.GeocodingStatus,
+		Coordinates:       cloneLocationPoint(r.Coordinates),
+		Status:            r.Status,
+		MicrochipID:       r.MicrochipID,
+		MicrochipRegistry: r.MicrochipRegistry,
 	}
 }
 
@@ -638,13 +679,13 @@ func (r LostPetReport) ReportedEventV2() LostPetReportedV2 {
 func normalizeSpecies(species string) string {
 	switch strings.ToLower(strings.TrimSpace(species)) {
 	case "dog":
-		return "Dog"
+		return SpeciesDog
 	case "cat":
-		return "Cat"
+		return SpeciesCat
 	case "bird":
-		return "Bird"
+		return SpeciesBird
 	case "other":
-		return "Other"
+		return SpeciesOther
 	default:
 		return strings.TrimSpace(species)
 	}
@@ -666,6 +707,8 @@ func validateLostPetLengths(r LostPetReport) error {
 		{name: "phone", value: r.Phone, limit: 64},
 		{name: "imageObject", value: r.ImageObject, limit: 1024},
 		{name: "location", value: r.Location, limit: 500},
+		{name: "microchipId", value: r.MicrochipID, limit: 64},
+		{name: "microchipRegistry", value: r.MicrochipRegistry, limit: 128},
 	}
 	for _, field := range fields {
 		if utf8.RuneCountInString(field.value) > field.limit {

@@ -151,7 +151,13 @@ func (w *Worker) ProcessMatchFound(ctx context.Context, matchResultData []byte) 
 	}
 
 	explanation := res.Details
-	if explanation == "" {
+	if res.DeterministicMatch {
+		if res.MatchedMicrochip != "" {
+			explanation = fmt.Sprintf("Verified microchip match (%s) with 100%% confidence.", res.MatchedMicrochip)
+		} else if explanation == "" {
+			explanation = "Verified microchip match with 100% confidence."
+		}
+	} else if explanation == "" {
 		explanation = fmt.Sprintf("High confidence match (%.0f%%) based on visual and trait analysis.", res.Score*100)
 	}
 
@@ -170,6 +176,10 @@ func (w *Worker) ProcessMatchFound(ctx context.Context, matchResultData []byte) 
 	emailContent, renderErr := renderer.RenderMatchAlert(alertData)
 	if renderErr != nil {
 		return nil, fmt.Errorf("notification-service: render match alert email: %w", renderErr)
+	}
+
+	if res.DeterministicMatch {
+		emailContent.Subject = "🚨 URGENT: Verified Microchip Match Found for " + res.MatchedPetID + "!"
 	}
 
 	smsFormatter := NewSMSFormatter()

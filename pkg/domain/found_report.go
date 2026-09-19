@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/scottdensmore/petspotr/pkg/microchip"
 )
 
 // FoundPetReportedPayloadVersion is the current found-pet integration payload.
@@ -57,6 +59,7 @@ const (
 	CustodyLocalShelter  CustodyStatus = "Local Shelter"
 	CustodyAnimalControl CustodyStatus = "Animal Control"
 	CustodySightedOnly   CustodyStatus = "Sighted Only"
+	CustodyShelterCare   CustodyStatus = "Shelter Care"
 )
 
 // FoundPetReport is the canonical application-boundary model for a found-pet
@@ -76,9 +79,14 @@ type FoundPetReport struct {
 	PrimaryColor        string          `json:"primaryColor,omitempty"`
 	SecondaryColor      string          `json:"secondaryColor,omitempty"`
 	DistinctiveMarkings []string        `json:"distinctiveMarkings,omitempty"`
-	CustodyStatus       CustodyStatus   `json:"custodyStatus"`
+	CustodyStatus       CustodyStatus   `json:"custodyStatus,omitempty"`
 	Status              FoundPetStatus  `json:"status"`
 	OwnedBy             *PrincipalRef   `json:"-"`
+	MicrochipID         string          `json:"microchipId,omitempty"`
+	MicrochipRegistry   string          `json:"microchipRegistry,omitempty"`
+	ShelterID           string          `json:"shelterId,omitempty"`
+	ShelterName         string          `json:"shelterName,omitempty"`
+	IntakeID            string          `json:"intakeId,omitempty"`
 }
 
 // FoundPetRecord is the persisted found-pet aggregate. Private finder contact
@@ -100,11 +108,16 @@ type FoundPetRecord struct {
 	PrimaryColor        string                  `json:"primaryColor,omitempty"`
 	SecondaryColor      string                  `json:"secondaryColor,omitempty"`
 	DistinctiveMarkings []string                `json:"distinctiveMarkings,omitempty"`
-	CustodyStatus       CustodyStatus           `json:"custodyStatus"`
+	CustodyStatus       CustodyStatus           `json:"custodyStatus,omitempty"`
 	Status              FoundPetStatus          `json:"status"`
 	ImageAnalysis       *ImageTraitAnalysis     `json:"imageAnalysis,omitempty"`
 	OwnedBy             *PrincipalRef           `json:"ownedBy,omitempty"`
 	LifecycleAudit      *FoundPetLifecycleAudit `json:"lifecycleAudit,omitempty"`
+	MicrochipID         string                  `json:"microchipId,omitempty"`
+	MicrochipRegistry   string                  `json:"microchipRegistry,omitempty"`
+	ShelterID           string                  `json:"shelterId,omitempty"`
+	ShelterName         string                  `json:"shelterName,omitempty"`
+	IntakeID            string                  `json:"intakeId,omitempty"`
 }
 
 // FoundPetReportedV2 is the additive payload-v2 integration event. Its legacy
@@ -125,8 +138,13 @@ type FoundPetReportedV2 struct {
 	PrimaryColor        string          `json:"primaryColor,omitempty"`
 	SecondaryColor      string          `json:"secondaryColor,omitempty"`
 	DistinctiveMarkings []string        `json:"distinctiveMarkings,omitempty"`
-	CustodyStatus       CustodyStatus   `json:"custodyStatus"`
+	CustodyStatus       CustodyStatus   `json:"custodyStatus,omitempty"`
 	Status              FoundPetStatus  `json:"status"`
+	MicrochipID         string          `json:"microchipId,omitempty"`
+	MicrochipRegistry   string          `json:"microchipRegistry,omitempty"`
+	ShelterID           string          `json:"shelterId,omitempty"`
+	ShelterName         string          `json:"shelterName,omitempty"`
+	IntakeID            string          `json:"intakeId,omitempty"`
 }
 
 // DecodeFoundPetReported reads every found-pet payload shape published by the
@@ -203,6 +221,11 @@ func (e FoundPetReportedV2) Validate() error {
 		DistinctiveMarkings: e.DistinctiveMarkings,
 		CustodyStatus:       e.CustodyStatus,
 		Status:              e.Status,
+		MicrochipID:         e.MicrochipID,
+		MicrochipRegistry:   e.MicrochipRegistry,
+		ShelterID:           e.ShelterID,
+		ShelterName:         e.ShelterName,
+		IntakeID:            e.IntakeID,
 	}.Validate()
 }
 
@@ -223,6 +246,11 @@ type PublicFoundPetReport struct {
 	DistinctiveMarkings []string        `json:"distinctiveMarkings,omitempty"`
 	CustodyStatus       CustodyStatus   `json:"custodyStatus,omitempty"`
 	Status              FoundPetStatus  `json:"status,omitempty"`
+	MicrochipID         string          `json:"microchipId,omitempty"`
+	MicrochipRegistry   string          `json:"microchipRegistry,omitempty"`
+	ShelterID           string          `json:"shelterId,omitempty"`
+	ShelterName         string          `json:"shelterName,omitempty"`
+	IntakeID            string          `json:"intakeId,omitempty"`
 }
 
 // NormalizeFoundPetReport canonicalizes user-supplied values before
@@ -260,6 +288,21 @@ func NormalizeFoundPetReport(report FoundPetReport) FoundPetReport {
 			report.GeocodingStatus = GeocodingUnavailable
 		} else {
 			report.GeocodingStatus = GeocodingPending
+		}
+	}
+	report.MicrochipID = strings.TrimSpace(report.MicrochipID)
+	report.MicrochipRegistry = strings.TrimSpace(report.MicrochipRegistry)
+	report.ShelterID = strings.TrimSpace(report.ShelterID)
+	report.ShelterName = strings.TrimSpace(report.ShelterName)
+	report.IntakeID = strings.TrimSpace(report.IntakeID)
+	if report.MicrochipID != "" {
+		val := microchip.ValidateAndNormalize(report.MicrochipID)
+		if val.Valid {
+			report.MicrochipID = val.NormalizedID
+			if report.MicrochipRegistry == "" {
+				reg := microchip.IdentifyIssuingRegistry(val.NormalizedID)
+				report.MicrochipRegistry = reg.RegistryName
+			}
 		}
 	}
 	return report
@@ -301,7 +344,7 @@ func (r FoundPetReport) Validate() error {
 		return fmt.Errorf("domain: unsupported species %q", r.Species)
 	}
 	switch r.CustodyStatus {
-	case CustodyUnknown, CustodyFinderHome, CustodyLocalShelter, CustodyAnimalControl, CustodySightedOnly:
+	case CustodyUnknown, CustodyFinderHome, CustodyLocalShelter, CustodyAnimalControl, CustodySightedOnly, CustodyShelterCare:
 	default:
 		return fmt.Errorf("domain: unsupported custody status %q", r.CustodyStatus)
 	}
@@ -347,6 +390,11 @@ func (r FoundPetReport) Public() PublicFoundPetReport {
 		DistinctiveMarkings: append([]string(nil), r.DistinctiveMarkings...),
 		CustodyStatus:       r.CustodyStatus,
 		Status:              r.Status,
+		MicrochipID:         microchip.MaskMicrochip(r.MicrochipID),
+		MicrochipRegistry:   r.MicrochipRegistry,
+		ShelterID:           r.ShelterID,
+		ShelterName:         r.ShelterName,
+		IntakeID:            r.IntakeID,
 	}
 }
 
@@ -376,6 +424,11 @@ func (r FoundPetReport) Persisted() (FoundPetRecord, ReportContact) {
 			CustodyStatus:       r.CustodyStatus,
 			Status:              r.Status,
 			OwnedBy:             normalizePrincipalRef(r.OwnedBy),
+			MicrochipID:         r.MicrochipID,
+			MicrochipRegistry:   r.MicrochipRegistry,
+			ShelterID:           r.ShelterID,
+			ShelterName:         r.ShelterName,
+			IntakeID:            r.IntakeID,
 		}, NormalizeReportContact(ReportContact{
 			IdentityRef: identityRef,
 			Email:       r.FinderEmail,
@@ -402,6 +455,11 @@ func NormalizeFoundPetRecord(record FoundPetRecord) FoundPetRecord {
 		CustodyStatus:       record.CustodyStatus,
 		Status:              record.Status,
 		OwnedBy:             record.OwnedBy,
+		MicrochipID:         record.MicrochipID,
+		MicrochipRegistry:   record.MicrochipRegistry,
+		ShelterID:           record.ShelterID,
+		ShelterName:         record.ShelterName,
+		IntakeID:            record.IntakeID,
 	})
 	normalized, _ := report.Persisted()
 	if identityRef := strings.TrimSpace(record.FinderIdentityRef); identityRef != "" {
@@ -435,6 +493,11 @@ func (r FoundPetRecord) Public() PublicFoundPetReport {
 		DistinctiveMarkings: append([]string(nil), r.DistinctiveMarkings...),
 		CustodyStatus:       r.CustodyStatus,
 		Status:              r.Status,
+		MicrochipID:         microchip.MaskMicrochip(r.MicrochipID),
+		MicrochipRegistry:   r.MicrochipRegistry,
+		ShelterID:           r.ShelterID,
+		ShelterName:         r.ShelterName,
+		IntakeID:            r.IntakeID,
 	}
 }
 
@@ -461,6 +524,11 @@ func (r FoundPetReport) ReportedEvent() FoundPetReportedV2 {
 		DistinctiveMarkings: append([]string(nil), r.DistinctiveMarkings...),
 		CustodyStatus:       r.CustodyStatus,
 		Status:              r.Status,
+		MicrochipID:         r.MicrochipID,
+		MicrochipRegistry:   r.MicrochipRegistry,
+		ShelterID:           r.ShelterID,
+		ShelterName:         r.ShelterName,
+		IntakeID:            r.IntakeID,
 	}
 }
 
@@ -481,6 +549,11 @@ func normalizeFoundPetReported(event FoundPetReportedV2) FoundPetReportedV2 {
 		DistinctiveMarkings: event.DistinctiveMarkings,
 		CustodyStatus:       event.CustodyStatus,
 		Status:              event.Status,
+		MicrochipID:         event.MicrochipID,
+		MicrochipRegistry:   event.MicrochipRegistry,
+		ShelterID:           event.ShelterID,
+		ShelterName:         event.ShelterName,
+		IntakeID:            event.IntakeID,
 	})
 	res := report.ReportedEvent()
 	if len(event.Embedding) > 0 {
@@ -503,6 +576,8 @@ func normalizeCustodyStatus(status CustodyStatus) CustodyStatus {
 		return CustodyAnimalControl
 	case "sighted only":
 		return CustodySightedOnly
+	case "shelter care":
+		return CustodyShelterCare
 	default:
 		return CustodyStatus(strings.TrimSpace(string(status)))
 	}
@@ -546,6 +621,11 @@ func validateFoundPetLengths(r FoundPetReport) error {
 		{name: "breed", value: r.Breed, limit: 200},
 		{name: "primaryColor", value: r.PrimaryColor, limit: 100},
 		{name: "secondaryColor", value: r.SecondaryColor, limit: 100},
+		{name: "microchipId", value: r.MicrochipID, limit: 64},
+		{name: "microchipRegistry", value: r.MicrochipRegistry, limit: 128},
+		{name: "shelterId", value: r.ShelterID, limit: 128},
+		{name: "shelterName", value: r.ShelterName, limit: 256},
+		{name: "intakeId", value: r.IntakeID, limit: 128},
 	}
 	for _, field := range fields {
 		if utf8.RuneCountInString(field.value) > field.limit {

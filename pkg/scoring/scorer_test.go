@@ -429,3 +429,147 @@ func TestHybridTriFactorScoring(t *testing.T) {
 		}
 	})
 }
+
+func TestCalculateDeterministicMatchScore(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Identical microchips return score 1.0 and deterministic true", func(t *testing.T) {
+		res := scoring.EvaluateMicrochipMatch("985141000123456", "985141000123456")
+		if !res.IsMatch || res.Score != 1.0 || !res.Deterministic || res.Mismatch {
+			t.Fatalf("expected deterministic 1.0 match, got %+v", res)
+		}
+	})
+
+	t.Run("Identical microchips with formatting differences match", func(t *testing.T) {
+		res := scoring.EvaluateMicrochipMatch("985-141-000 123 456", "985141000123456")
+		if !res.IsMatch || res.Score != 1.0 || !res.Deterministic || res.Mismatch {
+			t.Fatalf("expected deterministic 1.0 match with formatting, got %+v", res)
+		}
+	})
+
+	t.Run("Conflicting microchips return score 0.0 and mismatch true", func(t *testing.T) {
+		res := scoring.EvaluateMicrochipMatch("985141000123456", "981010000999999")
+		if res.IsMatch || res.Score != 0.0 || res.Deterministic || !res.Mismatch {
+			t.Fatalf("expected mismatch 0.0 penalty, got %+v", res)
+		}
+	})
+
+	t.Run("Missing microchip in one or both delegates to probabilistic scoring", func(t *testing.T) {
+		tests := []struct {
+			name  string
+			lost  string
+			found string
+		}{
+			{"lost only", "985141000123456", ""},
+			{"found only", "", "985141000123456"},
+			{"both empty", "", ""},
+			{"invalid format lost", "bad-chip", "985141000123456"},
+			{"invalid format both", "bad-chip", "bad-chip"},
+		}
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				res := scoring.EvaluateMicrochipMatch(tc.lost, tc.found)
+				if res.IsMatch || res.Score != 0.0 || res.Deterministic || res.Mismatch {
+					t.Fatalf("expected non-deterministic non-mismatch result, got %+v", res)
+				}
+			})
+		}
+	})
+}
+
+func TestComparePetsHybridWithMicrochip(t *testing.T) {
+	t.Parallel()
+
+	traits := &scoring.PetTraits{
+		Breed:               "Golden Retriever",
+		PrimaryColor:        "Golden",
+		SecondaryColor:      "Cream",
+		DistinctiveMarkings: []string{"White patch on chest"},
+		EyeColor:            "Brown",
+	}
+	vec := []float32{1.0, 0.0}
+
+	t.Run("identical microchips return 1.0 deterministic match", func(t *testing.T) {
+		res := scoring.ComparePetsHybridWithMicrochip(
+			"lost-1", "found-1",
+			"Dog", "Dog",
+			"985141000123456", "985141000123456",
+			5.0,
+			traits, traits,
+			vec, vec,
+		)
+		if res == nil {
+			t.Fatal("expected non-nil MatchResult")
+		}
+		if res.Score != 1.0 || !res.IsMatch || !res.DeterministicMatch {
+			t.Fatalf("expected 1.0 deterministic match, got Score=%f, IsMatch=%v, Deterministic=%v",
+				res.Score, res.IsMatch, res.DeterministicMatch)
+		}
+		if res.MatchType != "deterministic_microchip" {
+			t.Errorf("expected matchType deterministic_microchip, got %s", res.MatchType)
+		}
+		if res.MatchedMicrochip != "HomeAgain ••••3456" {
+			t.Errorf("expected masked microchip HomeAgain ••••3456, got %s", res.MatchedMicrochip)
+		}
+		if res.Scores.MicrochipMatch != 1.0 {
+			t.Errorf("expected MicrochipMatch score 1.0, got %f", res.Scores.MicrochipMatch)
+		}
+		if res.Scores.Visual <= 0 || res.Scores.Spatial <= 0 || res.Scores.Vector <= 0 {
+			t.Errorf("expected preserved subscores, got %+v", res.Scores)
+		}
+	})
+
+	t.Run("conflicting microchips return 0.0 mismatch veto", func(t *testing.T) {
+		res := scoring.ComparePetsHybridWithMicrochip(
+			"lost-1", "found-1",
+			"Dog", "Dog",
+			"985141000123456", "981010000999999",
+			0.0,
+			traits, traits,
+			vec, vec,
+		)
+		if res == nil {
+			t.Fatal("expected non-nil MatchResult")
+		}
+		if res.Score != 0.0 || res.IsMatch || res.DeterministicMatch {
+			t.Fatalf("expected 0.0 non-match veto, got Score=%f, IsMatch=%v", res.Score, res.IsMatch)
+		}
+		if res.Details != "Microchip mismatch veto (score forced to 0.0)" {
+			t.Errorf("expected veto details, got %s", res.Details)
+		}
+		if res.Scores.MicrochipMatch != 0.0 {
+			t.Errorf("expected MicrochipMatch 0.0, got %f", res.Scores.MicrochipMatch)
+		}
+	})
+
+	t.Run("single or unchipped falls back to hybrid scoring", func(t *testing.T) {
+		res := scoring.ComparePetsHybridWithMicrochip(
+			"lost-1", "found-1",
+			"Dog", "Dog",
+			"985141000123456", "",
+			0.0,
+			traits, traits,
+			vec, vec,
+		)
+		if res == nil {
+			t.Fatal("expected non-nil MatchResult")
+		}
+		if res.DeterministicMatch {
+			t.Errorf("expected non-deterministic match when one chip missing")
+		}
+		if res.Score < 0.70 || !res.IsMatch {
+			t.Errorf("expected hybrid match >= 0.70, got %f", res.Score)
+		}
+	})
+
+	t.Run("invalid distance returns nil", func(t *testing.T) {
+		res := scoring.ComparePetsHybridWithMicrochip(
+			"lost-1", "found-1", "Dog", "Dog",
+			"985141000123456", "985141000123456",
+			-1.0, traits, traits, vec, vec,
+		)
+		if res != nil {
+			t.Fatalf("expected nil for negative distance, got %+v", res)
+		}
+	})
+}

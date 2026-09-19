@@ -266,6 +266,7 @@ func (s *Server) routes() {
 	))
 	s.mux.HandleFunc("/api/v1/found-pets/{petID}/contact", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiFoundPetContact))
 	s.mux.HandleFunc("/api/v1/found-pets/{petID}/status", s.handleApiFoundPetStatus)
+	s.mux.HandleFunc("/api/v1/shelter-intakes/ingest", s.handleApiShelterIntakeIngest)
 	s.mux.HandleFunc("/api/v1/matches", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleApiMatches))
 	s.mux.HandleFunc("/api/v1/matches/action", s.handleApiMatchAction)
 	s.mux.HandleFunc("/api/v1/reunions/contact", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiReunionContact))
@@ -355,6 +356,7 @@ type LostPetFormRequest struct {
 	Location      string            `json:"location"`
 	ReporterEmail string            `json:"reporterEmail"`
 	Phone         string            `json:"phone"`
+	MicrochipID   string            `json:"microchipId,omitempty"`
 	ImageObject   string            `json:"imageObject,omitempty"`
 	Images        []domain.PetImage `json:"images,omitempty"`
 	ReportedAt    time.Time         `json:"reportedAt"`
@@ -609,6 +611,7 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		Description:   req.Description,
 		ReporterEmail: reporterEmail,
 		Phone:         req.Phone,
+		MicrochipID:   req.MicrochipID,
 		ImageObject:   imageObject,
 		Images:        req.Images,
 		ReportedAt:    reportedAt,
@@ -694,6 +697,7 @@ type FoundPetFormRequest struct {
 	SecondaryColor      string                `json:"secondaryColor"`
 	DistinctiveMarkings []string              `json:"distinctiveMarkings"`
 	CustodyStatus       domain.CustodyStatus  `json:"custodyStatus"`
+	MicrochipID         string                `json:"microchipId,omitempty"`
 	FoundAt             time.Time             `json:"foundAt"`
 }
 
@@ -868,6 +872,7 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 		SecondaryColor:      req.SecondaryColor,
 		DistinctiveMarkings: req.DistinctiveMarkings,
 		CustodyStatus:       req.CustodyStatus,
+		MicrochipID:         req.MicrochipID,
 		OwnedBy:             ownedBy,
 	}
 
