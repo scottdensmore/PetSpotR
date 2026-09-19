@@ -277,7 +277,7 @@ textarea:focus-visible,
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 1rem;
   list-style: none;
 }
 
@@ -294,7 +294,12 @@ textarea:focus-visible,
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
+}
+
+.nav-actions .btn {
+  white-space: nowrap;
+  padding: 0.65rem 1.1rem;
 }
 
 /* Buttons & Inputs */
