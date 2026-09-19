@@ -45,13 +45,14 @@ var (
 // MatchScoreBreakdown preserves the components and threshold used to rank a
 // candidate so the combined score remains explainable after model changes.
 type MatchScoreBreakdown struct {
-	Visual        float64 `json:"visual"`
-	Color         float64 `json:"color"`
-	Spatial       float64 `json:"spatial"`
-	DistanceMiles float64 `json:"distanceMiles"`
-	Threshold     float64 `json:"threshold,omitempty"`
-	Vector        float64 `json:"vector,omitempty"`
-	Trait         float64 `json:"trait,omitempty"`
+	Visual         float64 `json:"visual"`
+	Color          float64 `json:"color"`
+	Spatial        float64 `json:"spatial"`
+	DistanceMiles  float64 `json:"distanceMiles"`
+	Threshold      float64 `json:"threshold,omitempty"`
+	Vector         float64 `json:"vector,omitempty"`
+	Trait          float64 `json:"trait,omitempty"`
+	MicrochipMatch float64 `json:"microchipMatch,omitempty"`
 }
 
 // MatchPetDetail is the immutable report snapshot presented with a match.
@@ -67,19 +68,24 @@ type MatchPetDetail struct {
 // MatchRecord is the canonical durable candidate match. It is written before
 // matchFound publication and contains no reporter or finder contact.
 type MatchRecord struct {
-	MatchID          string              `json:"matchId"`
-	FoundPetID       string              `json:"foundPetId"`
-	MatchedPetID     string              `json:"matchedPetId"`
-	Score            float64             `json:"score"`
-	Status           MatchStatus         `json:"status"`
-	MatchedAt        time.Time           `json:"matchedAt"`
-	Scores           MatchScoreBreakdown `json:"scores"`
-	LostPet          MatchPetDetail      `json:"lostPet"`
-	FoundPet         MatchPetDetail      `json:"foundPet"`
-	SourceEventID    string              `json:"sourceEventId,omitempty"`
-	Model            string              `json:"model,omitempty"`
-	ThresholdVersion string              `json:"thresholdVersion,omitempty"`
-	Explanation      string              `json:"explanation,omitempty"`
+	MatchID            string              `json:"matchId"`
+	FoundPetID         string              `json:"foundPetId"`
+	MatchedPetID       string              `json:"matchedPetId"`
+	LostPetID          string              `json:"lostPetId,omitempty"`
+	Score              float64             `json:"score"`
+	OverallScore       float64             `json:"overallScore,omitempty"`
+	Status             MatchStatus         `json:"status"`
+	MatchedAt          time.Time           `json:"matchedAt"`
+	Scores             MatchScoreBreakdown `json:"scores"`
+	LostPet            MatchPetDetail      `json:"lostPet"`
+	FoundPet           MatchPetDetail      `json:"foundPet"`
+	SourceEventID      string              `json:"sourceEventId,omitempty"`
+	Model              string              `json:"model,omitempty"`
+	ThresholdVersion   string              `json:"thresholdVersion,omitempty"`
+	Explanation        string              `json:"explanation,omitempty"`
+	DeterministicMatch bool                `json:"deterministicMatch,omitempty"`
+	MatchType          string              `json:"matchType,omitempty"`
+	MatchedMicrochip   string              `json:"matchedMicrochip,omitempty"`
 }
 
 // MatchParticipantRecord is the private authorization link between a match
