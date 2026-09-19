@@ -1925,5 +1925,3 @@ func (s *Server) handleFinderLanding(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(buf.Bytes())
 	}
 }
-
-

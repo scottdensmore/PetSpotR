@@ -101,10 +101,10 @@
       <a href="{{.ReportFoundURL}}" id="btn-finder-found" class="btn btn-primary btn-lg finder-btn btn-finder-found">
         <span class="btn-icon">📷</span> I Have Found This Pet
       </a>
-      <button type="button" id="btn-finder-message" class="btn btn-secondary btn-lg finder-btn btn-finder-message" onclick="openContactModal()">
+      <button type="button" id="btn-finder-message" class="btn btn-secondary btn-lg finder-btn btn-finder-message">
         <span class="btn-icon">💬</span> Send Private Message to Owner
       </button>
-      <button type="button" id="btn-finder-sighting" class="btn btn-secondary btn-lg finder-btn btn-finder-sighting" onclick="openSightingModal()">
+      <button type="button" id="btn-finder-sighting" class="btn btn-secondary btn-lg finder-btn btn-finder-sighting">
         <span class="btn-icon">📍</span> Report a Quick Sighting
       </button>
     </section>
@@ -114,7 +114,7 @@
       <h2 id="share-heading" class="share-heading">Help Spread the Word</h2>
       <p class="text-secondary share-subtext">Sharing this link takes 5 seconds and exponentially increases the chances of reunion.</p>
       <div class="finder-share-buttons">
-        <button type="button" id="btn-copy-shortlink" class="btn btn-secondary btn-share" onclick="copyShortlink()">
+        <button type="button" id="btn-copy-shortlink" class="btn btn-secondary btn-share" data-short-url="{{.ShortURL}}">
           📋 <span id="copy-btn-label">Copy Link</span>
         </button>
         <a href="https://nextdoor.com/share/?url={{.ShortURLEncoded}}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-share" id="btn-share-nextdoor" aria-label="Share on Nextdoor">
@@ -135,9 +135,9 @@
     <div class="glass-card finder-modal-card">
       <div class="modal-header">
         <h2 id="contact-modal-title">💬 Message Pet Owner</h2>
-        <button type="button" class="btn-icon" onclick="closeContactModal()" aria-label="Close modal">✕</button>
+        <button type="button" class="btn-icon" data-close-modal="message" aria-label="Close modal">✕</button>
       </div>
-      <form id="form-finder-message" class="finder-modal-form" onsubmit="handleContactSubmit(event)">
+      <form id="form-finder-message" class="finder-modal-form">
         <p class="text-secondary finder-privacy-note">
           🔒 PetSpotR Mediated Privacy: Your message is relayed securely. The owner's personal email and phone remain strictly protected.
         </p>
@@ -156,7 +156,7 @@
         <div id="contact-feedback" class="form-feedback hidden" role="status"></div>
         <div class="modal-actions">
           <button type="submit" class="btn btn-primary btn-full" id="btn-submit-contact-message">Send Secure Message</button>
-          <button type="button" class="btn btn-secondary btn-full" onclick="closeContactModal()">Cancel</button>
+          <button type="button" class="btn btn-secondary btn-full" data-close-modal="message">Cancel</button>
         </div>
       </form>
     </div>
@@ -167,9 +167,9 @@
     <div class="glass-card finder-modal-card">
       <div class="modal-header">
         <h2 id="sighting-modal-title">📍 Report Quick Sighting</h2>
-        <button type="button" class="btn-icon" onclick="closeSightingModal()" aria-label="Close modal">✕</button>
+        <button type="button" class="btn-icon" data-close-modal="sighting" aria-label="Close modal">✕</button>
       </div>
-      <form id="form-finder-sighting" class="finder-modal-form" onsubmit="handleSightingSubmit(event)">
+      <form id="form-finder-sighting" class="finder-modal-form">
         <p class="text-secondary finder-privacy-note">
           Provide any sighting details to help the owner pinpoint {{.PetName}}'s location.
         </p>
@@ -188,105 +188,12 @@
         <div id="sighting-feedback" class="form-feedback hidden" role="status"></div>
         <div class="modal-actions">
           <button type="submit" class="btn btn-primary btn-full" id="btn-submit-sighting">Submit Sighting</button>
-          <button type="button" class="btn btn-secondary btn-full" onclick="closeSightingModal()">Cancel</button>
+          <button type="button" class="btn btn-secondary btn-full" data-close-modal="sighting">Cancel</button>
         </div>
       </form>
     </div>
   </div>
 
-  <script>
-    function openContactModal() {
-      document.getElementById('modal-finder-message').classList.remove('hidden');
-    }
-    function closeContactModal() {
-      document.getElementById('modal-finder-message').classList.add('hidden');
-    }
-    function openSightingModal() {
-      document.getElementById('modal-finder-sighting').classList.remove('hidden');
-    }
-    function closeSightingModal() {
-      document.getElementById('modal-finder-sighting').classList.add('hidden');
-    }
-
-    function copyShortlink() {
-      var shortURL = {{.ShortURL}};
-      var label = document.getElementById('copy-btn-label');
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(shortURL).then(function() {
-          if (label) {
-            label.textContent = 'Copied!';
-            setTimeout(function() { label.textContent = 'Copy Link'; }, 2000);
-          }
-        }).catch(function() {
-          promptCopy(shortURL, label);
-        });
-      } else {
-        promptCopy(shortURL, label);
-      }
-    }
-
-    function promptCopy(text, label) {
-      window.prompt('Copy shortlink:', text);
-      if (label) {
-        label.textContent = 'Copied!';
-        setTimeout(function() { label.textContent = 'Copy Link'; }, 2000);
-      }
-    }
-
-    function handleContactSubmit(e) {
-      e.preventDefault();
-      var feedback = document.getElementById('contact-feedback');
-      var submitBtn = document.getElementById('btn-submit-contact-message');
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Sending...';
-      setTimeout(function() {
-        feedback.className = 'form-feedback alert-success';
-        feedback.textContent = 'Message dispatched to pet owner via secure channel!';
-        feedback.classList.remove('hidden');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Send Secure Message';
-        setTimeout(function() {
-          closeContactModal();
-          feedback.classList.add('hidden');
-          document.getElementById('form-finder-message').reset();
-        }, 1500);
-      }, 500);
-    }
-
-    function handleSightingSubmit(e) {
-      e.preventDefault();
-      var feedback = document.getElementById('sighting-feedback');
-      var submitBtn = document.getElementById('btn-submit-sighting');
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Submitting...';
-      setTimeout(function() {
-        feedback.className = 'form-feedback alert-success';
-        feedback.textContent = 'Sighting reported! Thank you for helping reunite {{.PetName}}!';
-        feedback.classList.remove('hidden');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit Sighting';
-        setTimeout(function() {
-          closeSightingModal();
-          feedback.classList.add('hidden');
-          document.getElementById('form-finder-sighting').reset();
-        }, 1500);
-      }, 500);
-    }
-
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        closeContactModal();
-        closeSightingModal();
-      }
-    });
-
-    document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
-      overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) {
-          overlay.classList.add('hidden');
-        }
-      });
-    });
-  </script>
+  <script src="/static/js/finder-landing.js" defer></script>
 </body>
 </html>

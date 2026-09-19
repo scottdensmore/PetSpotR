@@ -1927,4 +1927,3 @@ func TestFinderLandingPage(t *testing.T) {
 		}
 	})
 }
-
