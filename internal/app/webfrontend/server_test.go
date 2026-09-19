@@ -2036,3 +2036,110 @@ func TestPetsDirectory_RendersMaskedMicrochipBadge(t *testing.T) {
 		t.Errorf("expected /pets HTML to contain masked microchip 'HomeAgain ••••3456'")
 	}
 }
+
+func TestShelterAnalyticsPage(t *testing.T) {
+	t.Parallel()
+	srv := NewDemoServer()
+
+	req := httptest.NewRequest(http.MethodGet, "/shelters/analytics", nil)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for /shelters/analytics, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	expectedIDs := []string{
+		"shelter-filter",
+		"date-range-filter",
+		"btn-export-csv",
+		"btn-export-geojson",
+		"kpi-rto-rate",
+		"kpi-turnaround",
+		"kpi-microchip-rate",
+		"kpi-deterministic-ratio",
+		"shelter-breakdown-table",
+		"shelter-breakdown-body",
+	}
+	for _, id := range expectedIDs {
+		if !strings.Contains(body, id) {
+			t.Errorf("expected %q in /shelters/analytics", id)
+		}
+	}
+	if !strings.Contains(body, "/static/js/shelter-analytics.js") {
+		t.Error("expected /static/js/shelter-analytics.js in /shelters/analytics")
+	}
+}
+
+func TestShelterAnalyticsNavigationAcrossTemplates(t *testing.T) {
+	t.Parallel()
+
+	templates := []string{
+		"templates/layout.html",
+		"templates/pets.html",
+		"templates/matches.html",
+		"templates/report-lost.html",
+		"templates/report-found.html",
+		"templates/shelter-analytics.html",
+	}
+
+	for _, tmpl := range templates {
+		data, err := embeddedFiles.ReadFile(tmpl)
+		if err != nil {
+			t.Fatalf("failed to read %s: %v", tmpl, err)
+		}
+		content := string(data)
+		if !strings.Contains(content, `id="nav-analytics"`) {
+			t.Errorf("%s missing nav link id=\"nav-analytics\"", tmpl)
+		}
+		if !strings.Contains(content, `/shelters/analytics`) {
+			t.Errorf("%s missing /shelters/analytics href", tmpl)
+		}
+	}
+}
+
+func TestShelterAnalyticsAssets(t *testing.T) {
+	t.Parallel()
+
+	jsData, err := embeddedFiles.ReadFile("static/js/shelter-analytics.js")
+	if err != nil {
+		t.Fatalf("failed to read static/js/shelter-analytics.js: %v", err)
+	}
+	jsContent := string(jsData)
+	expectedJSSnippets := []string{
+		"/api/v1/shelters/analytics",
+		"btn-export-csv",
+		"btn-export-geojson",
+		"shelter-filter",
+		"date-range-filter",
+		"kpi-rto-rate",
+		"kpi-turnaround",
+		"kpi-microchip-rate",
+		"kpi-deterministic-ratio",
+		"shelter-breakdown-body",
+	}
+	for _, snippet := range expectedJSSnippets {
+		if !strings.Contains(jsContent, snippet) {
+			t.Errorf("static/js/shelter-analytics.js missing snippet %q", snippet)
+		}
+	}
+
+	cssData, err := embeddedFiles.ReadFile("static/css/styles.css")
+	if err != nil {
+		t.Fatalf("failed to read static/css/styles.css: %v", err)
+	}
+	cssContent := string(cssData)
+	expectedCSSClasses := []string{
+		".analytics-dashboard",
+		".kpi-grid",
+		".kpi-card",
+		".kpi-metric",
+		".analytics-table",
+	}
+	for _, class := range expectedCSSClasses {
+		if !strings.Contains(cssContent, class) {
+			t.Errorf("static/css/styles.css missing class %q", class)
+		}
+	}
+}
