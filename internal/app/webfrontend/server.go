@@ -238,6 +238,8 @@ func (s *Server) routes() {
 	}
 
 	s.mux.HandleFunc("/api/v1/pets", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleApiPets))
+	s.mux.HandleFunc("/api/v1/pets/{petID}/qr.svg", s.handleApiPetQR)
+	s.mux.HandleFunc("/api/v1/pets/{petID}/share-card.svg", s.handleApiPetShareCard)
 	s.mux.HandleFunc("/api/v1/lost-pets", s.rateLimiter.RequireRateLimitByMethodFunc(
 		map[string]ratelimit.Limit{
 			http.MethodPost: ratelimit.ModerateLimit,
