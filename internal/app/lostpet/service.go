@@ -36,21 +36,21 @@ type ReportMetadata struct {
 // ReportCommand carries one lost-pet report from an HTTP adapter into the
 // canonical application service.
 type ReportCommand struct {
-	PetID           string
-	PetName         string
-	Species         string
-	Breed           string
-	PrimaryColor    string
-	Description     string
-	ReporterEmail   string
-	Phone           string
-	ImageObject     string
-	Images          []domain.PetImage
-	ReportedAt      time.Time
-	Location        string
-	GeocodingStatus domain.GeocodingStatus
-	Coordinates     *domain.LocationPoint
-	MicrochipID     string
+	PetID             string
+	PetName           string
+	Species           string
+	Breed             string
+	PrimaryColor      string
+	Description       string
+	ReporterEmail     string
+	Phone             string
+	ImageObject       string
+	Images            []domain.PetImage
+	ReportedAt        time.Time
+	Location          string
+	GeocodingStatus   domain.GeocodingStatus
+	Coordinates       *domain.LocationPoint
+	MicrochipID       string
 	MicrochipRegistry string
 	// OwnedBy is trusted transport identity, never a caller-supplied JSON field.
 	OwnedBy *domain.PrincipalRef
@@ -454,22 +454,22 @@ func (s *Service) ReportLostPet(
 	metadata ReportMetadata,
 ) (ReportResult, error) {
 	report := domain.NormalizeLostPetReport(domain.LostPetReport{
-		PetID:           command.PetID,
-		PetName:         command.PetName,
-		Species:         command.Species,
-		Breed:           command.Breed,
-		PrimaryColor:    command.PrimaryColor,
-		Description:     command.Description,
-		ReporterEmail:   command.ReporterEmail,
-		Phone:           command.Phone,
-		ImageObject:     command.ImageObject,
-		Images:          command.Images,
-		ReportedAt:      command.ReportedAt,
-		Location:        command.Location,
-		GeocodingStatus: command.GeocodingStatus,
-		Coordinates:     command.Coordinates,
-		OwnedBy:         command.OwnedBy,
-		MicrochipID:     command.MicrochipID,
+		PetID:             command.PetID,
+		PetName:           command.PetName,
+		Species:           command.Species,
+		Breed:             command.Breed,
+		PrimaryColor:      command.PrimaryColor,
+		Description:       command.Description,
+		ReporterEmail:     command.ReporterEmail,
+		Phone:             command.Phone,
+		ImageObject:       command.ImageObject,
+		Images:            command.Images,
+		ReportedAt:        command.ReportedAt,
+		Location:          command.Location,
+		GeocodingStatus:   command.GeocodingStatus,
+		Coordinates:       command.Coordinates,
+		OwnedBy:           command.OwnedBy,
+		MicrochipID:       command.MicrochipID,
 		MicrochipRegistry: command.MicrochipRegistry,
 	})
 	if err := report.Validate(); err != nil {

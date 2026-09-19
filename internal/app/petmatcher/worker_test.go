@@ -1918,4 +1918,3 @@ func TestMatcherWorker_DeterministicCandidateOutranksNonDeterministic(t *testing
 		}
 	})
 }
-

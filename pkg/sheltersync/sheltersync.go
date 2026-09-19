@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -106,7 +105,7 @@ func (h *HTTPIngester) IngestIntake(ctx context.Context, req ShelterIntakeReques
 	if err != nil {
 		return fmt.Errorf("sheltersync: send intake request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		return fmt.Errorf("sheltersync: ingest failed with HTTP status %d", resp.StatusCode)
@@ -133,12 +132,12 @@ func SeededMockIntakes() []ShelterIntakeRequest {
 			IntakeID:       "INT-2026-8819",
 			IntakeDate:     baseTime,
 			Animal: ShelterAnimalData{
-				Species:        "dog",
-				Breed:          "Golden Retriever",
-				PrimaryColor:   "Golden",
-				Gender:         "male",
-				Description:    "Found stray near Interbay. Friendly, scanned microchip on intake.",
-				MicrochipID:    "985141000123456",
+				Species:      "dog",
+				Breed:        "Golden Retriever",
+				PrimaryColor: "Golden",
+				Gender:       "male",
+				Description:  "Found stray near Interbay. Friendly, scanned microchip on intake.",
+				MicrochipID:  "985141000123456",
 				Images: []ShelterImageData{
 					{
 						URL:  "https://storage.petspotr.io/shelters/intake-8819.jpg",
@@ -161,12 +160,12 @@ func SeededMockIntakes() []ShelterIntakeRequest {
 			IntakeID:       "INT-2026-9901",
 			IntakeDate:     baseTime.Add(1 * time.Hour),
 			Animal: ShelterAnimalData{
-				Species:        "cat",
-				Breed:          "Domestic Shorthair",
-				PrimaryColor:   "Black",
-				Gender:         "female",
-				Description:    "Found near Crossroads Park. Friendly adult cat.",
-				MicrochipID:    "981010000999999",
+				Species:      "cat",
+				Breed:        "Domestic Shorthair",
+				PrimaryColor: "Black",
+				Gender:       "female",
+				Description:  "Found near Crossroads Park. Friendly adult cat.",
+				MicrochipID:  "981010000999999",
 				Images: []ShelterImageData{
 					{
 						URL:  "https://storage.petspotr.io/shelters/intake-9901.jpg",
@@ -277,18 +276,14 @@ func (w *SyncWorker) Start(ctx context.Context, interval time.Duration) error {
 	defer ticker.Stop()
 
 	// Initial execution
-	if _, err := w.SyncOnce(ctx); err != nil && !errors.Is(err, context.Canceled) {
-		// Log or retain error, do not abort worker loop
-	}
+	_, _ = w.SyncOnce(ctx)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			if _, err := w.SyncOnce(ctx); err != nil && !errors.Is(err, context.Canceled) {
-				// Continue polling on transient errors
-			}
+			_, _ = w.SyncOnce(ctx)
 		}
 	}
 }

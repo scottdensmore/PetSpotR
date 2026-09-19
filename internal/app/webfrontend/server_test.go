@@ -2036,4 +2036,3 @@ func TestPetsDirectory_RendersMaskedMicrochipBadge(t *testing.T) {
 		t.Errorf("expected /pets HTML to contain masked microchip 'HomeAgain ••••3456'")
 	}
 }
-

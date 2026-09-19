@@ -573,4 +573,3 @@ func TestComparePetsHybridWithMicrochip(t *testing.T) {
 		}
 	})
 }
-

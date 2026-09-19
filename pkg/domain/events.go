@@ -73,15 +73,15 @@ func (e *FoundPetEvent) FromJSON(data []byte) error {
 
 // MatchResult represents the visual scoring outcome between a found pet and a lost pet.
 type MatchResult struct {
-	MatchID          string               `json:"matchId,omitempty"`
-	FoundPetID       string               `json:"foundPetId"`
-	MatchedPetID     string               `json:"matchedPetId"`
-	Score            float64              `json:"score"`
-	IsMatch          bool                 `json:"isMatch"`
-	Details          string               `json:"details,omitempty"`
-	SourceEventID    string               `json:"sourceEventId,omitempty"`
-	Scores           *MatchScoreBreakdown `json:"scores,omitempty"`
-	Model            string               `json:"model,omitempty"`
+	MatchID            string               `json:"matchId,omitempty"`
+	FoundPetID         string               `json:"foundPetId"`
+	MatchedPetID       string               `json:"matchedPetId"`
+	Score              float64              `json:"score"`
+	IsMatch            bool                 `json:"isMatch"`
+	Details            string               `json:"details,omitempty"`
+	SourceEventID      string               `json:"sourceEventId,omitempty"`
+	Scores             *MatchScoreBreakdown `json:"scores,omitempty"`
+	Model              string               `json:"model,omitempty"`
 	ThresholdVersion   string               `json:"thresholdVersion,omitempty"`
 	PhotoURL           string               `json:"photoUrl,omitempty"`
 	DeterministicMatch bool                 `json:"deterministicMatch,omitempty"`

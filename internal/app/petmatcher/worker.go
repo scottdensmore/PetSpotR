@@ -263,13 +263,13 @@ func (w *Worker) processClaimedFoundPet(
 			}
 		}
 		matchRecord := domain.MatchRecord{
-			MatchID:          matchID,
-			FoundPetID:       foundEvt.PetID,
-			MatchedPetID:     lostPetID,
-			Score:            matchResult.Score,
-			Status:           domain.MatchStatusPendingReview,
-			MatchedAt:        matchedAt,
-			Scores:           *matchResult.Scores,
+			MatchID:            matchID,
+			FoundPetID:         foundEvt.PetID,
+			MatchedPetID:       lostPetID,
+			Score:              matchResult.Score,
+			Status:             domain.MatchStatusPendingReview,
+			MatchedAt:          matchedAt,
+			Scores:             *matchResult.Scores,
 			SourceEventID:      inputEventID,
 			Model:              matchResult.Model,
 			ThresholdVersion:   matchResult.ThresholdVersion,
