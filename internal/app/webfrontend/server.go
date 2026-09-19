@@ -266,6 +266,7 @@ func (s *Server) routes() {
 	))
 	s.mux.HandleFunc("/api/v1/found-pets/{petID}/contact", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiFoundPetContact))
 	s.mux.HandleFunc("/api/v1/found-pets/{petID}/status", s.handleApiFoundPetStatus)
+	s.mux.HandleFunc("/api/v1/shelter-intakes/ingest", s.handleApiShelterIntakeIngest)
 	s.mux.HandleFunc("/api/v1/matches", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleApiMatches))
 	s.mux.HandleFunc("/api/v1/matches/action", s.handleApiMatchAction)
 	s.mux.HandleFunc("/api/v1/reunions/contact", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiReunionContact))

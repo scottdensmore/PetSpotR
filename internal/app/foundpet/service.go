@@ -59,7 +59,12 @@ type ReportCommand struct {
 	DistinctiveMarkings []string
 	CustodyStatus       domain.CustodyStatus
 	// OwnedBy is trusted transport identity, never a caller-supplied JSON field.
-	OwnedBy *domain.PrincipalRef
+	OwnedBy           *domain.PrincipalRef
+	MicrochipID       string
+	MicrochipRegistry string
+	ShelterID         string
+	ShelterName       string
+	IntakeID          string
 }
 
 // ReportResult identifies the accepted report and its durable event.
@@ -353,6 +358,11 @@ func (s *Service) HandleFoundPet(w http.ResponseWriter, r *http.Request) {
 		SecondaryColor      string                 `json:"secondaryColor"`
 		DistinctiveMarkings []string               `json:"distinctiveMarkings"`
 		CustodyStatus       domain.CustodyStatus   `json:"custodyStatus"`
+		MicrochipID         string                 `json:"microchipId"`
+		MicrochipRegistry   string                 `json:"microchipRegistry"`
+		ShelterID           string                 `json:"shelterId"`
+		ShelterName         string                 `json:"shelterName"`
+		IntakeID            string                 `json:"intakeId"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid JSON payload: %v", err))
@@ -402,6 +412,11 @@ func (s *Service) HandleFoundPet(w http.ResponseWriter, r *http.Request) {
 		SecondaryColor:      request.SecondaryColor,
 		DistinctiveMarkings: request.DistinctiveMarkings,
 		CustodyStatus:       request.CustodyStatus,
+		MicrochipID:         request.MicrochipID,
+		MicrochipRegistry:   request.MicrochipRegistry,
+		ShelterID:           request.ShelterID,
+		ShelterName:         request.ShelterName,
+		IntakeID:            request.IntakeID,
 	}, ReportMetadata{
 		CorrelationID: r.Header.Get("X-Correlation-ID"),
 		TraceID:       r.Header.Get("X-Trace-ID"),
@@ -453,6 +468,11 @@ func (s *Service) ReportFoundPet(
 		DistinctiveMarkings: command.DistinctiveMarkings,
 		CustodyStatus:       command.CustodyStatus,
 		OwnedBy:             command.OwnedBy,
+		MicrochipID:         command.MicrochipID,
+		MicrochipRegistry:   command.MicrochipRegistry,
+		ShelterID:           command.ShelterID,
+		ShelterName:         command.ShelterName,
+		IntakeID:            command.IntakeID,
 	})
 	if err := report.Validate(); err != nil {
 		return ReportResult{}, &invalidReportError{cause: err}
