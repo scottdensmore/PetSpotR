@@ -2,6 +2,7 @@
 package webfrontend
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"embed"
@@ -1767,8 +1768,14 @@ func (s *Server) handlePetPoster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, viewModel); err != nil {
+		http.Error(w, "Failed to render poster template", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	_ = tmpl.Execute(w, viewModel)
+	_, _ = w.Write(buf.Bytes())
 }
 

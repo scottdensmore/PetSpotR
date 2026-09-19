@@ -16,7 +16,7 @@
   </aside>
 
   <main class="printable-poster">
-    <header class="poster-header">★ LOST {{.SpeciesUpper}} ★</header>
+    <div class="poster-header">★ LOST {{.SpeciesUpper}} ★</div>
 
     <h1 class="poster-name">{{.PetName}}</h1>
 
@@ -69,17 +69,19 @@
       </div>
     </div>
 
-    <footer class="poster-tear-tabs">
+    <div class="poster-tear-tabs">
       {{ range .Tabs }}
       <div class="tear-tab">
         <div class="tear-tab-cut">✂</div>
-        <div class="tear-tab-name">{{ .PetName }}</div>
+        <div class="tear-tab-content">
+          <div class="tear-tab-name">{{ .PetName }}</div>
+          <div class="tear-tab-shortlink">/p/{{ .PetID }}</div>
+          <div class="tear-tab-contact">{{ .ContactInfo }}</div>
+        </div>
         <img src="/api/v1/pets/{{ .PetID }}/qr.svg?size=64" alt="QR Code" class="tear-tab-qr" width="44" height="44">
-        <div class="tear-tab-shortlink">/p/{{ .PetID }}</div>
-        <div class="tear-tab-contact">{{ .ContactInfo }}</div>
       </div>
       {{ end }}
-    </footer>
+    </div>
   </main>
 </body>
 </html>
