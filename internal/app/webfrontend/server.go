@@ -356,6 +356,7 @@ type LostPetFormRequest struct {
 	Location      string            `json:"location"`
 	ReporterEmail string            `json:"reporterEmail"`
 	Phone         string            `json:"phone"`
+	MicrochipID   string            `json:"microchipId,omitempty"`
 	ImageObject   string            `json:"imageObject,omitempty"`
 	Images        []domain.PetImage `json:"images,omitempty"`
 	ReportedAt    time.Time         `json:"reportedAt"`
@@ -610,6 +611,7 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		Description:   req.Description,
 		ReporterEmail: reporterEmail,
 		Phone:         req.Phone,
+		MicrochipID:   req.MicrochipID,
 		ImageObject:   imageObject,
 		Images:        req.Images,
 		ReportedAt:    reportedAt,
@@ -695,6 +697,7 @@ type FoundPetFormRequest struct {
 	SecondaryColor      string                `json:"secondaryColor"`
 	DistinctiveMarkings []string              `json:"distinctiveMarkings"`
 	CustodyStatus       domain.CustodyStatus  `json:"custodyStatus"`
+	MicrochipID         string                `json:"microchipId,omitempty"`
 	FoundAt             time.Time             `json:"foundAt"`
 }
 
@@ -869,6 +872,7 @@ func (s *Server) handleApiFoundPets(w http.ResponseWriter, r *http.Request) {
 		SecondaryColor:      req.SecondaryColor,
 		DistinctiveMarkings: req.DistinctiveMarkings,
 		CustodyStatus:       req.CustodyStatus,
+		MicrochipID:         req.MicrochipID,
 		OwnedBy:             ownedBy,
 	}
 

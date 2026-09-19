@@ -50,6 +50,8 @@ type ReportCommand struct {
 	Location        string
 	GeocodingStatus domain.GeocodingStatus
 	Coordinates     *domain.LocationPoint
+	MicrochipID     string
+	MicrochipRegistry string
 	// OwnedBy is trusted transport identity, never a caller-supplied JSON field.
 	OwnedBy *domain.PrincipalRef
 }
@@ -369,6 +371,7 @@ func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 		Location        string                 `json:"location"`
 		GeocodingStatus domain.GeocodingStatus `json:"geocodingStatus"`
 		Coordinates     *domain.LocationPoint  `json:"coordinates"`
+		MicrochipID     string                 `json:"microchipId"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid JSON payload: %v", err))
@@ -417,6 +420,7 @@ func (s *Service) HandleLostPet(w http.ResponseWriter, r *http.Request) {
 		Location:        request.Location,
 		GeocodingStatus: request.GeocodingStatus,
 		Coordinates:     request.Coordinates,
+		MicrochipID:     request.MicrochipID,
 	}, ReportMetadata{
 		CorrelationID: r.Header.Get("X-Correlation-ID"),
 		TraceID:       r.Header.Get("X-Trace-ID"),
@@ -465,6 +469,8 @@ func (s *Service) ReportLostPet(
 		GeocodingStatus: command.GeocodingStatus,
 		Coordinates:     command.Coordinates,
 		OwnedBy:         command.OwnedBy,
+		MicrochipID:     command.MicrochipID,
+		MicrochipRegistry: command.MicrochipRegistry,
 	})
 	if err := report.Validate(); err != nil {
 		return ReportResult{}, &invalidReportError{cause: err}

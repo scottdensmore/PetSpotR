@@ -652,6 +652,12 @@ document.addEventListener('DOMContentLoaded', () => {
       location: value.location,
       imageUrl,
       images,
+      custodyStatus: typeof value.custodyStatus === 'string' ? value.custodyStatus.trim() : '',
+      shelterId: typeof value.shelterId === 'string' ? value.shelterId.trim() : '',
+      shelterName: typeof value.shelterName === 'string' ? value.shelterName.trim() : '',
+      shelterPhone: typeof value.shelterPhone === 'string' ? value.shelterPhone.trim() : '',
+      shelterAddress: typeof value.shelterAddress === 'string' ? value.shelterAddress.trim() : '',
+      intakeId: typeof value.intakeId === 'string' ? value.intakeId.trim() : '',
     };
   }
 
@@ -696,6 +702,7 @@ document.addEventListener('DOMContentLoaded', () => {
       matchedPetId: value.matchedPetId,
       score: value.score,
       status: value.status,
+      deterministicMatch: Boolean(value.deterministicMatch),
       matchedAt,
       scores,
       lostPet,
@@ -898,6 +905,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const identity = createElement('div', {
       className: 'match-identity',
     });
+    if (m.deterministicMatch) {
+      identity.append(
+        createElement('span', {
+          text: '🎯 100% Verified Microchip Match',
+          className: 'badge badge-microchip-match',
+        }),
+      );
+    }
     identity.append(
       createElement('span', {
         text: statusBadgeText,
@@ -945,6 +960,62 @@ document.addEventListener('DOMContentLoaded', () => {
     scores.append(scoreGrid);
 
     card.append(summary, comparison, scores);
+
+    if (m.foundPet && (m.foundPet.custodyStatus === 'Shelter Care' || m.foundPet.shelterId)) {
+      const shelterName = m.foundPet.shelterName || (m.foundPet.shelterId === 'shelter-bel-02' ? 'Bellevue Humane Society' : m.foundPet.shelterId === 'shelter-kcras-03' ? 'King County Regional Animal Services' : 'Seattle Animal Shelter');
+      const intakeId = m.foundPet.intakeId || m.foundPet.petId;
+      let shelterPhone = m.foundPet.shelterPhone;
+      let shelterAddress = m.foundPet.shelterAddress;
+      if (!shelterPhone) {
+        if (m.foundPet.shelterId === 'shelter-bel-02') {
+          shelterPhone = '(425) 641-0080';
+        } else if (m.foundPet.shelterId === 'shelter-kcras-03') {
+          shelterPhone = '(206) 296-7387';
+        } else {
+          shelterPhone = '(206) 386-7387';
+        }
+      }
+      if (!shelterAddress) {
+        if (m.foundPet.shelterId === 'shelter-bel-02') {
+          shelterAddress = '13212 SE Eastgate Way, Bellevue, WA 98005';
+        } else if (m.foundPet.shelterId === 'shelter-kcras-03') {
+          shelterAddress = '21615 64th Ave S, Kent, WA 98032';
+        } else {
+          shelterAddress = m.foundPet.location || '2061 15th Ave W, Seattle, WA 98119';
+        }
+      }
+
+      const shelterCard = createElement('div', {
+        className: 'shelter-alert-card glass-card',
+      });
+      const shelterTitle = createElement('h4', {
+        text: `🏛️ Currently in Shelter Care at ${shelterName} (Intake #${intakeId})`,
+        className: 'shelter-alert-title',
+      });
+      const shelterDesc = createElement('p', {
+        text: `Bring government photo ID and proof of ownership referencing Intake #${intakeId}.`,
+        className: 'shelter-alert-text',
+      });
+      const shelterActions = createElement('div', {
+        className: 'shelter-alert-actions',
+      });
+
+      const callBtn = document.createElement('a');
+      callBtn.href = `tel:${shelterPhone}`;
+      callBtn.className = 'btn btn-primary btn-shelter-call';
+      callBtn.textContent = `📞 Call Shelter: ${shelterPhone}`;
+
+      const dirBtn = document.createElement('a');
+      dirBtn.href = `https://maps.google.com/?q=${encodeURIComponent(shelterAddress)}`;
+      dirBtn.className = 'btn btn-secondary btn-shelter-dir';
+      dirBtn.target = '_blank';
+      dirBtn.rel = 'noopener noreferrer';
+      dirBtn.textContent = '📍 Directions to Shelter';
+
+      shelterActions.append(callBtn, dirBtn);
+      shelterCard.append(shelterTitle, shelterDesc, shelterActions);
+      card.append(shelterCard);
+    }
     const controls = createElement('div', {
       className: 'match-controls',
     });

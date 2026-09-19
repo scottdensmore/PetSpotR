@@ -148,6 +148,12 @@
               <input class="form-control" type="text" id="foundSecondaryColor" name="secondaryColor" placeholder="Secondary color">
             </div>
           </div>
+
+          <div class="form-field form-field-last">
+            <label for="found-pet-microchip" class="form-label">Microchip ID (Optional)</label>
+            <input class="form-control" type="text" id="found-pet-microchip" name="microchipId" placeholder="e.g. 985141000123456" aria-describedby="found-microchip-feedback">
+            <div id="found-microchip-feedback" class="microchip-feedback-msg" role="status" aria-live="polite"></div>
+          </div>
         </div>
 
         <!-- Step C: Found Location & Custody Details -->
@@ -162,6 +168,7 @@
             <label for="custodyStatus" class="form-label">Current Pet Custody</label>
             <select class="form-control" id="custodyStatus" name="custodyStatus">
               <option value="Finder Home">Safely at Finder's Home</option>
+              <option value="Shelter Care">In Shelter Care</option>
               <option value="Local Shelter">Transferred to Local Animal Shelter</option>
               <option value="Animal Control">Animal Control Officer</option>
               <option value="Sighted Only">Sighted Only (Roaming)</option>

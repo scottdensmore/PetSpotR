@@ -173,6 +173,7 @@
               <p class="pet-card-species-breed">
                 <span class="badge badge-secondary">{{ .Species }}</span>
                 {{ if .Breed }}<span class="pet-breed">{{ .Breed }}</span>{{ end }}
+                {{ if .MicrochipID }}<span class="badge badge-microchip">🏷️ {{ .MicrochipID }}</span>{{ end }}
               </p>
 
               <div class="pet-card-details">

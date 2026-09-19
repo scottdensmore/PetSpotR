@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/identity"
@@ -1927,3 +1928,112 @@ func TestFinderLandingPage(t *testing.T) {
 		}
 	})
 }
+
+func TestMicrochipAndShelterUISnippets(t *testing.T) {
+	t.Parallel()
+	srv := NewDemoServer()
+
+	// 1. Report Lost wizard contains microchip input
+	reqLost := httptest.NewRequest(http.MethodGet, "/report-lost", nil)
+	wLost := httptest.NewRecorder()
+	srv.ServeHTTP(wLost, reqLost)
+	if wLost.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for /report-lost, got %d", wLost.Code)
+	}
+	if !strings.Contains(wLost.Body.String(), `id="lost-pet-microchip"`) {
+		t.Errorf("expected id=\"lost-pet-microchip\" in /report-lost")
+	}
+
+	// 2. Report Found wizard contains microchip input and Shelter Care option
+	reqFound := httptest.NewRequest(http.MethodGet, "/report-found", nil)
+	wFound := httptest.NewRecorder()
+	srv.ServeHTTP(wFound, reqFound)
+	if wFound.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for /report-found, got %d", wFound.Code)
+	}
+	if !strings.Contains(wFound.Body.String(), `id="found-pet-microchip"`) {
+		t.Errorf("expected id=\"found-pet-microchip\" in /report-found")
+	}
+	if !strings.Contains(wFound.Body.String(), `value="Shelter Care"`) {
+		t.Errorf("expected value=\"Shelter Care\" in /report-found")
+	}
+
+	// 3. Matches page contains microchip match badge class
+	reqMatches := httptest.NewRequest(http.MethodGet, "/matches", nil)
+	wMatches := httptest.NewRecorder()
+	srv.ServeHTTP(wMatches, reqMatches)
+	if wMatches.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for /matches, got %d", wMatches.Code)
+	}
+	if !strings.Contains(wMatches.Body.String(), `badge-microchip-match`) {
+		t.Errorf("expected badge-microchip-match in /matches")
+	}
+
+	// 4. Styles CSS contains microchip and shelter alert styles
+	cssContent, err := embeddedFiles.ReadFile("static/css/styles.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	css := string(cssContent)
+	expectedCSS := []string{
+		".badge-microchip",
+		".badge-microchip-match",
+		".microchip-feedback-msg",
+		".shelter-alert-card",
+		".shelter-alert-title",
+		".btn-shelter-call",
+		".btn-shelter-dir",
+	}
+	for _, snip := range expectedCSS {
+		if !strings.Contains(css, snip) {
+			t.Errorf("styles.css missing expected snippet: %q", snip)
+		}
+	}
+}
+
+func TestPetsDirectory_RendersMaskedMicrochipBadge(t *testing.T) {
+	t.Parallel()
+	memory := store.NewMemoryStore()
+	now := time.Now().UTC()
+
+	lostPet := domain.LostPetRecord{
+		PetID:             "chip-lost-01",
+		PetName:           "Max",
+		Species:           "Dog",
+		Breed:             "Beagle",
+		PrimaryColor:      "Tricolor",
+		Description:       "Chipped Beagle",
+		Location:          "Capitol Hill, Seattle, WA",
+		ReportedAt:        now,
+		Status:            domain.LostPetStatusLost,
+		MicrochipID:       "985141000123456",
+		MicrochipRegistry: "HomeAgain",
+	}
+	lostPet = domain.NormalizeLostPetRecord(lostPet)
+	data, err := json.Marshal(lostPet)
+	if err != nil {
+		t.Fatalf("marshal lost pet: %v", err)
+	}
+	if err := memory.SaveState(context.Background(), store.LostPetsCollection, lostPet.PetID, data); err != nil {
+		t.Fatalf("save lost pet: %v", err)
+	}
+
+	srv := NewServerWithOptions(memory, ServerOptions{AllowPrivilegedMutations: true})
+
+	req := httptest.NewRequest(http.MethodGet, "/pets", nil)
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d", w.Code)
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "badge-microchip") {
+		t.Errorf("expected /pets HTML to contain 'badge-microchip'")
+	}
+	if !strings.Contains(body, "HomeAgain ••••3456") {
+		t.Errorf("expected /pets HTML to contain masked microchip 'HomeAgain ••••3456'")
+	}
+}
+
