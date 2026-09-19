@@ -476,6 +476,19 @@ document.addEventListener('DOMContentLoaded', () => {
     card.setAttribute('tabindex', '0');
   });
 
+  // 6. Poster & Social Share modal delegation
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-poster-share');
+    if (btn) {
+      e.preventDefault();
+      const petId = btn.dataset.petId;
+      const petName = btn.dataset.petName;
+      if (window.PetShare && window.PetShare.openModal) {
+        window.PetShare.openModal(petId, petName);
+      }
+    }
+  });
+
   // Initialize all controllers
   initViewSwitcher();
   initGeolocation();

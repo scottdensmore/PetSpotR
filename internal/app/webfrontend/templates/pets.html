@@ -199,6 +199,12 @@
                 <span class="pet-card-location">📍 {{ .Location }}</span>
                 <time class="pet-card-date" datetime="{{ .ReportedAt.Format "2006-01-02T15:04:05Z07:00" }}">Reported {{ .ReportedAt.Format "Jan 02, 2006" }}</time>
               </div>
+
+              {{ if or (eq .Status "LOST") (eq .Status "lost") }}
+              <div class="pet-card-actions">
+                <button type="button" class="btn btn-secondary btn-sm btn-poster-share" data-pet-id="{{ .PetID }}" data-pet-name="{{ .PetName }}" data-action="open-poster">📄 Poster & Share</button>
+              </div>
+              {{ end }}
             </div>
           </article>
         {{ end }}
@@ -306,6 +312,45 @@
     </form>
   </div>
 
+  <div id="poster-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="poster-modal-title">
+    <div class="glass-card poster-modal-card">
+      <div class="modal-header">
+        <h2 id="poster-modal-title">Pet Recovery Poster & Social Share</h2>
+        <button type="button" class="btn-icon" id="btn-close-poster-modal" aria-label="Close poster modal">✕</button>
+      </div>
+      <div class="poster-modal-body">
+        <div class="poster-controls">
+          <div class="form-group">
+            <label for="poster-reward-input" class="form-label">Reward Amount / Offer</label>
+            <input type="text" id="poster-reward-input" class="form-control" placeholder="e.g. $500 REWARD — NO QUESTIONS ASKED">
+          </div>
+          <div class="form-group">
+            <label for="poster-emergency-input" class="form-label">Emergency Instructions</label>
+            <input type="text" id="poster-emergency-input" class="form-control" placeholder="e.g. Needs medication, do not chase">
+          </div>
+          <div class="form-group">
+            <label class="pref-toggle-label" for="poster-phone-toggle">
+              <input type="checkbox" id="poster-phone-toggle">
+              <span>Include Phone Number on Tear-Off Tabs (Opt-In)</span>
+            </label>
+            <input type="tel" id="poster-phone-input" class="form-control hidden" placeholder="e.g. (206) 555-0199" aria-label="Phone number for tabs">
+          </div>
+          <div class="poster-modal-actions">
+            <button type="button" class="btn btn-primary" id="btn-print-poster">🖨️ Print Poster</button>
+            <a href="#" id="link-standalone-poster" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">↗ Open Printable View</a>
+            <button type="button" class="btn btn-secondary" id="btn-share-social">🔗 Web Share</button>
+            <button type="button" class="btn btn-secondary" id="btn-copy-shortlink">📋 Copy Shortlink</button>
+          </div>
+        </div>
+        <div class="poster-preview-pane">
+          <div id="poster-preview-container" class="poster-preview-container">
+            <iframe id="poster-preview-frame" class="poster-preview-frame" title="Poster Live Preview" src="about:blank"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <footer>
     <div class="container footer-content">
       <p>&copy; 2026 PetSpotR. Event-driven Go & GCP AI Microservices.</p>
@@ -318,6 +363,7 @@
   <script src="/static/vendor/leaflet/leaflet.js"></script>
   <script src="/static/js/theme.js"></script>
   <script src="/static/js/pet-directory.js"></script>
+  <script src="/static/js/pet-share.js"></script>
   <script src="/static/js/push-notifier.js"></script>
   <script src="/static/js/notification-center.js"></script>
   <script src="/static/js/outbox-sync.js" defer></script>

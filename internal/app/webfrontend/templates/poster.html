@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lost Pet Poster - {{.PetName}} | PetSpotR</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="poster-body">
+  <aside class="poster-actions-toolbar no-print">
+    <a href="/pets" class="btn btn-secondary btn-sm" id="btn-back-pets">← Back to Directory</a>
+    <div class="toolbar-right">
+      <button type="button" class="btn btn-primary btn-sm" id="btn-print-action" onclick="window.print()">🖨️ Print Poster</button>
+    </div>
+  </aside>
+
+  <main class="printable-poster">
+    <div class="poster-header">★ LOST {{.SpeciesUpper}} ★</div>
+
+    <h1 class="poster-name">{{.PetName}}</h1>
+
+    {{ if .HasReward }}
+    <div class="poster-reward-banner">💰 {{.RewardText}}</div>
+    {{ end }}
+
+    {{ if .HasEmergency }}
+    <div class="poster-emergency-note">⚠️ {{.EmergencyText}}</div>
+    {{ end }}
+
+    <div class="poster-main-content">
+      <div class="poster-photo">
+        {{ if .HasPhoto }}
+        <img src="{{ .PhotoURL }}" alt="{{ .PetName }}" class="poster-img" loading="eager">
+        {{ else }}
+        <div class="poster-photo-placeholder" aria-hidden="true">
+          <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v8m-4-4h8"></path></svg>
+          <span>No Photo Available</span>
+        </div>
+        {{ end }}
+      </div>
+
+      <div class="poster-details">
+        <div class="poster-detail-grid">
+          {{ if .Breed }}<div class="poster-detail-item"><strong>Breed:</strong> {{ .Breed }}</div>{{ end }}
+          {{ if .Gender }}<div class="poster-detail-item"><strong>Gender:</strong> {{ .Gender }}</div>{{ end }}
+          {{ if .PrimaryColor }}<div class="poster-detail-item"><strong>Color:</strong> {{ .PrimaryColor }}</div>{{ end }}
+          {{ if .LastSeenDate }}<div class="poster-detail-item"><strong>Last Seen:</strong> {{ .LastSeenDate }}</div>{{ end }}
+          {{ if .Location }}<div class="poster-detail-item"><strong>Location:</strong> {{ .Location }}</div>{{ end }}
+        </div>
+        {{ if .DistinctiveMarkings }}
+        <div class="poster-markings">
+          <strong>Distinctive Markings:</strong>
+          <span>{{ range $i, $m := .DistinctiveMarkings }}{{ if $i }}, {{ end }}{{ $m }}{{ end }}</span>
+        </div>
+        {{ end }}
+        {{ if .Description }}
+        <div class="poster-description">
+          <strong>Description:</strong> {{ .Description }}
+        </div>
+        {{ end }}
+      </div>
+    </div>
+
+    <div class="poster-qr-section">
+      <img src="/api/v1/pets/{{ .PetID }}/qr.svg?size=256" alt="QR Code to Report Sighting" class="poster-qr-img" width="128" height="128">
+      <div class="poster-qr-callout">
+        <p class="poster-qr-prompt">Scan with smartphone camera to view full details, report sightings, or chat securely with owner at {{ .ShortURL }}</p>
+      </div>
+    </div>
+
+    <div class="poster-tear-tabs">
+      {{ range .Tabs }}
+      <div class="tear-tab">
+        <div class="tear-tab-cut">✂</div>
+        <div class="tear-tab-content">
+          <div class="tear-tab-name">{{ .PetName }}</div>
+          <div class="tear-tab-shortlink">/p/{{ .PetID }}</div>
+          <div class="tear-tab-contact">{{ .ContactInfo }}</div>
+        </div>
+        <img src="/api/v1/pets/{{ .PetID }}/qr.svg?size=64" alt="QR Code" class="tear-tab-qr" width="44" height="44">
+      </div>
+      {{ end }}
+    </div>
+  </main>
+</body>
+</html>
