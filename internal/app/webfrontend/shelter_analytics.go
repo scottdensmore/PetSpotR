@@ -14,7 +14,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
-func parseFilterDate(val string) (time.Time, error) {
+func parseFilterDate(val string, endOfDay bool) (time.Time, error) {
 	val = strings.TrimSpace(val)
 	if val == "" {
 		return time.Time{}, nil
@@ -23,6 +23,9 @@ func parseFilterDate(val string) (time.Time, error) {
 		return t.UTC(), nil
 	}
 	if t, err := time.Parse(time.DateOnly, val); err == nil {
+		if endOfDay {
+			return t.UTC().Add(24*time.Hour - time.Nanosecond), nil
+		}
 		return t.UTC(), nil
 	}
 	return time.Time{}, fmt.Errorf("invalid date format: %q", val)
@@ -47,7 +50,7 @@ func parseAnalyticsFilter(r *http.Request) (analytics.FilterOptions, error) {
 	}
 
 	if startStr := strings.TrimSpace(q.Get("startDate")); startStr != "" {
-		t, err := parseFilterDate(startStr)
+		t, err := parseFilterDate(startStr, false)
 		if err != nil {
 			return filter, fmt.Errorf("invalid startDate: %w", err)
 		}
@@ -55,7 +58,7 @@ func parseAnalyticsFilter(r *http.Request) (analytics.FilterOptions, error) {
 	}
 
 	if endStr := strings.TrimSpace(q.Get("endDate")); endStr != "" {
-		t, err := parseFilterDate(endStr)
+		t, err := parseFilterDate(endStr, true)
 		if err != nil {
 			return filter, fmt.Errorf("invalid endDate: %w", err)
 		}

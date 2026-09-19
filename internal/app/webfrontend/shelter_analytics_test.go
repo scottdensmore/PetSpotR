@@ -296,6 +296,44 @@ func TestShelterAnalyticsFilteringAndData(t *testing.T) {
 		}
 	})
 
+	t.Run("Date filtering with DateOnly endDate includes noon intake on that date", func(t *testing.T) {
+		noonPet := domain.FoundPetRecord{
+			PetID:         "found-sea-noon",
+			ShelterID:     "shelter-sea-01",
+			ShelterName:   "Seattle Animal Shelter",
+			IntakeID:      "INT-NOON",
+			Species:       "dog",
+			Breed:         "Terrier",
+			CustodyStatus: domain.CustodyShelterCare,
+			Status:        domain.FoundPetStatusFound,
+			FoundAt:       time.Date(2026, 9, 18, 12, 0, 0, 0, time.UTC),
+		}
+		noonData, _ := json.Marshal(noonPet)
+		_ = st.SaveState(ctx, store.FoundPetsCollection, noonPet.PetID, noonData)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/shelters/analytics?startDate=2026-09-18&endDate=2026-09-18", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+
+		var resp struct {
+			OverallKPIs struct {
+				TotalIntakes int `json:"totalIntakes"`
+			} `json:"overallKpis"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("unmarshal error: %v", err)
+		}
+		// Both pet2 (2026-09-18 10:00:00Z) and noonPet (2026-09-18 12:00:00Z) occur on 2026-09-18.
+		// If endDate were not adjusted to 23:59:59.999999999Z, noonPet would be excluded because 12:00:00 > 00:00:00.
+		if resp.OverallKPIs.TotalIntakes != 2 {
+			t.Errorf("expected 2 intakes on 2026-09-18 (including noon intake), got %d", resp.OverallKPIs.TotalIntakes)
+		}
+	})
+
 	t.Run("Rejects invalid date format with 400 Bad Request", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/shelters/analytics?startDate=invalid-date", nil)
 		rec := httptest.NewRecorder()

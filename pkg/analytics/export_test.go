@@ -346,6 +346,20 @@ func TestExportReconciliationGeoJSON_FiltersAndMissingCoords(t *testing.T) {
 			FoundAt:       now.Add(-5 * time.Hour),
 		},
 		{
+			PetID:         "geo-invalid-coords",
+			ShelterID:     "shelter-sea-01",
+			ShelterName:   "Seattle Animal Shelter",
+			IntakeID:      "INT-INVALID-COORDS",
+			CustodyStatus: domain.CustodyShelterCare,
+			Coordinates: &domain.LocationPoint{
+				Latitude:  120.0, // Invalid: latitude > 90
+				Longitude: -122.3,
+			},
+			Species: "Dog",
+			Breed:   "Beagle",
+			FoundAt: now.Add(-3 * time.Hour),
+		},
+		{
 			PetID:         "geo-bellevue",
 			ShelterID:     "shelter-bel-02",
 			ShelterName:   "Bellevue Humane",

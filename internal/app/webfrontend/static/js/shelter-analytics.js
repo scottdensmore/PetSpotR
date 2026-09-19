@@ -160,7 +160,12 @@
     });
   }
 
-  async function loadAnalytics() {
+  async function fetchAnalytics() {
+    const container = document.querySelector('.analytics-dashboard') || document.getElementById('main-content');
+    if (container) {
+      container.setAttribute('aria-busy', 'true');
+    }
+
     const shelterSelect = document.getElementById('shelter-filter');
     const dateSelect = document.getElementById('date-range-filter');
 
@@ -193,6 +198,24 @@
       }
     } catch (err) {
       console.error('Error fetching shelter analytics:', err);
+
+      const rtoEl = document.getElementById('kpi-rto-rate');
+      if (rtoEl) {
+        rtoEl.textContent = '—';
+      }
+      const turnaroundEl = document.getElementById('kpi-turnaround');
+      if (turnaroundEl) {
+        turnaroundEl.textContent = '—';
+      }
+      const microchipEl = document.getElementById('kpi-microchip-rate');
+      if (microchipEl) {
+        microchipEl.textContent = '—';
+      }
+      const ratioEl = document.getElementById('kpi-deterministic-ratio');
+      if (ratioEl) {
+        ratioEl.textContent = '—';
+      }
+
       const tbody = document.getElementById('shelter-breakdown-body');
       if (tbody) {
         while (tbody.firstChild) {
@@ -206,8 +229,14 @@
         errTr.appendChild(errTd);
         tbody.appendChild(errTr);
       }
+    } finally {
+      if (container) {
+        container.setAttribute('aria-busy', 'false');
+      }
     }
   }
+
+  const loadAnalytics = fetchAnalytics;
 
   document.addEventListener('DOMContentLoaded', () => {
     const shelterSelect = document.getElementById('shelter-filter');
@@ -215,16 +244,16 @@
 
     if (shelterSelect) {
       shelterSelect.addEventListener('change', () => {
-        loadAnalytics();
+        fetchAnalytics();
       });
     }
 
     if (dateSelect) {
       dateSelect.addEventListener('change', () => {
-        loadAnalytics();
+        fetchAnalytics();
       });
     }
 
-    loadAnalytics();
+    fetchAnalytics();
   });
 })();

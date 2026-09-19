@@ -124,7 +124,7 @@ func resolveMicrochipInfo(pet domain.FoundPetRecord) (status, masked, registry s
 		return "Unverified", "", ""
 	}
 
-	masked = microchip.MaskMicrochip(val.NormalizedID)
+	masked = microchip.MaskMicrochip(chip)
 	regName := strings.TrimSpace(pet.MicrochipRegistry)
 	if regName == "" {
 		regInfo := microchip.IdentifyIssuingRegistry(val.NormalizedID)
@@ -230,7 +230,7 @@ func ExportReconciliationGeoJSON(w io.Writer, foundPets []domain.FoundPetRecord,
 
 	features := make([]GeoJSONFeature, 0)
 	for _, pet := range filtered {
-		if pet.Coordinates == nil {
+		if pet.Coordinates == nil || pet.Coordinates.Validate() != nil {
 			continue
 		}
 

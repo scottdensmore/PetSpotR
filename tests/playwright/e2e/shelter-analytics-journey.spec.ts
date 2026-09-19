@@ -131,4 +131,29 @@ test.describe('User Journey: Shelter Analytics Dashboard & Reconciliation Export
     expect(updatedGeojsonHref).toContain('shelterId=shelter-sea-01');
     expect(updatedGeojsonHref).toContain('range=7d');
   });
+
+  test('should handle API failure gracefully with aria-busy lifecycle and fallback dash metrics', async ({ page }) => {
+    await page.route('**/api/v1/shelters/analytics*', async (route) => {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Internal Server Error' }),
+      });
+    });
+
+    await page.goto(`${WEB_FRONTEND_URL}/shelters/analytics`);
+
+    // Verify container aria-busy is reset to false after fetch error
+    const container = page.locator('.analytics-dashboard');
+    await expect(container).toHaveAttribute('aria-busy', 'false');
+
+    // Verify fallback em-dash metrics are displayed
+    await expect(page.locator('#kpi-rto-rate')).toHaveText('—');
+    await expect(page.locator('#kpi-turnaround')).toHaveText('—');
+    await expect(page.locator('#kpi-microchip-rate')).toHaveText('—');
+    await expect(page.locator('#kpi-deterministic-ratio')).toHaveText('—');
+
+    // Verify error message in table
+    await expect(page.locator('#shelter-breakdown-body')).toContainText('Unable to load shelter analytics data');
+  });
 });
