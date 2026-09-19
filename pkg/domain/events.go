@@ -82,8 +82,11 @@ type MatchResult struct {
 	SourceEventID    string               `json:"sourceEventId,omitempty"`
 	Scores           *MatchScoreBreakdown `json:"scores,omitempty"`
 	Model            string               `json:"model,omitempty"`
-	ThresholdVersion string               `json:"thresholdVersion,omitempty"`
-	PhotoURL         string               `json:"photoUrl,omitempty"`
+	ThresholdVersion   string               `json:"thresholdVersion,omitempty"`
+	PhotoURL           string               `json:"photoUrl,omitempty"`
+	DeterministicMatch bool                 `json:"deterministicMatch,omitempty"`
+	MatchType          string               `json:"matchType,omitempty"`
+	MatchedMicrochip   string               `json:"matchedMicrochip,omitempty"`
 }
 
 // Validate checks that mandatory fields on MatchResult are non-empty.

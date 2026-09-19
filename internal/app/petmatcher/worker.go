@@ -213,11 +213,13 @@ func (w *Worker) processClaimedFoundPet(
 	var winner *rankedCandidate
 	for index := range candidates {
 		candidate := candidates[index]
-		result := scoring.ComparePetsHybrid(
+		result := scoring.ComparePetsHybridWithMicrochip(
 			candidate.Record.PetID,
 			foundEvt.PetID,
 			candidate.Record.Species,
 			foundEvt.Species,
+			candidate.Record.MicrochipID,
+			foundEvt.MicrochipID,
 			candidate.DistanceMiles,
 			candidate.Traits,
 			foundTraits,
@@ -268,10 +270,13 @@ func (w *Worker) processClaimedFoundPet(
 			Status:           domain.MatchStatusPendingReview,
 			MatchedAt:        matchedAt,
 			Scores:           *matchResult.Scores,
-			SourceEventID:    inputEventID,
-			Model:            matchResult.Model,
-			ThresholdVersion: matchResult.ThresholdVersion,
-			Explanation:      matchResult.Details,
+			SourceEventID:      inputEventID,
+			Model:              matchResult.Model,
+			ThresholdVersion:   matchResult.ThresholdVersion,
+			Explanation:        matchResult.Details,
+			DeterministicMatch: matchResult.DeterministicMatch,
+			MatchType:          matchResult.MatchType,
+			MatchedMicrochip:   matchResult.MatchedMicrochip,
 			LostPet: domain.MatchPetDetail{
 				PetID:    lostPetID,
 				PetName:  lostRecord.PetName,
@@ -332,8 +337,13 @@ func (w *Worker) processClaimedFoundPet(
 			return err
 		}
 
-		log.Printf("[Pet Matcher] MATCH FOUND! FoundPet: %s <-> LostPet: %s (Score: %.2f)",
-			matchResult.FoundPetID, matchResult.MatchedPetID, matchResult.Score)
+		if matchResult.DeterministicMatch {
+			log.Printf("[Pet Matcher] 🎯 DETERMINISTIC MICROCHIP MATCH FOUND! FoundPet: %s <-> LostPet: %s (Microchip: %s, Score: %.2f)",
+				matchResult.FoundPetID, matchResult.MatchedPetID, matchResult.MatchedMicrochip, matchResult.Score)
+		} else {
+			log.Printf("[Pet Matcher] MATCH FOUND! FoundPet: %s <-> LostPet: %s (Score: %.2f)",
+				matchResult.FoundPetID, matchResult.MatchedPetID, matchResult.Score)
+		}
 	}
 
 	return nil

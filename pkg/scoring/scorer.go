@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/microchip"
 )
 
 const (
@@ -167,10 +168,49 @@ func CalculateHybridMatchScore(vectorScore, traitScore, spatialScore float64) fl
 	return math.Min(1.0, math.Max(0.0, combined))
 }
 
-// ComparePetsHybrid scores two reports using tri-factor weights and enforces the hard species veto.
-func ComparePetsHybrid(
+// MicrochipMatchResult defines the deterministic microchip matching evaluation outcome.
+type MicrochipMatchResult struct {
+	IsMatch       bool
+	Score         float64
+	Deterministic bool
+	Mismatch      bool
+}
+
+// EvaluateMicrochipMatch compares two microchips and returns deterministic match or mismatch outcomes.
+func EvaluateMicrochipMatch(lostChip, foundChip string) MicrochipMatchResult {
+	normLost := microchip.Normalize(lostChip)
+	normFound := microchip.Normalize(foundChip)
+
+	if normLost != "" && normFound != "" {
+		if normLost == normFound {
+			return MicrochipMatchResult{
+				IsMatch:       true,
+				Score:         1.0,
+				Deterministic: true,
+				Mismatch:      false,
+			}
+		}
+		return MicrochipMatchResult{
+			IsMatch:       false,
+			Score:         0.0,
+			Deterministic: false,
+			Mismatch:      true,
+		}
+	}
+	return MicrochipMatchResult{
+		IsMatch:       false,
+		Score:         0.0,
+		Deterministic: false,
+		Mismatch:      false,
+	}
+}
+
+// ComparePetsHybridWithMicrochip scores two reports using microchip deterministic matching,
+// falling back to tri-factor hybrid scoring and enforcing hard species and microchip mismatch vetoes.
+func ComparePetsHybridWithMicrochip(
 	lostPetID, foundPetID string,
 	lostSpecies, foundSpecies string,
+	lostMicrochip, foundMicrochip string,
 	distMiles float64,
 	lostTraits, foundTraits *PetTraits,
 	lostEmbedding, foundEmbedding []float32,
@@ -182,6 +222,67 @@ func ComparePetsHybrid(
 	traitScore := CalculateMatchScore(lostTraits, foundTraits)
 	spatialScore := CalculateDistanceScore(distMiles, MatchRadiusMiles)
 	colorScore := calculateColorScore(lostTraits, foundTraits)
+
+	var vectorScore float64
+	hasVector := len(lostEmbedding) > 0 && len(foundEmbedding) > 0
+	if hasVector {
+		vectorScore = CosineSimilarity(lostEmbedding, foundEmbedding)
+	}
+
+	chipResult := EvaluateMicrochipMatch(lostMicrochip, foundMicrochip)
+	if chipResult.Mismatch {
+		res := &domain.MatchResult{
+			FoundPetID:   foundPetID,
+			MatchedPetID: lostPetID,
+			Score:        0.0,
+			IsMatch:      false,
+			Details:      "Microchip mismatch veto (score forced to 0.0)",
+			Scores: &domain.MatchScoreBreakdown{
+				Visual:         traitScore,
+				Trait:          traitScore,
+				Color:          colorScore,
+				Spatial:        spatialScore,
+				DistanceMiles:  distMiles,
+				Threshold:      MatchThreshold,
+				Vector:         vectorScore,
+				MicrochipMatch: 0.0,
+			},
+			ThresholdVersion: HybridThresholdVersion,
+		}
+		if err := res.Validate(); err != nil {
+			return nil
+		}
+		return res
+	}
+
+	if chipResult.IsMatch && chipResult.Deterministic {
+		maskedChip := microchip.MaskMicrochip(lostMicrochip)
+		res := &domain.MatchResult{
+			FoundPetID:         foundPetID,
+			MatchedPetID:       lostPetID,
+			Score:              1.0,
+			IsMatch:            true,
+			Details:            fmt.Sprintf("Deterministic microchip match: %s (Score: 1.00)", maskedChip),
+			DeterministicMatch: true,
+			MatchType:          "deterministic_microchip",
+			MatchedMicrochip:   maskedChip,
+			Scores: &domain.MatchScoreBreakdown{
+				Visual:         traitScore,
+				Trait:          traitScore,
+				Color:          colorScore,
+				Spatial:        spatialScore,
+				DistanceMiles:  distMiles,
+				Threshold:      MatchThreshold,
+				Vector:         vectorScore,
+				MicrochipMatch: 1.0,
+			},
+			ThresholdVersion: HybridThresholdVersion,
+		}
+		if err := res.Validate(); err != nil {
+			return nil
+		}
+		return res
+	}
 
 	// Hard species veto
 	cleanLostSpecies := strings.TrimSpace(lostSpecies)
@@ -211,10 +312,7 @@ func ComparePetsHybrid(
 	}
 
 	var combinedScore float64
-	var vectorScore float64
-	hasVector := len(lostEmbedding) > 0 && len(foundEmbedding) > 0
 	if hasVector {
-		vectorScore = CosineSimilarity(lostEmbedding, foundEmbedding)
 		combinedScore = CalculateHybridMatchScore(vectorScore, traitScore, spatialScore)
 	} else {
 		combinedScore = CalculateCombinedMatchScore(traitScore, spatialScore)
@@ -246,6 +344,24 @@ func ComparePetsHybrid(
 		return nil
 	}
 	return res
+}
+
+// ComparePetsHybrid scores two reports using tri-factor weights and enforces the hard species veto.
+func ComparePetsHybrid(
+	lostPetID, foundPetID string,
+	lostSpecies, foundSpecies string,
+	distMiles float64,
+	lostTraits, foundTraits *PetTraits,
+	lostEmbedding, foundEmbedding []float32,
+) *domain.MatchResult {
+	return ComparePetsHybridWithMicrochip(
+		lostPetID, foundPetID,
+		lostSpecies, foundSpecies,
+		"", "",
+		distMiles,
+		lostTraits, foundTraits,
+		lostEmbedding, foundEmbedding,
+	)
 }
 
 func calculateColorScore(first, second *PetTraits) float64 {

@@ -42,6 +42,29 @@ func TestNotificationWorker_ProcessMatchFound(t *testing.T) {
 		}
 	})
 
+	t.Run("deterministic match sets urgent subject and explanation", func(t *testing.T) {
+		matchRes := domain.MatchResult{
+			FoundPetID:         "found-microchip",
+			MatchedPetID:       "lost-microchip",
+			Score:              1.0,
+			IsMatch:            true,
+			DeterministicMatch: true,
+			MatchType:          "deterministic_microchip",
+			MatchedMicrochip:   "HomeAgain ••••3456",
+		}
+		data, _ := matchRes.ToJSON()
+
+		notif, err := worker.ProcessMatchFound(context.Background(), data)
+		if err != nil {
+			t.Fatalf("ProcessMatchFound failed: %v", err)
+		}
+
+		wantSubject := "🚨 URGENT: Verified Microchip Match Found for lost-microchip!"
+		if notif.Subject != wantSubject {
+			t.Errorf("expected subject %q, got %q", wantSubject, notif.Subject)
+		}
+	})
+
 	t.Run("invalid json event returns error", func(t *testing.T) {
 		_, err := worker.ProcessMatchFound(context.Background(), []byte("{invalid-json"))
 		if err == nil {

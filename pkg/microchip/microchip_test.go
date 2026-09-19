@@ -237,3 +237,28 @@ func TestMockRegistryLookupClient(t *testing.T) {
 		}
 	})
 }
+
+func TestNormalize(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"985141000123456", "985141000123456"},
+		{" 985-141-000 123 456 ", "985141000123456"},
+		{"123*456*789", "123456789"},
+		{"00064a12b3", "00064A12B3"},
+		{"invalid", ""},
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got := microchip.Normalize(tt.input)
+			if got != tt.want {
+				t.Errorf("Normalize(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}

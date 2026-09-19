@@ -96,6 +96,16 @@ func ValidateAndNormalize(raw string) ValidationResult {
 	}
 }
 
+// Normalize returns the canonical normalized microchip transponder string if valid,
+// or an empty string if invalid or empty.
+func Normalize(raw string) string {
+	val := ValidateAndNormalize(raw)
+	if !val.Valid {
+		return ""
+	}
+	return val.NormalizedID
+}
+
 func isAllDigits(s string) bool {
 	for i := 0; i < len(s); i++ {
 		if s[i] < '0' || s[i] > '9' {

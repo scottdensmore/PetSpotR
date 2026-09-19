@@ -942,6 +942,37 @@ func seedMatcherLostPetWithOwner(t *testing.T, st store.StateStore, ownedBy *dom
 	}
 }
 
+func seedMatcherLostPetWithMicrochip(t *testing.T, st store.StateStore, petID, microchipID string) {
+	t.Helper()
+	record := domain.LostPetRecord{
+		PetID:            petID,
+		PetName:          "Buddy",
+		Species:          "Dog",
+		Breed:            "Golden Retriever",
+		PrimaryColor:     "Golden",
+		Description:      "White chest patch",
+		OwnerIdentityRef: "identity-" + petID,
+		ReportedAt:       time.Now().UTC(),
+		Location:         "Seattle, WA",
+		GeocodingStatus:  domain.GeocodingVerified,
+		Coordinates:      matcherTestPoint(),
+		Status:           domain.LostPetStatusLost,
+		MicrochipID:      microchipID,
+	}
+	record.ImageObject = "images/lost-pets/" + record.PetID + "/image.jpg"
+	record.ImageAnalysis = verifiedCandidateAnalysis(record.PetID, record.ImageObject, domain.PetImageTraits{
+		Breed: record.Breed, PrimaryColor: record.PrimaryColor,
+		DistinctiveMarkings: []string{record.Description},
+	})
+	data, err := json.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SaveState(context.Background(), store.LostPetsCollection, record.PetID, data); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func seedMatcherFoundPet(t *testing.T, st store.StateStore, event domain.FoundPetReportedV2) {
 	seedMatcherFoundPetWithOwner(t, st, event, nil)
 }
@@ -1654,3 +1685,237 @@ func TestWorker_ResolveFoundEmbedding_PersistsComputedEmbedding(t *testing.T) {
 		t.Fatalf("second resolveFoundEmbedding length = %d, want %d", len(secondEmb), embedder.Dimension())
 	}
 }
+
+func TestMatcherWorker_DeterministicMicrochipMatching(t *testing.T) {
+	st := store.NewMemoryStore()
+	ps := pubsub.NewMemoryPubSub()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := ollama.GenerateResponse{
+			Model: "gemma4:e2b",
+			Response: "{\n" +
+				"  \"breed\": \"Golden Retriever\",\n" +
+				"  \"primaryColor\": \"Golden\",\n" +
+				"  \"secondaryColor\": \"Cream\",\n" +
+				"  \"distinctiveMarkings\": [\"White chest patch\"],\n" +
+				"  \"eyeColor\": \"Brown\"\n" +
+				"}",
+			Done: true,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer ts.Close()
+
+	ollamaClient := ollama.NewClient(ollama.WithBaseURL(ts.URL))
+	worker := NewWorker(st, ps, ollamaClient)
+
+	// Seed lost pet with microchip
+	seedMatcherLostPetWithMicrochip(t, st, "lost-chip-1", "985141000123456")
+
+	var publishedMatch domain.MatchResult
+	var matchReceived bool
+	_ = ps.Subscribe("matchFound", func(ctx context.Context, data []byte) error {
+		matchReceived = true
+		_, err := domain.DecodeEventPayload(data, domain.EventTypeMatchFound, &publishedMatch)
+		return err
+	})
+
+	foundEvt := domain.FoundPetReportedV2{
+		PetID:       "found-chip-1",
+		ImageURL:    "https://storage.petspotr.io/found-chip-1.jpg",
+		FoundAt:     time.Now().UTC(),
+		Location:    "Seattle, WA",
+		MicrochipID: "985141000123456",
+	}
+	foundData := verifiedFoundEventData(t, foundEvt)
+
+	err := worker.ProcessFoundPet(context.Background(), foundData)
+	if err != nil {
+		t.Fatalf("ProcessFoundPet failed: %v", err)
+	}
+
+	if !matchReceived {
+		t.Fatal("expected matchFound event to be published")
+	}
+
+	if publishedMatch.Score != 1.0 {
+		t.Errorf("expected score 1.0, got %f", publishedMatch.Score)
+	}
+	if !publishedMatch.DeterministicMatch {
+		t.Errorf("expected DeterministicMatch true, got false")
+	}
+	if publishedMatch.MatchType != "deterministic_microchip" {
+		t.Errorf("expected MatchType deterministic_microchip, got %s", publishedMatch.MatchType)
+	}
+	if publishedMatch.MatchedMicrochip != "HomeAgain ••••3456" {
+		t.Errorf("expected MatchedMicrochip HomeAgain ••••3456, got %s", publishedMatch.MatchedMicrochip)
+	}
+
+	// Verify durable match record
+	matches, err := st.ListState(context.Background(), store.MatchesCollection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 1 {
+		t.Fatalf("expected 1 persisted match, got %d", len(matches))
+	}
+	for _, raw := range matches {
+		var record domain.MatchRecord
+		if err := json.Unmarshal(raw, &record); err != nil {
+			t.Fatal(err)
+		}
+		if !record.DeterministicMatch {
+			t.Errorf("persisted match DeterministicMatch = false, want true")
+		}
+		if record.MatchType != "deterministic_microchip" {
+			t.Errorf("persisted match MatchType = %s, want deterministic_microchip", record.MatchType)
+		}
+		if record.MatchedMicrochip != "HomeAgain ••••3456" {
+			t.Errorf("persisted match MatchedMicrochip = %s, want HomeAgain ••••3456", record.MatchedMicrochip)
+		}
+		if record.Score != 1.0 {
+			t.Errorf("persisted match Score = %f, want 1.0", record.Score)
+		}
+	}
+}
+
+func TestMatcherWorker_ConflictingMicrochipsRejectCandidate(t *testing.T) {
+	st := store.NewMemoryStore()
+	ps := pubsub.NewMemoryPubSub()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := ollama.GenerateResponse{
+			Model: "gemma4:e2b",
+			Response: "{\n" +
+				"  \"breed\": \"Golden Retriever\",\n" +
+				"  \"primaryColor\": \"Golden\",\n" +
+				"  \"secondaryColor\": \"Cream\",\n" +
+				"  \"distinctiveMarkings\": [\"White chest patch\"],\n" +
+				"  \"eyeColor\": \"Brown\"\n" +
+				"}",
+			Done: true,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer ts.Close()
+
+	ollamaClient := ollama.NewClient(ollama.WithBaseURL(ts.URL))
+	worker := NewWorker(st, ps, ollamaClient)
+
+	// Seed lost pet with chip A
+	seedMatcherLostPetWithMicrochip(t, st, "lost-chip-A", "985141000123456")
+
+	var matchReceived bool
+	_ = ps.Subscribe("matchFound", func(ctx context.Context, data []byte) error {
+		matchReceived = true
+		return nil
+	})
+
+	// Found pet has conflicting chip B
+	foundEvt := domain.FoundPetReportedV2{
+		PetID:       "found-chip-B",
+		ImageURL:    "https://storage.petspotr.io/found-chip-B.jpg",
+		FoundAt:     time.Now().UTC(),
+		Location:    "Seattle, WA",
+		MicrochipID: "981010000999999",
+	}
+	foundData := verifiedFoundEventData(t, foundEvt)
+
+	err := worker.ProcessFoundPet(context.Background(), foundData)
+	if err != nil {
+		t.Fatalf("ProcessFoundPet failed: %v", err)
+	}
+
+	if matchReceived {
+		t.Fatal("expected NO matchFound event to be published due to microchip mismatch veto")
+	}
+
+	matches, err := st.ListState(context.Background(), store.MatchesCollection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 0 {
+		t.Fatalf("expected 0 persisted matches, got %d", len(matches))
+	}
+}
+
+func TestMatcherWorker_DeterministicCandidateOutranksNonDeterministic(t *testing.T) {
+	t.Run("outranks helper prioritizes deterministic match over non-deterministic", func(t *testing.T) {
+		deterministicCand := rankedCandidate{
+			candidate: LostPetCandidate{Record: domain.LostPetRecord{PetID: "lost-det"}},
+			result:    &domain.MatchResult{Score: 1.0, DeterministicMatch: true},
+		}
+		probabilisticCand := rankedCandidate{
+			candidate: LostPetCandidate{Record: domain.LostPetRecord{PetID: "lost-prob"}},
+			result:    &domain.MatchResult{Score: 0.99, DeterministicMatch: false},
+		}
+
+		if !outranks(deterministicCand, probabilisticCand) {
+			t.Errorf("expected deterministic candidate to outrank probabilistic candidate")
+		}
+		if outranks(probabilisticCand, deterministicCand) {
+			t.Errorf("expected probabilistic candidate NOT to outrank deterministic candidate")
+		}
+	})
+
+	t.Run("worker selects deterministic candidate over non-deterministic candidate", func(t *testing.T) {
+		st := store.NewMemoryStore()
+		ps := pubsub.NewMemoryPubSub()
+
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resp := ollama.GenerateResponse{
+				Model: "gemma4:e2b",
+				Response: "{\n" +
+					"  \"breed\": \"Golden Retriever\",\n" +
+					"  \"primaryColor\": \"Golden\",\n" +
+					"  \"secondaryColor\": \"Cream\",\n" +
+					"  \"distinctiveMarkings\": [\"White chest patch\"],\n" +
+					"  \"eyeColor\": \"Brown\"\n" +
+					"}",
+				Done: true,
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(resp)
+		}))
+		defer ts.Close()
+
+		ollamaClient := ollama.NewClient(ollama.WithBaseURL(ts.URL))
+		worker := NewWorker(st, ps, ollamaClient)
+
+		// Candidate 1: Lost pet without microchip (probabilistic match)
+		seedMatcherLostPetWithMicrochip(t, st, "lost-no-chip", "")
+
+		// Candidate 2: Lost pet with matching microchip
+		seedMatcherLostPetWithMicrochip(t, st, "lost-with-chip", "985141000123456")
+
+		var publishedMatch domain.MatchResult
+		_ = ps.Subscribe("matchFound", func(ctx context.Context, data []byte) error {
+			_, err := domain.DecodeEventPayload(data, domain.EventTypeMatchFound, &publishedMatch)
+			return err
+		})
+
+		foundEvt := domain.FoundPetReportedV2{
+			PetID:       "found-picker",
+			ImageURL:    "https://storage.petspotr.io/found-picker.jpg",
+			FoundAt:     time.Now().UTC(),
+			Location:    "Seattle, WA",
+			MicrochipID: "985141000123456",
+		}
+		foundData := verifiedFoundEventData(t, foundEvt)
+
+		err := worker.ProcessFoundPet(context.Background(), foundData)
+		if err != nil {
+			t.Fatalf("ProcessFoundPet failed: %v", err)
+		}
+
+		if publishedMatch.MatchedPetID != "lost-with-chip" {
+			t.Fatalf("expected deterministic candidate 'lost-with-chip' to win, got %q", publishedMatch.MatchedPetID)
+		}
+		if !publishedMatch.DeterministicMatch {
+			t.Errorf("expected winner to be deterministic match")
+		}
+	})
+}
+

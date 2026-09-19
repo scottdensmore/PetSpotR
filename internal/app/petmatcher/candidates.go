@@ -40,6 +40,9 @@ type rankedCandidate struct {
 }
 
 func outranks(challenger, current rankedCandidate) bool {
+	if challenger.result.DeterministicMatch != current.result.DeterministicMatch {
+		return challenger.result.DeterministicMatch
+	}
 	if challenger.result.Score != current.result.Score {
 		return challenger.result.Score > current.result.Score
 	}
