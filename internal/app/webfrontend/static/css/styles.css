@@ -2732,4 +2732,356 @@ footer {
   }
 }
 
+/* ==========================================================================
+   Pet Recovery Printable Poster & CSS Paged Media
+   ========================================================================== */
+
+@page {
+  size: letter portrait;
+  margin: 0.35in;
+}
+
+@media print {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  header, footer, nav, .site-header, .site-footer, .nav-container, .btn, .search-container, .filters-container, .modal-overlay, #poster-modal, .no-print {
+    display: none !important;
+  }
+  .printable-poster {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 10.3in !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .poster-tear-tabs {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+
+/* Standalone & Preview Screen Styling */
+.poster-body {
+  background: #0f172a;
+  color: #f8fafc;
+  margin: 0;
+  padding: 1rem;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.poster-actions-toolbar {
+  max-width: 8.5in;
+  margin: 0 auto 1rem auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  background: #1e293b;
+  border-radius: 8px;
+  border: 1px solid #334155;
+}
+
+.printable-poster {
+  width: 100%;
+  max-width: 8.5in;
+  min-height: 10.3in;
+  margin: 0 auto;
+  padding: 0.4in;
+  background: #ffffff;
+  color: #111827;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.poster-header {
+  background: #dc2626;
+  color: #ffffff;
+  text-align: center;
+  font-size: 2.25rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  padding: 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.poster-name {
+  font-size: 2.75rem;
+  font-weight: 900;
+  text-align: center;
+  color: #111827;
+  margin: 0.2rem 0;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.poster-reward-banner {
+  background: #065f46;
+  color: #34d399;
+  border: 2px solid #10b981;
+  font-size: 1.35rem;
+  font-weight: 800;
+  text-align: center;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  margin: 0.3rem 0;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.poster-emergency-note {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 2px dashed #ef4444;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  margin: 0.3rem 0;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.poster-main-content {
+  display: flex;
+  gap: 1rem;
+  margin: 0.5rem 0;
+  align-items: stretch;
+}
+
+.poster-photo {
+  flex: 0 0 45%;
+  max-width: 45%;
+  min-height: 220px;
+  max-height: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border: 2px solid #cbd5e1;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.poster-photo .poster-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.poster-photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 600;
+  gap: 0.5rem;
+}
+
+.poster-details {
+  flex: 1;
+  font-size: 0.95rem;
+  color: #1e293b;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 0.35rem;
+}
+
+.poster-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.25rem;
+}
+
+.poster-detail-item {
+  line-height: 1.35;
+}
+
+.poster-markings, .poster-description {
+  line-height: 1.35;
+  font-size: 0.9rem;
+}
+
+.poster-qr-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.5rem 0 1rem 0;
+  padding: 0.5rem 0.75rem;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.poster-qr-img {
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+}
+
+.poster-qr-callout {
+  flex: 1;
+}
+
+.poster-qr-prompt {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Tear-Off Tabs */
+.poster-tear-tabs {
+  display: flex;
+  justify-content: space-between;
+  border-top: 2px dashed #9ca3af;
+  margin-top: auto;
+  height: 170px;
+  box-sizing: border-box;
+}
+
+.tear-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-right: 1px dashed #9ca3af;
+  padding: 0.25rem;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 0.75rem;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.tear-tab:last-child {
+  border-right: none;
+}
+
+.tear-tab-cut {
+  font-size: 0.75rem;
+  margin-bottom: 0.2rem;
+}
+
+.tear-tab-name {
+  font-weight: 800;
+  font-size: 0.75rem;
+  color: #0f172a;
+}
+
+.tear-tab-qr {
+  width: 38px;
+  height: 38px;
+  margin: 0.2rem 0;
+}
+
+.tear-tab-shortlink {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.7rem;
+  color: #0369a1;
+}
+
+.tear-tab-contact {
+  font-weight: 600;
+  font-size: 0.7rem;
+  color: #334155;
+}
+
+/* Poster Modal Dialog */
+.poster-modal-card {
+  width: 92%;
+  max-width: 1000px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 1.5rem;
+}
+
+.poster-modal-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  overflow-y: auto;
+  margin-top: 1rem;
+}
+
+.poster-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.poster-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.poster-preview-pane {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.7);
+  border-radius: 8px;
+  border: 1px solid #334155;
+  padding: 0.75rem;
+  min-height: 400px;
+}
+
+.poster-preview-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.poster-preview-frame {
+  width: 100%;
+  height: 420px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .poster-modal-body {
+    grid-template-columns: 1fr;
+  }
+}
+
 

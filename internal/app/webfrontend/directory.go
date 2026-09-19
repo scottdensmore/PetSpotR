@@ -602,6 +602,17 @@ func SeedDemoPets(ctx context.Context, stateStore store.StateStore) error {
 
 	lostPets := []domain.LostPetRecord{
 		{
+			PetID:        "demo-lost-1",
+			PetName:      "Rusty",
+			Species:      "Dog",
+			Breed:        "Golden Retriever",
+			PrimaryColor: "Golden",
+			Description:  "Friendly golden retriever wearing blue collar.",
+			Location:     "Capitol Hill, Seattle, WA",
+			ReportedAt:   now.Add(-1 * time.Hour),
+			Status:       domain.LostPetStatusLost,
+		},
+		{
 			PetID:        "lost-101",
 			PetName:      "Buddy",
 			Species:      "Dog",

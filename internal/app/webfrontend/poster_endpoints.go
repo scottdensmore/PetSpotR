@@ -17,19 +17,21 @@ import (
 )
 
 type lostPetDTO struct {
-	PetID            string               `json:"petId"`
-	PetName          string               `json:"petName"`
-	Species          string               `json:"species"`
-	Breed            string               `json:"breed"`
-	PrimaryColor     string               `json:"primaryColor"`
-	Description      string               `json:"description"`
-	Location         string               `json:"location"`
-	LastSeenLocation any                  `json:"lastSeenLocation"`
-	ReportedAt       time.Time            `json:"reportedAt"`
-	ImageObject      string               `json:"imageObject"`
-	ImageURL         string               `json:"imageUrl"`
-	Images           []domain.PetImage    `json:"images"`
-	Status           domain.LostPetStatus `json:"status"`
+	PetID               string               `json:"petId"`
+	PetName             string               `json:"petName"`
+	Species             string               `json:"species"`
+	Breed               string               `json:"breed"`
+	Gender              string               `json:"gender,omitempty"`
+	PrimaryColor        string               `json:"primaryColor"`
+	DistinctiveMarkings []string             `json:"distinctiveMarkings,omitempty"`
+	Description         string               `json:"description"`
+	Location            string               `json:"location"`
+	LastSeenLocation    any                  `json:"lastSeenLocation"`
+	ReportedAt          time.Time            `json:"reportedAt"`
+	ImageObject         string               `json:"imageObject"`
+	ImageURL            string               `json:"imageUrl"`
+	Images              []domain.PetImage    `json:"images"`
+	Status              domain.LostPetStatus `json:"status"`
 }
 
 func (s *Server) getLostPetRecord(ctx context.Context, petID string) (*lostPetDTO, error) {

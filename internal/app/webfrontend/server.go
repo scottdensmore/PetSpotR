@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"io/fs"
 	"math"
 	"net/http"
@@ -230,6 +231,7 @@ func (s *Server) routes() {
 		_, _ = w.Write(data)
 	})
 	s.mux.HandleFunc("/pets", s.handlePets)
+	s.mux.HandleFunc("/pets/{petID}/poster", s.handlePetPoster)
 	s.mux.HandleFunc("/report-lost", s.handleReportLost)
 	s.mux.HandleFunc("/report-found", s.handleReportFound)
 	s.mux.HandleFunc("/matches", s.handleMatches)
@@ -1627,3 +1629,146 @@ func (s *Server) Close() {
 func respondWithError(w http.ResponseWriter, code int, message string) {
 	http.Error(w, message, code)
 }
+
+type PosterViewModel struct {
+	PetID               string
+	PetName             string
+	Species             string
+	SpeciesUpper        string
+	Breed               string
+	Gender              string
+	PrimaryColor        string
+	DistinctiveMarkings []string
+	LastSeenDate        string
+	Location            string
+	Description         string
+	PhotoURL            string
+	HasPhoto            bool
+	RewardText          string
+	HasReward           bool
+	EmergencyText       string
+	HasEmergency        bool
+	ShortURL            string
+	Tabs                []PosterTabViewModel
+}
+
+type PosterTabViewModel struct {
+	PetName     string
+	PetID       string
+	ShortURL    string
+	ContactInfo string
+}
+
+func (s *Server) handlePetPoster(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	petID := strings.TrimSpace(r.PathValue("petID"))
+	if petID == "" {
+		path := strings.TrimPrefix(r.URL.Path, "/pets/")
+		petID = strings.TrimSuffix(path, "/poster")
+	}
+	if petID == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	pet, err := s.getLostPetRecord(r.Context(), petID)
+	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		http.Error(w, "Failed to load pet record", http.StatusInternalServerError)
+		return
+	}
+
+	petName := strings.TrimSpace(pet.PetName)
+	if petName == "" {
+		petName = "Missing Pet"
+	}
+
+	species := strings.TrimSpace(pet.Species)
+	if species == "" {
+		species = "Pet"
+	}
+
+	q := r.URL.Query()
+	rewardParam := strings.TrimSpace(q.Get("reward"))
+	hasReward := rewardParam != ""
+	rewardText := rewardParam
+	if hasReward && !strings.Contains(strings.ToUpper(rewardParam), "REWARD") {
+		rewardText = rewardParam + " REWARD"
+	}
+
+	emergencyParam := strings.TrimSpace(q.Get("emergency"))
+	hasEmergency := emergencyParam != ""
+
+	phoneParam := strings.TrimSpace(q.Get("phone"))
+	tabContact := "Scan QR to Help"
+	if phoneParam != "" {
+		tabContact = phoneParam
+	}
+
+	photoURL := strings.TrimSpace(pet.ImageURL)
+	if photoURL == "" {
+		if strings.TrimSpace(pet.ImageObject) != "" {
+			photoURL = pet.ImageObject
+		} else if len(pet.Images) > 0 && strings.TrimSpace(pet.Images[0].Object) != "" {
+			photoURL = pet.Images[0].Object
+		}
+	}
+
+	lastSeenDate := ""
+	if !pet.ReportedAt.IsZero() {
+		lastSeenDate = pet.ReportedAt.Format("Jan 02, 2006")
+	}
+
+	shortURL := fmt.Sprintf("%s/p/%s", determineRequestBaseURL(r), pet.PetID)
+
+	tabs := make([]PosterTabViewModel, 10)
+	for i := 0; i < 10; i++ {
+		tabs[i] = PosterTabViewModel{
+			PetName:     petName,
+			PetID:       pet.PetID,
+			ShortURL:    "/p/" + pet.PetID,
+			ContactInfo: tabContact,
+		}
+	}
+
+	viewModel := PosterViewModel{
+		PetID:               pet.PetID,
+		PetName:             petName,
+		Species:             species,
+		SpeciesUpper:        strings.ToUpper(species),
+		Breed:               strings.TrimSpace(pet.Breed),
+		Gender:              strings.TrimSpace(pet.Gender),
+		PrimaryColor:        strings.TrimSpace(pet.PrimaryColor),
+		DistinctiveMarkings: pet.DistinctiveMarkings,
+		LastSeenDate:        lastSeenDate,
+		Location:            extractLocationString(pet),
+		Description:         strings.TrimSpace(pet.Description),
+		PhotoURL:            photoURL,
+		HasPhoto:            photoURL != "",
+		RewardText:          rewardText,
+		HasReward:           hasReward,
+		EmergencyText:       emergencyParam,
+		HasEmergency:        hasEmergency,
+		ShortURL:            shortURL,
+		Tabs:                tabs,
+	}
+
+	tmpl, err := template.ParseFS(embeddedFiles, "templates/poster.html")
+	if err != nil {
+		http.Error(w, "Failed to load poster template", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_ = tmpl.Execute(w, viewModel)
+}
+
