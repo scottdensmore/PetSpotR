@@ -1836,3 +1836,95 @@ func TestPrintablePosterSnippets(t *testing.T) {
 	})
 }
 
+func TestFinderLandingPage(t *testing.T) {
+	t.Parallel()
+	srv := NewDemoServer()
+
+	req := httptest.NewRequest(http.MethodGet, "/p/demo-lost-1", nil)
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d", w.Code)
+	}
+	body := w.Body.String()
+	snippets := []string{
+		`<meta property="og:image"`,
+		`share-card.svg`,
+		`id="btn-finder-found"`,
+		`id="btn-finder-message"`,
+		`id="btn-finder-sighting"`,
+	}
+	for _, snippet := range snippets {
+		if !strings.Contains(body, snippet) {
+			t.Fatalf("expected %q in rendered finder landing HTML", snippet)
+		}
+	}
+
+	t.Run("Returns 404 for unknown pet", func(t *testing.T) {
+		req404 := httptest.NewRequest(http.MethodGet, "/p/unknown-pet-xyz", nil)
+		w404 := httptest.NewRecorder()
+		srv.ServeHTTP(w404, req404)
+
+		if w404.Code != http.StatusNotFound {
+			t.Fatalf("expected 404 NotFound, got %d", w404.Code)
+		}
+	})
+
+	t.Run("Returns 405 for non-GET methods", func(t *testing.T) {
+		req405 := httptest.NewRequest(http.MethodPost, "/p/demo-lost-1", nil)
+		w405 := httptest.NewRecorder()
+		srv.ServeHTTP(w405, req405)
+
+		if w405.Code != http.StatusMethodNotAllowed {
+			t.Fatalf("expected 405 MethodNotAllowed, got %d", w405.Code)
+		}
+	})
+
+	t.Run("Supports HEAD method", func(t *testing.T) {
+		reqHead := httptest.NewRequest(http.MethodHead, "/p/demo-lost-1", nil)
+		wHead := httptest.NewRecorder()
+		srv.ServeHTTP(wHead, reqHead)
+
+		if wHead.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK for HEAD, got %d", wHead.Code)
+		}
+	})
+
+	t.Run("Contains OpenGraph and Twitter card meta tags", func(t *testing.T) {
+		ogSnippets := []string{
+			`property="og:title"`,
+			`property="og:description"`,
+			`property="og:type" content="website"`,
+			`name="twitter:card" content="summary_large_image"`,
+			`/api/v1/pets/demo-lost-1/share-card.svg`,
+		}
+		for _, s := range ogSnippets {
+			if !strings.Contains(body, s) {
+				t.Errorf("expected finder landing HTML to contain %q", s)
+			}
+		}
+	})
+
+	t.Run("Zero PII wire contract - no raw owner contact info", func(t *testing.T) {
+		// Ensure no personal email addresses or phone contact numbers are exposed in body
+		if strings.Contains(body, "@example.com") || strings.Contains(body, "mailto:") || strings.Contains(body, "tel:") {
+			t.Errorf("finder landing HTML contains unmediated personal contact information")
+		}
+	})
+
+	t.Run("Renders reward callout when reward query param is present", func(t *testing.T) {
+		reqReward := httptest.NewRequest(http.MethodGet, "/p/demo-lost-1?reward=500", nil)
+		wReward := httptest.NewRecorder()
+		srv.ServeHTTP(wReward, reqReward)
+
+		if wReward.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK, got %d", wReward.Code)
+		}
+		rewardBody := wReward.Body.String()
+		if !strings.Contains(rewardBody, "500 REWARD") && !strings.Contains(rewardBody, "$500") {
+			t.Errorf("expected reward banner in body, got: %s", rewardBody)
+		}
+	})
+}
+

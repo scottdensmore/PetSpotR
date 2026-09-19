@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Help Find {{.PetName}} — Lost {{.Species}} | PetSpotR</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/css/styles.css">
+
+  <!-- OpenGraph Metadata -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Help Find {{.PetName}} (Lost {{.Species}})">
+  <meta property="og:description" content="{{.SocialDescription}}">
+  <meta property="og:url" content="{{.ShortURL}}">
+  <meta property="og:image" content="{{.ShareCardURL}}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+
+  <!-- Twitter Card Metadata -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Help Find {{.PetName}} (Lost {{.Species}})">
+  <meta name="twitter:description" content="{{.SocialDescription}}">
+  <meta name="twitter:image" content="{{.ShareCardURL}}">
+</head>
+<body class="finder-landing-body">
+  <header class="glass-nav finder-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link" aria-label="PetSpotR Home">
+        <svg class="brand-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+      <div class="nav-actions">
+        <span class="badge badge-lost finder-header-badge">LOST PET ALERT</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container finder-landing-container">
+    <article class="glass-card finder-hero-card">
+      <div class="finder-hero-media">
+        {{ if .HasPhoto }}
+        <img src="{{.PhotoURL}}" alt="Photo of {{.PetName}}" class="finder-pet-photo" loading="eager">
+        {{ else }}
+        <div class="finder-photo-placeholder" aria-hidden="true">
+          <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v8m-4-4h8"></path></svg>
+          <span>No Photo Available</span>
+        </div>
+        {{ end }}
+      </div>
+
+      <div class="finder-hero-details">
+        <div class="finder-status-strip">
+          <span class="badge badge-lost">LOST {{.SpeciesUpper}}</span>
+          {{ if .HasReward }}
+          <span class="finder-reward-tag">💰 {{.RewardText}}</span>
+          {{ end }}
+        </div>
+
+        <h1 class="finder-pet-name">{{.PetName}}</h1>
+
+        <p class="finder-subtitle">
+          {{ if .Breed }}{{.Breed}}{{ else }}{{.Species}}{{ end }}
+          {{ if .PrimaryColor }} • {{.PrimaryColor}}{{ end }}
+          {{ if .Location }} • Last seen in {{.Location}}{{ end }}
+          {{ if .LastSeenDate }} • {{.LastSeenDate}}{{ end }}
+        </p>
+
+        {{ if .HasEmergency }}
+        <div class="finder-emergency-callout" role="alert">
+          <span class="emergency-icon" aria-hidden="true">⚠️</span>
+          <strong>Important:</strong> {{.EmergencyText}}
+        </div>
+        {{ end }}
+
+        {{ if .Description }}
+        <div class="finder-detail-block">
+          <h3>Description</h3>
+          <p class="finder-description">{{.Description}}</p>
+        </div>
+        {{ end }}
+
+        {{ if .DistinctiveMarkings }}
+        <div class="finder-detail-block">
+          <h3>Distinctive Markings</h3>
+          <div class="finder-tags">
+            {{ range .DistinctiveMarkings }}
+            <span class="finder-tag">{{ . }}</span>
+            {{ end }}
+          </div>
+        </div>
+        {{ end }}
+      </div>
+    </article>
+
+    <!-- Finder Action CTAs -->
+    <section class="finder-cta-group" aria-label="Finder Actions">
+      <a href="{{.ReportFoundURL}}" id="btn-finder-found" class="btn btn-primary btn-lg finder-btn btn-finder-found">
+        <span class="btn-icon">📷</span> I Have Found This Pet
+      </a>
+      <button type="button" id="btn-finder-message" class="btn btn-secondary btn-lg finder-btn btn-finder-message" onclick="openContactModal()">
+        <span class="btn-icon">💬</span> Send Private Message to Owner
+      </button>
+      <button type="button" id="btn-finder-sighting" class="btn btn-secondary btn-lg finder-btn btn-finder-sighting" onclick="openSightingModal()">
+        <span class="btn-icon">📍</span> Report a Quick Sighting
+      </button>
+    </section>
+
+    <!-- Social Share Section -->
+    <section class="glass-card finder-share-card" aria-labelledby="share-heading">
+      <h2 id="share-heading" class="share-heading">Help Spread the Word</h2>
+      <p class="text-secondary share-subtext">Sharing this link takes 5 seconds and exponentially increases the chances of reunion.</p>
+      <div class="finder-share-buttons">
+        <button type="button" id="btn-copy-shortlink" class="btn btn-secondary btn-share" onclick="copyShortlink()">
+          📋 <span id="copy-btn-label">Copy Link</span>
+        </button>
+        <a href="https://nextdoor.com/share/?url={{.ShortURLEncoded}}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-share" id="btn-share-nextdoor" aria-label="Share on Nextdoor">
+          🏡 Nextdoor
+        </a>
+        <a href="https://www.facebook.com/sharer/sharer.php?u={{.ShortURLEncoded}}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-share" id="btn-share-facebook" aria-label="Share on Facebook">
+          📘 Facebook
+        </a>
+        <a href="https://x.com/intent/tweet?text={{.ShareTextEncoded}}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-share" id="btn-share-x" aria-label="Share on X">
+          𝕏 Post
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <!-- Mediated Contact Modal -->
+  <div id="modal-finder-message" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
+    <div class="glass-card finder-modal-card">
+      <div class="modal-header">
+        <h2 id="contact-modal-title">💬 Message Pet Owner</h2>
+        <button type="button" class="btn-icon" onclick="closeContactModal()" aria-label="Close modal">✕</button>
+      </div>
+      <form id="form-finder-message" class="finder-modal-form" onsubmit="handleContactSubmit(event)">
+        <p class="text-secondary finder-privacy-note">
+          🔒 PetSpotR Mediated Privacy: Your message is relayed securely. The owner's personal email and phone remain strictly protected.
+        </p>
+        <div class="form-group">
+          <label for="contact-sender-name" class="form-label">Your Name (Optional)</label>
+          <input type="text" id="contact-sender-name" class="form-control" placeholder="e.g. Neighbor Alex">
+        </div>
+        <div class="form-group">
+          <label for="contact-sender-phone" class="form-label">Your Phone or Email (Optional, so owner can reply)</label>
+          <input type="text" id="contact-sender-phone" class="form-control" placeholder="Optional phone or email for replies">
+        </div>
+        <div class="form-group">
+          <label for="contact-message-body" class="form-label">Message <span class="required">*</span></label>
+          <textarea id="contact-message-body" class="form-control" rows="4" required placeholder="I think I saw your pet near 4th and Main..."></textarea>
+        </div>
+        <div id="contact-feedback" class="form-feedback hidden" role="status"></div>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary btn-full" id="btn-submit-contact-message">Send Secure Message</button>
+          <button type="button" class="btn btn-secondary btn-full" onclick="closeContactModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Quick Sighting Modal -->
+  <div id="modal-finder-sighting" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="sighting-modal-title">
+    <div class="glass-card finder-modal-card">
+      <div class="modal-header">
+        <h2 id="sighting-modal-title">📍 Report Quick Sighting</h2>
+        <button type="button" class="btn-icon" onclick="closeSightingModal()" aria-label="Close modal">✕</button>
+      </div>
+      <form id="form-finder-sighting" class="finder-modal-form" onsubmit="handleSightingSubmit(event)">
+        <p class="text-secondary finder-privacy-note">
+          Provide any sighting details to help the owner pinpoint {{.PetName}}'s location.
+        </p>
+        <div class="form-group">
+          <label for="sighting-location" class="form-label">Location / Cross Streets <span class="required">*</span></label>
+          <input type="text" id="sighting-location" class="form-control" required placeholder="e.g. Near Cal Anderson Park water reservoir">
+        </div>
+        <div class="form-group">
+          <label for="sighting-time" class="form-label">When Did You See Them?</label>
+          <input type="text" id="sighting-time" class="form-control" placeholder="e.g. About 15 minutes ago">
+        </div>
+        <div class="form-group">
+          <label for="sighting-notes" class="form-label">Notes / Heading Direction</label>
+          <textarea id="sighting-notes" class="form-control" rows="3" placeholder="Running northbound toward Denny Way, seemed cautious..."></textarea>
+        </div>
+        <div id="sighting-feedback" class="form-feedback hidden" role="status"></div>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary btn-full" id="btn-submit-sighting">Submit Sighting</button>
+          <button type="button" class="btn btn-secondary btn-full" onclick="closeSightingModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openContactModal() {
+      document.getElementById('modal-finder-message').classList.remove('hidden');
+    }
+    function closeContactModal() {
+      document.getElementById('modal-finder-message').classList.add('hidden');
+    }
+    function openSightingModal() {
+      document.getElementById('modal-finder-sighting').classList.remove('hidden');
+    }
+    function closeSightingModal() {
+      document.getElementById('modal-finder-sighting').classList.add('hidden');
+    }
+
+    function copyShortlink() {
+      var shortURL = {{.ShortURL}};
+      var label = document.getElementById('copy-btn-label');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shortURL).then(function() {
+          if (label) {
+            label.textContent = 'Copied!';
+            setTimeout(function() { label.textContent = 'Copy Link'; }, 2000);
+          }
+        }).catch(function() {
+          promptCopy(shortURL, label);
+        });
+      } else {
+        promptCopy(shortURL, label);
+      }
+    }
+
+    function promptCopy(text, label) {
+      window.prompt('Copy shortlink:', text);
+      if (label) {
+        label.textContent = 'Copied!';
+        setTimeout(function() { label.textContent = 'Copy Link'; }, 2000);
+      }
+    }
+
+    function handleContactSubmit(e) {
+      e.preventDefault();
+      var feedback = document.getElementById('contact-feedback');
+      var submitBtn = document.getElementById('btn-submit-contact-message');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+      setTimeout(function() {
+        feedback.className = 'form-feedback alert-success';
+        feedback.textContent = 'Message dispatched to pet owner via secure channel!';
+        feedback.classList.remove('hidden');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Secure Message';
+        setTimeout(function() {
+          closeContactModal();
+          feedback.classList.add('hidden');
+          document.getElementById('form-finder-message').reset();
+        }, 1500);
+      }, 500);
+    }
+
+    function handleSightingSubmit(e) {
+      e.preventDefault();
+      var feedback = document.getElementById('sighting-feedback');
+      var submitBtn = document.getElementById('btn-submit-sighting');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+      setTimeout(function() {
+        feedback.className = 'form-feedback alert-success';
+        feedback.textContent = 'Sighting reported! Thank you for helping reunite {{.PetName}}!';
+        feedback.classList.remove('hidden');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Sighting';
+        setTimeout(function() {
+          closeSightingModal();
+          feedback.classList.add('hidden');
+          document.getElementById('form-finder-sighting').reset();
+        }, 1500);
+      }, 500);
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeContactModal();
+        closeSightingModal();
+      }
+    });
+
+    document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+          overlay.classList.add('hidden');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

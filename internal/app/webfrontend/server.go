@@ -14,6 +14,7 @@ import (
 	"io/fs"
 	"math"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -231,6 +232,7 @@ func (s *Server) routes() {
 		w.Header().Set("Cache-Control", "public, max-age=86400")
 		_, _ = w.Write(data)
 	})
+	s.mux.HandleFunc("/p/{petID}", s.handleFinderLanding)
 	s.mux.HandleFunc("/pets", s.handlePets)
 	s.mux.HandleFunc("/pets/{petID}/poster", s.handlePetPoster)
 	s.mux.HandleFunc("/report-lost", s.handleReportLost)
@@ -1778,4 +1780,150 @@ func (s *Server) handlePetPoster(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(buf.Bytes())
 }
+
+type FinderLandingViewModel struct {
+	PetID               string
+	PetName             string
+	Species             string
+	SpeciesUpper        string
+	Breed               string
+	Gender              string
+	PrimaryColor        string
+	DistinctiveMarkings []string
+	LastSeenDate        string
+	Location            string
+	Description         string
+	PhotoURL            string
+	HasPhoto            bool
+	RewardText          string
+	HasReward           bool
+	EmergencyText       string
+	HasEmergency        bool
+	ShortURL            string
+	BaseURL             string
+	ShareCardURL        string
+	SocialDescription   string
+	ReportFoundURL      string
+	ShortURLEncoded     string
+	ShareTextEncoded    string
+}
+
+func (s *Server) handleFinderLanding(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	petID := strings.TrimSpace(r.PathValue("petID"))
+	if petID == "" {
+		path := strings.TrimPrefix(r.URL.Path, "/p/")
+		petID = strings.TrimSpace(path)
+	}
+	if petID == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	pet, err := s.getLostPetRecord(r.Context(), petID)
+	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		http.Error(w, "Failed to load pet record", http.StatusInternalServerError)
+		return
+	}
+
+	petName := strings.TrimSpace(pet.PetName)
+	if petName == "" {
+		petName = "Missing Pet"
+	}
+
+	species := strings.TrimSpace(pet.Species)
+	if species == "" {
+		species = "Pet"
+	}
+
+	q := r.URL.Query()
+	rewardParam := strings.TrimSpace(q.Get("reward"))
+	hasReward := rewardParam != ""
+	rewardText := rewardParam
+	if hasReward && !strings.Contains(strings.ToUpper(rewardParam), "REWARD") {
+		rewardText = rewardParam + " REWARD"
+	}
+
+	emergencyParam := strings.TrimSpace(q.Get("emergency"))
+	hasEmergency := emergencyParam != ""
+
+	photoURL := strings.TrimSpace(pet.ImageURL)
+	if photoURL == "" {
+		if strings.TrimSpace(pet.ImageObject) != "" {
+			photoURL = pet.ImageObject
+		} else if len(pet.Images) > 0 && strings.TrimSpace(pet.Images[0].Object) != "" {
+			photoURL = pet.Images[0].Object
+		}
+	}
+
+	lastSeenDate := ""
+	if !pet.ReportedAt.IsZero() {
+		lastSeenDate = pet.ReportedAt.Format("Jan 02, 2006")
+	}
+
+	baseURL := determineRequestBaseURL(r)
+	shareCardURL := fmt.Sprintf("%s/api/v1/pets/%s/share-card.svg", baseURL, pet.PetID)
+	shortURL := fmt.Sprintf("%s/p/%s", baseURL, pet.PetID)
+	location := extractLocationString(pet)
+
+	socialDesc := fmt.Sprintf("Help find %s, a lost %s last seen in %s. Tap to report sightings or contact the owner securely.", petName, pet.Breed, location)
+	if strings.TrimSpace(pet.Description) != "" {
+		socialDesc = fmt.Sprintf("Help find %s: %s", petName, strings.TrimSpace(pet.Description))
+	}
+
+	viewModel := FinderLandingViewModel{
+		PetID:               pet.PetID,
+		PetName:             petName,
+		Species:             species,
+		SpeciesUpper:        strings.ToUpper(species),
+		Breed:               strings.TrimSpace(pet.Breed),
+		Gender:              strings.TrimSpace(pet.Gender),
+		PrimaryColor:        strings.TrimSpace(pet.PrimaryColor),
+		DistinctiveMarkings: pet.DistinctiveMarkings,
+		LastSeenDate:        lastSeenDate,
+		Location:            location,
+		Description:         strings.TrimSpace(pet.Description),
+		PhotoURL:            photoURL,
+		HasPhoto:            photoURL != "",
+		RewardText:          rewardText,
+		HasReward:           hasReward,
+		EmergencyText:       emergencyParam,
+		HasEmergency:        hasEmergency,
+		ShortURL:            shortURL,
+		BaseURL:             baseURL,
+		ShareCardURL:        shareCardURL,
+		SocialDescription:   socialDesc,
+		ReportFoundURL:      fmt.Sprintf("/report-found?matchedPetId=%s", pet.PetID),
+		ShortURLEncoded:     url.QueryEscape(shortURL),
+		ShareTextEncoded:    url.QueryEscape(fmt.Sprintf("Help find %s! %s", petName, shortURL)),
+	}
+
+	tmpl, err := template.ParseFS(embeddedFiles, "templates/finder_landing.html")
+	if err != nil {
+		http.Error(w, "Failed to load finder landing template", http.StatusInternalServerError)
+		return
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, viewModel); err != nil {
+		http.Error(w, "Failed to render finder landing template", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	if r.Method != http.MethodHead {
+		_, _ = w.Write(buf.Bytes())
+	}
+}
+
 
