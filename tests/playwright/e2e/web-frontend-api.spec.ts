@@ -789,7 +789,7 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
 
     await page.locator('#brand-link').focus();
     const keyboardIds: string[] = [];
-    for (const id of ['nav-home', 'nav-directory', 'nav-matches', ...actionIds]) {
+    for (const id of ['nav-home', 'nav-directory', 'nav-matches', 'nav-analytics', ...actionIds]) {
       if (!(await page.locator(`#${id}`).isDisabled())) keyboardIds.push(id);
     }
     for (const id of keyboardIds) {
@@ -806,6 +806,7 @@ test.describe('API Journey: Web Frontend HTTP Endpoints', () => {
       'nav-home',
       'nav-directory',
       'nav-matches',
+      'nav-analytics',
       'theme-toggle',
       'btn-enable-push',
       'btn-report-lost',

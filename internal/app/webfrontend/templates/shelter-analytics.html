@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Shelter Partner Analytics Dashboard - Municipal coalition intake velocity, return-to-owner metrics, and automated reconciliation exports.">
+  <title>Shelter Partner Analytics Dashboard — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link active" id="nav-analytics">Shelter Analytics</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container page-main" id="main-content">
+    <div class="analytics-dashboard" aria-busy="false">
+      <div class="dashboard-heading">
+        <div>
+          <h1>Shelter Partner Analytics Dashboard</h1>
+          <p class="text-secondary">Municipal coalition intake velocity, return-to-owner metrics, and automated reconciliation exports.</p>
+        </div>
+      </div>
+
+      <!-- Filter & Export Action Bar -->
+      <section class="analytics-filter-bar glass-card" aria-label="Dashboard Filters">
+        <div class="filter-controls">
+          <div class="filter-group">
+            <label for="shelter-filter">Municipal Shelter</label>
+            <select id="shelter-filter" class="form-select filter-control">
+              <option value="">All Municipal Shelters</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="date-range-filter">Time Window</label>
+            <select id="date-range-filter" class="form-select filter-control">
+              <option value="7d">Past 7 Days</option>
+              <option value="30d" selected>Past 30 Days</option>
+              <option value="90d">Past 90 Days</option>
+              <option value="all">All Time</option>
+            </select>
+          </div>
+        </div>
+        <div class="analytics-actions">
+          <a id="btn-export-csv" href="/api/v1/shelters/analytics/export.csv" class="btn btn-secondary" download>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export CSV
+          </a>
+          <a id="btn-export-geojson" href="/api/v1/shelters/analytics/export.geojson" class="btn btn-secondary" download>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+              <line x1="8" y1="2" x2="8" y2="18"></line>
+              <line x1="16" y1="6" x2="16" y2="22"></line>
+            </svg>
+            Export GeoJSON
+          </a>
+        </div>
+      </section>
+
+      <!-- Hero KPI Cards -->
+      <section class="kpi-grid" aria-label="Shelter Key Performance Indicators">
+        <article class="glass-card kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-icon-wrapper" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
+            </span>
+            <span class="kpi-label">Return-to-Owner Rate</span>
+          </div>
+          <div class="kpi-value kpi-metric" id="kpi-rto-rate">0.0%</div>
+          <div class="kpi-subtext">Reunited vs Total Shelter Intakes</div>
+        </article>
+
+        <article class="glass-card kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-icon-wrapper" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </span>
+            <span class="kpi-label">Median Turnaround</span>
+          </div>
+          <div class="kpi-value kpi-metric" id="kpi-turnaround">0.0h</div>
+          <div class="kpi-subtext" id="kpi-turnaround-subtext">Intake to Reunion Velocity</div>
+        </article>
+
+        <article class="glass-card kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-icon-wrapper" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                <rect x="9" y="9" width="6" height="6"></rect>
+                <line x1="9" y1="1" x2="9" y2="4"></line>
+                <line x1="15" y1="1" x2="15" y2="4"></line>
+                <line x1="9" y1="20" x2="9" y2="23"></line>
+                <line x1="15" y1="20" x2="15" y2="23"></line>
+                <line x1="20" y1="9" x2="23" y2="9"></line>
+                <line x1="20" y1="15" x2="23" y2="15"></line>
+                <line x1="1" y1="9" x2="4" y2="9"></line>
+                <line x1="1" y1="15" x2="4" y2="15"></line>
+              </svg>
+            </span>
+            <span class="kpi-label">Microchip Scan Rate</span>
+          </div>
+          <div class="kpi-value kpi-metric" id="kpi-microchip-rate">0.0%</div>
+          <div class="kpi-subtext">Intakes with Scanned Microchip</div>
+        </article>
+
+        <article class="glass-card kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-icon-wrapper" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="22" y1="12" x2="18" y2="12"></line>
+                <line x1="6" y1="12" x2="2" y2="12"></line>
+                <line x1="12" y1="6" x2="12" y2="2"></line>
+                <line x1="12" y1="22" x2="12" y2="18"></line>
+              </svg>
+            </span>
+            <span class="kpi-label">Deterministic Microchip Ratio</span>
+          </div>
+          <div class="kpi-value kpi-metric" id="kpi-deterministic-ratio">0.0%</div>
+          <div class="kpi-subtext">Verified Chip vs AI Visual Matches</div>
+        </article>
+      </section>
+
+      <!-- Municipal Coalition Breakdown Table -->
+      <section class="analytics-breakdown-section" aria-label="Municipal Coalition Breakdown">
+        <div class="breakdown-header">
+          <h2>Municipal Coalition Breakdown</h2>
+          <p class="text-secondary">Intake and reunion velocity per registered municipal shelter partner.</p>
+        </div>
+        <div class="table-responsive glass-card analytics-table-card">
+          <table id="shelter-breakdown-table" class="analytics-table">
+            <thead>
+              <tr>
+                <th scope="col">Shelter</th>
+                <th scope="col">Total Intakes</th>
+                <th scope="col">In Shelter Care</th>
+                <th scope="col">Reunited</th>
+                <th scope="col">RTO Rate</th>
+                <th scope="col">Microchip Penetration</th>
+              </tr>
+            </thead>
+            <tbody id="shelter-breakdown-body">
+              <tr>
+                <td colspan="6" class="text-center text-muted">Loading municipal shelter data...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container footer-content">
+      <p>&copy; 2026 PetSpotR. Event-driven Go &amp; GCP AI Microservices.</p>
+    </div>
+  </footer>
+
+  <div id="toast-container" class="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
+  <script src="/static/js/theme.js"></script>
+  <script src="/static/js/shelter-analytics.js"></script>
+  <script src="/static/js/outbox-sync.js" defer></script>
+</body>
+</html>

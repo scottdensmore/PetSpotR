@@ -238,6 +238,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/report-lost", s.handleReportLost)
 	s.mux.HandleFunc("/report-found", s.handleReportFound)
 	s.mux.HandleFunc("/matches", s.handleMatches)
+	s.mux.HandleFunc("/shelters/analytics", s.handleShelterAnalytics)
 	if s.rateLimiter == nil {
 		s.rateLimiter = ratelimit.NewNoop()
 	}
@@ -267,6 +268,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/found-pets/{petID}/contact", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiFoundPetContact))
 	s.mux.HandleFunc("/api/v1/found-pets/{petID}/status", s.handleApiFoundPetStatus)
 	s.mux.HandleFunc("/api/v1/shelter-intakes/ingest", s.handleApiShelterIntakeIngest)
+	s.mux.HandleFunc("/api/v1/shelters/analytics", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiShelterAnalytics))
+	s.mux.HandleFunc("/api/v1/shelters/analytics/export.csv", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiShelterAnalyticsExportCSV))
+	s.mux.HandleFunc("/api/v1/shelters/analytics/export.geojson", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiShelterAnalyticsExportGeoJSON))
 	s.mux.HandleFunc("/api/v1/matches", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleApiMatches))
 	s.mux.HandleFunc("/api/v1/matches/action", s.handleApiMatchAction)
 	s.mux.HandleFunc("/api/v1/reunions/contact", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiReunionContact))
