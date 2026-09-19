@@ -180,7 +180,7 @@ func TestMatcherWorkerReclaimedAttemptScoresCommittedFoundAnalysis(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	start := time.Date(2026, time.August, 17, 19, 0, 0, 0, time.UTC)
+	start := time.Now().UTC().Add(-2 * time.Hour)
 	foundEvent := domain.FoundPetReportedV2{
 		PetID: grant.ReportID, ImageObject: finalized.ObjectName, FoundAt: start,
 		Location: "Seattle, WA", GeocodingStatus: domain.GeocodingVerified,

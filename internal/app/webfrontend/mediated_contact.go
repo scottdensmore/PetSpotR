@@ -151,8 +151,8 @@ func (s *Server) handleMediatedMessageCreate(w http.ResponseWriter, r *http.Requ
 					!principalMatchesRef(principal, participants.Finder)) {
 				return nil, nil, errMediatedThreadHidden
 			}
-			next, message, wasCreated, err := participants.AppendMediatedMessage(
-				actor, r.Header.Get(idempotencyKeyHeader), req.Message, sentAt,
+			next, message, wasCreated, err := participants.AppendMediatedMessageWithImages(
+				actor, r.Header.Get(idempotencyKeyHeader), req.Message, req.Images, sentAt,
 			)
 			if errors.Is(err, domain.ErrNotMatchParticipant) || errors.Is(err, domain.ErrIncompleteMatchParticipants) {
 				return nil, nil, errMediatedThreadHidden
@@ -189,6 +189,16 @@ func (s *Server) handleMediatedMessageCreate(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		http.Error(w, "Failed to accept mediated message", http.StatusInternalServerError)
 		return
+	}
+
+	if created && s.reunionHub != nil {
+		s.reunionHub.BroadcastLocal(domain.ReunionStreamEvent{
+			EventID:   accepted.MessageID,
+			Type:      domain.ReunionEventMessageCreated,
+			MatchID:   req.MatchID,
+			Timestamp: accepted.SentAt,
+			Payload:   accepted,
+		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")

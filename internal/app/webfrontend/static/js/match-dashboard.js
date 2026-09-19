@@ -14,6 +14,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const threadSend = document.getElementById('match-thread-send');
   const threadStatus = document.getElementById('match-thread-status');
   const threadError = document.getElementById('match-thread-error');
+  const threadPresence = document.getElementById('match-thread-presence');
+  const presenceDot = document.getElementById('match-presence-dot');
+  const presenceText = document.getElementById('match-presence-text');
+  const threadTyping = document.getElementById('match-thread-typing');
+  const threadTypingText = document.getElementById('match-thread-typing-text');
+  const threadResolvedBanner = document.getElementById('match-thread-resolved-banner');
+  const btnChatResolve = document.getElementById('btn-chat-resolve-reunion');
+  const threadAttachBtn = document.getElementById('match-thread-attach-btn');
+  const threadFileInput = document.getElementById('match-thread-file-input');
+  const threadStagedTray = document.getElementById('match-thread-staged-tray');
+  const threadStagedThumbs = document.getElementById('match-thread-staged-thumbs');
 
   let allMatches = [];
   let matchResultsLoaded = false;
@@ -34,6 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastReunionTrigger = null;
   let pendingThreadAttempt = null;
   let threadIdentityFocusPending = false;
+  let activeEventSource = null;
+  let typingAutoHideTimer = null;
+  let typingDebounceTimer = null;
+  let lastTypingPingTime = 0;
+  let stagedPhotos = [];
   const matchStatuses = new Set(['PENDING_REVIEW', 'CONFIRMED', 'REJECTED', 'REUNITED']);
   const allowedImageHosts = new Set(['storage.petspotr.io']);
 
@@ -122,6 +138,9 @@ document.addEventListener('DOMContentLoaded', () => {
       threadSend.setAttribute('aria-disabled', String(busy));
       threadSend.textContent = busy ? 'Sending message...' : 'Send message';
     }
+    if (threadAttachBtn) {
+      threadAttachBtn.setAttribute('aria-disabled', String(busy));
+    }
     if (threadMessage) threadMessage.readOnly = busy;
     if (busy) setThreadStatus('Sending private message...');
   }
@@ -131,12 +150,162 @@ document.addEventListener('DOMContentLoaded', () => {
     return container.querySelector(`.message-btn[data-match-id="${CSS.escape(threadReturnTarget)}"]`);
   }
 
+  function setPresenceUI(status) {
+    if (status === 'online') {
+      if (presenceDot) {
+        presenceDot.classList.remove('status-offline', 'status-typing');
+        presenceDot.classList.add('status-online');
+      }
+      if (threadPresence) {
+        threadPresence.classList.remove('status-offline', 'status-typing');
+        threadPresence.classList.add('status-online');
+      }
+      if (presenceText) presenceText.textContent = 'Online';
+    } else if (status === 'connecting') {
+      if (presenceDot) {
+        presenceDot.classList.remove('status-online', 'status-typing');
+        presenceDot.classList.add('status-offline');
+      }
+      if (threadPresence) {
+        threadPresence.classList.remove('status-online', 'status-typing');
+        threadPresence.classList.add('status-offline');
+      }
+      if (presenceText) presenceText.textContent = 'Connecting...';
+    } else {
+      if (presenceDot) {
+        presenceDot.classList.remove('status-online', 'status-typing');
+        presenceDot.classList.add('status-offline');
+      }
+      if (threadPresence) {
+        threadPresence.classList.remove('status-online', 'status-typing');
+        threadPresence.classList.add('status-offline');
+      }
+      if (presenceText) presenceText.textContent = 'Offline';
+    }
+  }
+
+  async function getCsrfToken() {
+    let token = window.petspotrIdentity?.getState?.()?.csrfToken;
+    if (!token && window.petspotrIdentity?.requireSession) {
+      try {
+        const state = await window.petspotrIdentity.requireSession();
+        token = state?.csrfToken;
+      } catch (_) {}
+    }
+    if (!token && typeof document !== 'undefined' && document.cookie) {
+      const match = document.cookie.match(/(?:^|;\s*)petspotr_csrf(?:_sec)?=([^;]+)/);
+      if (match) token = decodeURIComponent(match[1]);
+    }
+    return token || '';
+  }
+
+  async function sendPresence(matchId, status, keepalive = false) {
+    if (!matchId) return;
+    try {
+      const csrfToken = await getCsrfToken();
+      const headers = { 'Content-Type': 'application/json' };
+      if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+      await fetch('/api/v1/reunions/presence', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ matchId, status }),
+        keepalive,
+      });
+    } catch (_) {
+      // Best-effort presence update
+    }
+  }
+
+  function handleStagedFiles(files) {
+    if (!files || files.length === 0) return;
+    const remaining = 3 - stagedPhotos.length;
+    if (remaining <= 0) {
+      setThreadStatus('Maximum 3 photos allowed.', true);
+      return;
+    }
+    const toProcess = Array.from(files).slice(0, remaining);
+    if (files.length > remaining) {
+      setThreadStatus(`Only ${remaining} more photo(s) can be added (maximum 3).`, true);
+    }
+    for (const file of toProcess) {
+      if (!file.type || !file.type.startsWith('image/')) {
+        setThreadStatus('Please select an image file (JPEG, PNG, WebP).', true);
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        setThreadStatus('Photo file size exceeds 10MB limit.', true);
+        continue;
+      }
+      let previewUrl = '';
+      try {
+        previewUrl = URL.createObjectURL(file);
+      } catch (_) {
+        previewUrl = '';
+      }
+      stagedPhotos.push({ file, previewUrl });
+    }
+    if (threadFileInput) threadFileInput.value = '';
+    renderStagedPhotos();
+  }
+
+  function renderStagedPhotos() {
+    if (!threadStagedTray || !threadStagedThumbs) return;
+    threadStagedTray.hidden = stagedPhotos.length === 0;
+    threadStagedThumbs.replaceChildren();
+
+    stagedPhotos.forEach((item, index) => {
+      const chip = createElement('div', { className: 'staged-thumb-chip' });
+      if (item.previewUrl) {
+        const img = createElement('img', { className: 'staged-thumb-img' });
+        img.src = item.previewUrl;
+        img.alt = `Staged photo ${index + 1}`;
+        chip.append(img);
+      } else {
+        const label = createElement('span', { text: item.file.name || `Photo ${index + 1}` });
+        chip.append(label);
+      }
+
+      const removeBtn = createElement('button', {
+        className: 'btn-remove-thumb staged-chip-remove',
+        text: '×',
+      });
+      removeBtn.type = 'button';
+      removeBtn.setAttribute('aria-label', `Remove photo ${index + 1}`);
+      removeBtn.addEventListener('click', () => {
+        if (item.previewUrl) {
+          try { URL.revokeObjectURL(item.previewUrl); } catch (_) {}
+        }
+        stagedPhotos.splice(index, 1);
+        renderStagedPhotos();
+      });
+
+      chip.append(removeBtn);
+      threadStagedThumbs.append(chip);
+    });
+  }
+
+  function clearStagedPhotos() {
+    stagedPhotos.forEach(item => {
+      if (item.previewUrl) {
+        try { URL.revokeObjectURL(item.previewUrl); } catch (_) {}
+      }
+    });
+    stagedPhotos = [];
+    if (threadFileInput) threadFileInput.value = '';
+    renderStagedPhotos();
+  }
+
   function resetThreadView() {
     threadMessages?.replaceChildren();
     if (threadEmpty) threadEmpty.hidden = true;
     if (threadReadOnly) threadReadOnly.hidden = true;
     if (threadForm) threadForm.hidden = false;
     if (threadMessage) threadMessage.value = '';
+    if (threadResolvedBanner) threadResolvedBanner.hidden = true;
+    if (threadTyping) threadTyping.hidden = true;
+    if (btnChatResolve) btnChatResolve.disabled = false;
+    clearStagedPhotos();
+    setPresenceUI('offline');
     activeThreadSendToken = null;
     setThreadSendBusy(false);
     clearThreadStatus();
@@ -146,8 +315,29 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeThreadModal(restoreFocus = true) {
     threadRevision += 1;
     const returnButton = restoreFocus ? findThreadReturnButton() : null;
+    const closingMatchId = activeThread?.matchId;
     activeThread = null;
     threadReturnTarget = null;
+
+    if (closingMatchId) {
+      void sendPresence(closingMatchId, 'idle');
+    }
+
+    if (activeEventSource) {
+      activeEventSource.close();
+      activeEventSource = null;
+    }
+
+    if (typingDebounceTimer) {
+      clearTimeout(typingDebounceTimer);
+      typingDebounceTimer = null;
+    }
+    if (typingAutoHideTimer) {
+      clearTimeout(typingAutoHideTimer);
+      typingAutoHideTimer = null;
+    }
+    lastTypingPingTime = 0;
+
     resetThreadView();
     closeModal(threadModal);
     if (restoreFocus) (returnButton || scoreFilter)?.focus();
@@ -161,6 +351,39 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function resolveImageUrl(val) {
+    if (typeof val !== 'string' || !val.trim() || val.length > 2048) return null;
+    let url = val.trim();
+    if (!url.startsWith('https://') && !url.startsWith('http://') && !url.startsWith('/')) {
+      url = 'https://storage.petspotr.io/' + url.replace(/^\/+/, '');
+    }
+
+    let parsed;
+    try {
+      parsed = new URL(url, window.location.origin);
+    } catch (_) {
+      return null;
+    }
+
+    if (parsed.username || parsed.password) return null;
+
+    const isLocal = parsed.hostname === window.location.hostname;
+    const isAllowedHost = allowedImageHosts.has(parsed.hostname);
+    if (!isLocal && !isAllowedHost) {
+      return null;
+    }
+
+    if (isAllowedHost && parsed.protocol !== 'https:') {
+      return null;
+    }
+
+    if (isLocal && parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+
+    return trustedImageURL(parsed.href);
+  }
+
   function normalizeThreadMessage(value) {
     if (!value || typeof value !== 'object' || !validRecordId(value.messageId)) return null;
     if (value.senderRole !== 'reporter' && value.senderRole !== 'finder') return null;
@@ -168,31 +391,153 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof value.sentAt !== 'string' || value.sentAt.length > 64) return null;
     const sentAt = new Date(value.sentAt);
     if (Number.isNaN(sentAt.getTime())) return null;
+
+    let images = [];
+    if (Array.isArray(value.images)) {
+      images = value.images.map(img => {
+        if (typeof img !== 'string' || img.length === 0 || img.length > 2048) return null;
+        return resolveImageUrl(img);
+      }).filter(img => img !== null).slice(0, 3);
+    }
+
     return {
+      messageId: value.messageId,
       senderRole: value.senderRole,
       message: value.message,
+      images,
       sentAt,
     };
   }
 
+  function createThreadMessageElement(message) {
+    const item = createElement('li', { className: 'match-thread-message' });
+    if (message.messageId) {
+      item.dataset.messageId = message.messageId;
+    }
+    if (message.sentAt) {
+      const timeMs = message.sentAt instanceof Date ? message.sentAt.getTime() : new Date(message.sentAt).getTime();
+      item.dataset.timestamp = String(timeMs);
+      item.dataset.sentAt = message.sentAt instanceof Date ? message.sentAt.toISOString() : new Date(message.sentAt).toISOString();
+    }
+    item._messageData = message;
+    const meta = createElement('div', { className: 'match-thread-message-meta' });
+    meta.append(
+      createElement('strong', { text: message.senderRole === 'reporter' ? 'Reporter' : 'Finder' }),
+      createElement('time', { text: message.sentAt.toLocaleString() }),
+    );
+    const body = createElement('p', { text: message.message, className: 'match-thread-message-body' });
+    item.append(meta, body);
+
+    if (message.images && message.images.length > 0) {
+      const attachWrap = createElement('div', { className: 'staged-thumbs' });
+      message.images.forEach(imgUrl => {
+        const img = createElement('img', { className: 'thumbnail-img' });
+        img.src = imgUrl;
+        img.alt = 'Verification photo attachment';
+        img.loading = 'lazy';
+        img.addEventListener('click', () => {
+          lastZoomTrigger = img;
+          if (zoomedImage && zoomModal) {
+            zoomedImage.src = imgUrl;
+            openModal(zoomModal);
+          }
+        });
+        attachWrap.append(img);
+      });
+      item.append(attachWrap);
+    }
+    return item;
+  }
+
   function renderThreadMessages(messages) {
     if (!threadMessages) return;
-    const normalized = Array.isArray(messages)
-      ? messages.map(normalizeThreadMessage).filter(message => message !== null).slice(0, 100)
+    const normalizedIncoming = Array.isArray(messages)
+      ? messages.map(normalizeThreadMessage).filter(message => message !== null)
       : [];
-    const items = normalized.map(message => {
-      const item = createElement('li', { className: 'match-thread-message' });
-      const meta = createElement('div', { className: 'match-thread-message-meta' });
-      meta.append(
-        createElement('strong', { text: message.senderRole === 'reporter' ? 'Reporter' : 'Finder' }),
-        createElement('time', { text: message.sentAt.toLocaleString() }),
-      );
-      const body = createElement('p', { text: message.message, className: 'match-thread-message-body' });
-      item.append(meta, body);
-      return item;
+
+    const existingMap = new Map();
+    const existingElements = Array.from(threadMessages.querySelectorAll('li.match-thread-message'));
+    for (const el of existingElements) {
+      const id = el.dataset.messageId;
+      if (id) {
+        const time = el._messageData?.sentAt
+          ? el._messageData.sentAt.getTime()
+          : (el.dataset.timestamp ? Number(el.dataset.timestamp) : (el.dataset.sentAt ? new Date(el.dataset.sentAt).getTime() : 0));
+        existingMap.set(id, { element: el, time, messageId: id });
+      }
+    }
+
+    const mergedMap = new Map();
+    for (const msg of normalizedIncoming) {
+      const existing = existingMap.get(msg.messageId);
+      if (existing) {
+        mergedMap.set(msg.messageId, {
+          element: existing.element,
+          time: msg.sentAt.getTime(),
+          messageId: msg.messageId,
+        });
+      } else {
+        const element = createThreadMessageElement(msg);
+        mergedMap.set(msg.messageId, {
+          element,
+          time: msg.sentAt.getTime(),
+          messageId: msg.messageId,
+        });
+      }
+    }
+
+    // Preserve any already rendered DOM messages (e.g. real-time SSE messages that arrived while loading)
+    for (const [id, entry] of existingMap.entries()) {
+      if (!mergedMap.has(id)) {
+        mergedMap.set(id, entry);
+      }
+    }
+
+    const sortedEntries = Array.from(mergedMap.values()).sort((a, b) => a.time - b.time);
+    const finalEntries = sortedEntries.length > 100 ? sortedEntries.slice(-100) : sortedEntries;
+    const finalElements = finalEntries.map(e => e.element);
+
+    const currentChildren = Array.from(threadMessages.children);
+    const orderChanged = currentChildren.length !== finalElements.length ||
+      currentChildren.some((child, idx) => child !== finalElements[idx]);
+
+    if (orderChanged) {
+      threadMessages.replaceChildren(...finalElements);
+    }
+
+    if (threadEmpty) threadEmpty.hidden = finalElements.length !== 0;
+    threadMessages.scrollTop = threadMessages.scrollHeight;
+  }
+
+  function appendThreadMessage(raw) {
+    if (!threadMessages) return;
+    const message = normalizeThreadMessage(raw);
+    if (!message) return;
+    const escapeId = typeof CSS !== 'undefined' && CSS.escape
+      ? CSS.escape(message.messageId)
+      : message.messageId.replace(/["\\]/g, '\\$&');
+    if (threadMessages.querySelector(`[data-message-id="${escapeId}"]`)) {
+      return;
+    }
+    const item = createThreadMessageElement(message);
+    const timeMs = message.sentAt.getTime();
+    const existing = Array.from(threadMessages.querySelectorAll('li.match-thread-message'));
+    const nextItem = existing.find(el => {
+      const t = el._messageData?.sentAt
+        ? el._messageData.sentAt.getTime()
+        : (el.dataset.timestamp ? Number(el.dataset.timestamp) : (el.dataset.sentAt ? new Date(el.dataset.sentAt).getTime() : 0));
+      return t > timeMs;
     });
-    threadMessages.replaceChildren(...items);
-    if (threadEmpty) threadEmpty.hidden = items.length !== 0;
+    if (nextItem) {
+      threadMessages.insertBefore(item, nextItem);
+    } else {
+      threadMessages.append(item);
+    }
+    if (threadEmpty) threadEmpty.hidden = true;
+    threadMessages.scrollTop = threadMessages.scrollHeight;
+    try {
+      item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (_) {}
   }
 
   function threadIsWritable(status) {
@@ -648,8 +993,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (loadRevision !== threadRevision || loadIdentityRevision !== identityRevision ||
           activeThread?.matchId !== match.matchId) return false;
       console.error('Failed to load private match messages:', error);
-      threadMessages?.replaceChildren();
-      if (threadEmpty) threadEmpty.hidden = true;
+      if (threadMessages && threadMessages.children.length === 0) {
+        threadMessages.replaceChildren();
+        if (threadEmpty) threadEmpty.hidden = true;
+      }
       setThreadStatus('Private messages could not be loaded. Try again.', true);
       return false;
     }
@@ -663,12 +1010,100 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadIdentityRevision = identityRevision;
     activeThread = { matchId: matchID, status };
     threadReturnTarget = matchID;
+
+    if (activeEventSource) {
+      activeEventSource.close();
+      activeEventSource = null;
+    }
+    if (typingDebounceTimer) {
+      clearTimeout(typingDebounceTimer);
+      typingDebounceTimer = null;
+    }
+    if (typingAutoHideTimer) {
+      clearTimeout(typingAutoHideTimer);
+      typingAutoHideTimer = null;
+    }
+    lastTypingPingTime = 0;
+
     resetThreadView();
     applyThreadWritableState(status);
+
+    if (threadResolvedBanner) {
+      threadResolvedBanner.hidden = (status !== 'REUNITED');
+    }
+    if (btnChatResolve) {
+      btnChatResolve.disabled = (status === 'REUNITED');
+    }
+
     const matchIDInput = document.getElementById('match-thread-match-id');
     if (matchIDInput) matchIDInput.value = matchID;
     openModal(threadModal);
     threadModal.querySelector('.match-thread-close')?.focus();
+
+    if (typeof EventSource === 'function') {
+      setPresenceUI('connecting');
+      const evtSource = new EventSource('/api/v1/reunions/events?matchId=' + encodeURIComponent(matchID));
+      activeEventSource = evtSource;
+
+      evtSource.addEventListener('open', () => {
+        if (activeThread?.matchId !== matchID || activeEventSource !== evtSource) return;
+        setPresenceUI('online');
+        void loadThread(activeThread, threadRevision, identityRevision);
+      });
+
+      evtSource.addEventListener('error', () => {
+        if (activeThread?.matchId !== matchID || activeEventSource !== evtSource) return;
+        setPresenceUI('connecting');
+      });
+
+      evtSource.addEventListener('message', (e) => {
+        if (activeThread?.matchId !== matchID || activeEventSource !== evtSource) return;
+        try {
+          const msgData = JSON.parse(e.data);
+          appendThreadMessage(msgData);
+        } catch (err) {
+          console.warn('Failed to parse SSE message:', err);
+        }
+      });
+
+      evtSource.addEventListener('presence', (e) => {
+        if (activeThread?.matchId !== matchID || activeEventSource !== evtSource) return;
+        try {
+          const payload = JSON.parse(e.data);
+          if (!payload || typeof payload !== 'object') return;
+          if (payload.status === 'typing') {
+            const role = payload.senderRole;
+            const roleLabel = role === 'reporter' ? 'Reporter' : role === 'finder' ? 'Finder' : 'Other participant';
+            if (threadTypingText) threadTypingText.textContent = `${roleLabel} is typing...`;
+            if (threadTyping) threadTyping.hidden = false;
+            if (typingAutoHideTimer) clearTimeout(typingAutoHideTimer);
+            typingAutoHideTimer = setTimeout(() => {
+              if (threadTyping) threadTyping.hidden = true;
+              typingAutoHideTimer = null;
+            }, 3000);
+          } else if (payload.status === 'idle') {
+            if (typingAutoHideTimer) {
+              clearTimeout(typingAutoHideTimer);
+              typingAutoHideTimer = null;
+            }
+            if (threadTyping) threadTyping.hidden = true;
+          }
+        } catch (err) {
+          console.warn('Failed to parse presence payload:', err);
+        }
+      });
+
+      evtSource.addEventListener('reunion_resolved', () => {
+        if (activeThread?.matchId !== matchID || activeEventSource !== evtSource) return;
+        if (threadResolvedBanner) threadResolvedBanner.hidden = false;
+        if (threadForm) threadForm.hidden = true;
+        if (threadReadOnly) threadReadOnly.hidden = false;
+        if (activeThread) activeThread.status = 'REUNITED';
+        if (btnChatResolve) btnChatResolve.disabled = true;
+        void fetchMatches();
+      });
+    }
+
     void loadThread(activeThread, loadRevision, loadIdentityRevision);
   }
 
@@ -782,6 +1217,68 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function handleTyping() {
+    if (!activeThread?.matchId || !threadIsWritable(activeThread.status)) return;
+    const msgVal = threadMessage?.value.trim() || '';
+    if (!msgVal) {
+      if (typingDebounceTimer) {
+        clearTimeout(typingDebounceTimer);
+        typingDebounceTimer = null;
+      }
+      void sendPresence(activeThread.matchId, 'idle');
+      return;
+    }
+    const now = Date.now();
+    if (now - lastTypingPingTime >= 1500) {
+      lastTypingPingTime = now;
+      void sendPresence(activeThread.matchId, 'typing');
+    } else if (!typingDebounceTimer) {
+      typingDebounceTimer = setTimeout(() => {
+        typingDebounceTimer = null;
+        if (activeThread?.matchId && threadIsWritable(activeThread.status) && (threadMessage?.value.trim() || '')) {
+          lastTypingPingTime = Date.now();
+          void sendPresence(activeThread.matchId, 'typing');
+        }
+      }, 1500 - (now - lastTypingPingTime));
+    }
+  }
+
+  if (threadMessage) {
+    threadMessage.addEventListener('input', () => {
+      handleTyping();
+    });
+  }
+
+  if (threadAttachBtn && threadFileInput) {
+    threadAttachBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (threadSendInFlight) return;
+      threadFileInput.click();
+    });
+    threadFileInput.addEventListener('change', (e) => {
+      handleStagedFiles(e.target.files);
+    });
+  }
+
+  if (btnChatResolve) {
+    btnChatResolve.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (!activeThread?.matchId || activeThread.status === 'REUNITED') return;
+      const match = allMatches.find(candidate => candidate.matchId === activeThread.matchId);
+      const petId = match?.lostPet?.petId || match?.matchedPetId || '';
+      const reunionMatchIdInput = document.getElementById('reunion-match-id');
+      const reunionPetIdInput = document.getElementById('reunion-pet-id');
+      const reunionModal = document.getElementById('reunion-modal');
+      if (reunionModal && reunionMatchIdInput && reunionPetIdInput) {
+        reunionMatchIdInput.value = activeThread.matchId;
+        reunionPetIdInput.value = petId;
+        lastReunionTrigger = btnChatResolve;
+        openModal(reunionModal);
+        document.getElementById('reunion-rating')?.focus();
+      }
+    });
+  }
+
   if (threadForm) {
     threadForm.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -808,6 +1305,56 @@ document.addEventListener('DOMContentLoaded', () => {
         const identityState = await window.petspotrIdentity?.requireSession();
         if (sendRevision !== threadRevision || sendIdentityRevision !== identityRevision) return;
         if (!identityState?.enabled) throw new Error('identity-required');
+
+        const uploadedImages = [];
+        if (stagedPhotos.length > 0) {
+          for (let i = 0; i < stagedPhotos.length; i++) {
+            const staged = stagedPhotos[i];
+            setThreadStatus(`Uploading photo ${i + 1} of ${stagedPhotos.length}...`);
+            const uploadHeaders = { 'Content-Type': 'application/json' };
+            if (identityState.csrfToken) uploadHeaders['X-CSRF-Token'] = identityState.csrfToken;
+
+            const res = await fetch('/api/v1/uploads/presigned-url', {
+              method: 'POST',
+              headers: uploadHeaders,
+              body: JSON.stringify({
+                fileName: staged.file.name,
+                contentType: staged.file.type || 'image/jpeg',
+              }),
+            });
+            if (sendRevision !== threadRevision || sendIdentityRevision !== identityRevision) return;
+            if (!res.ok) {
+              const uploadError = new Error(`Presigned upload URL request failed (${res.status})`);
+              uploadError.status = res.status;
+              throw uploadError;
+            }
+            const presigned = await res.json();
+            if (presigned.uploadUrl) {
+              const putRes = await fetch(presigned.uploadUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': staged.file.type || 'image/jpeg' },
+                body: staged.file,
+              });
+              if (!putRes.ok) {
+                const putErr = new Error(`Direct photo upload failed (${putRes.status})`);
+                putErr.status = putRes.status;
+                throw putErr;
+              }
+            }
+            const key = presigned.fileName || presigned.object || staged.file.name;
+            uploadedImages.push(key);
+          }
+        }
+
+        const reqPayload = {
+          matchId: attempt.matchId,
+          message: attempt.message,
+        };
+        if (uploadedImages.length > 0) {
+          reqPayload.images = uploadedImages;
+        }
+
+        setThreadStatus('Sending private message...');
         const response = await fetch('/api/v1/reunions/contact', {
           method: 'POST',
           headers: {
@@ -815,7 +1362,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'X-CSRF-Token': identityState.csrfToken,
             'Idempotency-Key': attempt.key,
           },
-          body: JSON.stringify({ matchId: attempt.matchId, message: attempt.message }),
+          body: JSON.stringify(reqPayload),
         });
         if (sendRevision !== threadRevision || sendIdentityRevision !== identityRevision) return;
         if (!response.ok) {
@@ -824,7 +1371,13 @@ document.addEventListener('DOMContentLoaded', () => {
           throw error;
         }
         pendingThreadAttempt = null;
+        clearStagedPhotos();
         if (threadMessage) threadMessage.value = '';
+        if (typingDebounceTimer) {
+          clearTimeout(typingDebounceTimer);
+          typingDebounceTimer = null;
+        }
+        void sendPresence(activeThread.matchId, 'idle');
         const refreshed = await loadThread(activeThread, sendRevision, sendIdentityRevision);
         if (sendRevision !== threadRevision || sendIdentityRevision !== identityRevision) return;
         if (!refreshed) {
@@ -891,16 +1444,29 @@ document.addEventListener('DOMContentLoaded', () => {
       const feedback = document.getElementById('reunion-feedback')?.value || '';
 
       try {
+        const headers = { 'Content-Type': 'application/json' };
+        const csrfToken = await getCsrfToken();
+        if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
         const resp = await fetch('/api/v1/reunions/resolve', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ matchId, petId, rating, feedback })
         });
 
         if (resp.ok) {
           closeReunionModal();
           showActionModal('REUNITED', 'resolve');
-          fetchMatches();
+          if (activeThread?.matchId === matchId) {
+            const resolvedBanner = document.getElementById('match-thread-resolved-banner');
+            if (resolvedBanner) resolvedBanner.hidden = false;
+            if (threadForm) threadForm.hidden = true;
+            if (threadReadOnly) threadReadOnly.hidden = false;
+            activeThread.status = 'REUNITED';
+            const btnChat = document.getElementById('btn-chat-resolve-reunion');
+            if (btnChat) btnChat.disabled = true;
+          }
+          await fetchMatches();
         }
       } catch (err) {
         console.error('Reunion resolve error:', err);
@@ -999,14 +1565,25 @@ document.addEventListener('DOMContentLoaded', () => {
       'button:not([disabled]):not([hidden]), textarea:not([disabled]):not([hidden]), input:not([disabled]):not([hidden])',
     )).filter(element => element.getClientRects().length > 0);
     if (focusable.length === 0) return;
+    const headerClose = threadModal.querySelector('.modal-heading-actions .match-thread-close') || focusable[0];
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === headerClose)) {
       event.preventDefault();
       last.focus();
     } else if (!event.shiftKey && document.activeElement === last) {
       event.preventDefault();
-      first.focus();
+      (headerClose || first).focus();
+    }
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (activeThread?.matchId) {
+      void sendPresence(activeThread.matchId, 'idle', true);
+    }
+    if (activeEventSource) {
+      activeEventSource.close();
+      activeEventSource = null;
     }
   });
 

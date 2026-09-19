@@ -48,6 +48,8 @@ type Server struct {
 	identityClientConfig     identity.WebClientConfig
 	secureSessionCookie      bool
 	rateLimiter              ratelimit.Limiter
+	reunionHub               *ReunionHub
+	reunionPingInterval      time.Duration
 	handler                  http.Handler
 }
 
@@ -87,6 +89,8 @@ type ServerOptions struct {
 	SecureSessionCookie      bool
 	RateLimiter              ratelimit.Limiter
 	DisableRateLimiting      bool
+	ReunionHub               *ReunionHub
+	ReunionPingInterval      time.Duration
 }
 
 // NewServer initializes an empty in-memory Server for tests and local callers.
@@ -162,6 +166,10 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 			rateLimiter = ratelimit.New(limiterOpts...)
 		}
 	}
+	reunionHub := options.ReunionHub
+	if reunionHub == nil {
+		reunionHub = NewReunionHub()
+	}
 	s := &Server{
 		mux:                      http.NewServeMux(),
 		metrics:                  telemetry.NewMetricsRegistry("web-frontend"),
@@ -175,6 +183,8 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		identityClientConfig:     identityClientConfig,
 		secureSessionCookie:      options.SecureSessionCookie,
 		rateLimiter:              rateLimiter,
+		reunionHub:               reunionHub,
+		reunionPingInterval:      options.ReunionPingInterval,
 	}
 	s.routes()
 	s.handler = telemetry.TraceContextMiddleware(s.mux)
@@ -253,6 +263,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/matches/action", s.handleApiMatchAction)
 	s.mux.HandleFunc("/api/v1/reunions/contact", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiReunionContact))
 	s.mux.HandleFunc("/api/v1/reunions/resolve", s.handleApiReunionResolve)
+	s.mux.HandleFunc("/api/v1/reunions/events", s.handleApiReunionEvents)
+	s.mux.HandleFunc("/api/v1/reunions/presence", s.handleApiReunionPresence)
 	s.mux.HandleFunc("/api/v1/push/subscribe", s.handleApiPushSubscribe)
 	s.mux.HandleFunc("/api/v1/push/test", s.handleApiPushTest)
 	s.mux.HandleFunc("/api/v1/notifications", s.handleApiNotifications)
@@ -1202,9 +1214,10 @@ func (s *Server) handleAuthenticatedMatchAction(w http.ResponseWriter, r *http.R
 }
 
 type ReunionContactRequest struct {
-	MatchID     string `json:"matchId"`
-	SenderEmail string `json:"senderEmail"`
-	Message     string `json:"message"`
+	MatchID     string   `json:"matchId"`
+	SenderEmail string   `json:"senderEmail"`
+	Message     string   `json:"message"`
+	Images      []string `json:"images,omitempty"`
 }
 
 func (s *Server) handleApiReunionContact(w http.ResponseWriter, r *http.Request) {
@@ -1300,6 +1313,20 @@ func (s *Server) handleApiReunionResolve(w http.ResponseWriter, r *http.Request)
 	if err := s.stateStore.SaveState(r.Context(), store.MatchesCollection, req.MatchID, updated); err != nil {
 		http.Error(w, "Failed to save match", http.StatusInternalServerError)
 		return
+	}
+
+	if s.reunionHub != nil {
+		s.reunionHub.BroadcastLocal(domain.ReunionStreamEvent{
+			EventID:   fmt.Sprintf("evt_resolved_%s", req.MatchID),
+			Type:      domain.ReunionEventResolved,
+			MatchID:   req.MatchID,
+			Timestamp: time.Now().UTC(),
+			Payload: map[string]any{
+				"matchId": req.MatchID,
+				"petId":   req.PetID,
+				"status":  string(domain.MatchStatusReunited),
+			},
+		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -1419,6 +1446,20 @@ func (s *Server) handleGlobalOperatorReunionResolve(w http.ResponseWriter, r *ht
 	case err != nil:
 		http.Error(w, "Failed to resolve reunion", http.StatusInternalServerError)
 		return
+	}
+
+	if s.reunionHub != nil {
+		s.reunionHub.BroadcastLocal(domain.ReunionStreamEvent{
+			EventID:   fmt.Sprintf("evt_resolved_%s", req.MatchID),
+			Type:      domain.ReunionEventResolved,
+			MatchID:   req.MatchID,
+			Timestamp: resolvedAt,
+			Payload: map[string]any{
+				"matchId": req.MatchID,
+				"petId":   req.PetID,
+				"status":  string(domain.MatchStatusReunited),
+			},
+		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")

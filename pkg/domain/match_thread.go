@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"path"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -14,6 +16,7 @@ const (
 	MaxMediatedMatchMessages = 100
 	MaxMediatedMessageRunes  = 1000
 	maxIdempotencyKeyRunes   = 128
+	MaxMediatedMessageImages = 3
 )
 
 var (
@@ -29,6 +32,7 @@ type MediatedMatchMessage struct {
 	MessageID  string               `json:"messageId"`
 	SenderRole MatchParticipantRole `json:"senderRole"`
 	Message    string               `json:"message"`
+	Images     []string             `json:"images,omitempty"`
 	SentAt     time.Time            `json:"sentAt"`
 }
 
@@ -39,6 +43,19 @@ func (r MatchParticipantRecord) AppendMediatedMessage(
 	actor PrincipalRef,
 	idempotencyKey string,
 	messageBody string,
+	sentAt time.Time,
+) (MatchParticipantRecord, MediatedMatchMessage, bool, error) {
+	return r.AppendMediatedMessageWithImages(actor, idempotencyKey, messageBody, nil, sentAt)
+}
+
+// AppendMediatedMessageWithImages returns a copied participant record with one bounded
+// private message and optional image attachments appended. The caller-supplied idempotency
+// key makes exact retries no-ops and changed retries conflicts.
+func (r MatchParticipantRecord) AppendMediatedMessageWithImages(
+	actor PrincipalRef,
+	idempotencyKey string,
+	messageBody string,
+	images []string,
 	sentAt time.Time,
 ) (MatchParticipantRecord, MediatedMatchMessage, bool, error) {
 	if err := r.Validate(); err != nil {
@@ -70,6 +87,21 @@ func (r MatchParticipantRecord) AppendMediatedMessage(
 		return MatchParticipantRecord{}, MediatedMatchMessage{}, false,
 			fmt.Errorf("%w: a bounded valid UTF-8 message and sentAt are required", ErrInvalidMediatedMessage)
 	}
+	if len(images) > MaxMediatedMessageImages {
+		return MatchParticipantRecord{}, MediatedMatchMessage{}, false,
+			fmt.Errorf("%w: at most %d images are allowed", ErrInvalidMediatedMessage, MaxMediatedMessageImages)
+	}
+	var cleanImages []string
+	if len(images) > 0 {
+		cleanImages = make([]string, len(images))
+		for i, img := range images {
+			if !validMediatedImagePath(img) {
+				return MatchParticipantRecord{}, MediatedMatchMessage{}, false,
+					fmt.Errorf("%w: invalid image attachment", ErrInvalidMediatedMessage)
+			}
+			cleanImages[i] = img
+		}
+	}
 
 	role := MatchParticipantRoleReporter
 	if finder {
@@ -80,7 +112,7 @@ func (r MatchParticipantRecord) AppendMediatedMessage(
 		if existing.MessageID != messageID {
 			continue
 		}
-		if existing.SenderRole == role && existing.Message == messageBody {
+		if existing.SenderRole == role && existing.Message == messageBody && slices.Equal(existing.Images, cleanImages) {
 			return r, existing, false, nil
 		}
 		return MatchParticipantRecord{}, MediatedMatchMessage{}, false, ErrMatchMessageConflict
@@ -90,7 +122,11 @@ func (r MatchParticipantRecord) AppendMediatedMessage(
 	}
 
 	message := MediatedMatchMessage{
-		MessageID: messageID, SenderRole: role, Message: messageBody, SentAt: sentAt,
+		MessageID:  messageID,
+		SenderRole: role,
+		Message:    messageBody,
+		Images:     cleanImages,
+		SentAt:     sentAt,
 	}
 	next := r
 	next.Messages = append(append([]MediatedMatchMessage(nil), r.Messages...), message)
@@ -125,8 +161,48 @@ func validateMediatedMatchMessages(
 			!validMediatedMessageText(message.Message) || message.SentAt.IsZero() {
 			return errors.New("domain: invalid mediated match message")
 		}
+		if len(message.Images) > MaxMediatedMessageImages {
+			return errors.New("domain: too many image attachments")
+		}
+		for _, img := range message.Images {
+			if !validMediatedImagePath(img) {
+				return errors.New("domain: invalid image attachment")
+			}
+		}
 	}
 	return nil
+}
+
+const allowedStorageImagePrefix = "https://storage.petspotr.io/"
+
+func validMediatedImagePath(img string) bool {
+	if !utf8.ValidString(img) || strings.TrimSpace(img) == "" || strings.TrimSpace(img) != img || len(img) > 1024 {
+		return false
+	}
+	for _, r := range img {
+		if (r < 0x20 && r != '\t') || r == 0x7f {
+			return false
+		}
+	}
+	if strings.HasPrefix(img, "//") || strings.Contains(img, "\\") {
+		return false
+	}
+	if strings.HasPrefix(img, allowedStorageImagePrefix) {
+		remainder := strings.TrimPrefix(img, allowedStorageImagePrefix)
+		if remainder == "" || strings.HasPrefix(remainder, "/") {
+			return false
+		}
+		cleaned := path.Clean(remainder)
+		return cleaned == remainder && !strings.HasPrefix(cleaned, ".")
+	}
+	if strings.Contains(img, ":") {
+		return false
+	}
+	cleaned := path.Clean(img)
+	if cleaned != img || strings.HasPrefix(cleaned, "/") || strings.HasPrefix(cleaned, ".") {
+		return false
+	}
+	return true
 }
 
 func validMediatedMessageText(message string) bool {

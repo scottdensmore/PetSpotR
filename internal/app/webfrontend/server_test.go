@@ -1609,3 +1609,81 @@ func TestOfflineFormInterceptionSnippets(t *testing.T) {
 		}
 	}
 }
+
+func TestMatchesReunionRoomUI(t *testing.T) {
+	srv := NewDemoServer()
+
+	t.Run("/matches renders reunion room presence, typing, attachment, and resolution markup", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/matches", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200 OK, got %d", rec.Code)
+		}
+
+		body := rec.Body.String()
+		expectedSnippets := []string{
+			`id="match-thread-presence"`,
+			`class="presence-badge"`,
+			`class="presence-dot`,
+			`class="presence-text"`,
+			`role="status" aria-live="polite" aria-atomic="true"`,
+			`id="match-thread-typing"`,
+			`id="match-thread-resolved-banner"`,
+			`class="reunion-banner"`,
+			`role="alert" aria-live="assertive" aria-atomic="true"`,
+			`id="btn-chat-resolve-reunion"`,
+			`id="match-thread-attach-btn"`,
+			`id="match-thread-file-input"`,
+			`accept="image/jpeg,image/png,image/webp"`,
+			`multiple`,
+			`id="match-thread-staged-tray"`,
+			`class="staged-tray"`,
+			`class="staged-thumbs"`,
+			`compose-row`,
+			`btn-attach`,
+		}
+
+		for _, snippet := range expectedSnippets {
+			if !strings.Contains(body, snippet) {
+				t.Errorf("/matches missing expected reunion room snippet: %q", snippet)
+			}
+		}
+	})
+
+	t.Run("styles.css declares reunion room responsive styles and reduced motion overrides", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/static/css/styles.css", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200 OK, got %d", rec.Code)
+		}
+
+		body := rec.Body.String()
+		expectedSnippets := []string{
+			`.presence-badge`,
+			`.presence-dot`,
+			`.status-online`,
+			`.status-typing`,
+			`.status-offline`,
+			`.typing-indicator`,
+			`@keyframes typingBounce`,
+			`.reunion-banner`,
+			`.compose-row`,
+			`.btn-attach`,
+			`.staged-tray`,
+			`.staged-thumbs`,
+			`@media (prefers-reduced-motion: reduce)`,
+			`.typing-dot`,
+			`animation: none !important;`,
+		}
+
+		for _, snippet := range expectedSnippets {
+			if !strings.Contains(body, snippet) {
+				t.Errorf("styles.css missing expected reunion room snippet: %q", snippet)
+			}
+		}
+	})
+}

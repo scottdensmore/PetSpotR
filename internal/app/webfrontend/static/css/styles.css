@@ -1195,6 +1195,277 @@ textarea:focus-visible,
   white-space: pre-wrap;
 }
 
+/* Real-Time Reunion Room & Chat Styles */
+.match-thread-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.match-thread-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.presence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.presence-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.presence-dot.status-online {
+  background-color: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.65);
+}
+
+.presence-dot.status-typing {
+  background-color: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.65);
+}
+
+.presence-dot.status-offline {
+  background-color: var(--text-muted);
+  box-shadow: none;
+}
+
+.presence-text {
+  line-height: 1;
+}
+
+.btn-reunion-action {
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--status-reunited);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  transition: all var(--transition-fast);
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+  border-radius: var(--radius-sm);
+}
+
+.btn-reunion-action:hover {
+  background: var(--status-reunited);
+  color: #052e16;
+}
+
+.reunion-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  margin: 0.75rem 0 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);
+  color: var(--text-primary);
+}
+
+.reunion-banner-icon {
+  font-size: 1.75rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.reunion-banner-body {
+  flex: 1;
+}
+
+.reunion-banner-title {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--status-reunited);
+  margin-bottom: 0.2rem;
+}
+
+.reunion-banner-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  margin: 0.25rem 0 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-style: italic;
+  width: fit-content;
+}
+
+.typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--status-matched);
+  animation: typingBounce 1.4s infinite ease-in-out both;
+}
+
+.typing-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0s;
+}
+
+@keyframes typingBounce {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+.staged-tray {
+  margin-bottom: 0.75rem;
+  padding: 0.6rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-color);
+}
+
+.staged-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.staged-thumb-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  font-size: 0.75rem;
+}
+
+.staged-thumb-img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.btn-remove-thumb,
+.staged-chip-remove {
+  background: transparent;
+  border: none;
+  color: var(--text-error);
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-remove-thumb:hover,
+.staged-chip-remove:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.compose-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.compose-attachments {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.compose-submit-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-attach {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.btn-attach svg {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .match-thread-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .match-thread-header .modal-heading-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .compose-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .compose-submit-actions {
+    justify-content: flex-end;
+  }
+}
+
 /* Hero Section */
 .hero {
   padding: 5rem 0 3rem;
@@ -2453,6 +2724,11 @@ footer {
 
   .toast-item {
     animation: none !important;
+  }
+
+  .typing-dot {
+    animation: none !important;
+    opacity: 0.8;
   }
 }
 
