@@ -1,0 +1,11 @@
+# PetSpotR developer toolchain configuration
+[settings]
+auto_install = true
+
+[tools]
+go = "1.26.5"            # Pinned toolchain (GOTOOLCHAIN in Makefile & docs/DEVELOPMENT.md)
+node = "24"              # Firebase emulator & Playwright tests (docs/DEVELOPMENT.md)
+opentofu = "latest"      # OpenTofu for infra validation (infra/opentofu)
+golangci-lint = "latest" # Static analysis linter (make lint)
+uv = "latest"            # Python tool runner for CLI utilities
+yamllint = "latest"      # Cloud Run manifest validator (make yamllint)
