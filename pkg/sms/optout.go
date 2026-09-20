@@ -14,7 +14,7 @@ import (
 // Standard opt-out and opt-in reply messages.
 const (
 	ReplyUnsubscribed = "You have unsubscribed from PetSpotR SMS alerts and will no longer receive messages. Reply START to resubscribe."
-	ReplyResubscribed  = "You have resubscribed to PetSpotR SMS alerts. Reply STOP to cancel at any time."
+	ReplyResubscribed = "You have resubscribed to PetSpotR SMS alerts. Reply STOP to cancel at any time."
 )
 
 // OptOutRecord tracks opt-out status keyed by tokenized phone number.

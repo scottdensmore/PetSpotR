@@ -52,7 +52,7 @@ func (s *Server) handleApiInboundSMSWebhook(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	var from, to, body string
+	var from, body string
 
 	contentType := r.Header.Get("Content-Type")
 	if strings.Contains(contentType, "application/json") {
@@ -64,10 +64,6 @@ func (s *Server) handleApiInboundSMSWebhook(w http.ResponseWriter, r *http.Reque
 		from = strings.TrimSpace(req.From)
 		if from == "" {
 			from = strings.TrimSpace(req.FromLower)
-		}
-		to = strings.TrimSpace(req.To)
-		if to == "" {
-			to = strings.TrimSpace(req.ToLower)
 		}
 		body = strings.TrimSpace(req.Body)
 		if body == "" {
@@ -81,10 +77,6 @@ func (s *Server) handleApiInboundSMSWebhook(w http.ResponseWriter, r *http.Reque
 		from = strings.TrimSpace(r.FormValue("From"))
 		if from == "" {
 			from = strings.TrimSpace(r.FormValue("from"))
-		}
-		to = strings.TrimSpace(r.FormValue("To"))
-		if to == "" {
-			to = strings.TrimSpace(r.FormValue("to"))
 		}
 		body = strings.TrimSpace(r.FormValue("Body"))
 		if body == "" {
@@ -238,7 +230,7 @@ func (s *Server) handleSMSSighted(ctx context.Context, from, details string) str
 
 	// Find active pet or search party
 	var petID string
-	var coords domain.LocationPoint = domain.LocationPoint{Latitude: 47.6062, Longitude: -122.3321}
+	coords := domain.LocationPoint{Latitude: 47.6062, Longitude: -122.3321}
 
 	rawParties, err := s.stateStore.ListState(ctx, store.SearchPartiesCollection)
 	if err == nil && len(rawParties) > 0 {
