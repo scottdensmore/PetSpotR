@@ -2246,3 +2246,110 @@ func TestSightingTrajectoryAssets(t *testing.T) {
 		}
 	}
 }
+
+func TestSearchPartyAssets(t *testing.T) {
+	srv := NewDemoServer()
+
+	// 1. Verify /static/js/search-party.js is served
+	reqJS := httptest.NewRequest(http.MethodGet, "/static/js/search-party.js", nil)
+	recJS := httptest.NewRecorder()
+	srv.ServeHTTP(recJS, reqJS)
+
+	if recJS.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for /static/js/search-party.js, got %d", recJS.Code)
+	}
+	if ct := recJS.Header().Get("Content-Type"); !strings.Contains(ct, "javascript") {
+		t.Errorf("expected Content-Type to contain javascript, got %q", ct)
+	}
+
+	// 2. Verify /pets template contains search party markup
+	reqPets := httptest.NewRequest(http.MethodGet, "/pets", nil)
+	recPets := httptest.NewRecorder()
+	srv.ServeHTTP(recPets, reqPets)
+
+	if recPets.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /pets, got %d", recPets.Code)
+	}
+
+	petsBody := recPets.Body.String()
+	expectedPetsSnippets := []string{
+		"search-party-map",
+		"modal-claim-sector",
+		"modal-clear-sector",
+		"search-party-coverage-bar",
+		"/static/js/search-party.js",
+		`data-action="view-search-party"`,
+	}
+	for _, snippet := range expectedPetsSnippets {
+		if !strings.Contains(petsBody, snippet) {
+			t.Errorf("expected /pets template to contain %q", snippet)
+		}
+	}
+
+	// 3. Verify /p/demo-lost-1 finder landing page contains search party markup
+	reqFinder := httptest.NewRequest(http.MethodGet, "/p/demo-lost-1", nil)
+	recFinder := httptest.NewRecorder()
+	srv.ServeHTTP(recFinder, reqFinder)
+
+	if recFinder.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /p/demo-lost-1, got %d", recFinder.Code)
+	}
+
+	finderBody := recFinder.Body.String()
+	expectedFinderSnippets := []string{
+		"search-party-map",
+		"modal-claim-sector",
+		"modal-clear-sector",
+		"search-party-coverage-bar",
+		"/static/js/search-party.js",
+		`data-action="view-search-party"`,
+	}
+	for _, snippet := range expectedFinderSnippets {
+		if !strings.Contains(finderBody, snippet) {
+			t.Errorf("expected finder landing page to contain %q", snippet)
+		}
+	}
+
+	// 4. Verify search-party.js content
+	jsData, err := embeddedFiles.ReadFile("static/js/search-party.js")
+	if err != nil {
+		t.Fatalf("failed to read static/js/search-party.js: %v", err)
+	}
+	jsContent := string(jsData)
+	expectedJSSnippets := []string{
+		"/api/v1/lost-pets/",
+		"/search-party",
+		"/claim",
+		"/status",
+		"modal-claim-sector",
+		"modal-clear-sector",
+		"search-party-coverage-bar",
+		"search_party_updated",
+		"L.polygon",
+	}
+	for _, snippet := range expectedJSSnippets {
+		if !strings.Contains(jsContent, snippet) {
+			t.Errorf("static/js/search-party.js missing snippet %q", snippet)
+		}
+	}
+
+	// 5. Verify styles.css contains search party styling
+	cssData, err := embeddedFiles.ReadFile("static/css/styles.css")
+	if err != nil {
+		t.Fatalf("failed to read static/css/styles.css: %v", err)
+	}
+	cssContent := string(cssData)
+	expectedCSSSnippets := []string{
+		"search-party-map",
+		"search-party-coverage-bar",
+		"modal-claim-sector",
+		"modal-clear-sector",
+		"sector-pulse",
+	}
+	for _, snippet := range expectedCSSSnippets {
+		if !strings.Contains(cssContent, snippet) {
+			t.Errorf("static/css/styles.css missing snippet %q", snippet)
+		}
+	}
+}
+
