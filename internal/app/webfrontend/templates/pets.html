@@ -605,6 +605,29 @@
           </div>
         </div>
 
+        <!-- Volunteer GPS Trail Recording Strip -->
+        <div class="search-party-trail-strip" id="search-party-trail-strip">
+          <div class="trail-strip-actions">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-record-trail" data-action="toggle-record-trail">
+              <span class="trail-btn-icon" id="record-trail-icon">⏺</span> <span id="record-trail-btn-label">Record Search Path</span>
+            </button>
+            <span id="recording-active-badge" class="badge badge-recording hidden" aria-live="polite">
+              <span class="recording-pulse-dot"></span> Recording Active
+            </span>
+          </div>
+          <div class="trail-strip-stats">
+            <div class="trail-stat-item">
+              <span class="sp-stat-label">Distance Walked</span>
+              <span class="sp-stat-value" id="trail-distance-walked">0.00 km</span>
+            </div>
+            <div class="trail-stat-item" id="trail-active-sector-wrapper">
+              <span class="sp-stat-label">Active Sector</span>
+              <span class="sp-stat-value" id="trail-active-sector-label">All Sectors</span>
+            </div>
+            <span class="badge badge-offline-buffer hidden" id="trail-offline-badge" role="status">Buffered Offline (0)</span>
+          </div>
+        </div>
+
         <!-- Search Party Map Wrapper -->
         <div class="search-party-map-wrapper">
           <div id="search-party-map" class="search-party-map" role="region" aria-label="Interactive map showing search party sector overlay"></div>
