@@ -5,10 +5,11 @@ import "time"
 type ReunionEventType string
 
 const (
-	ReunionEventMessageCreated ReunionEventType = "message"
-	ReunionEventPresence       ReunionEventType = "presence"
-	ReunionEventResolved       ReunionEventType = "reunion_resolved"
-	ReunionEventSighting       ReunionEventType = "sighting"
+	ReunionEventMessageCreated     ReunionEventType = "message"
+	ReunionEventPresence           ReunionEventType = "presence"
+	ReunionEventResolved           ReunionEventType = "reunion_resolved"
+	ReunionEventSighting           ReunionEventType = "sighting"
+	ReunionEventSearchPartyUpdated ReunionEventType = "search_party_updated"
 )
 
 type ReunionStreamEvent struct {
@@ -22,4 +23,13 @@ type ReunionStreamEvent struct {
 type ReunionPresencePayload struct {
 	SenderRole MatchParticipantRole `json:"senderRole"`
 	Status     string               `json:"status"`
+}
+
+type SearchPartyEventPayload struct {
+	Type                  string  `json:"type"`
+	PartyID               string  `json:"partyId"`
+	SectorID              string  `json:"sectorId,omitempty"`
+	Status                string  `json:"status,omitempty"`
+	CoveragePercentage    float64 `json:"coveragePercentage"`
+	ActiveVolunteersCount int     `json:"activeVolunteersCount"`
 }
