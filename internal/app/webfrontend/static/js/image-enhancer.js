@@ -143,12 +143,14 @@
 
       // Asynchronously extract metadata
       apiExtractMetadata(file).then(meta => {
+        if (currentFile !== file) return;
         if (meta && meta.gps && meta.gps.latitude != null && meta.gps.longitude != null) {
           showExifToast(meta);
         } else {
           resetExifToast();
         }
       }).catch(() => {
+        if (currentFile !== file) return;
         resetExifToast();
       });
     }
@@ -188,9 +190,20 @@
           enhancedObjectUrl = URL.createObjectURL(blob);
 
           if (imgBeforeEl) imgBeforeEl.src = originalObjectUrl;
-          if (imgAfterEl) imgAfterEl.src = enhancedObjectUrl;
-          if (imgAfterWrapEl) imgAfterWrapEl.style.width = '50%';
-          if (sliderEl) sliderEl.value = '50';
+          if (imgAfterEl) {
+            imgAfterEl.src = enhancedObjectUrl;
+            imgAfterEl.style.setProperty('--slider-pos', '50%');
+          }
+          if (imgAfterWrapEl) {
+            imgAfterWrapEl.style.width = '50%';
+            imgAfterWrapEl.style.setProperty('--slider-pos', '50%');
+          }
+          if (sliderEl) {
+            sliderEl.value = '50';
+            if (sliderEl.parentElement) {
+              sliderEl.parentElement.style.setProperty('--slider-pos', '50%');
+            }
+          }
 
           if (comparisonContainerEl) {
             comparisonContainerEl.classList.remove('hidden');
@@ -214,6 +227,13 @@
       sliderEl.addEventListener('input', (e) => {
         const val = e.target.value;
         imgAfterWrapEl.style.width = `${val}%`;
+        imgAfterWrapEl.style.setProperty('--slider-pos', `${val}%`);
+        if (imgAfterEl) {
+          imgAfterEl.style.setProperty('--slider-pos', `${val}%`);
+        }
+        if (sliderEl.parentElement) {
+          sliderEl.parentElement.style.setProperty('--slider-pos', `${val}%`);
+        }
       });
     }
 
@@ -287,13 +307,13 @@
         if (e.target.files && e.target.files.length > 0) {
           handleFileChosen(e.target.files[0]);
         }
-      });
+      }, { capture: true });
     } else if (fileInputEl) {
       fileInputEl.addEventListener('change', (e) => {
         if (e.target.files && e.target.files.length > 0) {
           handleFileChosen(e.target.files[0]);
         }
-      });
+      }, { capture: true });
     }
 
     return {
@@ -301,8 +321,8 @@
     };
   }
 
-  // Initialize on DOMContentLoaded
-  document.addEventListener('DOMContentLoaded', () => {
+  // Initialize enhancers
+  function initEnhancers() {
     // -------------------------------------------------------------
     // 1. Report Lost Pet Wizard (report-lost.html)
     // -------------------------------------------------------------
@@ -333,19 +353,19 @@
           const lat = meta.gps.latitude.toFixed(4);
           const lng = meta.gps.longitude.toFixed(4);
 
-          const latField = document.getElementById('lost-lat');
-          const lngField = document.getElementById('lost-lng');
+          const latFields = [document.getElementById('latitude'), document.getElementById('lost-lat')].filter(Boolean);
+          const lngFields = [document.getElementById('longitude'), document.getElementById('lost-lng')].filter(Boolean);
           const timeField = document.getElementById('lost-time');
-          const dateInput = document.getElementById('lostDate');
+          const dateInput = document.getElementById('lostDate') || document.getElementById('lostTime') || document.getElementById('lastSeenTime');
           const locInput = document.getElementById('location');
 
-          if (latField) latField.value = meta.gps.latitude;
-          if (lngField) lngField.value = meta.gps.longitude;
+          latFields.forEach(f => { f.value = meta.gps.latitude; });
+          lngFields.forEach(f => { f.value = meta.gps.longitude; });
           if (meta.captureTime) {
             if (timeField) timeField.value = meta.captureTime;
             if (dateInput) dateInput.value = formatDatetimeLocal(meta.captureTime);
           }
-          if (locInput && !locInput.value.trim()) {
+          if (locInput) {
             locInput.value = `${lat}, ${lng}`;
           }
 
@@ -522,5 +542,11 @@
         });
       }
     });
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initEnhancers);
+  } else {
+    initEnhancers();
+  }
 })();

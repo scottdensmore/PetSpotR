@@ -444,12 +444,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     photoInput.addEventListener('change', (e) => {
       if (stagedImages.length >= 3) {
-        photoInput.value = '';
+        setTimeout(() => { photoInput.value = ''; }, 0);
         return;
       }
       if (e.target.files && e.target.files.length > 0) {
         handleFiles(e.target.files);
-        photoInput.value = '';
+        setTimeout(() => { photoInput.value = ''; }, 0);
       }
     });
 

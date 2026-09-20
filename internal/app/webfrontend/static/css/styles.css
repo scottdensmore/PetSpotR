@@ -4364,6 +4364,7 @@ footer {
   border-radius: var(--radius-sm);
   user-select: none;
   background: #000;
+  container-type: inline-size;
 }
 
 .enhance-img {
@@ -4384,7 +4385,7 @@ footer {
   position: absolute;
   top: 0;
   left: 0;
-  width: 50%;
+  width: var(--slider-pos, 50%);
   height: 100%;
   overflow: hidden;
   z-index: 2;
@@ -4396,10 +4397,11 @@ footer {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
+  width: 100cqw;
   height: 100%;
   object-fit: contain;
   max-width: none;
+  clip-path: inset(0 calc(100% - var(--slider-pos, 50%)) 0 0);
 }
 
 /* Range input slider on top of comparison */
