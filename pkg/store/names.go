@@ -14,4 +14,6 @@ const (
 	NotificationPreferencesCollection = "notificationPreferences"
 	InAppNotificationsCollection      = "inAppNotifications"
 	NotificationsCollection           = "notifications"
+	SearchPartiesCollection           = "searchParties"
+	SectorAssignmentsCollection       = "sectorAssignments"
 )
