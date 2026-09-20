@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,10 +24,10 @@
 
       <nav aria-label="Main Navigation">
         <ul class="nav-links">
-          <li><a href="/" class="nav-link active" id="nav-home">Home</a></li>
-          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
-          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
-          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/" class="nav-link active" id="nav-home">{{ t .Locale "nav.home" }}</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">{{ t .Locale "nav.directory" }}</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">{{ t .Locale "nav.matches" }}</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">{{ t .Locale "nav.analytics" }}</a></li>
         </ul>
       </nav>
 
@@ -37,10 +37,20 @@
           <span id="offline-status-text">Offline</span>
           <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
         </div>
+        <div class="lang-selector-wrapper">
+          <label for="lang-select" class="visually-hidden">{{ t .Locale "nav.language" }}</label>
+          <select id="lang-select" class="form-control lang-select" aria-label="Select Language">
+            <option value="en"{{ if or (eq .Locale "en") (not .Locale) }} selected{{ end }}>English</option>
+            <option value="es"{{ if eq .Locale "es" }} selected{{ end }}>Español</option>
+            <option value="vi"{{ if eq .Locale "vi" }} selected{{ end }}>Tiếng Việt</option>
+            <option value="zh-CN"{{ if eq .Locale "zh-CN" }} selected{{ end }}>简体中文</option>
+            <option value="tl"{{ if eq .Locale "tl" }} selected{{ end }}>Tagalog</option>
+          </select>
+        </div>
         <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
         <button id="btn-enable-push" class="btn btn-secondary btn-compact">🔔 Enable Push Alerts</button>
-        <a href="/report-lost" class="btn btn-primary" id="btn-report-lost">Report Lost Pet</a>
-        <a href="/report-found" class="btn btn-secondary" id="btn-report-found">Found a Pet</a>
+        <a href="/report-lost" class="btn btn-primary" id="btn-report-lost">{{ t .Locale "nav.report_lost" }}</a>
+        <a href="/report-found" class="btn btn-secondary" id="btn-report-found">{{ t .Locale "nav.report_found" }}</a>
       </div>
     </div>
   </header>
@@ -95,8 +105,10 @@
   </footer>
 
   <div id="toast-container" class="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
+  <div id="aria-announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
   <script src="/static/js/theme.js"></script>
   <script src="/static/js/push-notifier.js"></script>
   <script src="/static/js/outbox-sync.js" defer></script>
+  <script src="/static/js/audio-memo.js" defer></script>
 </body>
 </html>

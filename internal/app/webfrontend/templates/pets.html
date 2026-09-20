@@ -45,6 +45,16 @@
           </svg>
           <span id="notification-badge" class="badge-unread hidden" aria-live="polite">0</span>
         </button>
+        <div class="lang-selector-wrapper">
+          <label for="lang-select" class="visually-hidden">{{ t .Locale "nav.language" }}</label>
+          <select id="lang-select" class="form-control lang-select" aria-label="Select Language">
+            <option value="en"{{ if or (eq .Locale "en") (not .Locale) }} selected{{ end }}>English</option>
+            <option value="es"{{ if eq .Locale "es" }} selected{{ end }}>Español</option>
+            <option value="vi"{{ if eq .Locale "vi" }} selected{{ end }}>Tiếng Việt</option>
+            <option value="zh-CN"{{ if eq .Locale "zh-CN" }} selected{{ end }}>简体中文</option>
+            <option value="tl"{{ if eq .Locale "tl" }} selected{{ end }}>Tagalog</option>
+          </select>
+        </div>
         <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
         <a href="/report-lost" class="btn btn-primary" id="btn-report-lost">{{ t .Locale "nav.report_lost" }}</a>
         <a href="/report-found" class="btn btn-secondary" id="btn-report-found">{{ t .Locale "nav.report_found" }}</a>
@@ -484,6 +494,40 @@
           <textarea id="sighting-notes" name="notes" class="form-control" rows="3" placeholder="e.g. Trotting quickly, wearing red harness, seemed spooked by sirens"></textarea>
         </div>
 
+        <!-- Voice Sighting Note Section -->
+        <div class="form-group sighting-voice-group">
+          <label class="form-label" id="label-voice-memo">🎤 {{ t .Locale "sighting.voice_memo_title" }}</label>
+          <div class="voice-memo-container">
+            <div class="voice-memo-controls">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-record-voice-memo" aria-label="Record voice memo">
+                <span class="record-icon" aria-hidden="true">🔴</span>
+                <span id="record-btn-text">{{ t .Locale "sighting.voice_memo_record" }}</span>
+              </button>
+              <button type="button" class="btn btn-danger btn-sm hidden" id="btn-stop-voice-memo" aria-label="Stop recording">
+                <span class="stop-icon" aria-hidden="true">⏹️</span>
+                <span>{{ t .Locale "sighting.voice_memo_stop" }}</span>
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm hidden" id="btn-discard-voice-memo" aria-label="Discard voice memo">
+                <span aria-hidden="true">🗑️ Discard</span>
+              </button>
+              <span id="voice-memo-timer" class="voice-memo-timer" aria-live="polite">0:00 / 0:15</span>
+            </div>
+
+            <!-- 15s Progress Bar -->
+            <div id="voice-memo-progress-bar-container" class="voice-progress-container hidden" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="15" aria-label="Voice memo recording duration">
+              <div id="voice-memo-progress-bar" class="voice-progress-bar" style="width: 0%;"></div>
+            </div>
+
+            <!-- Audio Waveform Player Preview -->
+            <div id="voice-memo-preview-container" class="voice-preview-container hidden">
+              <audio id="voice-memo-audio" class="voice-audio-element" controls preload="metadata"></audio>
+              <div id="voice-memo-waveform-bars" class="waveform-visualizer" role="img" aria-label="Audio waveform visualizer"></div>
+            </div>
+            <input type="hidden" id="sighting-voice-memo-url" name="voiceMemoUrl">
+            <input type="hidden" id="sighting-voice-memo-duration" name="voiceMemoDuration">
+          </div>
+        </div>
+
         <!-- Optional Witness Contact Info -->
         <details class="sighting-contact-details">
           <summary class="sighting-contact-summary">Optional: Your Contact Info (kept private for owner follow-up)</summary>
@@ -727,6 +771,7 @@
   </footer>
 
   <div id="toast-container" class="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
+  <div id="aria-announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
   <script id="pets-data" type="application/json">{{ .PetsJSON }}</script>
   <script src="/static/vendor/leaflet/leaflet.js"></script>
   <script src="/static/js/theme.js"></script>
@@ -738,5 +783,6 @@
   <script src="/static/js/sighting-trajectory.js" defer></script>
   <script src="/static/js/search-party.js" defer></script>
   <script src="/static/js/outbox-sync.js" defer></script>
+  <script src="/static/js/audio-memo.js" defer></script>
 </body>
 </html>

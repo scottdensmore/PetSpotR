@@ -1876,6 +1876,7 @@ type FinderLandingViewModel struct {
 	ReportFoundURL      string
 	ShortURLEncoded     string
 	ShareTextEncoded    string
+	Locale              string
 }
 
 func (s *Server) handleFinderLanding(w http.ResponseWriter, r *http.Request) {
@@ -1975,9 +1976,10 @@ func (s *Server) handleFinderLanding(w http.ResponseWriter, r *http.Request) {
 		ReportFoundURL:      fmt.Sprintf("/report-found?matchedPetId=%s", pet.PetID),
 		ShortURLEncoded:     url.QueryEscape(shortURL),
 		ShareTextEncoded:    url.QueryEscape(fmt.Sprintf("Help find %s! %s", petName, shortURL)),
+		Locale:              LocaleFromContext(r.Context()),
 	}
 
-	tmpl, err := template.ParseFS(embeddedFiles, "templates/finder_landing.html")
+	tmpl, err := template.New("finder_landing.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/finder_landing.html")
 	if err != nil {
 		http.Error(w, "Failed to load finder landing template", http.StatusInternalServerError)
 		return
@@ -1990,7 +1992,7 @@ func (s *Server) handleFinderLanding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(self), geolocation=(self), microphone=()")
+	w.Header().Set("Permissions-Policy", "camera=(self), geolocation=(self), microphone=(self)")
 	w.WriteHeader(http.StatusOK)
 	if r.Method != http.MethodHead {
 		_, _ = w.Write(buf.Bytes())

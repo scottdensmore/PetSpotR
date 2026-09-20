@@ -316,9 +316,29 @@
       });
 
       if (res.ok) {
+        let createdSighting = null;
+        try {
+          createdSighting = await res.json();
+        } catch (_) {}
+
+        if (createdSighting && createdSighting.sightingId && window.petspotrVoiceRecorder && window.petspotrVoiceRecorder.audioBlob) {
+          try {
+            await window.petspotrVoiceRecorder.uploadVoiceMemo(petId, createdSighting.sightingId);
+          } catch (uploadErr) {
+            console.error('Failed to upload voice memo:', uploadErr);
+          }
+        }
+
+        if (window.petspotrAnnounce) {
+          window.petspotrAnnounce('Pet sighting reported successfully.');
+        }
+
         // Immediate close for responsive UX & test completion
         closeSightingModal();
         form.reset();
+        if (window.petspotrVoiceRecorder) {
+          window.petspotrVoiceRecorder.discardRecording();
+        }
         showToast('Sighting reported! Trajectory map has been updated.');
 
         // If trajectory modal is open for this pet, refresh it
