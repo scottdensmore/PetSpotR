@@ -34,7 +34,7 @@
 - Consumes: None
 - Produces: `webhook.WebhookSubscription`, `webhook.GeoFence`, `webhook.ValidateURL(url string) error`, `webhook.GenerateSignature(payload []byte, secret string) string`
 
-- [ ] **Step 1: Write failing test code**
+- [x] **Step 1: Write failing test code**
 
 In `pkg/webhook/webhook_test.go`:
 ```go
@@ -85,23 +85,23 @@ func TestSigner_HMAC(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run test to fail**
+- [x] **Step 2: Run test to fail**
 
 Run: `export GOTOOLCHAIN=go1.26.5 && go test -v ./pkg/webhook/...`
 Expected: FAIL (types and functions not defined).
 
-- [ ] **Step 3: Implementation code**
+- [x] **Step 3: Implementation code**
 
 1. In `pkg/webhook/subscription.go`: Define `WebhookSubscription` and `GeoFence` models, and constants for collections.
 2. In `pkg/webhook/validator.go`: Implement `ValidateURL` parsing IPs and blocking private network boundaries.
 3. In `pkg/webhook/signer.go`: Implement `GenerateSignature` using HMAC-SHA256 and returning hex encoded hash formatted as `sha256=<hash>`.
 
-- [ ] **Step 4: Run test to pass**
+- [x] **Step 4: Run test to pass**
 
 Run: `export GOTOOLCHAIN=go1.26.5 && go test -v ./pkg/webhook/...`
 Expected: PASS.
 
-- [ ] **Step 5: Git commit**
+- [x] **Step 5: Git commit**
 
 ```bash
 git add pkg/webhook
