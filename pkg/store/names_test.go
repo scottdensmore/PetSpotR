@@ -57,4 +57,7 @@ func TestCanonicalCollectionNames(t *testing.T) {
 	if store.SMSDeliveriesCollection != "smsDeliveries" {
 		t.Fatalf("SMSDeliveriesCollection = %q, want smsDeliveries", store.SMSDeliveriesCollection)
 	}
+	if store.TrajectoriesCollection != "trajectories" {
+		t.Fatalf("TrajectoriesCollection = %q, want trajectories", store.TrajectoriesCollection)
+	}
 }

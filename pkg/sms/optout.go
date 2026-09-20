@@ -34,7 +34,7 @@ type OptOutManager struct {
 // NewOptOutManager constructs an OptOutManager.
 func NewOptOutManager(stateStore store.StateStore, secretKey []byte) *OptOutManager {
 	if len(secretKey) == 0 {
-		secretKey = []byte("petspotr-default-sms-salt-2026")
+		secretKey = DefaultSMSSalt()
 	}
 	return &OptOutManager{
 		stateStore: stateStore,

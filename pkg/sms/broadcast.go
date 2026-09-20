@@ -79,7 +79,7 @@ func NewBroadcastWorker(
 	opts ...BroadcastOption,
 ) *BroadcastWorker {
 	if len(secretKey) == 0 {
-		secretKey = []byte("petspotr-default-sms-salt-2026")
+		secretKey = DefaultSMSSalt()
 	}
 	if optOutMgr == nil && stateStore != nil {
 		optOutMgr = NewOptOutManager(stateStore, secretKey)

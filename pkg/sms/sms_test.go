@@ -3,6 +3,7 @@ package sms_test
 import (
 	"context"
 	"errors"
+	"os"
 	"strings"
 	"testing"
 
@@ -363,5 +364,35 @@ func TestOptOutManager(t *testing.T) {
 	}
 	if handled {
 		t.Error("non-opt keyword should return handled = false")
+	}
+}
+
+func TestDefaultSMSSalt(t *testing.T) {
+	orig := os.Getenv("PETSPOTR_SMS_SALT")
+	defer func() {
+		if orig != "" {
+			_ = os.Setenv("PETSPOTR_SMS_SALT", orig)
+		} else {
+			_ = os.Unsetenv("PETSPOTR_SMS_SALT")
+		}
+	}()
+
+	_ = os.Unsetenv("PETSPOTR_SMS_SALT")
+	defaultSalt := sms.DefaultSMSSalt()
+	if string(defaultSalt) != "petspotr-default-sms-salt-2026" {
+		t.Errorf("DefaultSMSSalt = %q, want petspotr-default-sms-salt-2026", string(defaultSalt))
+	}
+
+	_ = os.Setenv("PETSPOTR_SMS_SALT", "custom-production-salt-secret")
+	customSalt := sms.DefaultSMSSalt()
+	if string(customSalt) != "custom-production-salt-secret" {
+		t.Errorf("DefaultSMSSalt = %q, want custom-production-salt-secret", string(customSalt))
+	}
+
+	// Verify TokenizeNumber uses the custom salt when secretKey is nil
+	tokenWithEnv := sms.TokenizeNumber("+12065550199", nil)
+	expectedToken := sms.TokenizeNumber("+12065550199", []byte("custom-production-salt-secret"))
+	if tokenWithEnv != expectedToken {
+		t.Errorf("TokenizeNumber with nil key = %q, want %q", tokenWithEnv, expectedToken)
 	}
 }

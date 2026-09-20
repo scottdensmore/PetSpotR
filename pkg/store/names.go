@@ -20,4 +20,5 @@ const (
 	WebhookDeliveriesCollection       = "webhookDeliveries"
 	SMSOptOutCollection               = "smsOptOuts"
 	SMSDeliveriesCollection           = "smsDeliveries"
+	TrajectoriesCollection            = "trajectories"
 )

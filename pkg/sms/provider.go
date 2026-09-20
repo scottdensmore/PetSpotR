@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -99,9 +100,21 @@ func NormalizeE164(raw string) (string, error) {
 	return "", fmt.Errorf("unrecognized phone number format with %d digits", len(cleaned))
 }
 
+// DefaultSMSSalt returns the HMAC salt used for phone tokenization,
+// reading from PETSPOTR_SMS_SALT or falling back to a safe default.
+func DefaultSMSSalt() []byte {
+	if salt := os.Getenv("PETSPOTR_SMS_SALT"); salt != "" {
+		return []byte(salt)
+	}
+	return []byte("petspotr-default-sms-salt-2026")
+}
+
 // TokenizeNumber hashes a phone number with HMAC-SHA256 and returns a 64-char hex string,
 // ensuring zero plaintext PII is stored.
 func TokenizeNumber(phone string, secretKey []byte) string {
+	if len(secretKey) == 0 {
+		secretKey = DefaultSMSSalt()
+	}
 	normalized, err := NormalizeE164(phone)
 	if err != nil {
 		normalized = strings.TrimSpace(phone)
