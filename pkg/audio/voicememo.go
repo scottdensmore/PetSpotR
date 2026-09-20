@@ -152,9 +152,7 @@ func parseWAV(data []byte) (float64, []float64, error) {
 		return 0, nil, err
 	}
 
-	var sampleRate uint32
 	var byteRate uint32
-	var channels uint16
 	var bitsPerSample uint16
 	var dataOffset int64
 	var dataSize uint32
@@ -170,26 +168,41 @@ func parseWAV(data []byte) (float64, []float64, error) {
 
 		chunkID := string(subchunkHeader.ID[:])
 		if chunkID == "fmt " {
-			var audioFormat uint16
-			var blockAlign uint16
-			_ = binary.Read(reader, binary.LittleEndian, &audioFormat)
-			_ = binary.Read(reader, binary.LittleEndian, &channels)
-			_ = binary.Read(reader, binary.LittleEndian, &sampleRate)
-			_ = binary.Read(reader, binary.LittleEndian, &byteRate)
-			_ = binary.Read(reader, binary.LittleEndian, &blockAlign)
-			_ = binary.Read(reader, binary.LittleEndian, &bitsPerSample)
+			var fmtData struct {
+				AudioFormat   uint16
+				Channels      uint16
+				SampleRate    uint32
+				ByteRate      uint32
+				BlockAlign    uint16
+				BitsPerSample uint16
+			}
+			if err := binary.Read(reader, binary.LittleEndian, &fmtData); err != nil {
+				return 0, nil, err
+			}
+			byteRate = fmtData.ByteRate
+			if byteRate == 0 && fmtData.SampleRate > 0 && fmtData.Channels > 0 && fmtData.BitsPerSample > 0 {
+				byteRate = fmtData.SampleRate * uint32(fmtData.Channels) * uint32(fmtData.BitsPerSample/8)
+			}
+			bitsPerSample = fmtData.BitsPerSample
 
 			// Skip any extra fmt bytes
 			if subchunkHeader.Size > 16 {
-				_, _ = reader.Seek(int64(subchunkHeader.Size-16), 1)
+				if _, err := reader.Seek(int64(subchunkHeader.Size-16), 1); err != nil {
+					return 0, nil, err
+				}
 			}
 		} else if chunkID == "data" {
 			dataSize = subchunkHeader.Size
-			curr, _ := reader.Seek(0, 1)
+			curr, err := reader.Seek(0, 1)
+			if err != nil {
+				return 0, nil, err
+			}
 			dataOffset = curr
 			break
 		} else {
-			_, _ = reader.Seek(int64(subchunkHeader.Size), 1)
+			if _, err := reader.Seek(int64(subchunkHeader.Size), 1); err != nil {
+				break
+			}
 		}
 	}
 
