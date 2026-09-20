@@ -2180,6 +2180,33 @@ func TestSightingTrajectoryAssets(t *testing.T) {
 		}
 	}
 
+	reqFinder := httptest.NewRequest(http.MethodGet, "/p/demo-lost-1", nil)
+	recFinder := httptest.NewRecorder()
+	srv.ServeHTTP(recFinder, reqFinder)
+
+	if recFinder.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /p/demo-lost-1, got %d", recFinder.Code)
+	}
+
+	finderBody := recFinder.Body.String()
+	expectedFinderSnippets := []string{
+		"modal-report-sighting",
+		"pet-trajectory-container",
+		"/static/js/sighting-trajectory.js",
+		`data-action="report-sighting"`,
+		`data-action="view-trajectory"`,
+		"sighting-geolocation-btn",
+		"sighting-direction",
+		"sighting-location",
+		"sighting-notes",
+		"btn-submit-sighting",
+	}
+	for _, snippet := range expectedFinderSnippets {
+		if !strings.Contains(finderBody, snippet) {
+			t.Errorf("expected finder landing page to contain %q", snippet)
+		}
+	}
+
 	jsData, err := embeddedFiles.ReadFile("static/js/sighting-trajectory.js")
 	if err != nil {
 		t.Fatalf("failed to read static/js/sighting-trajectory.js: %v", err)
@@ -2219,5 +2246,3 @@ func TestSightingTrajectoryAssets(t *testing.T) {
 		}
 	}
 }
-
-

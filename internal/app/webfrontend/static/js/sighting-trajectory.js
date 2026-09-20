@@ -31,7 +31,7 @@
     if (!isoStr) return 'Unknown';
     try {
       const d = new Date(isoStr);
-      if (isNaN(d.getTime())) return isoStr;
+      if (isNaN(d.getTime())) return escapeHTML(isoStr) || 'Invalid date';
       return d.toLocaleString(undefined, {
         month: 'short',
         day: 'numeric',
@@ -40,7 +40,7 @@
         hour12: true,
       });
     } catch (_) {
-      return isoStr;
+      return escapeHTML(isoStr) || 'Invalid date';
     }
   }
 
@@ -435,7 +435,7 @@
           data.orderedSightings.forEach((s, idx) => {
             const item = document.createElement('div');
             item.className = 'timeline-item';
-            const leg = (data.legs && data.legs[idx]) ? data.legs[idx] : null;
+            const leg = data.legs ? data.legs.find(l => l.toSightingId === s.sightingId) : null;
             const headingPart = s.movementDirection ? ` · Heading ${escapeHTML(s.movementDirection)}` : '';
             const speedPart = leg && leg.speedMph > 0 ? ` (${leg.speedMph.toFixed(1)} mph)` : '';
             item.innerHTML = `
@@ -534,7 +534,7 @@
           }).addTo(mapInstance);
 
           // Find corresponding leg metrics
-          const leg = (data.legs && data.legs[index]) ? data.legs[index] : null;
+          const leg = data.legs ? data.legs.find(l => l.toSightingId === sighting.sightingId) : null;
           let legMetricsHtml = '';
           if (leg) {
             const speed = leg.speedMph > 0 ? `${leg.speedMph.toFixed(1)} mph` : 'Stationary';
@@ -618,7 +618,11 @@
 
       // 5. Fit Viewport Bounds
       if (bounds.isValid()) {
-        mapInstance.fitBounds(bounds.pad(0.15));
+        if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
+          mapInstance.setView(bounds.getCenter(), 14);
+        } else {
+          mapInstance.fitBounds(bounds.pad(0.15));
+        }
       } else {
         mapInstance.setView([47.6062, -122.3321], 13);
       }
