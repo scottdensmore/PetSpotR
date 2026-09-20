@@ -89,6 +89,7 @@ test.describe.serial('User Journey: SMS Alert Preferences & Two-Way Interactive 
       data: {
         From: testPhone,
         Body: 'STATUS',
+        petId: petId,
       },
     });
     expect(res.status()).toBe(200);
@@ -104,6 +105,7 @@ test.describe.serial('User Journey: SMS Alert Preferences & Two-Way Interactive 
       data: {
         From: testPhone,
         Body: 'CLAIM sector-1',
+        petId: petId,
       },
     });
     expect(res.status()).toBe(200);
@@ -127,6 +129,7 @@ test.describe.serial('User Journey: SMS Alert Preferences & Two-Way Interactive 
       data: {
         From: testPhone,
         Body: 'CLAIM sector-1',
+        petId: petId,
       },
     });
     expect(dupRes.status()).toBe(200);
@@ -139,6 +142,7 @@ test.describe.serial('User Journey: SMS Alert Preferences & Two-Way Interactive 
       data: {
         From: testPhone,
         Body: 'SIGHTED Near 15th Ave E & Republican St running north',
+        petId: petId,
       },
     });
     expect(res.status()).toBe(200);
