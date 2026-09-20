@@ -158,6 +158,9 @@ func TestAnalyzeQuality(t *testing.T) {
 		if report.MinBrightness != 0 || report.MaxBrightness != 255 {
 			t.Errorf("expected min=0 max=255, got [%d, %d]", report.MinBrightness, report.MaxBrightness)
 		}
+		if report.PercentileLow != 0 || report.PercentileHigh != 255 {
+			t.Errorf("expected PercentileLow=0 PercentileHigh=255, got [%d, %d]", report.PercentileLow, report.PercentileHigh)
+		}
 	})
 }
 

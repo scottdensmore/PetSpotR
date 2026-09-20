@@ -27,6 +27,8 @@ type QualityReport struct {
 	MeanBrightness float64     `json:"meanBrightness"`
 	Contrast       float64     `json:"contrast"`
 	Histogram      [256]uint32 `json:"histogram"`
+	PercentileLow  uint8       `json:"percentileLow"`
+	PercentileHigh uint8       `json:"percentileHigh"`
 	IsLowContrast  bool        `json:"isLowContrast"`
 	IsUnderexposed bool        `json:"isUnderexposed"`
 	IsOverexposed  bool        `json:"isOverexposed"`
@@ -152,6 +154,9 @@ func AnalyzeQuality(img image.Image) QualityReport {
 
 	// Robust 0.5% percentiles for contrast stretching
 	clipCount := uint32(float64(totalPixels) * 0.005)
+	if clipCount == 0 {
+		clipCount = 1
+	}
 	pLow := uint8(0)
 	pHigh := uint8(255)
 
@@ -185,6 +190,8 @@ func AnalyzeQuality(img image.Image) QualityReport {
 		MeanBrightness: mean,
 		Contrast:       contrast,
 		Histogram:      hist,
+		PercentileLow:  pLow,
+		PercentileHigh: pHigh,
 		IsLowContrast:  isLowContrast,
 		IsUnderexposed: isUnderexposed,
 		IsOverexposed:  isOverexposed,
@@ -298,28 +305,9 @@ func NormalizeContrast(img image.Image) *image.RGBA {
 
 	report := AnalyzeQuality(img)
 
-	// Determine low and high bounds with 0.5% percentile cutoff
-	clipCount := uint32(float64(totalPixels) * 0.005)
-	pLow := uint8(0)
-	pHigh := uint8(255)
-
-	var cum uint32
-	for i := 0; i < 256; i++ {
-		cum += report.Histogram[i]
-		if cum >= clipCount {
-			pLow = uint8(i)
-			break
-		}
-	}
-
-	cum = 0
-	for i := 255; i >= 0; i-- {
-		cum += report.Histogram[i]
-		if cum >= clipCount {
-			pHigh = uint8(i)
-			break
-		}
-	}
+	// Determine low and high bounds from quality report
+	pLow := report.PercentileLow
+	pHigh := report.PercentileHigh
 
 	// Avoid degenerate or inverted ranges
 	if pHigh <= pLow {
