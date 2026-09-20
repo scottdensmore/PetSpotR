@@ -256,6 +256,8 @@ func (s *Server) routes() {
 	))
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/contact", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiLostPetContact))
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/status", s.handleApiLostPetStatus)
+	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/sightings", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiSightings))
+	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/trajectory", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiTrajectory))
 	s.mux.HandleFunc("/api/v1/found-pets/extract-features", s.rateLimiter.RequireRateLimitFunc(ratelimit.StrictLimit, s.handleApiExtractFeatures))
 	s.mux.HandleFunc("/api/v1/found-pets", s.rateLimiter.RequireRateLimitByMethodFunc(
 		map[string]ratelimit.Limit{
