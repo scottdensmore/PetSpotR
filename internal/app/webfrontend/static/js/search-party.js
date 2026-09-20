@@ -171,6 +171,9 @@
         if (res.ok) {
           await removeQueuedBreadcrumb(item.id);
           flushedCount++;
+        } else if (res.status >= 400 && res.status < 500) {
+          console.warn(`Breadcrumb batch rejected with client error ${res.status}, discarding item:`, item.id);
+          await removeQueuedBreadcrumb(item.id);
         }
       } catch (err) {
         console.warn('Failed to flush breadcrumb batch:', err);
