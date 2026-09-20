@@ -22,6 +22,9 @@ type outboxIndexRecord struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+// SightingsCollection is the state store collection for pet sightings.
+const SightingsCollection = "sightings"
+
 // Sentinel errors for StateStore operations.
 var (
 	ErrStoreNotFound = errors.New("store: state store not found")

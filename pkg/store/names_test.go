@@ -33,4 +33,7 @@ func TestCanonicalCollectionNames(t *testing.T) {
 	if store.MatcherResultsCollection != "matcherResults" {
 		t.Fatalf("MatcherResultsCollection = %q, want matcherResults", store.MatcherResultsCollection)
 	}
+	if store.SightingsCollection != "sightings" {
+		t.Fatalf("SightingsCollection = %q, want sightings", store.SightingsCollection)
+	}
 }
