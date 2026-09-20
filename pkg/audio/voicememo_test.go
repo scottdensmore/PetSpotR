@@ -3,6 +3,7 @@ package audio_test
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"testing"
 
 	"github.com/scottdensmore/petspotr/pkg/audio"
@@ -22,8 +23,8 @@ func createTestWAV(numSamples int, sampleRate int, channels int, bitsPerSample i
 
 	// fmt subchunk
 	buf.WriteString("fmt ")
-	_ = binary.Write(&buf, binary.LittleEndian, uint32(16))     // Subchunk1Size (16 for PCM)
-	_ = binary.Write(&buf, binary.LittleEndian, uint16(1))      // AudioFormat (1 for PCM)
+	_ = binary.Write(&buf, binary.LittleEndian, uint32(16)) // Subchunk1Size (16 for PCM)
+	_ = binary.Write(&buf, binary.LittleEndian, uint16(1))  // AudioFormat (1 for PCM)
 	_ = binary.Write(&buf, binary.LittleEndian, uint16(channels))
 	_ = binary.Write(&buf, binary.LittleEndian, uint32(sampleRate))
 	_ = binary.Write(&buf, binary.LittleEndian, uint32(byteRate))
@@ -86,7 +87,7 @@ func TestValidateAudioHeader(t *testing.T) {
 
 	// Invalid header
 	_, err = audio.DetectMIMEType([]byte("NOT_AN_AUDIO_FILE"))
-	if err != audio.ErrInvalidAudioFormat {
+	if !errors.Is(err, audio.ErrInvalidAudioFormat) {
 		t.Errorf("expected ErrInvalidAudioFormat, got %v", err)
 	}
 }
@@ -94,7 +95,7 @@ func TestValidateAudioHeader(t *testing.T) {
 func TestAudioSizeBounds(t *testing.T) {
 	// Empty audio
 	_, err := audio.ProcessVoiceMemo([]byte{}, "", 0)
-	if err != audio.ErrEmptyAudio {
+	if !errors.Is(err, audio.ErrEmptyAudio) {
 		t.Errorf("expected ErrEmptyAudio, got %v", err)
 	}
 
@@ -102,7 +103,7 @@ func TestAudioSizeBounds(t *testing.T) {
 	tooLarge := make([]byte, audio.MaxAudioBytes+1)
 	copy(tooLarge, []byte("RIFF"))
 	_, err = audio.ProcessVoiceMemo(tooLarge, "audio/wav", 0)
-	if err != audio.ErrAudioTooLarge {
+	if !errors.Is(err, audio.ErrAudioTooLarge) {
 		t.Errorf("expected ErrAudioTooLarge, got %v", err)
 	}
 }
@@ -111,14 +112,14 @@ func TestDurationBounds(t *testing.T) {
 	// WAV of 16 seconds (16 * 8000 samples at 8000 Hz)
 	longWAV := createTestWAV(16*8000, 8000, 1, 16)
 	_, err := audio.ProcessVoiceMemo(longWAV, "audio/wav", 0)
-	if err != audio.ErrAudioTooLong {
+	if !errors.Is(err, audio.ErrAudioTooLong) {
 		t.Errorf("expected ErrAudioTooLong for 16s WAV, got %v", err)
 	}
 
 	// WebM with declared duration > 15s
 	webmHeader := append([]byte{0x1A, 0x45, 0xDF, 0xA3}, make([]byte, 100)...)
 	_, err = audio.ProcessVoiceMemo(webmHeader, "audio/webm", 16.5)
-	if err != audio.ErrAudioTooLong {
+	if !errors.Is(err, audio.ErrAudioTooLong) {
 		t.Errorf("expected ErrAudioTooLong for 16.5s client duration, got %v", err)
 	}
 
@@ -220,4 +221,3 @@ func TestMalformedAudio(t *testing.T) {
 		t.Errorf("expected 2.0 duration, got %f", memo.DurationSeconds)
 	}
 }
-

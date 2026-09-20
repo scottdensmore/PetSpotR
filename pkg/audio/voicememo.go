@@ -206,14 +206,15 @@ func parseWAV(data []byte) (float64, []float64, error) {
 	}
 
 	var samples []float64
-	if bitsPerSample == 16 {
+	switch bitsPerSample {
+	case 16:
 		numSamples := len(pcmBytes) / 2
 		samples = make([]float64, numSamples)
 		for i := 0; i < numSamples; i++ {
 			raw := int16(binary.LittleEndian.Uint16(pcmBytes[i*2 : (i+1)*2]))
 			samples[i] = math.Abs(float64(raw)) / 32768.0
 		}
-	} else if bitsPerSample == 8 {
+	case 8:
 		samples = make([]float64, len(pcmBytes))
 		for i, b := range pcmBytes {
 			centered := math.Abs(float64(b) - 128.0)
