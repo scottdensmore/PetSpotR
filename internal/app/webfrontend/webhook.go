@@ -1,6 +1,7 @@
 package webfrontend
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -235,6 +236,11 @@ func (s *Server) handleApiWebhookTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !sub.Active {
+		http.Error(w, "webhook subscription is inactive", http.StatusBadRequest)
+		return
+	}
+
 	dispatcher := s.webhookDispatcher
 	if dispatcher == nil {
 		opts := []webhook.DispatcherOption{}
@@ -256,7 +262,10 @@ func (s *Server) handleApiWebhookTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	record, deliverErr := dispatcher.Deliver(r.Context(), &sub, "ping", payloadBytes, nil)
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	record, deliverErr := dispatcher.Deliver(ctx, &sub, "ping", payloadBytes, nil)
 	if record == nil && deliverErr != nil {
 		http.Error(w, fmt.Sprintf("failed to deliver test ping: %v", deliverErr), http.StatusBadGateway)
 		return

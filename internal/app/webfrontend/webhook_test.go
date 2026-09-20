@@ -192,6 +192,26 @@ func TestWebhookEndpoints_CRUD_And_Test(t *testing.T) {
 		}
 	})
 
+	// 5b. POST /api/v1/webhooks/{id}/test on inactive webhook returns 400
+	t.Run("POST /test on inactive webhook returns 400", func(t *testing.T) {
+		inactiveSub := createdSub
+		inactiveSub.ID = "inactive-hook-123"
+		inactiveSub.Active = false
+		subData, _ := json.Marshal(inactiveSub)
+		_ = st.SaveState(context.Background(), store.WebhooksCollection, inactiveSub.ID, subData)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks/"+inactiveSub.ID+"/test", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400 Bad Request, got %d: %s", rec.Code, rec.Body.String())
+		}
+		if !strings.Contains(rec.Body.String(), "webhook subscription is inactive") {
+			t.Errorf("expected inactive error message, got: %s", rec.Body.String())
+		}
+	})
+
 	// 6. DELETE /api/v1/webhooks/{id} removes subscription
 	t.Run("DELETE /api/v1/webhooks/{id} removes subscription", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodDelete, "/api/v1/webhooks/"+createdSub.ID, nil)

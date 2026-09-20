@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || process.env.BASE_URL || 'http://localhost:8082';
+const WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || process.env.BASE_URL || 'http://localhost:8102';
 
 function validMatchRecord(matchId: string) {
   return {

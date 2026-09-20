@@ -82,9 +82,11 @@ func main() {
 	go recoveryRunner.Run(ctx)
 
 	rateLimitEnabled := strings.ToLower(strings.TrimSpace(os.Getenv("RATE_LIMIT_ENABLED"))) == "true" || os.Getenv("RATE_LIMIT_ENABLED") == "1"
+	allowLocalhostWebhooks := config.Mode == runtimeconfig.ModeMemory || config.Mode == runtimeconfig.ModeLocalEmulator || strings.ToLower(strings.TrimSpace(os.Getenv("ALLOW_LOCALHOST_WEBHOOKS"))) == "true"
 
 	srv := webfrontend.NewServerWithOptions(stateRuntime.Store, webfrontend.ServerOptions{
 		AllowPrivilegedMutations: config.Mode == runtimeconfig.ModeMemory || config.Mode == runtimeconfig.ModeLocalEmulator,
+		AllowLocalhostWebhooks:   allowLocalhostWebhooks,
 		FoundPetReporter:         foundReports,
 		LostPetReporter:          lostReports,
 		IdentitySessions:         identityRuntime.Sessions,

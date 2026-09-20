@@ -1,5 +1,18 @@
 import { defineConfig } from '@playwright/test';
 
+const lostPetPort = process.env.LOSTPET_PORT || '8080';
+const foundPetPort = process.env.FOUNDPET_PORT || '8081';
+const webFrontendPort = process.env.WEB_FRONTEND_PORT || '8082';
+
+process.env.LOSTPET_PORT = lostPetPort;
+process.env.FOUNDPET_PORT = foundPetPort;
+process.env.WEB_FRONTEND_PORT = webFrontendPort;
+
+process.env.LOSTPET_SERVICE_URL = process.env.LOSTPET_SERVICE_URL || `http://localhost:${lostPetPort}`;
+process.env.FOUNDPET_SERVICE_URL = process.env.FOUNDPET_SERVICE_URL || `http://localhost:${foundPetPort}`;
+process.env.WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || process.env.BASE_URL || `http://localhost:${webFrontendPort}`;
+process.env.BASE_URL = process.env.BASE_URL || `http://localhost:${webFrontendPort}`;
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30000,
@@ -13,26 +26,26 @@ export default defineConfig({
   reporter: process.env.CI ? 'dot' : 'list',
   webServer: [
     {
-      command: 'cd ../.. && PORT=8080 go run ./cmd/lostpet-service',
-      url: 'http://localhost:8080/healthz',
+      command: `cd ../.. && PORT=${lostPetPort} go run ./cmd/lostpet-service`,
+      url: `http://localhost:${lostPetPort}/healthz`,
       reuseExistingServer: !process.env.CI,
       timeout: 30000,
     },
     {
-      command: 'cd ../.. && PORT=8081 go run ./cmd/foundpet-service',
-      url: 'http://localhost:8081/healthz',
+      command: `cd ../.. && PORT=${foundPetPort} go run ./cmd/foundpet-service`,
+      url: `http://localhost:${foundPetPort}/healthz`,
       reuseExistingServer: !process.env.CI,
       timeout: 30000,
     },
     {
-      command: 'cd ../.. && PORT=8082 go run ./cmd/web-frontend',
-      url: 'http://localhost:8082/healthz',
+      command: `cd ../.. && PORT=${webFrontendPort} go run ./cmd/web-frontend`,
+      url: `http://localhost:${webFrontendPort}/healthz`,
       reuseExistingServer: !process.env.CI,
       timeout: 30000,
     },
   ],
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:8082',
+    baseURL: process.env.BASE_URL,
     trace: 'on-first-retry',
   },
 });
