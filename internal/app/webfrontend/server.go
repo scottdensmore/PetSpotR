@@ -270,6 +270,7 @@ func (s *Server) routes() {
 	))
 	s.mux.HandleFunc("/api/v1/webhooks/{id}", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiWebhookByID))
 	s.mux.HandleFunc("/api/v1/webhooks/{id}/test", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiWebhookTest))
+	s.mux.HandleFunc("/api/v1/webhooks/sms/inbound", s.handleApiInboundSMSWebhook)
 	s.mux.HandleFunc("/api/v1/pets", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleApiPets))
 	s.mux.HandleFunc("/api/v1/pets/{petID}/qr.svg", s.handleApiPetQR)
 	s.mux.HandleFunc("/api/v1/pets/{petID}/share-card.svg", s.handleApiPetShareCard)
