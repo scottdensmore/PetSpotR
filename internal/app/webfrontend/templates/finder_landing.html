@@ -113,6 +113,9 @@
       <button type="button" id="btn-finder-trajectory" class="btn btn-secondary btn-lg finder-btn btn-view-trajectory" data-action="view-trajectory" data-pet-id="{{.PetID}}" data-pet-name="{{.PetName}}">
         <span class="btn-icon">🗺️</span> View Sighting Trajectory Map
       </button>
+      <button type="button" id="btn-finder-search-party" class="btn btn-secondary btn-lg finder-btn btn-view-search-party" data-action="view-search-party" data-pet-id="{{.PetID}}" data-pet-name="{{.PetName}}">
+        <span class="btn-icon">🚩</span> Join / View Search Party
+      </button>
     </section>
 
     <!-- Social Share Section -->
@@ -183,6 +186,59 @@
         <p class="text-secondary sighting-intro">
           Report where and when you spotted {{.PetName}} to help map their live movement trajectory and search perimeter.
         </p>
+
+        <!-- Photo Dropzone for Sighting Modal -->
+        <div class="form-group sighting-photo-group">
+          <label class="form-label">Photo (Optional — auto-detects EXIF location &amp; time)</label>
+          <div id="photo-dropzone" class="dropzone sighting-dropzone" tabindex="0" role="button" aria-label="Upload sighting photo" aria-describedby="sighting-dropzone-help">
+            <svg class="upload-icon" width="36" height="36" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span class="dropzone-title">Drag &amp; drop photo or click to upload</span>
+            <span id="sighting-dropzone-help" class="dropzone-help">Extracts GPS &amp; capture time from photo EXIF</span>
+          </div>
+          <input type="file" id="sighting-photo-input" accept="image/*" class="hidden">
+          <div id="sighting-preview-container" class="sighting-preview-container hidden">
+            <img id="sighting-photo-preview" class="sighting-photo-thumb" src="" alt="Sighting photo preview">
+          </div>
+        </div>
+
+        <!-- EXIF Pre-fill Toast Banner for Sighting -->
+        <div id="sighting-exif-toast" class="exif-prefill-toast hidden" role="dialog" aria-live="polite" aria-atomic="true">
+          <div class="exif-toast-content">
+            <span class="exif-toast-icon" aria-hidden="true">📍</span>
+            <span class="exif-toast-text" id="sighting-exif-toast-message">Found photo location: <strong class="exif-coords-display"></strong>. Pre-fill report?</span>
+          </div>
+          <div class="exif-toast-actions">
+            <button type="button" class="btn btn-sm btn-primary btn-exif-apply" id="btn-sighting-exif-apply">Apply</button>
+            <button type="button" class="btn btn-sm btn-secondary btn-exif-dismiss" id="btn-sighting-exif-dismiss">Keep Manual</button>
+          </div>
+        </div>
+
+        <!-- Auto-Enhance Controls for Sighting -->
+        <div id="sighting-auto-enhance" class="auto-enhance-container hidden" role="region" aria-label="Sighting photo auto-enhancement">
+          <div class="auto-enhance-bar">
+            <button type="button" class="btn btn-secondary btn-sm btn-auto-enhance" id="btn-sighting-auto-enhance">
+              ✨ Auto-Enhance
+            </button>
+            <span class="auto-enhance-status" role="status" aria-live="polite"></span>
+          </div>
+          <div class="enhance-comparison-container hidden">
+            <div class="enhance-slider-wrapper">
+              <img class="enhance-img enhance-img-before" src="" alt="Original sighting photo">
+              <div class="enhance-img-after-wrap">
+                <img class="enhance-img enhance-img-after" src="" alt="Auto-enhanced sighting photo">
+              </div>
+              <input type="range" min="0" max="100" value="50" class="enhance-slider" aria-label="Before and after enhancement comparison slider">
+            </div>
+            <div class="enhance-slider-labels">
+              <span class="badge badge-secondary">Original</span>
+              <span class="badge badge-primary">Enhanced</span>
+            </div>
+            <div class="enhance-action-buttons">
+              <button type="button" class="btn btn-primary btn-sm btn-accept-enhanced">Use Enhanced</button>
+              <button type="button" class="btn btn-secondary btn-sm btn-revert-enhanced">Keep Original</button>
+            </div>
+          </div>
+        </div>
 
         <!-- Geolocation & Coordinates -->
         <div class="form-group">
@@ -370,8 +426,157 @@
     </div>
   </div>
 
+  <!-- Interactive Search Party Sector Map Modal -->
+  <div id="pet-search-party-container" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="search-party-modal-title">
+    <div class="glass-card search-party-modal-card">
+      <div class="modal-header">
+        <div class="search-party-header-titles">
+          <h2 id="search-party-modal-title">🚩 Search Party Sector Grid</h2>
+          <span id="search-party-pet-badge" class="badge badge-primary">{{.PetName}}</span>
+        </div>
+        <button type="button" class="btn-icon" id="btn-close-search-party" data-close-modal="search-party" aria-label="Close search party map">✕</button>
+      </div>
+
+      <div class="search-party-modal-body">
+        <!-- Summary Stats Strip -->
+        <div class="search-party-stats-strip" id="search-party-stats-strip">
+          <div class="sp-stat-item">
+            <span class="sp-stat-label">Active Volunteers</span>
+            <span class="sp-stat-value" id="search-party-volunteers-count">0</span>
+          </div>
+          <div class="sp-stat-item">
+            <span class="sp-stat-label">Total Sectors</span>
+            <span class="sp-stat-value" id="search-party-sectors-count">0</span>
+          </div>
+          <div class="sp-stat-item sp-stat-grow">
+            <div class="sp-coverage-header">
+              <span class="sp-stat-label">Sector Clearance Coverage</span>
+              <span class="sp-stat-value" id="search-party-coverage-label">0%</span>
+            </div>
+            <div class="search-party-coverage-track">
+              <div id="search-party-coverage-bar" class="search-party-coverage-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search Party Map Wrapper -->
+        <div class="search-party-map-wrapper">
+          <div id="search-party-map" class="search-party-map" role="region" aria-label="Interactive map showing search party sector overlay"></div>
+          <div id="search-party-map-status" class="map-status-overlay" aria-live="polite"></div>
+        </div>
+
+        <!-- Legend & Active Sectors List -->
+        <div class="search-party-legend" id="search-party-legend">
+          <div class="legend-header">
+            <h4>Sector Status Legend &amp; Assignments</h4>
+          </div>
+          <div class="legend-items">
+            <div class="legend-item">
+              <span class="legend-color-box legend-color-unassigned"></span>
+              <span><strong>Unassigned (Amber)</strong> — Open for volunteer claim</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color-box legend-color-active"></span>
+              <span><strong>Active Search (Indigo)</strong> — Volunteer actively searching</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color-box legend-color-cleared"></span>
+              <span><strong>Cleared (Green)</strong> — Sector checked, no signs found</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color-box legend-color-sighting pulse-sample"></span>
+              <span><strong>Sighting Reported (Red Pulse)</strong> — Recent sighting in sector</span>
+            </div>
+          </div>
+          <div class="sector-cards-grid" id="search-party-sector-cards" aria-label="Sector list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Volunteer Sector Claim Modal -->
+  <div id="modal-claim-sector" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="claim-sector-modal-title">
+    <div class="glass-card search-party-action-modal">
+      <div class="modal-header">
+        <h3 id="claim-sector-modal-title">🙋 Claim Search Sector</h3>
+        <button type="button" class="btn-icon" data-close-modal="claim-sector" aria-label="Close claim modal">✕</button>
+      </div>
+      <form id="form-claim-sector" class="search-party-form">
+        <input type="hidden" id="claim-party-id" name="partyId">
+        <input type="hidden" id="claim-sector-id" name="sectorId">
+        <input type="hidden" id="claim-pet-id" name="petId" value="{{.PetID}}">
+
+        <div class="sector-info-card" id="claim-sector-info">
+          <h4 id="claim-sector-name" class="sector-info-name">Sector</h4>
+          <p id="claim-sector-details" class="text-secondary sector-info-details"></p>
+        </div>
+
+        <p class="text-secondary modal-info-text">
+          Claim this sector to let other volunteers and the pet owner know you are searching this area.
+        </p>
+
+        <div class="form-group">
+          <label for="claim-volunteer-alias" class="form-label">Volunteer Alias (Optional / Zero-PII)</label>
+          <input type="text" id="claim-volunteer-alias" name="volunteerAlias" class="form-control" placeholder="e.g. Neighbor Sam (no phone/email)" maxlength="40">
+          <small class="form-hint">Private alias visible to search coordinators. Do not enter phone numbers or emails.</small>
+        </div>
+
+        <div id="claim-modal-feedback" class="form-feedback hidden" role="status" aria-live="polite"></div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close-modal="claim-sector">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-claim">Claim Sector</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sector Status / Clear Modal -->
+  <div id="modal-clear-sector" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="clear-sector-modal-title">
+    <div class="glass-card search-party-action-modal">
+      <div class="modal-header">
+        <h3 id="clear-sector-modal-title">📋 Update Sector Status</h3>
+        <button type="button" class="btn-icon" data-close-modal="clear-sector" aria-label="Close update modal">✕</button>
+      </div>
+      <form id="form-clear-sector" class="search-party-form">
+        <input type="hidden" id="clear-party-id" name="partyId">
+        <input type="hidden" id="clear-sector-id" name="sectorId">
+        <input type="hidden" id="clear-pet-id" name="petId" value="{{.PetID}}">
+
+        <div class="sector-info-card" id="clear-sector-info">
+          <h4 id="clear-sector-name" class="sector-info-name">Sector</h4>
+          <p id="clear-sector-details" class="text-secondary sector-info-details"></p>
+        </div>
+
+        <div class="form-group">
+          <label for="clear-sector-status" class="form-label">New Status <span class="required">*</span></label>
+          <select id="clear-sector-status" name="status" class="form-control" required>
+            <option value="active_search">Active Search (Currently searching)</option>
+            <option value="cleared">Cleared (Area searched thoroughly, pet not found)</option>
+            <option value="sighting_reported">Sighting Reported (Pet spotted in this sector)</option>
+            <option value="unassigned">Release Sector (Return to unassigned)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="clear-sector-notes" class="form-label">Clearance / Field Notes</label>
+          <textarea id="clear-sector-notes" name="clearanceNotes" class="form-control" rows="3" placeholder="e.g. Checked alleyways, parks, spoke with neighbors..."></textarea>
+        </div>
+
+        <div id="clear-modal-feedback" class="form-feedback hidden" role="status" aria-live="polite"></div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close-modal="clear-sector">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-clear">Update Status</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="/static/vendor/leaflet/leaflet.js"></script>
+  <script src="/static/js/image-enhancer.js" defer></script>
   <script src="/static/js/sighting-trajectory.js" defer></script>
+  <script src="/static/js/search-party.js" defer></script>
   <script src="/static/js/finder-landing.js" defer></script>
 </body>
 </html>

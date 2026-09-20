@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || process.env.BASE_URL || 'http://localhost:8102';
+const WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || process.env.BASE_URL || 'http://localhost:8092';
 
 test.describe('User Journey: Shelter Intake & Microchip Matching Pipeline', () => {
   test('Test 1: Lost pet report wizard microchip entry, live feedback, and masked badge on /pets', async ({ page }) => {

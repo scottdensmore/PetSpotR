@@ -8,10 +8,18 @@ process.env.LOSTPET_PORT = lostPetPort;
 process.env.FOUNDPET_PORT = foundPetPort;
 process.env.WEB_FRONTEND_PORT = webFrontendPort;
 
-process.env.LOSTPET_SERVICE_URL = process.env.LOSTPET_SERVICE_URL || `http://localhost:${lostPetPort}`;
-process.env.FOUNDPET_SERVICE_URL = process.env.FOUNDPET_SERVICE_URL || `http://localhost:${foundPetPort}`;
-process.env.WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || process.env.BASE_URL || `http://localhost:${webFrontendPort}`;
-process.env.BASE_URL = process.env.BASE_URL || `http://localhost:${webFrontendPort}`;
+if (!process.env.BASE_URL) {
+  process.env.BASE_URL = `http://localhost:${webFrontendPort}`;
+}
+if (!process.env.WEB_FRONTEND_URL) {
+  process.env.WEB_FRONTEND_URL = process.env.BASE_URL;
+}
+if (!process.env.LOSTPET_SERVICE_URL) {
+  process.env.LOSTPET_SERVICE_URL = `http://localhost:${lostPetPort}`;
+}
+if (!process.env.FOUNDPET_SERVICE_URL) {
+  process.env.FOUNDPET_SERVICE_URL = `http://localhost:${foundPetPort}`;
+}
 
 export default defineConfig({
   testDir: './e2e',
@@ -45,7 +53,7 @@ export default defineConfig({
     },
   ],
   use: {
-    baseURL: process.env.BASE_URL,
+    baseURL: process.env.BASE_URL || `http://localhost:${webFrontendPort}`,
     trace: 'on-first-retry',
   },
 });

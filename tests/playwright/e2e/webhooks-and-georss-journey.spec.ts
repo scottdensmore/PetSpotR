@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import http from 'node:http';
 
-const WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || process.env.BASE_URL || 'http://localhost:8102';
+const WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || process.env.BASE_URL || 'http://localhost:8082';
 
 test.describe.serial('User Journey: Webhooks & GeoRSS Feeds', () => {
   let receiverServer: http.Server;

@@ -69,17 +69,58 @@
             <span class="ai-badge">AI Vision Auto-Extract</span>
           </h2>
 
-          <button type="button" id="found-dropzone" class="dropzone" aria-label="Upload pet photo" tabindex="0" aria-describedby="found-dropzone-help">
-            <svg class="upload-icon" width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H3a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-            <span class="dropzone-title">Click or drag photo here to scan with Gemma 4 Vision AI</span>
-            <span id="found-dropzone-help" class="dropzone-help">Supports JPG, PNG, WEBP up to 10MB</span>
-          </button>
-          <input type="file" id="foundPhotoInput" accept="image/*" multiple hidden>
+          <div id="photo-dropzone" class="photo-dropzone-container">
+            <button type="button" id="found-dropzone" class="dropzone" aria-label="Upload pet photo" tabindex="0" aria-describedby="found-dropzone-help">
+              <svg class="upload-icon" width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H3a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              <span class="dropzone-title">Click or drag photo here to scan with Gemma 4 Vision AI</span>
+              <span id="found-dropzone-help" class="dropzone-help">Supports JPG, PNG, WEBP up to 10MB</span>
+            </button>
+            <input type="file" id="foundPhotoInput" accept="image/*" multiple hidden>
+          </div>
           <div class="photo-counter-panel">
             <span id="photo-count-badge" class="photo-count-badge mapped-count-badge">0 / 3 photos added</span>
           </div>
           <p id="found-photo-status" class="upload-status" role="status" aria-live="polite"></p>
           <p id="found-photo-error" class="field-error" role="alert" aria-live="assertive" hidden></p>
+
+          <!-- EXIF Pre-fill Toast Banner -->
+          <div id="found-exif-toast" class="exif-prefill-toast hidden" role="dialog" aria-live="polite" aria-atomic="true">
+            <div class="exif-toast-content">
+              <span class="exif-toast-icon" aria-hidden="true">📍</span>
+              <span class="exif-toast-text" id="found-exif-toast-message">Found photo location: <strong id="found-exif-coords-display" class="exif-coords-display"></strong>. Pre-fill report?</span>
+            </div>
+            <div class="exif-toast-actions">
+              <button type="button" class="btn btn-sm btn-primary btn-exif-apply" id="btn-found-exif-apply">Apply</button>
+              <button type="button" class="btn btn-sm btn-secondary btn-exif-dismiss" id="btn-found-exif-dismiss">Keep Manual</button>
+            </div>
+          </div>
+
+          <!-- Auto-Enhance Controls & Slider -->
+          <div id="found-auto-enhance" class="auto-enhance-container hidden" role="region" aria-label="Photo auto-enhancement">
+            <div class="auto-enhance-bar">
+              <button type="button" class="btn btn-secondary btn-sm btn-auto-enhance" id="btn-found-auto-enhance">
+                ✨ Auto-Enhance
+              </button>
+              <span id="found-auto-enhance-status" class="auto-enhance-status" role="status" aria-live="polite"></span>
+            </div>
+            <div id="found-enhance-slider-view" class="enhance-comparison-container hidden">
+              <div class="enhance-slider-wrapper">
+                <img id="found-enhance-img-before" class="enhance-img enhance-img-before" src="" alt="Original uploaded pet photo">
+                <div id="found-enhance-img-after-wrap" class="enhance-img-after-wrap">
+                  <img id="found-enhance-img-after" class="enhance-img enhance-img-after" src="" alt="Auto-enhanced pet photo">
+                </div>
+                <input type="range" min="0" max="100" value="50" class="enhance-slider" id="found-enhance-slider" aria-label="Before and after enhancement comparison slider">
+              </div>
+              <div class="enhance-slider-labels">
+                <span class="badge badge-secondary">Original</span>
+                <span class="badge badge-primary">Enhanced (Auto-Contrast)</span>
+              </div>
+              <div class="enhance-action-buttons">
+                <button type="button" class="btn btn-primary btn-sm btn-accept-enhanced" id="btn-found-accept-enhanced">Use Enhanced</button>
+                <button type="button" class="btn btn-secondary btn-sm btn-revert-enhanced" id="btn-found-revert-enhanced">Keep Original</button>
+              </div>
+            </div>
+          </div>
 
           <div id="staging-container" class="staged-photos-container form-grid" role="region" aria-label="Staged pet photos" hidden></div>
 
@@ -160,6 +201,13 @@
         <!-- Step C: Found Location & Custody Details -->
         <div class="form-section">
           <h2 class="section-title">3. Location & Custody Status</h2>
+          <input type="hidden" id="found-lat" name="latitude">
+          <input type="hidden" id="found-lng" name="longitude">
+          <input type="hidden" id="found-time" name="captureTime">
+          <div class="form-field">
+            <label for="foundDate" class="form-label">Date & Time Found (Optional)</label>
+            <input class="form-control" type="datetime-local" id="foundDate" name="foundTime">
+          </div>
           <div class="form-field">
             <label for="foundLocation" class="form-label">Found Location / Neighborhood *</label>
             <input class="form-control" type="text" id="foundLocation" name="location" required placeholder="e.g. Green Lake Park, Seattle, WA" aria-describedby="found-location-error">
@@ -219,7 +267,8 @@
   <div id="toast-container" class="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
   <script src="/static/js/theme.js"></script>
   <script src="/static/js/identity-session.js"></script>
-  <script src="/static/js/found-report.js"></script>
+  <script src="/static/js/image-enhancer.js" defer></script>
+  <script src="/static/js/found-report.js" defer></script>
   <script src="/static/js/outbox-sync.js" defer></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || process.env.BASE_URL || 'http://localhost:8102';
+const WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || process.env.BASE_URL || 'http://localhost:8092';
 
 test.describe('User Journey: Geospatial Directory & Mapping', () => {
   test('should render public pet directory with filter controls', async ({ page }) => {
