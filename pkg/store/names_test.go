@@ -39,4 +39,10 @@ func TestCanonicalCollectionNames(t *testing.T) {
 	if store.NotificationsCollection != "notifications" {
 		t.Fatalf("NotificationsCollection = %q, want notifications", store.NotificationsCollection)
 	}
+	if store.WebhooksCollection != "webhooks" {
+		t.Fatalf("WebhooksCollection = %q, want webhooks", store.WebhooksCollection)
+	}
+	if store.WebhookDeliveriesCollection != "webhookDeliveries" {
+		t.Fatalf("WebhookDeliveriesCollection = %q, want webhookDeliveries", store.WebhookDeliveriesCollection)
+	}
 }

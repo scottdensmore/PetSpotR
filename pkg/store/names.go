@@ -14,4 +14,6 @@ const (
 	NotificationPreferencesCollection = "notificationPreferences"
 	InAppNotificationsCollection      = "inAppNotifications"
 	NotificationsCollection           = "notifications"
+	WebhooksCollection                = "webhooks"
+	WebhookDeliveriesCollection       = "webhookDeliveries"
 )
