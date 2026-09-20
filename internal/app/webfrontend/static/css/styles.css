@@ -4158,3 +4158,275 @@ footer {
   background: rgba(0, 0, 0, 0.04);
 }
 
+/* ==========================================================================
+   Milestone 8.2: EXIF Pre-fill Toast & Auto-Enhance Comparison Slider
+   ========================================================================== */
+
+/* Photo Dropzone Container */
+.photo-dropzone-container {
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+/* Sighting Photo Dropzone inside Modal */
+.sighting-dropzone {
+  min-height: 100px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.sighting-dropzone:hover,
+.sighting-dropzone:focus-visible {
+  border-color: var(--primary);
+  background: rgba(79, 70, 229, 0.08);
+}
+
+.sighting-dropzone .upload-icon {
+  margin-bottom: 0.5rem;
+  color: var(--primary);
+}
+
+.sighting-preview-container {
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.sighting-photo-thumb {
+  max-width: 140px;
+  max-height: 100px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  object-fit: cover;
+}
+
+/* Intelligent EXIF Pre-fill Toast Banner */
+.exif-prefill-toast {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.15rem;
+  margin: 0.85rem 0;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  animation: exifToastSlideIn 0.25s ease-out;
+}
+
+[data-theme="light"] .exif-prefill-toast {
+  background: linear-gradient(135deg, #eff6ff, #e0e7ff);
+  border: 1px solid #818cf8;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.15);
+}
+
+@keyframes exifToastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.exif-toast-content {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+}
+
+.exif-toast-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.exif-toast-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-exif-apply {
+  background: var(--primary);
+  color: white;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-exif-apply:hover {
+  background: var(--primary-hover);
+}
+
+.btn-exif-dismiss {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  padding: 0.35rem 0.8rem;
+  font-size: 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+[data-theme="light"] .btn-exif-dismiss {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.btn-exif-dismiss:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+}
+
+/* Auto-Enhance Controls */
+.auto-enhance-container {
+  margin: 0.75rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.auto-enhance-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-auto-enhance {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.9rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-auto-enhance:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.45);
+}
+
+.btn-auto-enhance:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auto-enhance-status {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Before / After Comparison Slider */
+.enhance-comparison-container {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.enhance-slider-wrapper {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  user-select: none;
+  background: #000;
+}
+
+.enhance-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.enhance-img-before {
+  z-index: 1;
+}
+
+.enhance-img-after-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 2;
+  border-right: 2px solid #ffffff;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.4);
+}
+
+.enhance-img-after-wrap .enhance-img-after {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  max-width: none;
+}
+
+/* Range input slider on top of comparison */
+.enhance-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: ew-resize;
+  z-index: 5;
+  margin: 0;
+}
+
+.enhance-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.enhance-action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+

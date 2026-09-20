@@ -396,3 +396,124 @@ func TestImagingEndpoints(t *testing.T) {
 		}
 	})
 }
+
+func TestImageEnhancerAssets(t *testing.T) {
+	t.Parallel()
+
+	st := store.NewMemoryStore()
+	srv := webfrontend.NewServerWithOptions(st, webfrontend.ServerOptions{
+		DisableRateLimiting: true,
+	})
+	defer srv.Close()
+
+	t.Run("image-enhancer.js static script is served", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/static/js/image-enhancer.js", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK for /static/js/image-enhancer.js, got %d", rec.Code)
+		}
+		body := rec.Body.String()
+		expectedKeywords := []string{
+			"/api/v1/images/extract-metadata",
+			"/api/v1/images/enhance",
+			"photo-dropzone",
+			"Found photo location",
+			"Auto-Enhance",
+		}
+		for _, kw := range expectedKeywords {
+			if !strings.Contains(body, kw) {
+				t.Errorf("expected image-enhancer.js to contain %q", kw)
+			}
+		}
+	})
+
+	t.Run("report-lost template contains image-enhancer script, photo-dropzone, and UI elements", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/report-lost", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK for /report-lost, got %d", rec.Code)
+		}
+		body := rec.Body.String()
+		expectedSnippets := []string{
+			`<script src="/static/js/image-enhancer.js" defer></script>`,
+			`id="photo-dropzone"`,
+			`exif-prefill-toast`,
+			`btn-auto-enhance`,
+		}
+		for _, snip := range expectedSnippets {
+			if !strings.Contains(body, snip) {
+				t.Errorf("report-lost missing expected snippet: %q", snip)
+			}
+		}
+	})
+
+	t.Run("report-found template contains image-enhancer script, photo-dropzone, and UI elements", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/report-found", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK for /report-found, got %d", rec.Code)
+		}
+		body := rec.Body.String()
+		expectedSnippets := []string{
+			`<script src="/static/js/image-enhancer.js" defer></script>`,
+			`id="photo-dropzone"`,
+			`exif-prefill-toast`,
+			`btn-auto-enhance`,
+		}
+		for _, snip := range expectedSnippets {
+			if !strings.Contains(body, snip) {
+				t.Errorf("report-found missing expected snippet: %q", snip)
+			}
+		}
+	})
+
+	t.Run("sighting modal templates contain image-enhancer script, photo-dropzone, and UI elements", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/pets", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK for /pets, got %d", rec.Code)
+		}
+		body := rec.Body.String()
+		expectedSnippets := []string{
+			`<script src="/static/js/image-enhancer.js" defer></script>`,
+			`modal-report-sighting`,
+			`id="photo-dropzone"`,
+			`exif-prefill-toast`,
+			`btn-auto-enhance`,
+		}
+		for _, snip := range expectedSnippets {
+			if !strings.Contains(body, snip) {
+				t.Errorf("/pets sighting modal missing expected snippet: %q", snip)
+			}
+		}
+	})
+
+	t.Run("styles.css contains styling rules for EXIF prefill toast, auto-enhance, and comparison slider", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/static/css/styles.css", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK for /static/css/styles.css, got %d", rec.Code)
+		}
+		body := rec.Body.String()
+		expectedRules := []string{
+			".exif-prefill-toast",
+			".btn-auto-enhance",
+			".enhance-slider",
+		}
+		for _, rule := range expectedRules {
+			if !strings.Contains(body, rule) {
+				t.Errorf("styles.css missing expected rule: %q", rule)
+			}
+		}
+	})
+}

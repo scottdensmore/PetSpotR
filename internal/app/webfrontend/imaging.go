@@ -33,6 +33,12 @@ func (s *Server) handleApiImageExtractMetadata(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	defer func() {
+		if r.MultipartForm != nil {
+			_ = r.MultipartForm.RemoveAll()
+		}
+	}()
+
 	r.Body = http.MaxBytesReader(w, r.Body, maxImageUploadBytes)
 
 	file, _, err := r.FormFile("file")
@@ -104,6 +110,12 @@ func (s *Server) handleApiImageEnhance(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	defer func() {
+		if r.MultipartForm != nil {
+			_ = r.MultipartForm.RemoveAll()
+		}
+	}()
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxImageUploadBytes)
 

@@ -1,0 +1,152 @@
+<!-- Quick Sighting Modal Dialog -->
+<div id="modal-report-sighting" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="sighting-modal-title">
+  <div class="glass-card sighting-modal" role="document">
+    <div class="modal-header">
+      <h2 id="sighting-modal-title">👁️ Report Pet Sighting</h2>
+      <button type="button" class="btn-icon" id="btn-close-sighting-modal" data-close-modal="sighting" aria-label="Close sighting modal">✕</button>
+    </div>
+    <form id="form-report-sighting" class="sighting-form">
+      <input type="hidden" id="sighting-pet-id" name="petId">
+      <input type="hidden" id="sighting-lat" name="lat">
+      <input type="hidden" id="sighting-lng" name="lng">
+
+      <p class="text-secondary sighting-intro">
+        Report where and when you spotted this pet to help map their live movement trajectory and search perimeter.
+      </p>
+
+      <!-- Photo Dropzone for Sighting Modal -->
+      <div class="form-group sighting-photo-group">
+        <label class="form-label">Photo (Optional — auto-detects EXIF location &amp; time)</label>
+        <div id="photo-dropzone" class="dropzone sighting-dropzone" tabindex="0" role="button" aria-label="Upload sighting photo" aria-describedby="sighting-dropzone-help">
+          <svg class="upload-icon" width="36" height="36" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          <span class="dropzone-title">Drag &amp; drop photo or click to upload</span>
+          <span id="sighting-dropzone-help" class="dropzone-help">Extracts GPS &amp; capture time from photo EXIF</span>
+        </div>
+        <input type="file" id="sighting-photo-input" accept="image/*" class="hidden">
+        <div id="sighting-preview-container" class="sighting-preview-container hidden">
+          <img id="sighting-photo-preview" class="sighting-photo-thumb" src="" alt="Sighting photo preview">
+        </div>
+      </div>
+
+      <!-- EXIF Pre-fill Toast Banner for Sighting -->
+      <div id="sighting-exif-toast" class="exif-prefill-toast hidden" role="dialog" aria-live="polite" aria-atomic="true">
+        <div class="exif-toast-content">
+          <span class="exif-toast-icon" aria-hidden="true">📍</span>
+          <span class="exif-toast-text" id="sighting-exif-toast-message">Found photo location: <strong class="exif-coords-display"></strong>. Pre-fill report?</span>
+        </div>
+        <div class="exif-toast-actions">
+          <button type="button" class="btn btn-sm btn-primary btn-exif-apply">Apply</button>
+          <button type="button" class="btn btn-sm btn-secondary btn-exif-dismiss">Keep Manual</button>
+        </div>
+      </div>
+
+      <!-- Auto-Enhance Controls for Sighting -->
+      <div id="sighting-auto-enhance" class="auto-enhance-container hidden" role="region" aria-label="Sighting photo auto-enhancement">
+        <div class="auto-enhance-bar">
+          <button type="button" class="btn btn-secondary btn-sm btn-auto-enhance" id="btn-sighting-auto-enhance">
+            ✨ Auto-Enhance
+          </button>
+          <span class="auto-enhance-status" role="status" aria-live="polite"></span>
+        </div>
+        <div class="enhance-comparison-container hidden">
+          <div class="enhance-slider-wrapper">
+            <img class="enhance-img enhance-img-before" src="" alt="Original sighting photo">
+            <div class="enhance-img-after-wrap">
+              <img class="enhance-img enhance-img-after" src="" alt="Auto-enhanced sighting photo">
+            </div>
+            <input type="range" min="0" max="100" value="50" class="enhance-slider" aria-label="Before and after enhancement comparison slider">
+          </div>
+          <div class="enhance-slider-labels">
+            <span class="badge badge-secondary">Original</span>
+            <span class="badge badge-primary">Enhanced</span>
+          </div>
+          <div class="enhance-action-buttons">
+            <button type="button" class="btn btn-primary btn-sm btn-accept-enhanced">Use Enhanced</button>
+            <button type="button" class="btn btn-secondary btn-sm btn-revert-enhanced">Keep Original</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Geolocation & Coordinates -->
+      <div class="form-group">
+        <label class="form-label">Sighting Coordinates</label>
+        <div class="sighting-geo-row">
+          <button type="button" class="btn btn-secondary btn-sm" id="sighting-geolocation-btn">
+            <span class="geo-icon">📍</span> Use My Location
+          </button>
+          <span id="sighting-gps-status" class="sighting-gps-status" role="status">GPS not acquired</span>
+        </div>
+      </div>
+
+      <!-- Location Description -->
+      <div class="form-group">
+        <label for="sighting-location" class="form-label">Location / Landmarks <span class="required">*</span></label>
+        <input type="text" id="sighting-location" name="locationDescription" class="form-control" required placeholder="e.g. Near Pike Place Market, 4th and Olive Way">
+      </div>
+
+      <div class="form-row">
+        <!-- Time mode / timestamp picker -->
+        <div class="form-group form-group-half">
+          <label for="sighting-time-mode" class="form-label">When Seen?</label>
+          <select id="sighting-time-mode" name="timeMode" class="form-control">
+            <option value="just-now" selected>Just now</option>
+            <option value="15-mins">~15 minutes ago</option>
+            <option value="30-mins">~30 minutes ago</option>
+            <option value="1-hour">~1 hour ago</option>
+            <option value="earlier">Custom time / Earlier</option>
+          </select>
+        </div>
+
+        <div class="form-group form-group-half" id="sighting-custom-time-group" hidden>
+          <label for="sighting-custom-time" class="form-label">Specific Time</label>
+          <input type="datetime-local" id="sighting-custom-time" name="customTime" class="form-control">
+        </div>
+
+        <!-- Compass Direction Dropdown -->
+        <div class="form-group form-group-half">
+          <label for="sighting-direction" class="form-label">Heading Direction</label>
+          <select id="sighting-direction" name="movementDirection" class="form-control">
+            <option value="">Unknown / Not observed</option>
+            <option value="North">North</option>
+            <option value="Northeast">Northeast</option>
+            <option value="East">East</option>
+            <option value="Southeast">Southeast</option>
+            <option value="South">South</option>
+            <option value="Southwest">Southwest</option>
+            <option value="West">West</option>
+            <option value="Northwest">Northwest</option>
+            <option value="Stationary">Stationary</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Witness Notes -->
+      <div class="form-group">
+        <label for="sighting-notes" class="form-label">Witness Notes / Demeanor</label>
+        <textarea id="sighting-notes" name="notes" class="form-control" rows="3" placeholder="e.g. Trotting quickly, wearing red harness, seemed spooked by sirens"></textarea>
+      </div>
+
+      <!-- Optional Witness Contact Info -->
+      <details class="sighting-contact-details">
+        <summary class="sighting-contact-summary">Optional: Your Contact Info (kept private for owner follow-up)</summary>
+        <div class="sighting-contact-fields">
+          <div class="form-group">
+            <label for="sighting-witness-name" class="form-label">Your Name</label>
+            <input type="text" id="sighting-witness-name" name="witnessName" class="form-control" placeholder="e.g. Jane Witness">
+          </div>
+          <div class="form-group">
+            <label for="sighting-witness-contact" class="form-label">Email or Phone</label>
+            <input type="text" id="sighting-witness-contact" name="witnessContact" class="form-control" placeholder="e.g. witness@example.com or 206-555-0199">
+          </div>
+        </div>
+      </details>
+
+      <div id="sighting-modal-feedback" class="form-feedback hidden" role="status" aria-live="polite"></div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-sighting" data-close-modal="sighting">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="btn-submit-sighting">Submit Sighting</button>
+      </div>
+    </form>
+  </div>
+</div>
