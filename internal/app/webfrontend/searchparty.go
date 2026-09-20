@@ -119,6 +119,9 @@ func (s *Server) handleApiCreateSearchParty(w http.ResponseWriter, r *http.Reque
 	sectorCount := 4
 	if reqData.SectorCount > 0 {
 		sectorCount = reqData.SectorCount
+		if sectorCount > 32 {
+			sectorCount = 32
+		}
 	}
 	radiusMeters := analysis.EstimatedPerimeter.RadiusMeters
 	if reqData.RadiusMeters > 0 {
@@ -252,9 +255,9 @@ func (s *Server) handleApiClaimSector(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if already claimed or cleared
+	// Check if already claimed, cleared, or in sighting_reported
 	currentStatus := party.Sectors[sectorIdx].Status
-	if currentStatus == searchparty.SectorStatusActiveSearch || currentStatus == searchparty.SectorStatusCleared {
+	if currentStatus != searchparty.SectorStatusUnassigned {
 		http.Error(w, "Sector is already claimed or cleared", http.StatusConflict)
 		return
 	}
@@ -268,10 +271,7 @@ func (s *Server) handleApiClaimSector(w http.ResponseWriter, r *http.Request) {
 	}
 
 	alias := sanitizeVolunteerAlias(req.VolunteerAlias, len(party.ActiveAssignments)+1)
-
-	var randomBytes [4]byte
-	_, _ = rand.Read(randomBytes[:])
-	assignmentID := fmt.Sprintf("asgn-%s", hex.EncodeToString(randomBytes[:]))
+	assignmentID := generateAssignmentID()
 	now := time.Now().UTC()
 
 	assignment := searchparty.SectorAssignment{
@@ -309,6 +309,8 @@ func (s *Server) handleApiClaimSector(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to update party", http.StatusInternalServerError)
 		return
 	}
+
+	s.broadcastSearchPartyUpdate(r.Context(), party, sectorID, searchparty.SectorStatusActiveSearch)
 
 	resp := struct {
 		searchparty.SectorAssignment
@@ -419,6 +421,8 @@ func (s *Server) handleApiUpdateSectorStatus(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	s.broadcastSearchPartyUpdate(r.Context(), party, sectorID, req.Status)
+
 	resp := struct {
 		PartyID               string                   `json:"partyId"`
 		SectorID              string                   `json:"sectorId"`
@@ -509,15 +513,73 @@ func (s *Server) getSearchPartyByID(ctx context.Context, partyID string) (search
 	return searchparty.SearchParty{}, false, nil
 }
 
-// countActiveVolunteers counts distinct volunteer aliases with active search status.
+// countActiveVolunteers counts distinct volunteer aliases with active search or sighting reported status.
 func countActiveVolunteers(assignments []searchparty.SectorAssignment) int {
 	active := make(map[string]struct{})
 	for _, a := range assignments {
-		if a.Status == searchparty.SectorStatusActiveSearch && a.VolunteerAlias != "" {
+		if (a.Status == searchparty.SectorStatusActiveSearch || a.Status == searchparty.SectorStatusSightingReported) && a.VolunteerAlias != "" {
 			active[a.VolunteerAlias] = struct{}{}
 		}
 	}
 	return len(active)
+}
+
+func generateAssignmentID() string {
+	var random [8]byte
+	if _, err := rand.Read(random[:]); err != nil {
+		return fmt.Sprintf("asgn-%d", time.Now().UnixNano())
+	}
+	return fmt.Sprintf("asgn-%s", hex.EncodeToString(random[:]))
+}
+
+func (s *Server) broadcastSearchPartyUpdate(ctx context.Context, party searchparty.SearchParty, sectorID string, status searchparty.SectorStatus) {
+	if s.reunionHub == nil {
+		return
+	}
+
+	payload := domain.SearchPartyEventPayload{
+		Type:                  "search_party_updated",
+		PartyID:               party.PartyID,
+		SectorID:              sectorID,
+		Status:                string(status),
+		CoveragePercentage:    party.CoveragePercentage,
+		ActiveVolunteersCount: party.ActiveVolunteersCount,
+	}
+
+	now := time.Now().UTC()
+	event := domain.ReunionStreamEvent{
+		EventID:   fmt.Sprintf("evt_search_party_%s_%d", party.PartyID, now.UnixNano()),
+		Type:      domain.ReunionEventSearchPartyUpdated,
+		MatchID:   party.LostPetID,
+		Timestamp: now,
+		Payload:   payload,
+	}
+
+	// Broadcast for lost pet subscribers
+	s.reunionHub.Broadcast(event)
+
+	// Broadcast for party subscribers (if party.PartyID differs from lostPetID)
+	if party.PartyID != party.LostPetID {
+		partyEvent := event
+		partyEvent.MatchID = party.PartyID
+		s.reunionHub.Broadcast(partyEvent)
+	}
+
+	// Broadcast to any active matches associated with this pet
+	if party.LostPetID != "" && s.stateStore != nil {
+		if matchBytes, err := s.stateStore.ListState(ctx, store.MatchesCollection); err == nil {
+			for _, mb := range matchBytes {
+				var m domain.MatchRecord
+				if err := json.Unmarshal(mb, &m); err == nil {
+					if m.LostPetID == party.LostPetID || m.MatchedPetID == party.LostPetID || m.LostPet.PetID == party.LostPetID {
+						matchEvent := event
+						matchEvent.MatchID = m.MatchID
+						s.reunionHub.Broadcast(matchEvent)
+					}
+				}
+			}
+		}
+	}
 }
 
 // sanitizeVolunteerAlias enforces Zero-PII by replacing contact info with pseudonyms.
