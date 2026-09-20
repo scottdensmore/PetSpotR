@@ -353,19 +353,20 @@ func (s *Server) handleMatches(w http.ResponseWriter, r *http.Request) {
 }
 
 type LostPetFormRequest struct {
-	PetID         string            `json:"petId"`
-	PetName       string            `json:"petName"`
-	Species       string            `json:"species"`
-	Breed         string            `json:"breed"`
-	PrimaryColor  string            `json:"primaryColor"`
-	Description   string            `json:"description"`
-	Location      string            `json:"location"`
-	ReporterEmail string            `json:"reporterEmail"`
-	Phone         string            `json:"phone"`
-	MicrochipID   string            `json:"microchipId,omitempty"`
-	ImageObject   string            `json:"imageObject,omitempty"`
-	Images        []domain.PetImage `json:"images,omitempty"`
-	ReportedAt    time.Time         `json:"reportedAt"`
+	PetID         string                `json:"petId"`
+	PetName       string                `json:"petName"`
+	Species       string                `json:"species"`
+	Breed         string                `json:"breed"`
+	PrimaryColor  string                `json:"primaryColor"`
+	Description   string                `json:"description"`
+	Location      string                `json:"location"`
+	ReporterEmail string                `json:"reporterEmail"`
+	Phone         string                `json:"phone"`
+	MicrochipID   string                `json:"microchipId,omitempty"`
+	Coordinates   *domain.LocationPoint `json:"coordinates,omitempty"`
+	ImageObject   string                `json:"imageObject,omitempty"`
+	Images        []domain.PetImage     `json:"images,omitempty"`
+	ReportedAt    time.Time             `json:"reportedAt"`
 }
 
 func newLostPetID(petName string) (string, error) {
@@ -608,21 +609,32 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		ownedBy = &domain.PrincipalRef{Issuer: principal.Issuer, Subject: principal.Subject}
 	}
 
+	var geocodingStatus domain.GeocodingStatus
+	if req.Coordinates != nil && req.Coordinates.Validate() == nil {
+		geocodingStatus = domain.GeocodingVerified
+	} else if strings.TrimSpace(req.Location) == "" {
+		geocodingStatus = domain.GeocodingUnavailable
+	} else {
+		geocodingStatus = domain.GeocodingPending
+	}
+
 	command := lostpet.ReportCommand{
-		PetID:         petID,
-		PetName:       req.PetName,
-		Species:       req.Species,
-		Breed:         req.Breed,
-		PrimaryColor:  req.PrimaryColor,
-		Description:   req.Description,
-		ReporterEmail: reporterEmail,
-		Phone:         req.Phone,
-		MicrochipID:   req.MicrochipID,
-		ImageObject:   imageObject,
-		Images:        req.Images,
-		ReportedAt:    reportedAt,
-		Location:      req.Location,
-		OwnedBy:       ownedBy,
+		PetID:           petID,
+		PetName:         req.PetName,
+		Species:         req.Species,
+		Breed:           req.Breed,
+		PrimaryColor:    req.PrimaryColor,
+		Description:     req.Description,
+		ReporterEmail:   reporterEmail,
+		Phone:           req.Phone,
+		MicrochipID:     req.MicrochipID,
+		ImageObject:     imageObject,
+		Images:          req.Images,
+		ReportedAt:      reportedAt,
+		Location:        req.Location,
+		GeocodingStatus: geocodingStatus,
+		Coordinates:     req.Coordinates,
+		OwnedBy:         ownedBy,
 	}
 
 	result, err := s.lostPetReporter.ReportLostPet(r.Context(), command, lostpet.ReportMetadata{

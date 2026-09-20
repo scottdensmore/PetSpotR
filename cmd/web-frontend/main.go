@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -80,6 +81,8 @@ func main() {
 	}
 	go recoveryRunner.Run(ctx)
 
+	rateLimitEnabled := strings.ToLower(strings.TrimSpace(os.Getenv("RATE_LIMIT_ENABLED"))) == "true" || os.Getenv("RATE_LIMIT_ENABLED") == "1"
+
 	srv := webfrontend.NewServerWithOptions(stateRuntime.Store, webfrontend.ServerOptions{
 		AllowPrivilegedMutations: config.Mode == runtimeconfig.ModeMemory || config.Mode == runtimeconfig.ModeLocalEmulator,
 		FoundPetReporter:         foundReports,
@@ -87,6 +90,7 @@ func main() {
 		IdentitySessions:         identityRuntime.Sessions,
 		IdentityClientConfig:     identityRuntime.ClientConfig,
 		SecureSessionCookie:      identityRuntime.SecureCookies,
+		DisableRateLimiting:      !rateLimitEnabled,
 	})
 	httpSrv := &http.Server{
 		Addr:         ":" + port,

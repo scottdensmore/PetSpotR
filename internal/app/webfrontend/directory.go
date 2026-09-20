@@ -529,6 +529,7 @@ func (s *Server) handlePets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
 	w.WriteHeader(http.StatusOK)
 	_ = tmpl.Execute(w, data)
 }

@@ -613,7 +613,11 @@
           </div>
         `);
 
-        bounds.extend(circle.getBounds());
+        try {
+          bounds.extend(circle.getBounds());
+        } catch (_) {
+          bounds.extend(center);
+        }
       }
 
       // 5. Fit Viewport Bounds

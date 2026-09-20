@@ -206,13 +206,13 @@ test.describe('User Journey: Pet Recovery Poster & Dynamic Social Sharing', () =
 
     // 6. Clicks #btn-finder-sighting and verifies the sighting modal is displayed
     await btnSighting.click();
-    const sightingModal = page.locator('#modal-finder-sighting');
+    const sightingModal = page.locator('#modal-report-sighting');
     await expect(sightingModal).toBeVisible();
     await expect(sightingModal).not.toHaveClass(/hidden/);
     await expect(page.locator('#sighting-modal-title')).toBeVisible();
 
     // Close sighting modal
-    await page.locator('#modal-finder-sighting .btn-icon').click();
+    await page.locator('#modal-report-sighting #btn-close-sighting-modal').click();
     await expect(sightingModal).toBeHidden();
   });
 
@@ -302,29 +302,30 @@ test.describe('User Journey: Pet Recovery Poster & Dynamic Social Sharing', () =
 
     // 6. Submit quick sighting report and assert real API call
     await page.locator('#btn-finder-sighting').click();
-    const sightingModal = page.locator('#modal-finder-sighting');
+    const sightingModal = page.locator('#modal-report-sighting');
     await expect(sightingModal).toBeVisible();
 
+    await page.locator('#sighting-geolocation-btn').click();
+    await expect(page.locator('#sighting-gps-status')).toContainText('GPS Acquired');
+
     await page.locator('#sighting-location').fill('15th Ave & Pine St');
-    await page.locator('#sighting-time').fill('5 minutes ago');
     await page.locator('#sighting-notes').fill('Trotting safely towards Volunteer Park');
 
     const [sightingReq] = await Promise.all([
-      page.waitForRequest(req => req.url().includes('/api/v1/found-pets') && req.method() === 'POST'),
+      page.waitForRequest(req => req.url().includes('/api/v1/lost-pets/demo-lost-1/sightings') && req.method() === 'POST'),
       page.locator('#btn-submit-sighting').click(),
     ]);
     const sightingPayload = JSON.parse(sightingReq.postData() || '{}');
-    expect(sightingPayload.species).toBe('Dog');
-    expect(sightingPayload.location).toBe('15th Ave & Pine St');
-    expect(sightingPayload.description).toContain('Trotting safely');
+    expect(sightingPayload.locationDescription).toBe('15th Ave & Pine St');
+    expect(sightingPayload.notes).toContain('Trotting safely');
     if (sightingPayload.coordinates) {
       expect(sightingPayload.coordinates.latitude).toBeCloseTo(47.6152, 2);
       expect(sightingPayload.coordinates.longitude).toBeCloseTo(-122.3211, 2);
     }
 
-    const sightingFeedback = page.locator('#sighting-feedback');
-    await expect(sightingFeedback).toBeVisible();
-    await expect(sightingFeedback).toContainText('Sighting reported');
+    const toast = page.locator('#toast-container .toast-item, .toast-item');
+    await expect(toast).toBeVisible();
+    await expect(toast).toContainText('Sighting reported');
     await expect(sightingModal).toBeHidden();
   });
 

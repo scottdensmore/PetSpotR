@@ -325,7 +325,14 @@ func (s *Server) handleApiGetTrajectory(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	analysis := sighting.CalculateTrajectory(petID, pet.Coordinates, pet.ReportedAt, sightings)
+	originCoords := pet.Coordinates
+	if originCoords == nil && pet.Location != "" {
+		if pt, ok := extractCoordinates(nil, pet.Location); ok {
+			originCoords = &pt
+		}
+	}
+
+	analysis := sighting.CalculateTrajectory(petID, originCoords, pet.ReportedAt, sightings)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
