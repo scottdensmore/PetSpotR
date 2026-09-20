@@ -15,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -28,12 +29,14 @@ import (
 
 // InboundSMSRequest represents incoming SMS payload from providers or tests.
 type InboundSMSRequest struct {
-	From      string `json:"From"`
-	To        string `json:"To"`
-	Body      string `json:"Body"`
-	FromLower string `json:"from"`
-	ToLower   string `json:"to"`
-	BodyLower string `json:"body"`
+	From       string `json:"From"`
+	To         string `json:"To"`
+	Body       string `json:"Body"`
+	FromLower  string `json:"from"`
+	ToLower    string `json:"to"`
+	BodyLower  string `json:"body"`
+	PetID      string `json:"PetId"`
+	PetIDLower string `json:"petId"`
 }
 
 // InboundSMSResponse represents JSON response to inbound SMS.
@@ -128,7 +131,7 @@ func (s *Server) handleApiInboundSMSWebhook(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	var from, body string
+	var from, body, reqPetID string
 
 	contentType := r.Header.Get("Content-Type")
 	if strings.Contains(contentType, "application/json") {
@@ -145,6 +148,10 @@ func (s *Server) handleApiInboundSMSWebhook(w http.ResponseWriter, r *http.Reque
 		if body == "" {
 			body = strings.TrimSpace(req.BodyLower)
 		}
+		reqPetID = strings.TrimSpace(req.PetID)
+		if reqPetID == "" {
+			reqPetID = strings.TrimSpace(req.PetIDLower)
+		}
 	} else {
 		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 		if err := r.ParseForm(); err != nil {
@@ -159,6 +166,13 @@ func (s *Server) handleApiInboundSMSWebhook(w http.ResponseWriter, r *http.Reque
 		if body == "" {
 			body = strings.TrimSpace(r.FormValue("body"))
 		}
+		reqPetID = strings.TrimSpace(r.FormValue("PetId"))
+		if reqPetID == "" {
+			reqPetID = strings.TrimSpace(r.FormValue("petId"))
+		}
+	}
+	if reqPetID == "" {
+		reqPetID = strings.TrimSpace(r.URL.Query().Get("petId"))
 	}
 
 	if from == "" || body == "" {
@@ -189,13 +203,17 @@ func (s *Server) handleApiInboundSMSWebhook(w http.ResponseWriter, r *http.Reque
 		reply = sms.ReplyResubscribed
 
 	case sms.CommandClaim:
-		reply = s.handleSMSClaimSector(r.Context(), from, arg)
+		reply = s.handleSMSClaimSector(r.Context(), from, arg, reqPetID)
 
 	case sms.CommandSighted:
-		reply = s.handleSMSSighted(r.Context(), from, arg)
+		reply = s.handleSMSSighted(r.Context(), from, arg, reqPetID)
 
 	case sms.CommandStatus:
-		reply = s.handleSMSStatus(r.Context())
+		targetPet := reqPetID
+		if targetPet == "" && arg != "" {
+			targetPet = strings.TrimSpace(arg)
+		}
+		reply = s.handleSMSStatus(r.Context(), targetPet)
 
 	default:
 		reply = "PetSpotR Dispatch commands: CLAIM <sector>, SIGHTED <details>, STATUS, or STOP to opt out."
@@ -220,9 +238,18 @@ func (s *Server) handleApiInboundSMSWebhook(w http.ResponseWriter, r *http.Reque
 	})
 }
 
-// handleSMSClaimSector handles CLAIM <sector> command.
-func (s *Server) handleSMSClaimSector(ctx context.Context, from, sectorID string) string {
-	sectorID = strings.TrimSpace(sectorID)
+// handleSMSClaimSector handles CLAIM <sector> or CLAIM <petId> <sector> command.
+func (s *Server) handleSMSClaimSector(ctx context.Context, from, arg, preferredPetID string) string {
+	parts := strings.Fields(strings.TrimSpace(arg))
+	var sectorID string
+	petID := preferredPetID
+	if len(parts) == 1 {
+		sectorID = parts[0]
+	} else if len(parts) >= 2 {
+		petID = parts[0]
+		sectorID = parts[1]
+	}
+
 	if sectorID == "" {
 		return "Please specify a sector to claim (e.g. CLAIM SEC-01). Reply STATUS for open sectors."
 	}
@@ -235,21 +262,70 @@ func (s *Server) handleSMSClaimSector(ctx context.Context, from, sectorID string
 	var targetParty *searchparty.SearchParty
 	var sectorIdx = -1
 
+	// Unmarshal all parties
+	var parties []searchparty.SearchParty
 	for _, b := range rawParties {
 		var party searchparty.SearchParty
-		if err := json.Unmarshal(b, &party); err != nil {
-			continue
+		if err := json.Unmarshal(b, &party); err == nil {
+			parties = append(parties, party)
 		}
-		for i, sec := range party.Sectors {
-			if strings.EqualFold(sec.SectorID, sectorID) {
-				partyCopy := party
-				targetParty = &partyCopy
-				sectorIdx = i
+	}
+
+	// Sort descending by CreatedAt so most recent parties are matched first
+	sort.Slice(parties, func(i, j int) bool {
+		return parties[i].CreatedAt.After(parties[j].CreatedAt)
+	})
+
+	// 1. If petID is specified or preferred, check that party first!
+	if petID != "" {
+		for _, party := range parties {
+			if strings.EqualFold(party.LostPetID, petID) || strings.EqualFold(party.PartyID, petID) {
+				for i, sec := range party.Sectors {
+					if strings.EqualFold(sec.SectorID, sectorID) {
+						partyCopy := party
+						targetParty = &partyCopy
+						sectorIdx = i
+						break
+					}
+				}
+			}
+			if targetParty != nil {
 				break
 			}
 		}
-		if targetParty != nil {
-			break
+	}
+
+	// 2. If not found by petID, search across parties where the sector is UNASSIGNED first!
+	if targetParty == nil {
+		for _, party := range parties {
+			for i, sec := range party.Sectors {
+				if strings.EqualFold(sec.SectorID, sectorID) && sec.Status == searchparty.SectorStatusUnassigned {
+					partyCopy := party
+					targetParty = &partyCopy
+					sectorIdx = i
+					break
+				}
+			}
+			if targetParty != nil {
+				break
+			}
+		}
+	}
+
+	// 3. Fallback: check any party matching sectorID to report already claimed/cleared
+	if targetParty == nil {
+		for _, party := range parties {
+			for i, sec := range party.Sectors {
+				if strings.EqualFold(sec.SectorID, sectorID) {
+					partyCopy := party
+					targetParty = &partyCopy
+					sectorIdx = i
+					break
+				}
+			}
+			if targetParty != nil {
+				break
+			}
 		}
 	}
 
@@ -281,7 +357,7 @@ func (s *Server) handleSMSClaimSector(ctx context.Context, from, sectorID string
 		_ = s.stateStore.SaveState(ctx, store.SectorAssignmentsCollection, assignmentID, asgnBytes)
 	}
 
-	// Update party sectors and active assignments
+	// Update party sector status and assignment list
 	targetParty.Sectors[sectorIdx].Status = searchparty.SectorStatusActiveSearch
 	targetParty.ActiveAssignments = append(targetParty.ActiveAssignments, assignment)
 	targetParty.CoveragePercentage = targetParty.CalculateCoverage()
@@ -299,24 +375,36 @@ func (s *Server) handleSMSClaimSector(ctx context.Context, from, sectorID string
 }
 
 // handleSMSSighted handles SIGHTED <details> command.
-func (s *Server) handleSMSSighted(ctx context.Context, from, details string) string {
+func (s *Server) handleSMSSighted(ctx context.Context, from, details, preferredPetID string) string {
 	details = strings.TrimSpace(details)
 	if details == "" {
 		return "Please provide sighting details (e.g. SIGHTED Near 5th & Pine, brown dog running west)."
 	}
 
 	// Find active pet or search party
-	var petID string
+	petID := preferredPetID
 	coords := domain.LocationPoint{Latitude: 47.6062, Longitude: -122.3321}
 
-	rawParties, err := s.stateStore.ListState(ctx, store.SearchPartiesCollection)
-	if err == nil && len(rawParties) > 0 {
-		for _, b := range rawParties {
-			var party searchparty.SearchParty
-			if err := json.Unmarshal(b, &party); err == nil {
-				petID = party.LostPetID
-				coords = party.CenterCoordinates
-				break
+	if petID != "" {
+		if petBytes, err := s.stateStore.GetState(ctx, store.LostPetsCollection, petID); err == nil {
+			var pet domain.LostPetRecord
+			if err := json.Unmarshal(petBytes, &pet); err == nil {
+				pet = domain.NormalizeLostPetRecord(pet)
+				if pet.Coordinates != nil {
+					coords = *pet.Coordinates
+				}
+			}
+		}
+	} else {
+		rawParties, err := s.stateStore.ListState(ctx, store.SearchPartiesCollection)
+		if err == nil && len(rawParties) > 0 {
+			for _, b := range rawParties {
+				var party searchparty.SearchParty
+				if err := json.Unmarshal(b, &party); err == nil {
+					petID = party.LostPetID
+					coords = party.CenterCoordinates
+					break
+				}
 			}
 		}
 	}
@@ -445,33 +533,63 @@ func (s *Server) handleSMSSighted(ctx context.Context, from, details string) str
 }
 
 // handleSMSStatus handles STATUS command.
-func (s *Server) handleSMSStatus(ctx context.Context) string {
+func (s *Server) handleSMSStatus(ctx context.Context, preferredPetID string) string {
 	rawParties, err := s.stateStore.ListState(ctx, store.SearchPartiesCollection)
 	if err != nil || len(rawParties) == 0 {
 		return "No active search parties currently underway. Check https://petspotr.io/pets for lost pet updates."
 	}
 
+	var parties []searchparty.SearchParty
 	for _, b := range rawParties {
 		var party searchparty.SearchParty
-		if err := json.Unmarshal(b, &party); err != nil {
-			continue
+		if err := json.Unmarshal(b, &party); err == nil {
+			parties = append(parties, party)
 		}
-
-		openSectors := make([]string, 0)
-		for _, sec := range party.Sectors {
-			if sec.Status == searchparty.SectorStatusUnassigned {
-				openSectors = append(openSectors, sec.SectorID)
-			}
-		}
-
-		openStr := strings.Join(openSectors, ", ")
-		if openStr == "" {
-			openStr = "none"
-		}
-
-		return fmt.Sprintf("Search Active for %s. Coverage: %.0f%%. Open sectors: %s. Reply CLAIM <sector> to join.",
-			party.LostPetID, party.CoveragePercentage, openStr)
 	}
 
-	return "No active search parties currently underway. Check https://petspotr.io/pets for lost pet updates."
+	if len(parties) == 0 {
+		return "No active search parties currently underway. Check https://petspotr.io/pets for lost pet updates."
+	}
+
+	// Sort descending by CreatedAt so newest search parties are checked first
+	sort.Slice(parties, func(i, j int) bool {
+		return parties[i].CreatedAt.After(parties[j].CreatedAt)
+	})
+
+	// If preferredPetID is provided, search for that party first
+	if preferredPetID != "" {
+		for _, party := range parties {
+			if strings.EqualFold(party.LostPetID, preferredPetID) || strings.EqualFold(party.PartyID, preferredPetID) {
+				return formatPartyStatus(party)
+			}
+		}
+	}
+
+	// Prioritize parties that have open sectors
+	for _, party := range parties {
+		for _, sec := range party.Sectors {
+			if sec.Status == searchparty.SectorStatusUnassigned {
+				return formatPartyStatus(party)
+			}
+		}
+	}
+
+	return formatPartyStatus(parties[0])
+}
+
+func formatPartyStatus(party searchparty.SearchParty) string {
+	openSectors := make([]string, 0)
+	for _, sec := range party.Sectors {
+		if sec.Status == searchparty.SectorStatusUnassigned {
+			openSectors = append(openSectors, sec.SectorID)
+		}
+	}
+
+	openStr := strings.Join(openSectors, ", ")
+	if openStr == "" {
+		openStr = "none"
+	}
+
+	return fmt.Sprintf("Search Active for %s. Coverage: %.0f%%. Open sectors: %s. Reply CLAIM <sector> to join.",
+		party.LostPetID, party.CoveragePercentage, openStr)
 }

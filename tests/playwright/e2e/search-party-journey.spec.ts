@@ -125,7 +125,7 @@ test.describe.serial('User Journey: Community Search Party & Sector Claiming', (
     await expect(claimModal).toBeHidden();
 
     // Verify sector status updates to "Active Search" and card displays "Volunteer Alpha"
-    await expect(firstSectorCard.locator('.badge')).toContainText('Active Search');
+    await expect(firstSectorCard.locator('.badge[class*="badge-status-"]')).toContainText('Active Search');
     await expect(firstSectorCard.locator('.sector-card-volunteer')).toContainText('Volunteer Alpha');
     await expect(firstSectorCard.locator('.btn-sector-action')).toHaveAttribute('data-action', 'clear-sector');
 
@@ -147,7 +147,7 @@ test.describe.serial('User Journey: Community Search Party & Sector Claiming', (
 
     const firstSectorCard = page.locator('#search-party-sector-cards .sector-card').first();
     await expect(firstSectorCard).toBeVisible();
-    await expect(firstSectorCard.locator('.badge')).toContainText('Active Search');
+    await expect(firstSectorCard.locator('.badge[class*="badge-status-"]')).toContainText('Active Search');
 
     const clearBtn = firstSectorCard.locator('.btn-sector-action[data-action="clear-sector"], button[data-action="clear-sector"]').first();
     await expect(clearBtn).toBeVisible();
@@ -172,7 +172,7 @@ test.describe.serial('User Journey: Community Search Party & Sector Claiming', (
     await expect(clearModal).toBeHidden();
 
     // Verify sector status transitions to "Cleared" and coverage percentage increases (e.g. 25%)
-    await expect(firstSectorCard.locator('.badge')).toContainText('Cleared');
+    await expect(firstSectorCard.locator('.badge[class*="badge-status-"]')).toContainText('Cleared');
     await expect(page.locator('#search-party-coverage-label')).toHaveText('25%');
     await expect(page.locator('#search-party-coverage-bar')).toHaveAttribute('aria-valuenow', '25');
   });
@@ -255,7 +255,7 @@ test.describe.serial('User Journey: Community Search Party & Sector Claiming', (
     await expect(claimModal).toBeHidden();
 
     // 5. Verify sector card updates to Active Search and shows Volunteer Bravo
-    await expect(claimCard.locator('.badge')).toContainText('Active Search');
+    await expect(claimCard.locator('.badge[class*="badge-status-"]')).toContainText('Active Search');
     await expect(claimCard.locator('.sector-card-volunteer')).toContainText('Volunteer Bravo');
 
     // 6. Mark sector as cleared with notes
@@ -268,7 +268,7 @@ test.describe.serial('User Journey: Community Search Party & Sector Claiming', (
     await expect(clearModal).toBeHidden();
 
     // 7. Verify coverage percentage increases
-    await expect(claimCard.locator('.badge')).toContainText('Cleared');
+    await expect(claimCard.locator('.badge[class*="badge-status-"]')).toContainText('Cleared');
     await expect(page.locator('#search-party-coverage-label')).toHaveText('25%');
     await expect(page.locator('#search-party-coverage-bar')).toHaveAttribute('aria-valuenow', '25');
 

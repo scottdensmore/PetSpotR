@@ -45,6 +45,9 @@
           </svg>
           <span id="notification-badge" class="badge-unread hidden" aria-live="polite">0</span>
         </button>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary" id="btn-report-lost">{{ t .Locale "nav.report_lost" }}</a>
+        <a href="/report-found" class="btn btn-secondary" id="btn-report-found">{{ t .Locale "nav.report_found" }}</a>
         <div class="lang-selector-wrapper">
           <label for="lang-select" class="visually-hidden">{{ t .Locale "nav.language" }}</label>
           <select id="lang-select" class="form-control lang-select" aria-label="Select Language">
@@ -55,9 +58,6 @@
             <option value="tl"{{ if eq .Locale "tl" }} selected{{ end }}>Tagalog</option>
           </select>
         </div>
-        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
-        <a href="/report-lost" class="btn btn-primary" id="btn-report-lost">{{ t .Locale "nav.report_lost" }}</a>
-        <a href="/report-found" class="btn btn-secondary" id="btn-report-found">{{ t .Locale "nav.report_found" }}</a>
       </div>
     </div>
   </header>
