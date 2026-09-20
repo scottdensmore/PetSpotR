@@ -288,3 +288,20 @@ func TestSearchParty_Validation(t *testing.T) {
 		t.Errorf("expected error for empty volunteer alias")
 	}
 }
+
+func TestSearchParty_DestinationPoint_Poles(t *testing.T) {
+	t.Parallel()
+
+	poleCenter := &domain.LocationPoint{Latitude: 89.9999, Longitude: 0.0}
+	sectors := searchparty.DecomposePerimeter(poleCenter, 50000.0, 4)
+	if len(sectors) != 4 {
+		t.Fatalf("expected 4 sectors, got %d", len(sectors))
+	}
+	for _, s := range sectors {
+		for _, pt := range s.PolygonPoints {
+			if math.IsNaN(pt.Latitude) || math.IsNaN(pt.Longitude) {
+				t.Fatalf("destination point produced NaN: %+v", pt)
+			}
+		}
+	}
+}

@@ -197,7 +197,13 @@ func destinationPoint(start domain.LocationPoint, distanceMeters float64, bearin
 	bearingRad := bearingDegrees * math.Pi / 180.0
 	distRatio := distanceMeters / earthRadiusMeters
 
-	lat2Rad := math.Asin(math.Sin(lat1Rad)*math.Cos(distRatio) + math.Cos(lat1Rad)*math.Sin(distRatio)*math.Cos(bearingRad))
+	asinArg := math.Sin(lat1Rad)*math.Cos(distRatio) + math.Cos(lat1Rad)*math.Sin(distRatio)*math.Cos(bearingRad)
+	if asinArg > 1.0 {
+		asinArg = 1.0
+	} else if asinArg < -1.0 {
+		asinArg = -1.0
+	}
+	lat2Rad := math.Asin(asinArg)
 	lon2Rad := lon1Rad + math.Atan2(math.Sin(bearingRad)*math.Sin(distRatio)*math.Cos(lat1Rad), math.Cos(distRatio)-math.Sin(lat1Rad)*math.Sin(lat2Rad))
 
 	lat2 := lat2Rad * 180.0 / math.Pi
@@ -231,7 +237,7 @@ func DecomposePerimeter(center *domain.LocationPoint, radiusMeters float64, sect
 		name := fmt.Sprintf("Sector %s (%s)", sectorName, heading)
 
 		const arcSegments = 8
-		polygonPoints := make([]domain.LocationPoint, 0, arcSegments+2)
+		polygonPoints := make([]domain.LocationPoint, 0, arcSegments+3)
 		polygonPoints = append(polygonPoints, *center)
 
 		for s := 0; s <= arcSegments; s++ {
