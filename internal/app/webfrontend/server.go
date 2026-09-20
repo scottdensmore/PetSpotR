@@ -28,6 +28,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/ratelimit"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
+	"github.com/scottdensmore/petspotr/pkg/sms"
 	"github.com/scottdensmore/petspotr/pkg/store"
 	"github.com/scottdensmore/petspotr/pkg/telemetry"
 	"github.com/scottdensmore/petspotr/pkg/webhook"
@@ -56,6 +57,7 @@ type Server struct {
 	reunionPingInterval      time.Duration
 	webhookDispatcher        *webhook.Dispatcher
 	allowLocalhostWebhooks   bool
+	smsProvider              sms.Provider
 	handler                  http.Handler
 }
 
@@ -99,6 +101,7 @@ type ServerOptions struct {
 	ReunionPingInterval      time.Duration
 	WebhookDispatcher        *webhook.Dispatcher
 	AllowLocalhostWebhooks   bool
+	SMSProvider              sms.Provider
 }
 
 // NewServer initializes an empty in-memory Server for tests and local callers.
@@ -203,6 +206,10 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		reunionPingInterval:      options.ReunionPingInterval,
 		webhookDispatcher:        webhookDispatcher,
 		allowLocalhostWebhooks:   options.AllowLocalhostWebhooks,
+		smsProvider:              options.SMSProvider,
+	}
+	if s.smsProvider == nil {
+		s.smsProvider = sms.NewMockProvider()
 	}
 	s.routes()
 	s.handler = telemetry.TraceContextMiddleware(s.mux)
@@ -321,6 +328,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/reunions/presence", s.handleApiReunionPresence)
 	s.mux.HandleFunc("/api/v1/push/subscribe", s.handleApiPushSubscribe)
 	s.mux.HandleFunc("/api/v1/push/test", s.handleApiPushTest)
+	s.mux.HandleFunc("/api/v1/sms/subscribe", s.handleApiSmsSubscribe)
 	s.mux.HandleFunc("/api/v1/notifications", s.handleApiNotifications)
 	s.mux.HandleFunc("/api/v1/notifications/mark-read", s.handleApiNotificationsMarkRead)
 	s.mux.HandleFunc("/api/v1/notifications/preferences", s.handleApiNotificationsPreferences)
@@ -1622,6 +1630,52 @@ func (s *Server) handleApiPushTest(w http.ResponseWriter, r *http.Request) {
 		"title": "PetSpotR High-Confidence Match! 🐾",
 		"body":  "A 95% visual match was found for your pet Buddy in Capitol Hill.",
 		"url":   "/matches",
+	})
+}
+
+func (s *Server) handleApiSmsSubscribe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	type reqBody struct {
+		Phone string `json:"phone"`
+	}
+	var req reqBody
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 65536)).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	trimmed := strings.TrimSpace(req.Phone)
+	if trimmed == "" {
+		http.Error(w, "phone is required", http.StatusBadRequest)
+		return
+	}
+
+	normPhone, err := sms.NormalizeE164(trimmed)
+	if err != nil {
+		http.Error(w, "Invalid phone number: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if s.stateStore != nil {
+		optMgr := sms.NewOptOutManager(s.stateStore, nil)
+		_ = optMgr.OptIn(r.Context(), normPhone)
+	}
+
+	if s.smsProvider != nil {
+		_ = s.smsProvider.SendSMS(r.Context(), normPhone, "PetSpotR: Your phone is verified for emergency neighborhood lost pet alerts! Reply STOP to unsubscribe.")
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"status":  "success",
+		"phone":   normPhone,
+		"message": "Verification test SMS sent successfully",
 	})
 }
 
