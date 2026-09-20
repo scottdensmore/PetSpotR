@@ -295,6 +295,14 @@ func (s *Server) routes() {
 	))
 	s.mux.HandleFunc("/api/v1/search-parties/{partyID}/sectors/{sectorID}/claim", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiClaimSector))
 	s.mux.HandleFunc("/api/v1/search-parties/{partyID}/sectors/{sectorID}/status", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiUpdateSectorStatus))
+	s.mux.HandleFunc("/api/v1/search-parties/{petID}/sectors/{sectorID}/breadcrumbs", s.rateLimiter.RequireRateLimitByMethodFunc(
+		map[string]ratelimit.Limit{
+			http.MethodPost: ratelimit.ModerateLimit,
+			http.MethodGet:  ratelimit.GenerousLimit,
+		},
+		nil,
+		s.handleApiSectorBreadcrumbs,
+	))
 	s.mux.HandleFunc("/api/v1/found-pets/extract-features", s.rateLimiter.RequireRateLimitFunc(ratelimit.StrictLimit, s.handleApiExtractFeatures))
 	s.mux.HandleFunc("/api/v1/found-pets", s.rateLimiter.RequireRateLimitByMethodFunc(
 		map[string]ratelimit.Limit{

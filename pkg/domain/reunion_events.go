@@ -10,6 +10,7 @@ const (
 	ReunionEventResolved           ReunionEventType = "reunion_resolved"
 	ReunionEventSighting           ReunionEventType = "sighting"
 	ReunionEventSearchPartyUpdated ReunionEventType = "search_party_updated"
+	ReunionEventBreadcrumbUpdated  ReunionEventType = "breadcrumb_updated"
 )
 
 type ReunionStreamEvent struct {
