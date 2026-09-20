@@ -91,6 +91,7 @@ type PetsPageData struct {
 	HasGeo      bool
 	MappedCount int
 	PetsJSON    template.JS
+	Locale      string
 }
 
 func encodeCursor(t time.Time, id string) string {
@@ -520,16 +521,17 @@ func (s *Server) handlePets(w http.ResponseWriter, r *http.Request) {
 		HasGeo:      params.HasGeo,
 		MappedCount: len(markers),
 		PetsJSON:    petsJSON,
+		Locale:      LocaleFromContext(r.Context()),
 	}
 
-	tmpl, err := template.ParseFS(embeddedFiles, "templates/pets.html")
+	tmpl, err := template.New("pets.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/pets.html")
 	if err != nil {
 		http.Error(w, "Failed to load pets template", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
+	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=(self)")
 	w.WriteHeader(http.StatusOK)
 	_ = tmpl.Execute(w, data)
 }

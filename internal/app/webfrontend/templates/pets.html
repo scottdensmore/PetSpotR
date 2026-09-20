@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,10 +25,10 @@
 
       <nav aria-label="Main Navigation">
         <ul class="nav-links">
-          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
-          <li><a href="/pets" class="nav-link active" id="nav-directory">Pet Directory</a></li>
-          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
-          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/" class="nav-link" id="nav-home">{{ t .Locale "nav.home" }}</a></li>
+          <li><a href="/pets" class="nav-link active" id="nav-directory">{{ t .Locale "nav.directory" }}</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">{{ t .Locale "nav.matches" }}</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">{{ t .Locale "nav.analytics" }}</a></li>
         </ul>
       </nav>
 
@@ -46,16 +46,16 @@
           <span id="notification-badge" class="badge-unread hidden" aria-live="polite">0</span>
         </button>
         <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
-        <a href="/report-lost" class="btn btn-primary" id="btn-report-lost">Report Lost Pet</a>
-        <a href="/report-found" class="btn btn-secondary" id="btn-report-found">Found a Pet</a>
+        <a href="/report-lost" class="btn btn-primary" id="btn-report-lost">{{ t .Locale "nav.report_lost" }}</a>
+        <a href="/report-found" class="btn btn-secondary" id="btn-report-found">{{ t .Locale "nav.report_found" }}</a>
       </div>
     </div>
   </header>
 
   <main class="container page-main" id="main-content">
     <div class="directory-heading">
-      <h1>Public Pet Directory</h1>
-      <p class="text-secondary">Community-wide active lost and found pet reports with AI-indexed attributes.</p>
+      <h1>{{ t .Locale "directory.title" }}</h1>
+      <p class="text-secondary">{{ t .Locale "directory.subtitle" }}</p>
     </div>
 
     <!-- Filter and Search Controls -->
