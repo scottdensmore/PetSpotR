@@ -2352,4 +2352,3 @@ func TestSearchPartyAssets(t *testing.T) {
 		}
 	}
 }
-

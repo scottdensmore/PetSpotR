@@ -544,8 +544,9 @@
       const headers = { 'Content-Type': 'application/json' };
       if (csrf) headers['X-CSRF-Token'] = csrf;
 
+      const alias = aliasInput ? aliasInput.value.trim() : '';
       const payload = {
-        volunteerAlias: aliasInput ? aliasInput.value.trim() : '',
+        volunteerAlias: alias,
       };
 
       const res = await fetch(
@@ -565,6 +566,20 @@
       const data = await res.json();
       closeClaimModal();
       showToast('Sector claimed successfully! Search status is now active.');
+
+      if (currentParty) {
+        if (!Array.isArray(currentParty.activeAssignments)) {
+          currentParty.activeAssignments = [];
+        }
+        currentParty.activeAssignments = currentParty.activeAssignments.filter((a) => a.sectorId !== sectorId);
+        currentParty.activeAssignments.push({
+          assignmentId: data.assignmentId,
+          sectorId: sectorId,
+          volunteerAlias: data.volunteerAlias || alias,
+          status: 'active_search',
+          claimedAt: new Date().toISOString(),
+        });
+      }
 
       applySectorUpdate(sectorId, 'active_search', data.coveragePercentage, data.activeVolunteersCount);
     } catch (err) {
