@@ -103,8 +103,8 @@ func (d *Dispatcher) Deliver(
 		return nil, nil
 	}
 
-	// Filter by event type if specified on subscription
-	if len(sub.FilterEvents) > 0 {
+	// Filter by event type if specified on subscription (ping always delivers)
+	if eventType != "ping" && len(sub.FilterEvents) > 0 {
 		matched := false
 		for _, f := range sub.FilterEvents {
 			if f == eventType {
@@ -118,7 +118,7 @@ func (d *Dispatcher) Deliver(
 	}
 
 	// Geospatial filtering: if GeoFence is configured, verify event is within radius
-	if sub.GeoFence != nil {
+	if eventType != "ping" && sub.GeoFence != nil {
 		if eventCoords == nil {
 			return nil, nil
 		}

@@ -16,6 +16,10 @@ const (
 	GeoRSSNamespace = "http://www.georss.org/georss"
 )
 
+type atomAuthor struct {
+	Name string `xml:"name"`
+}
+
 type atomFeed struct {
 	XMLName     xml.Name    `xml:"feed"`
 	Xmlns       string      `xml:"xmlns,attr"`
@@ -23,6 +27,7 @@ type atomFeed struct {
 	Title       string      `xml:"title"`
 	ID          string      `xml:"id"`
 	Updated     string      `xml:"updated"`
+	Author      atomAuthor  `xml:"author"`
 	Link        atomLink    `xml:"link"`
 	Entries     []atomEntry `xml:"entry"`
 }
@@ -68,6 +73,11 @@ func GenerateLostPetsAtomFeed(pets []domain.LostPetRecord, baseURL string, fence
 			linkHref = "/pets/" + pet.PetID
 		}
 
+		summary := strings.TrimSpace(pet.Description)
+		if summary == "" {
+			summary = "Lost pet reported"
+		}
+
 		entry := atomEntry{
 			Title: formatLostPetTitle(pet),
 			Link: atomLink{
@@ -75,7 +85,7 @@ func GenerateLostPetsAtomFeed(pets []domain.LostPetRecord, baseURL string, fence
 			},
 			ID:          "urn:uuid:" + pet.PetID,
 			Updated:     updatedStr,
-			Summary:     pet.Description,
+			Summary:     summary,
 			GeoRSSPoint: formatGeoRSSPoint(pet.Coordinates),
 		}
 		entries = append(entries, entry)
@@ -97,6 +107,7 @@ func GenerateLostPetsAtomFeed(pets []domain.LostPetRecord, baseURL string, fence
 		Title:       "PetSpotR - Lost Pets",
 		ID:          "urn:petspotr:feeds:lost-pets",
 		Updated:     updatedFeed,
+		Author:      atomAuthor{Name: "PetSpotR"},
 		Link: atomLink{
 			Rel:  "self",
 			Href: feedHref,
@@ -178,6 +189,7 @@ func GenerateSightingsAtomFeed(sightings []domain.SightingRecord, baseURL string
 		Title:       "PetSpotR - Community Sightings",
 		ID:          "urn:petspotr:feeds:sightings",
 		Updated:     updatedFeed,
+		Author:      atomAuthor{Name: "PetSpotR"},
 		Link: atomLink{
 			Rel:  "self",
 			Href: feedHref,
