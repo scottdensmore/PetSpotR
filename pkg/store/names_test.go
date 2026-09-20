@@ -51,4 +51,10 @@ func TestCanonicalCollectionNames(t *testing.T) {
 	if store.WebhookDeliveriesCollection != "webhookDeliveries" {
 		t.Fatalf("WebhookDeliveriesCollection = %q, want webhookDeliveries", store.WebhookDeliveriesCollection)
 	}
+	if store.SMSOptOutCollection != "smsOptOuts" {
+		t.Fatalf("SMSOptOutCollection = %q, want smsOptOuts", store.SMSOptOutCollection)
+	}
+	if store.SMSDeliveriesCollection != "smsDeliveries" {
+		t.Fatalf("SMSDeliveriesCollection = %q, want smsDeliveries", store.SMSDeliveriesCollection)
+	}
 }

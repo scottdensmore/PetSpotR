@@ -18,4 +18,6 @@ const (
 	SectorAssignmentsCollection       = "sectorAssignments"
 	WebhooksCollection                = "webhooks"
 	WebhookDeliveriesCollection       = "webhookDeliveries"
+	SMSOptOutCollection               = "smsOptOuts"
+	SMSDeliveriesCollection           = "smsDeliveries"
 )
