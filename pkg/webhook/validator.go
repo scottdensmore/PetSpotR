@@ -59,6 +59,11 @@ func mustParseCIDR(cidr string) *net.IPNet {
 // ValidateURL validates that the target URL uses http or https, has a valid host,
 // and does not point to loopback, RFC 1918 private, link-local / cloud metadata, or other restricted IP ranges.
 func ValidateURL(rawURL string) error {
+	return ValidateURLWithOptions(rawURL, false)
+}
+
+// ValidateURLWithOptions validates a target URL, with an option to permit loopback addresses for local testing.
+func ValidateURLWithOptions(rawURL string, allowLocalhost bool) error {
 	if rawURL == "" {
 		return ErrEmptyURL
 	}
@@ -81,6 +86,15 @@ func ValidateURL(rawURL string) error {
 	// Trim brackets for IPv6 host representation
 	host = strings.Trim(host, "[]")
 	hostLower := strings.ToLower(host)
+	hostLower = strings.TrimSuffix(hostLower, ".")
+
+	return validateHost(hostLower, allowLocalhost)
+}
+
+func validateHost(hostLower string, allowLocalhost bool) error {
+	if allowLocalhost {
+		return nil
+	}
 
 	// Block loopback domain names
 	if hostLower == "localhost" || strings.HasSuffix(hostLower, ".localhost") {
@@ -93,14 +107,14 @@ func ValidateURL(rawURL string) error {
 	}
 
 	// Block numeric integer IP representation (e.g., http://2130706433)
-	if isAllDigits(host) {
+	if isAllDigits(hostLower) {
 		return ErrBlockedAddress
 	}
 
 	// If the host is an IP literal, validate it against restricted CIDR blocks.
-	ip := net.ParseIP(host)
+	ip := net.ParseIP(hostLower)
 	if ip != nil {
-		if err := validateIP(ip); err != nil {
+		if err := ValidateIP(ip); err != nil {
 			return err
 		}
 	}
@@ -120,7 +134,8 @@ func isAllDigits(s string) bool {
 	return true
 }
 
-func validateIP(ip net.IP) error {
+// ValidateIP checks if an IP address belongs to any restricted, loopback, or private CIDR range.
+func ValidateIP(ip net.IP) error {
 	// If IPv4 or IPv4-mapped IPv6, check IPv4 restricted ranges.
 	if ip4 := ip.To4(); ip4 != nil {
 		if ip4.IsLoopback() || ip4.IsPrivate() || ip4.IsLinkLocalUnicast() || ip4.IsUnspecified() || ip4.IsMulticast() {
@@ -145,4 +160,9 @@ func validateIP(ip net.IP) error {
 	}
 
 	return nil
+}
+
+// IsBlockedIP returns true if the IP belongs to any restricted or private CIDR range.
+func IsBlockedIP(ip net.IP) bool {
+	return ValidateIP(ip) != nil
 }

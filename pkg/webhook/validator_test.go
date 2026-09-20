@@ -1,6 +1,7 @@
 package webhook_test
 
 import (
+	"net"
 	"testing"
 
 	"github.com/scottdensmore/petspotr/pkg/webhook"
@@ -59,6 +60,11 @@ func TestValidator_SSRF(t *testing.T) {
 		{url: "gopher://example.com/", reason: "gopher scheme"},
 		{url: "javascript:alert(1)", reason: "javascript scheme"},
 
+		// Trailing dot FQDNs for restricted hosts
+		{url: "http://localhost./test", reason: "localhost with trailing dot"},
+		{url: "http://metadata.google.internal./compute", reason: "metadata with trailing dot"},
+		{url: "http://sub.localhost./hook", reason: "subdomain localhost with trailing dot"},
+
 		// Malformed or empty
 		{url: "", reason: "empty URL"},
 		{url: "http:///no-host", reason: "missing host"},
@@ -80,6 +86,7 @@ func TestValidator_SSRF(t *testing.T) {
 		desc string
 	}{
 		{url: "https://api.example.com/webhook", desc: "standard HTTPS public domain"},
+		{url: "https://api.example.com./webhook", desc: "public domain with trailing dot"},
 		{url: "http://api.example.com:8080/events", desc: "HTTP with custom port"},
 		{url: "https://hooks.slack.com/services/T00/B00/X00", desc: "Slack webhook path"},
 		{url: "https://webhook.site/12345678-1234-1234-1234-123456789abc", desc: "UUID path"},
@@ -95,5 +102,54 @@ func TestValidator_SSRF(t *testing.T) {
 				t.Errorf("expected no error for %s (%s), got %v", tc.url, tc.desc, err)
 			}
 		})
+	}
+}
+
+func TestValidateIP_And_IsBlockedIP(t *testing.T) {
+	t.Parallel()
+
+	blocked := []string{
+		"127.0.0.1",
+		"10.0.0.1",
+		"172.16.0.1",
+		"192.168.1.1",
+		"169.254.169.254",
+		"0.0.0.0",
+		"::1",
+		"fe80::1",
+		"fc00::1",
+	}
+
+	for _, ipStr := range blocked {
+		ip := net.ParseIP(ipStr)
+		if ip == nil {
+			t.Fatalf("failed to parse IP %s", ipStr)
+		}
+		if err := webhook.ValidateIP(ip); err == nil {
+			t.Errorf("expected ValidateIP(%s) to return error, got nil", ipStr)
+		}
+		if !webhook.IsBlockedIP(ip) {
+			t.Errorf("expected IsBlockedIP(%s) to be true, got false", ipStr)
+		}
+	}
+
+	allowed := []string{
+		"8.8.8.8",
+		"1.1.1.1",
+		"93.184.216.34",
+		"2606:4700:4700::1111",
+	}
+
+	for _, ipStr := range allowed {
+		ip := net.ParseIP(ipStr)
+		if ip == nil {
+			t.Fatalf("failed to parse IP %s", ipStr)
+		}
+		if err := webhook.ValidateIP(ip); err != nil {
+			t.Errorf("expected ValidateIP(%s) to return nil, got %v", ipStr, err)
+		}
+		if webhook.IsBlockedIP(ip) {
+			t.Errorf("expected IsBlockedIP(%s) to be false, got true", ipStr)
+		}
 	}
 }
