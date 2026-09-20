@@ -190,8 +190,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Multi-Photo Staging & Upload
   let stagedImages = [];
+  window.petspotrStagedImages = stagedImages;
 
   function updatePhotoCount() {
+    window.petspotrStagedImages = stagedImages;
     if (photoCountBadge) {
       photoCountBadge.textContent = `${stagedImages.length} / 3 photos added`;
     }
@@ -209,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const updatePhotoCounter = updatePhotoCount;
 
   function renderStagedPhotos() {
+    window.petspotrStagedImages = stagedImages;
     if (!stagingContainer) return;
     stagingContainer.replaceChildren();
 
@@ -259,6 +262,94 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updatePhotoCount();
   }
+  const renderStagedThumbnails = renderStagedPhotos;
+
+  async function hasExifMetadata(file) {
+    if (!file || !file.type || !file.type.startsWith('image/')) return false;
+    try {
+      const slice = await file.slice(0, 131072).arrayBuffer();
+      const bytes = new Uint8Array(slice);
+      if (bytes.length < 4) return false;
+      if (bytes[0] === 0xFF && bytes[1] === 0xD8) {
+        let offset = 2;
+        while (offset < bytes.length - 4) {
+          if (bytes[offset] !== 0xFF) break;
+          const marker = bytes[offset + 1];
+          if (marker === 0xE1) {
+            if (offset + 10 <= bytes.length) {
+              const tag = String.fromCharCode(bytes[offset + 4], bytes[offset + 5], bytes[offset + 6], bytes[offset + 7]);
+              if (tag === 'Exif') return true;
+            }
+          }
+          if (marker === 0xDA || marker === 0xD9) break;
+          const len = (bytes[offset + 2] << 8) | bytes[offset + 3];
+          if (len < 2) break;
+          offset += 2 + len;
+        }
+      }
+      if ((bytes[0] === 0x49 && bytes[1] === 0x49) || (bytes[0] === 0x4D && bytes[1] === 0x4D)) {
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  async function sanitizeFileMetadata(file) {
+    if (!file || file.isSanitized) return file;
+    const exifPresent = await hasExifMetadata(file);
+    if (!exifPresent) return file;
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const sanitizedFile = new File([blob], file.name, { type: 'image/jpeg' });
+              sanitizedFile.isSanitized = true;
+              resolve(sanitizedFile);
+            } else {
+              resolve(file);
+            }
+          }, 'image/jpeg', 0.92);
+        } catch (_) {
+          resolve(file);
+        }
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(file);
+      };
+      img.src = url;
+    });
+  }
+
+  window.addEventListener('petspotr:image-enhanced', async (e) => {
+    const { originalFile, enhancedFile, objectUrl } = e.detail;
+    const target = stagedImages.find(img => img.file === originalFile || (originalFile && img.file?.name === originalFile.name));
+    if (target) {
+      target.file = enhancedFile;
+      if (objectUrl) target.previewUrl = objectUrl;
+      target.isEnhanced = true;
+      renderStagedThumbnails();
+      try {
+        const uploaded = await uploadToPresignedUrl(enhancedFile);
+        if (uploaded && uploaded.object) {
+          target.object = uploaded.object;
+          target.url = uploaded.url;
+        }
+      } catch (err) {
+        console.warn('Direct upload warning for enhanced file:', err);
+      }
+    }
+  });
 
   function removeStagedPhoto(index) {
     stagedImages.splice(index, 1);
@@ -286,6 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function uploadToPresignedUrl(file) {
+    const fileToUpload = await sanitizeFileMetadata(file);
     const headers = { 'Content-Type': 'application/json' };
     const csrfToken = window.petspotrIdentity?.getState?.()?.csrfToken ||
       document.cookie.split('; ').find(row => row.startsWith('petspotr_csrf='))?.split('=')[1];
@@ -297,8 +389,8 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          fileName: file.name,
-          contentType: file.type || 'image/jpeg'
+          fileName: fileToUpload.name,
+          contentType: fileToUpload.type || 'image/jpeg'
         })
       });
       if (res.ok) {
@@ -307,15 +399,15 @@ document.addEventListener('DOMContentLoaded', () => {
           try {
             await fetch(presigned.uploadUrl, {
               method: 'PUT',
-              headers: { 'Content-Type': file.type || 'image/jpeg' },
-              body: file
+              headers: { 'Content-Type': fileToUpload.type || 'image/jpeg' },
+              body: fileToUpload
             });
           } catch (e) {
             console.warn('Direct upload warning:', e);
           }
         }
         return {
-          object: presigned.fileName || `images/lost-pets/${file.name}`,
+          object: presigned.fileName || `images/lost-pets/${fileToUpload.name}`,
           url: presigned.publicUrl || ''
         };
       }
@@ -323,7 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('Presigned URL fetch warning:', e);
     }
     return {
-      object: `images/lost-pets/${Date.now()}-${file.name}`,
+      object: `images/lost-pets/${Date.now()}-${fileToUpload.name}`,
       url: ''
     };
   }

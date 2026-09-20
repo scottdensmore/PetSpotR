@@ -244,6 +244,23 @@ test.describe('User Journey: EXIF Auto-Extraction and Image Enhancer', () => {
     const thumbSrc = await thumb.getAttribute('src');
     expect(thumbSrc).toBeTruthy();
     expect(thumbSrc).toMatch(/^blob:/);
+
+    // Verify clicking "[Use Enhanced]" updates the staged image data to the enhanced JPEG file
+    await expect.poll(async () => {
+      return await page.evaluate(() => {
+        const img = (window as any).petspotrStagedImages?.[0];
+        if (!img) return null;
+        return {
+          name: img.file?.name,
+          type: img.file?.type,
+          isEnhanced: img.isEnhanced,
+        };
+      });
+    }).toEqual({
+      name: 'cooper.jpg',
+      type: 'image/jpeg',
+      isEnhanced: true,
+    });
   });
 
   test('Test 5: Verify [Keep Manual] dismisses the toast without modifying coordinates', async ({ page }) => {
@@ -355,5 +372,28 @@ test.describe('User Journey: EXIF Auto-Extraction and Image Enhancer', () => {
     expect(submittedPayload).toBeTruthy();
     expect(submittedPayload.petName).toBe('Cooper');
     expect(submittedPayload.location).toBe('47.6105, -122.3421');
+
+    // Verify staged image data reflects the enhanced JPEG file
+    await expect.poll(async () => {
+      return await page.evaluate(() => {
+        const img = (window as any).petspotrStagedImages?.[0];
+        if (!img) return null;
+        return {
+          name: img.file?.name,
+          type: img.file?.type,
+          isEnhanced: img.isEnhanced,
+        };
+      });
+    }).toEqual({
+      name: 'cooper-journey.jpg',
+      type: 'image/jpeg',
+      isEnhanced: true,
+    });
+
+    // Verify upload payload reflects the enhanced JPEG file in images array and imageObject
+    expect(submittedPayload.images).toBeDefined();
+    expect(submittedPayload.images.length).toBe(1);
+    expect(submittedPayload.images[0].object).toContain('cooper-journey.jpg');
+    expect(submittedPayload.imageObject).toContain('cooper-journey.jpg');
   });
 });

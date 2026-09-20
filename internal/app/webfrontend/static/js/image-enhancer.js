@@ -95,6 +95,7 @@
     let currentFile = null;
     let originalObjectUrl = null;
     let enhancedObjectUrl = null;
+    let enhancedBlob = null;
     let pendingMetadata = null;
 
     function resetExifToast() {
@@ -121,6 +122,7 @@
     function handleFileChosen(file) {
       if (!file || !file.type.startsWith('image/')) return;
       currentFile = file;
+      enhancedBlob = null;
 
       if (originalObjectUrl) {
         try { URL.revokeObjectURL(originalObjectUrl); } catch (_) {}
@@ -183,6 +185,7 @@
           }
 
           const blob = await apiEnhanceImage(currentFile);
+          enhancedBlob = blob;
 
           if (enhancedObjectUrl) {
             try { URL.revokeObjectURL(enhancedObjectUrl); } catch (_) {}
@@ -241,6 +244,17 @@
     if (btnAcceptEl) {
       btnAcceptEl.addEventListener('click', () => {
         if (enhancedObjectUrl) {
+          if (currentFile && enhancedBlob) {
+            const enhancedFile = new File([enhancedBlob], currentFile.name, { type: 'image/jpeg' });
+            window.dispatchEvent(new CustomEvent('petspotr:image-enhanced', {
+              detail: {
+                originalFile: currentFile,
+                enhancedFile: enhancedFile,
+                blob: enhancedBlob,
+                objectUrl: enhancedObjectUrl,
+              },
+            }));
+          }
           if (previewTargetImgEl) {
             previewTargetImgEl.src = enhancedObjectUrl;
           }

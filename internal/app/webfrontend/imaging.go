@@ -66,8 +66,8 @@ func (s *Server) handleApiImageExtractMetadata(w http.ResponseWriter, r *http.Re
 	meta, err := imaging.ExtractMetadata(data)
 	if err != nil {
 		if errors.Is(err, imaging.ErrNoExif) || errors.Is(err, imaging.ErrInvalidImage) {
-			// Fallback: check if the image is a valid decodeable image (JPEG, PNG, GIF, etc.)
-			cfg, _, cfgErr := image.DecodeConfig(bytes.NewReader(data))
+			// Fallback: check if the image is a valid decodeable image (JPEG, PNG, GIF, etc.) using lightweight LimitReader
+			cfg, _, cfgErr := image.DecodeConfig(io.LimitReader(bytes.NewReader(data), 1<<20))
 			if cfgErr != nil {
 				http.Error(w, "Invalid or unsupported image format", http.StatusBadRequest)
 				return
