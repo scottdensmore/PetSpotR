@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -704,5 +705,125 @@ func TestDispatcher_DispatchEvent(t *testing.T) {
 	}
 	if count := atomic.LoadInt32(&hits); count != 1 {
 		t.Errorf("server received %d hits, want 1", count)
+	}
+}
+
+func TestDispatcher_FilterEvents_EmptyEventTypeNotBypassed(t *testing.T) {
+	t.Parallel()
+
+	var hits int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&hits, 1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	st := store.NewMemoryStore()
+	d := webhook.NewDispatcher(st, webhook.WithAllowLocalhost(true))
+
+	sub := &webhook.WebhookSubscription{
+		ID:           "sub-filtered",
+		PartnerID:    "p1",
+		TargetURL:    server.URL + "/webhook",
+		FilterEvents: []string{"pet_lost"},
+		Active:       true,
+	}
+
+	// Delivering with empty eventType should NOT bypass filter
+	rec, err := d.Deliver(context.Background(), sub, "", []byte(`{}`), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if rec != nil {
+		t.Errorf("expected delivery to be skipped, got non-nil record: %+v", rec)
+	}
+	if atomic.LoadInt32(&hits) != 0 {
+		t.Errorf("server received %d hits, expected 0", atomic.LoadInt32(&hits))
+	}
+}
+
+func TestDispatcher_DispatchEvent_Concurrent(t *testing.T) {
+	t.Parallel()
+
+	// Simulate slow partner server
+	delay := 100 * time.Millisecond
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(delay)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	st := store.NewMemoryStore()
+	d := webhook.NewDispatcher(st, webhook.WithAllowLocalhost(true))
+
+	// Register 3 subscriptions to the same endpoint
+	for i := 1; i <= 3; i++ {
+		sub := webhook.WebhookSubscription{
+			ID:           fmt.Sprintf("sub-conc-%d", i),
+			PartnerID:    fmt.Sprintf("partner-%d", i),
+			TargetURL:    server.URL,
+			FilterEvents: []string{"pet_lost"},
+			Active:       true,
+			CreatedAt:    time.Now().UTC(),
+		}
+		data, _ := json.Marshal(sub)
+		_ = st.SaveState(context.Background(), store.WebhooksCollection, sub.ID, data)
+	}
+
+	start := time.Now()
+	records, err := d.DispatchEvent(context.Background(), "pet_lost", []byte(`{"id":"lost-conc"}`), nil)
+	elapsed := time.Since(start)
+
+	if err != nil {
+		t.Fatalf("DispatchEvent failed: %v", err)
+	}
+	if len(records) != 3 {
+		t.Fatalf("expected 3 records, got %d", len(records))
+	}
+
+	// If concurrent, total time should be close to 100ms, well below 300ms sequential time
+	if elapsed >= 250*time.Millisecond {
+		t.Errorf("DispatchEvent took %v, expected concurrent execution < 250ms", elapsed)
+	}
+}
+
+func TestDispatcher_RedirectNotFollowed(t *testing.T) {
+	t.Parallel()
+
+	var redirectHits int32
+	redirectTarget := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&redirectHits, 1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer redirectTarget.Close()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, redirectTarget.URL, http.StatusFound)
+	}))
+	defer server.Close()
+
+	st := store.NewMemoryStore()
+	d := webhook.NewDispatcher(st, webhook.WithAllowLocalhost(true))
+
+	sub := &webhook.WebhookSubscription{
+		ID:        "sub-redirect",
+		PartnerID: "partner-redir",
+		TargetURL: server.URL,
+		Active:    true,
+	}
+
+	record, err := d.Deliver(context.Background(), sub, "pet_lost", []byte(`{}`), nil)
+	// Delivery to a 302 endpoint returns client error status (non-2xx) and does not follow redirect
+	if record == nil {
+		t.Fatal("expected non-nil delivery record")
+	}
+	if record.StatusCode != http.StatusFound {
+		t.Errorf("expected status %d, got %d", http.StatusFound, record.StatusCode)
+	}
+	if atomic.LoadInt32(&redirectHits) != 0 {
+		t.Errorf("redirect target was visited %d times; redirect was unexpectedly followed", atomic.LoadInt32(&redirectHits))
+	}
+	if err == nil {
+		t.Error("expected error for non-2xx status code")
 	}
 }

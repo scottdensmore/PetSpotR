@@ -8,8 +8,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
+	"sync"
 	"syscall"
 	"time"
 
@@ -102,7 +104,7 @@ func (d *Dispatcher) Deliver(
 	}
 
 	// Filter by event type if specified on subscription
-	if len(sub.FilterEvents) > 0 && eventType != "" {
+	if len(sub.FilterEvents) > 0 {
 		matched := false
 		for _, f := range sub.FilterEvents {
 			if f == eventType {
@@ -206,6 +208,7 @@ func (d *Dispatcher) Deliver(
 		}
 
 		lastStatusCode = resp.StatusCode
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
 		_ = resp.Body.Close()
 
 		// Success: 2xx response
@@ -287,7 +290,12 @@ func (d *Dispatcher) DispatchEvent(
 		return nil, fmt.Errorf("failed to list webhooks: %w", err)
 	}
 
-	var records []*WebhookDeliveryRecord
+	var (
+		mu      sync.Mutex
+		records []*WebhookDeliveryRecord
+		wg      sync.WaitGroup
+	)
+
 	for _, raw := range rawSubs {
 		var sub WebhookSubscription
 		if err := json.Unmarshal(raw, &sub); err != nil {
@@ -296,12 +304,21 @@ func (d *Dispatcher) DispatchEvent(
 		if !sub.Active {
 			continue
 		}
-		rec, _ := d.Deliver(ctx, &sub, eventType, payload, eventCoords)
-		if rec != nil {
-			records = append(records, rec)
-		}
+
+		wg.Add(1)
+		subCopy := sub
+		go func(s WebhookSubscription) {
+			defer wg.Done()
+			rec, _ := d.Deliver(ctx, &s, eventType, payload, eventCoords)
+			if rec != nil {
+				mu.Lock()
+				records = append(records, rec)
+				mu.Unlock()
+			}
+		}(subCopy)
 	}
 
+	wg.Wait()
 	return records, nil
 }
 
@@ -356,8 +373,9 @@ func newSSRFSafeHTTPClient(allowLocalhost bool, timeout time.Duration) *http.Cli
 	}
 
 	return &http.Client{
-		Transport: transport,
-		Timeout:   timeout,
+		Transport:     transport,
+		Timeout:       timeout,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error { return http.ErrUseLastResponse },
 	}
 }
 
