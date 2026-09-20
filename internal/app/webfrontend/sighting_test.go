@@ -364,3 +364,133 @@ func TestSightingValidation(t *testing.T) {
 		}
 	})
 }
+
+func TestSightingRealtimeNotification(t *testing.T) {
+	t.Parallel()
+
+	st := store.NewMemoryStore()
+	hub := webfrontend.NewReunionHub()
+	srv := webfrontend.NewServerWithOptions(st, webfrontend.ServerOptions{
+		AllowPrivilegedMutations: true,
+		ReunionHub:               hub,
+	})
+
+	// Seed lost pet
+	lostPet := domain.LostPetRecord{
+		PetID:       "lost-target-rt",
+		PetName:     "Milo",
+		ReportedAt:  time.Now().UTC().Add(-1 * time.Hour),
+		Coordinates: &domain.LocationPoint{Latitude: 47.60, Longitude: -122.33},
+		Status:      domain.LostPetStatusLost,
+	}
+	data, _ := json.Marshal(lostPet)
+	_ = st.SaveState(context.Background(), store.LostPetsCollection, lostPet.PetID, data)
+
+	// Seed a match linked to lost pet
+	match := domain.MatchRecord{
+		MatchID:    "match-rt-1",
+		LostPetID:  "lost-target-rt",
+		FoundPetID: "found-target-rt",
+		Status:     domain.MatchStatusPendingReview,
+	}
+	mData, _ := json.Marshal(match)
+	_ = st.SaveState(context.Background(), store.MatchesCollection, match.MatchID, mData)
+
+	// Subscribe to petID and matchID
+	petSubCh, petUnsub := hub.Subscribe("lost-target-rt")
+	defer petUnsub()
+
+	matchSubCh, matchUnsub := hub.Subscribe("match-rt-1")
+	defer matchUnsub()
+
+	// Post sighting
+	payload, _ := json.Marshal(map[string]interface{}{
+		"locationDescription": "Spotted near market",
+		"sightedAt":           time.Now().UTC().Format(time.RFC3339),
+		"coordinates":         map[string]float64{"latitude": 47.61, "longitude": -122.34},
+		"movementDirection":   "Northeast",
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/lost-pets/lost-target-rt/sightings", bytes.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// Verify notification persisted in store.NotificationsCollection
+	notifications, err := st.ListState(context.Background(), store.NotificationsCollection)
+	if err != nil || len(notifications) == 0 {
+		t.Fatalf("expected notification created in store, got %d (err: %v)", len(notifications), err)
+	}
+
+	var notif domain.NotificationItem
+	for _, raw := range notifications {
+		if err := json.Unmarshal(raw, &notif); err != nil {
+			t.Fatalf("failed to unmarshal notification: %v", err)
+		}
+		break
+	}
+	if notif.PetID != "lost-target-rt" {
+		t.Errorf("expected PetID 'lost-target-rt', got %q", notif.PetID)
+	}
+	if notif.Type != "sighting_reported" {
+		t.Errorf("expected Type 'sighting_reported', got %q", notif.Type)
+	}
+	if notif.Read {
+		t.Error("expected Read to be false")
+	}
+	if notif.Title == "" || notif.Message == "" {
+		t.Errorf("expected non-empty Title and Message, got title=%q, message=%q", notif.Title, notif.Message)
+	}
+
+	// Verify SSE event broadcast on pet subscription channel
+	select {
+	case evt := <-petSubCh:
+		if evt.Type != "sighting" && evt.Type != domain.ReunionEventSighting {
+			t.Errorf("expected event Type 'sighting', got %q", evt.Type)
+		}
+		if evt.MatchID != "lost-target-rt" {
+			t.Errorf("expected event MatchID 'lost-target-rt', got %q", evt.MatchID)
+		}
+		payload, ok := evt.Payload.(domain.SightingEventPayload)
+		if !ok {
+			t.Fatalf("expected payload type domain.SightingEventPayload, got %T", evt.Payload)
+		}
+		if payload.PetID != "lost-target-rt" {
+			t.Errorf("expected payload PetID 'lost-target-rt', got %q", payload.PetID)
+		}
+		if payload.LocationDescription != "Spotted near market" {
+			t.Errorf("expected locationDescription 'Spotted near market', got %q", payload.LocationDescription)
+		}
+		if payload.MovementDirection != "Northeast" {
+			t.Errorf("expected movementDirection 'Northeast', got %q", payload.MovementDirection)
+		}
+		if payload.Coordinates == nil || payload.Coordinates.Latitude != 47.61 || payload.Coordinates.Longitude != -122.34 {
+			t.Errorf("unexpected payload coordinates: %+v", payload.Coordinates)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("timed out waiting for sighting broadcast on pet subscriber channel")
+	}
+
+	// Verify SSE event broadcast on match subscription channel
+	select {
+	case evt := <-matchSubCh:
+		if evt.Type != "sighting" && evt.Type != domain.ReunionEventSighting {
+			t.Errorf("expected event Type 'sighting', got %q", evt.Type)
+		}
+		if evt.MatchID != "match-rt-1" {
+			t.Errorf("expected event MatchID 'match-rt-1', got %q", evt.MatchID)
+		}
+		payload, ok := evt.Payload.(domain.SightingEventPayload)
+		if !ok {
+			t.Fatalf("expected match payload type domain.SightingEventPayload, got %T", evt.Payload)
+		}
+		if payload.PetID != "lost-target-rt" {
+			t.Errorf("expected match payload PetID 'lost-target-rt', got %q", payload.PetID)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("timed out waiting for sighting broadcast on match subscriber channel")
+	}
+}

@@ -66,8 +66,7 @@ func (s *Server) handleApiReportSighting(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Verify lost pet exists
-	_, err := s.stateStore.GetState(r.Context(), store.LostPetsCollection, petID)
+	petBytes, err := s.stateStore.GetState(r.Context(), store.LostPetsCollection, petID)
 	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
 		http.NotFound(w, r)
 		return
@@ -75,6 +74,11 @@ func (s *Server) handleApiReportSighting(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		http.Error(w, "Failed to verify lost pet", http.StatusInternalServerError)
 		return
+	}
+
+	var lostPet domain.LostPetRecord
+	if err := json.Unmarshal(petBytes, &lostPet); err != nil {
+		lostPet.PetID = petID
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
@@ -140,6 +144,74 @@ func (s *Server) handleApiReportSighting(w http.ResponseWriter, r *http.Request)
 	if err := s.stateStore.SaveState(r.Context(), store.SightingsCollection, record.SightingID, recordBytes); err != nil {
 		http.Error(w, "Failed to persist sighting", http.StatusInternalServerError)
 		return
+	}
+
+	if s.reunionHub != nil {
+		event := domain.ReunionStreamEvent{
+			EventID:   fmt.Sprintf("evt_sighting_%s", record.SightingID),
+			Type:      domain.ReunionEventSighting,
+			MatchID:   petID,
+			Timestamp: time.Now().UTC(),
+			Payload: domain.SightingEventPayload{
+				Type:                "sighting",
+				PetID:               petID,
+				SightingID:          record.SightingID,
+				SightedAt:           record.SightedAt,
+				LocationDescription: record.LocationDescription,
+				Coordinates:         record.Coordinates,
+				MovementDirection:   record.MovementDirection,
+			},
+		}
+		s.reunionHub.Broadcast(event)
+
+		// Broadcast to any active matches associated with this pet
+		if matchBytes, err := s.stateStore.ListState(r.Context(), store.MatchesCollection); err == nil {
+			for _, mb := range matchBytes {
+				var m domain.MatchRecord
+				if err := json.Unmarshal(mb, &m); err == nil {
+					if m.LostPetID == petID || m.MatchedPetID == petID || m.LostPet.PetID == petID {
+						matchEvent := event
+						matchEvent.MatchID = m.MatchID
+						s.reunionHub.Broadcast(matchEvent)
+					}
+				}
+			}
+		}
+	}
+
+	petName := strings.TrimSpace(lostPet.PetName)
+	if petName == "" {
+		petName = "Lost Pet"
+	}
+
+	var title string
+	if record.LocationDescription != "" {
+		title = fmt.Sprintf("Pet Sighting: %s spotted near %s!", petName, record.LocationDescription)
+	} else {
+		title = fmt.Sprintf("Pet Sighting: %s spotted!", petName)
+	}
+
+	var message string
+	if record.MovementDirection != "" {
+		message = fmt.Sprintf("A community member spotted %s heading %s.", petName, record.MovementDirection)
+	} else if record.LocationDescription != "" {
+		message = fmt.Sprintf("A community member spotted %s near %s.", petName, record.LocationDescription)
+	} else {
+		message = fmt.Sprintf("A community member reported a new sighting of %s.", petName)
+	}
+
+	notif := domain.NotificationItem{
+		ID:        fmt.Sprintf("notif-%s", record.SightingID),
+		PetID:     petID,
+		Type:      "sighting_reported",
+		Title:     title,
+		Message:   message,
+		CreatedAt: time.Now().UTC(),
+		Read:      false,
+	}
+
+	if notifBytes, err := json.Marshal(notif); err == nil {
+		_ = s.stateStore.SaveState(r.Context(), store.NotificationsCollection, notif.ID, notifBytes)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

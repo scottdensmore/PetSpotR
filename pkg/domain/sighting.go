@@ -58,3 +58,25 @@ func (s PetSightingRecord) Validate() error {
 	}
 	return nil
 }
+
+// NotificationItem represents an alert generated for pet events, such as a sighting report.
+type NotificationItem struct {
+	ID        string    `json:"id"`
+	PetID     string    `json:"petId"`
+	Type      string    `json:"type"`
+	Title     string    `json:"title"`
+	Message   string    `json:"message"`
+	CreatedAt time.Time `json:"createdAt"`
+	Read      bool      `json:"read"`
+}
+
+// SightingEventPayload represents the real-time event envelope payload broadcast to reunion rooms.
+type SightingEventPayload struct {
+	Type                string         `json:"type"`
+	PetID               string         `json:"petId"`
+	SightingID          string         `json:"sightingId"`
+	SightedAt           time.Time      `json:"sightedAt"`
+	LocationDescription string         `json:"locationDescription"`
+	Coordinates         *LocationPoint `json:"coordinates"`
+	MovementDirection   string         `json:"movementDirection,omitempty"`
+}
