@@ -8,6 +8,9 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/domain"
 )
 
+// DefaultNeighborhoodRadiusMiles defines the hyper-local radius for lost pet alerts.
+const DefaultNeighborhoodRadiusMiles = 2.0
+
 // CommunitySubscriber represents a registered community member seeking neighborhood alerts.
 type CommunitySubscriber struct {
 	ID          string               `json:"id"`

@@ -322,7 +322,7 @@ func (w *Worker) ProcessLostPetBroadcast(ctx context.Context, lostPetData []byte
 	return w.geoEngine.broadcastLostPetAlert(
 		ctx,
 		&evt,
-		5.0,
+		DefaultNeighborhoodRadiusMiles,
 		func(dispatchCtx context.Context, message *NotificationMessage) ([]DispatchResult, error) {
 			return w.dispatchNotification(dispatchCtx, eventID, message)
 		},
