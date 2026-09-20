@@ -880,3 +880,132 @@ func TestExtractMetadata_OutOfRangeCoordinates(t *testing.T) {
 		t.Errorf("expected nil GPS for out-of-bounds latitude, got %+v", meta.GPS)
 	}
 }
+
+func TestExtractMetadata_NullIslandCoordinatesIgnored(t *testing.T) {
+	t.Parallel()
+
+	order := binary.LittleEndian
+	rawTIFF := buildSyntheticTIFF(order, true, func(tw *tiffWriter) {
+		gpsIFDOffset := uint32(26)
+		latOffset := uint32(80)
+		lonOffset := uint32(104)
+
+		_ = binary.Write(tw.buf, order, uint16(1))
+		_ = binary.Write(tw.buf, order, uint16(0x8825))
+		_ = binary.Write(tw.buf, order, uint16(4))
+		_ = binary.Write(tw.buf, order, uint32(1))
+		_ = binary.Write(tw.buf, order, gpsIFDOffset)
+		_ = binary.Write(tw.buf, order, uint32(0))
+
+		// GPS SubIFD: 4 entries
+		_ = binary.Write(tw.buf, order, uint16(4))
+		_ = binary.Write(tw.buf, order, uint16(0x0001))
+		_ = binary.Write(tw.buf, order, uint16(2))
+		_ = binary.Write(tw.buf, order, uint32(2))
+		tw.buf.Write([]byte("N\x00\x00\x00"))
+
+		_ = binary.Write(tw.buf, order, uint16(0x0002))
+		_ = binary.Write(tw.buf, order, uint16(5))
+		_ = binary.Write(tw.buf, order, uint32(3))
+		_ = binary.Write(tw.buf, order, latOffset)
+
+		_ = binary.Write(tw.buf, order, uint16(0x0003))
+		_ = binary.Write(tw.buf, order, uint16(2))
+		_ = binary.Write(tw.buf, order, uint32(2))
+		tw.buf.Write([]byte("E\x00\x00\x00"))
+
+		_ = binary.Write(tw.buf, order, uint16(0x0004))
+		_ = binary.Write(tw.buf, order, uint16(5))
+		_ = binary.Write(tw.buf, order, uint32(3))
+		_ = binary.Write(tw.buf, order, lonOffset)
+		_ = binary.Write(tw.buf, order, uint32(0))
+
+		// Latitude: 0/1, 0/1, 0/1 (0.0)
+		for i := 0; i < 3; i++ {
+			_ = binary.Write(tw.buf, order, uint32(0))
+			_ = binary.Write(tw.buf, order, uint32(1))
+		}
+
+		// Longitude: 0/1, 0/1, 0/1 (0.0)
+		for i := 0; i < 3; i++ {
+			_ = binary.Write(tw.buf, order, uint32(0))
+			_ = binary.Write(tw.buf, order, uint32(1))
+		}
+	})
+
+	meta, err := imaging.ExtractMetadata(rawTIFF)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if meta.GPS != nil {
+		t.Errorf("expected nil GPS for Null Island (0.0, 0.0), got %+v", meta.GPS)
+	}
+}
+
+func TestExtractMetadata_SRATIONAL_Signed(t *testing.T) {
+	t.Parallel()
+
+	order := binary.LittleEndian
+	rawTIFF := buildSyntheticTIFF(order, true, func(tw *tiffWriter) {
+		gpsIFDOffset := uint32(26)
+		latOffset := uint32(80)
+		lonOffset := uint32(104)
+
+		_ = binary.Write(tw.buf, order, uint16(1))
+		_ = binary.Write(tw.buf, order, uint16(0x8825))
+		_ = binary.Write(tw.buf, order, uint16(4))
+		_ = binary.Write(tw.buf, order, uint32(1))
+		_ = binary.Write(tw.buf, order, gpsIFDOffset)
+		_ = binary.Write(tw.buf, order, uint32(0))
+
+		// GPS SubIFD: 4 entries with fieldType 10 (SRATIONAL)
+		_ = binary.Write(tw.buf, order, uint16(4))
+		_ = binary.Write(tw.buf, order, uint16(0x0001))
+		_ = binary.Write(tw.buf, order, uint16(2))
+		_ = binary.Write(tw.buf, order, uint32(2))
+		tw.buf.Write([]byte("N\x00\x00\x00"))
+
+		_ = binary.Write(tw.buf, order, uint16(0x0002))
+		_ = binary.Write(tw.buf, order, uint16(10)) // SRATIONAL (type 10)
+		_ = binary.Write(tw.buf, order, uint32(3))
+		_ = binary.Write(tw.buf, order, latOffset)
+
+		_ = binary.Write(tw.buf, order, uint16(0x0003))
+		_ = binary.Write(tw.buf, order, uint16(2))
+		_ = binary.Write(tw.buf, order, uint32(2))
+		tw.buf.Write([]byte("W\x00\x00\x00"))
+
+		_ = binary.Write(tw.buf, order, uint16(0x0004))
+		_ = binary.Write(tw.buf, order, uint16(10)) // SRATIONAL (type 10)
+		_ = binary.Write(tw.buf, order, uint32(3))
+		_ = binary.Write(tw.buf, order, lonOffset)
+		_ = binary.Write(tw.buf, order, uint32(0))
+
+		// Latitude: 45/1, 30/1, 0/1 -> 45.5
+		_ = binary.Write(tw.buf, order, int32(45))
+		_ = binary.Write(tw.buf, order, int32(1))
+		_ = binary.Write(tw.buf, order, int32(30))
+		_ = binary.Write(tw.buf, order, int32(1))
+		_ = binary.Write(tw.buf, order, int32(0))
+		_ = binary.Write(tw.buf, order, int32(1))
+
+		// Longitude: -90/1 (negative in DMS is unusual, but tests int32 decode): -90 deg -> -90.0, with Ref 'W' (-(-90)) or 90/1
+		_ = binary.Write(tw.buf, order, int32(90))
+		_ = binary.Write(tw.buf, order, int32(1))
+		_ = binary.Write(tw.buf, order, int32(15))
+		_ = binary.Write(tw.buf, order, int32(1))
+		_ = binary.Write(tw.buf, order, int32(0))
+		_ = binary.Write(tw.buf, order, int32(1))
+	})
+
+	meta, err := imaging.ExtractMetadata(rawTIFF)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if meta.GPS == nil {
+		t.Fatalf("expected non-nil GPS")
+	}
+	if math.Abs(meta.GPS.Latitude-45.5) > 1e-4 {
+		t.Errorf("expected lat 45.5, got %f", meta.GPS.Latitude)
+	}
+}

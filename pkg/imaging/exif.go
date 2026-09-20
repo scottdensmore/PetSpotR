@@ -3,6 +3,7 @@ package imaging
 import (
 	"encoding/binary"
 	"errors"
+	"math"
 	"strings"
 	"time"
 )
@@ -364,9 +365,13 @@ func parseTIFF(data []byte) (*ImageMetadata, error) {
 		}
 
 		if lat >= -90.0 && lat <= 90.0 && lon >= -180.0 && lon <= 180.0 {
-			meta.GPS = &GPSCoords{
-				Latitude:  lat,
-				Longitude: lon,
+			// If coordinates evaluate to (0.0, 0.0) due to zero denominators or zero coordinates without valid GPS fix,
+			// treat GPS as absent/nil so default coordinates aren't mistakenly set to Null Island.
+			if !(math.Abs(lat) < 1e-9 && math.Abs(lon) < 1e-9) {
+				meta.GPS = &GPSCoords{
+					Latitude:  lat,
+					Longitude: lon,
+				}
 			}
 		}
 	}
@@ -500,12 +505,22 @@ func (tc *tiffContext) parseRationals(fieldType uint16, count uint32, valBytes [
 	results := make([]float64, count)
 	for i := uint32(0); i < count; i++ {
 		chunk := raw[i*8 : (i+1)*8]
-		num := tc.order.Uint32(chunk[:4])
-		den := tc.order.Uint32(chunk[4:8])
-		if den == 0 {
-			results[i] = 0
-		} else {
-			results[i] = float64(num) / float64(den)
+		if fieldType == 10 { // SRATIONAL (signed)
+			num := int32(tc.order.Uint32(chunk[:4]))
+			den := int32(tc.order.Uint32(chunk[4:8]))
+			if den == 0 {
+				results[i] = 0
+			} else {
+				results[i] = float64(num) / float64(den)
+			}
+		} else { // RATIONAL (unsigned)
+			num := tc.order.Uint32(chunk[:4])
+			den := tc.order.Uint32(chunk[4:8])
+			if den == 0 {
+				results[i] = 0
+			} else {
+				results[i] = float64(num) / float64(den)
+			}
 		}
 	}
 
