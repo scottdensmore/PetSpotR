@@ -2143,3 +2143,81 @@ func TestShelterAnalyticsAssets(t *testing.T) {
 		}
 	}
 }
+
+func TestSightingTrajectoryAssets(t *testing.T) {
+	t.Parallel()
+	srv := NewDemoServer()
+
+	req := httptest.NewRequest(http.MethodGet, "/static/js/sighting-trajectory.js", nil)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /static/js/sighting-trajectory.js, got %d", rec.Code)
+	}
+
+	reqPets := httptest.NewRequest(http.MethodGet, "/pets", nil)
+	recPets := httptest.NewRecorder()
+	srv.ServeHTTP(recPets, reqPets)
+
+	petsBody := recPets.Body.String()
+	expectedPetsSnippets := []string{
+		"modal-report-sighting",
+		"pet-trajectory-container",
+		"pet-trajectory-map",
+		"sighting-trajectory.js",
+		`data-action="report-sighting"`,
+		`data-action="view-trajectory"`,
+		"sighting-geolocation-btn",
+		"sighting-direction",
+		"sighting-location",
+		"sighting-notes",
+		"btn-submit-sighting",
+	}
+	for _, snippet := range expectedPetsSnippets {
+		if !strings.Contains(petsBody, snippet) {
+			t.Errorf("expected /pets template to contain %q", snippet)
+		}
+	}
+
+	jsData, err := embeddedFiles.ReadFile("static/js/sighting-trajectory.js")
+	if err != nil {
+		t.Fatalf("failed to read static/js/sighting-trajectory.js: %v", err)
+	}
+	jsContent := string(jsData)
+	expectedJSSnippets := []string{
+		"/api/v1/lost-pets/",
+		"/trajectory",
+		"/sightings",
+		"modal-report-sighting",
+		"pet-trajectory-map",
+		"sighting-geolocation-btn",
+		"milestone-pin",
+		"milestone-pin-origin",
+	}
+	for _, snippet := range expectedJSSnippets {
+		if !strings.Contains(jsContent, snippet) {
+			t.Errorf("static/js/sighting-trajectory.js missing snippet %q", snippet)
+		}
+	}
+
+	cssData, err := embeddedFiles.ReadFile("static/css/styles.css")
+	if err != nil {
+		t.Fatalf("failed to read static/css/styles.css: %v", err)
+	}
+	cssContent := string(cssData)
+	expectedCSSClasses := []string{
+		".sighting-modal",
+		".trajectory-map-wrapper",
+		".milestone-pin",
+		".milestone-pin-origin",
+		".trajectory-popup",
+	}
+	for _, class := range expectedCSSClasses {
+		if !strings.Contains(cssContent, class) {
+			t.Errorf("static/css/styles.css missing class %q", class)
+		}
+	}
+}
+
+

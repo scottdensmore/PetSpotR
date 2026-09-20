@@ -204,6 +204,8 @@
 
               {{ if or (eq .Status "LOST") (eq .Status "lost") }}
               <div class="pet-card-actions">
+                <button type="button" class="btn btn-primary btn-sm btn-report-sighting" data-pet-id="{{ .PetID }}" data-pet-name="{{ .PetName }}" data-action="report-sighting" {{ if .Coordinates }}data-lat="{{ .Coordinates.Latitude }}" data-lng="{{ .Coordinates.Longitude }}"{{ end }}>👁️ Report Sighting</button>
+                <button type="button" class="btn btn-secondary btn-sm btn-view-trajectory" data-pet-id="{{ .PetID }}" data-pet-name="{{ .PetName }}" data-action="view-trajectory">🗺️ Trajectory</button>
                 <button type="button" class="btn btn-secondary btn-sm btn-poster-share" data-pet-id="{{ .PetID }}" data-pet-name="{{ .PetName }}" data-action="open-poster">📄 Poster & Share</button>
               </div>
               {{ end }}
@@ -353,6 +355,169 @@
     </div>
   </div>
 
+  <!-- Quick Sighting Modal Dialog -->
+  <div id="modal-report-sighting" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="sighting-modal-title">
+    <div class="glass-card sighting-modal" role="document">
+      <div class="modal-header">
+        <h2 id="sighting-modal-title">👁️ Report Pet Sighting</h2>
+        <button type="button" class="btn-icon" id="btn-close-sighting-modal" data-close-modal="sighting" aria-label="Close sighting modal">✕</button>
+      </div>
+      <form id="form-report-sighting" class="sighting-form">
+        <input type="hidden" id="sighting-pet-id" name="petId">
+        <input type="hidden" id="sighting-lat" name="lat">
+        <input type="hidden" id="sighting-lng" name="lng">
+
+        <p class="text-secondary sighting-intro">
+          Report where and when you spotted this pet to help map their live movement trajectory and search perimeter.
+        </p>
+
+        <!-- Geolocation & Coordinates -->
+        <div class="form-group">
+          <label class="form-label">Sighting Coordinates</label>
+          <div class="sighting-geo-row">
+            <button type="button" class="btn btn-secondary btn-sm" id="sighting-geolocation-btn">
+              <span class="geo-icon">📍</span> Use My Location
+            </button>
+            <span id="sighting-gps-status" class="sighting-gps-status" role="status">GPS not acquired</span>
+          </div>
+        </div>
+
+        <!-- Location Description -->
+        <div class="form-group">
+          <label for="sighting-location" class="form-label">Location / Landmarks <span class="required">*</span></label>
+          <input type="text" id="sighting-location" name="locationDescription" class="form-control" required placeholder="e.g. Near Pike Place Market, 4th and Olive Way">
+        </div>
+
+        <div class="form-row">
+          <!-- Time mode / timestamp picker -->
+          <div class="form-group form-group-half">
+            <label for="sighting-time-mode" class="form-label">When Seen?</label>
+            <select id="sighting-time-mode" name="timeMode" class="form-control">
+              <option value="just-now" selected>Just now</option>
+              <option value="15-mins">~15 minutes ago</option>
+              <option value="30-mins">~30 minutes ago</option>
+              <option value="1-hour">~1 hour ago</option>
+              <option value="earlier">Custom time / Earlier</option>
+            </select>
+          </div>
+
+          <div class="form-group form-group-half" id="sighting-custom-time-group" hidden>
+            <label for="sighting-custom-time" class="form-label">Specific Time</label>
+            <input type="datetime-local" id="sighting-custom-time" name="customTime" class="form-control">
+          </div>
+
+          <!-- Compass Direction Dropdown -->
+          <div class="form-group form-group-half">
+            <label for="sighting-direction" class="form-label">Heading Direction</label>
+            <select id="sighting-direction" name="movementDirection" class="form-control">
+              <option value="">Unknown / Not observed</option>
+              <option value="North">North</option>
+              <option value="Northeast">Northeast</option>
+              <option value="East">East</option>
+              <option value="Southeast">Southeast</option>
+              <option value="South">South</option>
+              <option value="Southwest">Southwest</option>
+              <option value="West">West</option>
+              <option value="Northwest">Northwest</option>
+              <option value="Stationary">Stationary</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Witness Notes -->
+        <div class="form-group">
+          <label for="sighting-notes" class="form-label">Witness Notes / Demeanor</label>
+          <textarea id="sighting-notes" name="notes" class="form-control" rows="3" placeholder="e.g. Trotting quickly, wearing red harness, seemed spooked by sirens"></textarea>
+        </div>
+
+        <!-- Optional Witness Contact Info -->
+        <details class="sighting-contact-details">
+          <summary class="sighting-contact-summary">Optional: Your Contact Info (kept private for owner follow-up)</summary>
+          <div class="sighting-contact-fields">
+            <div class="form-group">
+              <label for="sighting-witness-name" class="form-label">Your Name</label>
+              <input type="text" id="sighting-witness-name" name="witnessName" class="form-control" placeholder="e.g. Jane Witness">
+            </div>
+            <div class="form-group">
+              <label for="sighting-witness-contact" class="form-label">Email or Phone</label>
+              <input type="text" id="sighting-witness-contact" name="witnessContact" class="form-control" placeholder="e.g. witness@example.com or 206-555-0199">
+            </div>
+          </div>
+        </details>
+
+        <div id="sighting-modal-feedback" class="form-feedback hidden" role="status" aria-live="polite"></div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-sighting" data-close-modal="sighting">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-sighting">Submit Sighting</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Interactive Trajectory Map Modal -->
+  <div id="pet-trajectory-container" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="trajectory-modal-title">
+    <div class="glass-card trajectory-modal-card">
+      <div class="modal-header">
+        <div class="trajectory-header-titles">
+          <h2 id="trajectory-modal-title">🧭 Sighting Timeline &amp; Trajectory Map</h2>
+          <span id="trajectory-pet-badge" class="badge badge-primary">Lost Pet</span>
+        </div>
+        <button type="button" class="btn-icon" id="btn-close-trajectory" data-close-modal="trajectory" aria-label="Close trajectory map">✕</button>
+      </div>
+
+      <div class="trajectory-modal-body">
+        <!-- Summary Stats Strip -->
+        <div class="trajectory-stats-strip" id="trajectory-stats-strip">
+          <div class="traj-stat-item">
+            <span class="traj-stat-label">Milestones</span>
+            <span class="traj-stat-value" id="traj-stat-count">0</span>
+          </div>
+          <div class="traj-stat-item">
+            <span class="traj-stat-label">Total Distance</span>
+            <span class="traj-stat-value" id="traj-stat-distance">0.0 mi</span>
+          </div>
+          <div class="traj-stat-item">
+            <span class="traj-stat-label">Search Perimeter</span>
+            <span class="traj-stat-value" id="traj-stat-perimeter">—</span>
+          </div>
+          <div class="traj-stat-item">
+            <span class="traj-stat-label">Confidence</span>
+            <span class="traj-stat-value" id="traj-stat-confidence">—</span>
+          </div>
+        </div>
+
+        <!-- Trajectory Map Wrapper -->
+        <div class="trajectory-map-wrapper">
+          <div id="pet-trajectory-map" class="pet-trajectory-map" role="region" aria-label="Interactive map of pet sighting trajectory"></div>
+          <div id="trajectory-map-status" class="map-status-overlay" aria-live="polite"></div>
+        </div>
+
+        <!-- Legend & Timeline Strip -->
+        <div class="trajectory-legend" id="trajectory-legend">
+          <div class="legend-header">
+            <h4>Milestone Legend</h4>
+          </div>
+          <div class="legend-items">
+            <div class="legend-item">
+              <span class="milestone-pin milestone-pin-origin legend-pin">0</span>
+              <span><strong>0: Origin</strong> — Initial last seen report</span>
+            </div>
+            <div class="legend-item">
+              <span class="milestone-pin legend-pin">N</span>
+              <span><strong>1..N: Sightings</strong> — Chronological community sightings</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-circle"></span>
+              <span><strong>Search Perimeter</strong> — Dynamic radial bound</span>
+            </div>
+          </div>
+          <div class="timeline-sightings-list" id="timeline-sightings-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <footer>
     <div class="container footer-content">
       <p>&copy; 2026 PetSpotR. Event-driven Go & GCP AI Microservices.</p>
@@ -368,6 +533,7 @@
   <script src="/static/js/pet-share.js"></script>
   <script src="/static/js/push-notifier.js"></script>
   <script src="/static/js/notification-center.js"></script>
+  <script src="/static/js/sighting-trajectory.js" defer></script>
   <script src="/static/js/outbox-sync.js" defer></script>
 </body>
 </html>

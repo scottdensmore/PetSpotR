@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Help Find {{.PetName}} — Lost {{.Species}} | PetSpotR</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="/static/css/styles.css">
 
   <!-- OpenGraph Metadata -->
@@ -108,6 +109,9 @@
       </button>
       <button type="button" id="btn-finder-sighting" class="btn btn-secondary btn-lg finder-btn btn-finder-sighting">
         <span class="btn-icon">📍</span> Report a Quick Sighting
+      </button>
+      <button type="button" id="btn-finder-trajectory" class="btn btn-secondary btn-lg finder-btn btn-view-trajectory" data-action="view-trajectory" data-pet-id="{{.PetID}}" data-pet-name="{{.PetName}}">
+        <span class="btn-icon">🗺️</span> View Sighting Trajectory Map
       </button>
     </section>
 
@@ -240,6 +244,71 @@
     </div>
   </div>
 
+  <!-- Interactive Trajectory Map Modal -->
+  <div id="pet-trajectory-container" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="trajectory-modal-title">
+    <div class="glass-card trajectory-modal-card">
+      <div class="modal-header">
+        <div class="trajectory-header-titles">
+          <h2 id="trajectory-modal-title">🧭 Sighting Timeline &amp; Trajectory Map</h2>
+          <span id="trajectory-pet-badge" class="badge badge-primary">Lost Pet</span>
+        </div>
+        <button type="button" class="btn-icon" id="btn-close-trajectory" data-close-modal="trajectory" aria-label="Close trajectory map">✕</button>
+      </div>
+
+      <div class="trajectory-modal-body">
+        <!-- Summary Stats Strip -->
+        <div class="trajectory-stats-strip" id="trajectory-stats-strip">
+          <div class="traj-stat-item">
+            <span class="traj-stat-label">Milestones</span>
+            <span class="traj-stat-value" id="traj-stat-count">0</span>
+          </div>
+          <div class="traj-stat-item">
+            <span class="traj-stat-label">Total Distance</span>
+            <span class="traj-stat-value" id="traj-stat-distance">0.0 mi</span>
+          </div>
+          <div class="traj-stat-item">
+            <span class="traj-stat-label">Search Perimeter</span>
+            <span class="traj-stat-value" id="traj-stat-perimeter">—</span>
+          </div>
+          <div class="traj-stat-item">
+            <span class="traj-stat-label">Confidence</span>
+            <span class="traj-stat-value" id="traj-stat-confidence">—</span>
+          </div>
+        </div>
+
+        <!-- Trajectory Map Wrapper -->
+        <div class="trajectory-map-wrapper">
+          <div id="pet-trajectory-map" class="pet-trajectory-map" role="region" aria-label="Interactive map of pet sighting trajectory"></div>
+          <div id="trajectory-map-status" class="map-status-overlay" aria-live="polite"></div>
+        </div>
+
+        <!-- Legend & Timeline Strip -->
+        <div class="trajectory-legend" id="trajectory-legend">
+          <div class="legend-header">
+            <h4>Milestone Legend</h4>
+          </div>
+          <div class="legend-items">
+            <div class="legend-item">
+              <span class="milestone-pin milestone-pin-origin legend-pin">0</span>
+              <span><strong>0: Origin</strong> — Initial last seen report</span>
+            </div>
+            <div class="legend-item">
+              <span class="milestone-pin legend-pin">N</span>
+              <span><strong>1..N: Sightings</strong> — Chronological community sightings</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-circle"></span>
+              <span><strong>Search Perimeter</strong> — Dynamic radial bound</span>
+            </div>
+          </div>
+          <div class="timeline-sightings-list" id="timeline-sightings-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/vendor/leaflet/leaflet.js"></script>
+  <script src="/static/js/sighting-trajectory.js" defer></script>
   <script src="/static/js/finder-landing.js" defer></script>
 </body>
 </html>
