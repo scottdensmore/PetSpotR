@@ -14,6 +14,7 @@
   let currentPetID = '';
   let currentTrajectoryPetID = '';
   let sightingCoordinates = null;
+  let activeEventSource = null;
 
   // HTML entity escaper for safe DOM insertion
   function escapeHTML(str) {
@@ -151,6 +152,9 @@
     if (!modal) return;
 
     currentPetID = petId || '';
+    if (currentPetID) {
+      connectSightingSSE(currentPetID);
+    }
     const petIdInput = document.getElementById('sighting-pet-id');
     if (petIdInput) petIdInput.value = currentPetID;
 
@@ -215,6 +219,13 @@
     const modal = document.getElementById('modal-report-sighting');
     if (modal) {
       modal.classList.add('hidden');
+    }
+    const mainEl = document.querySelector('main[data-pet-id]');
+    if (!mainEl?.dataset?.petId && !currentTrajectoryPetID) {
+      if (activeEventSource) {
+        activeEventSource.close();
+        activeEventSource = null;
+      }
     }
   }
 
@@ -316,9 +327,29 @@
       });
 
       if (res.ok) {
+        let createdSighting = null;
+        try {
+          createdSighting = await res.json();
+        } catch (_) {}
+
+        if (createdSighting && createdSighting.sightingId && window.petspotrVoiceRecorder && window.petspotrVoiceRecorder.audioBlob) {
+          try {
+            await window.petspotrVoiceRecorder.uploadVoiceMemo(petId, createdSighting.sightingId);
+          } catch (uploadErr) {
+            console.error('Failed to upload voice memo:', uploadErr);
+          }
+        }
+
+        if (window.petspotrAnnounce) {
+          window.petspotrAnnounce('Pet sighting reported successfully.');
+        }
+
         // Immediate close for responsive UX & test completion
         closeSightingModal();
         form.reset();
+        if (window.petspotrVoiceRecorder) {
+          window.petspotrVoiceRecorder.discardRecording();
+        }
         showToast('Sighting reported! Trajectory map has been updated.');
 
         // If trajectory modal is open for this pet, refresh it
@@ -349,6 +380,9 @@
     if (!modal) return;
 
     currentTrajectoryPetID = petId || '';
+    if (currentTrajectoryPetID) {
+      connectSightingSSE(currentTrajectoryPetID);
+    }
     const titleEl = document.getElementById('trajectory-modal-title');
     const badgeEl = document.getElementById('trajectory-pet-badge');
 
@@ -368,6 +402,16 @@
     const modal = document.getElementById('pet-trajectory-container');
     if (modal) {
       modal.classList.add('hidden');
+    }
+    currentTrajectoryPetID = '';
+    const mainEl = document.querySelector('main[data-pet-id]');
+    const sightingModal = document.getElementById('modal-report-sighting');
+    const sightingOpen = sightingModal && !sightingModal.classList.contains('hidden');
+    if (!mainEl?.dataset?.petId && !sightingOpen) {
+      if (activeEventSource) {
+        activeEventSource.close();
+        activeEventSource = null;
+      }
     }
   }
 
@@ -646,8 +690,57 @@
     }
   }
 
+  // Connect to SSE stream for live sighting updates
+  function connectSightingSSE(petId) {
+    if (typeof EventSource !== 'function' || !petId) return;
+
+    if (activeEventSource) {
+      if (activeEventSource.petId === petId) return;
+      activeEventSource.close();
+      activeEventSource = null;
+    }
+
+    const sseUrl = `/api/v1/reunions/events?matchId=${encodeURIComponent(petId)}`;
+    try {
+      const evtSource = new EventSource(sseUrl);
+      evtSource.petId = petId;
+      activeEventSource = evtSource;
+
+      const onSighting = (e) => {
+        try {
+          const payload = JSON.parse(e.data);
+          if (!payload) return;
+          if (payload.type === 'sighting' || e.type === 'sighting') {
+            if (window.petspotrAnnounce) {
+              window.petspotrAnnounce('New pet sighting reported');
+            }
+            if (currentTrajectoryPetID === petId) {
+              loadAndRenderTrajectory(petId);
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to parse sighting SSE message:', err);
+        }
+      };
+
+      evtSource.addEventListener('sighting', onSighting);
+      evtSource.addEventListener('message', onSighting);
+      evtSource.addEventListener('error', () => {
+        // EventSource will automatically retry in modern browsers
+      });
+    } catch (err) {
+      console.warn('Failed to initialize sighting EventSource:', err);
+    }
+  }
+
   // Initialize event listeners
   function init() {
+    // Connect SSE if pet ID is already on page (e.g. finder landing / pet detail)
+    const mainEl = document.querySelector('main[data-pet-id]');
+    if (mainEl && mainEl.dataset.petId) {
+      connectSightingSSE(mainEl.dataset.petId);
+    }
+
     // Delegated click handler for pet action buttons
     document.addEventListener('click', (e) => {
       // 1. Report Sighting button
@@ -743,6 +836,7 @@
     closeTrajectoryModal,
     loadAndRenderTrajectory,
     handleGeolocation,
+    connectSightingSSE,
   };
 
   if (document.readyState === 'loading') {

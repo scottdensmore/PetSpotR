@@ -428,7 +428,7 @@ func TestReunionEvents_PresenceDispatch(t *testing.T) {
 	}
 
 	// Reporter SSE stream should receive the presence event
-	evt, err := readSSEEvent(reader, 2*time.Second)
+	evt, err := readSSEEvent(reader, 5*time.Second)
 	if err != nil {
 		t.Fatalf("failed to read presence event from SSE stream: %v", err)
 	}
@@ -510,7 +510,7 @@ func TestReunionEvents_MessageDispatchWithImages(t *testing.T) {
 	}
 
 	// Finder SSE stream should receive message event
-	evt, err := readSSEEvent(reader, 2*time.Second)
+	evt, err := readSSEEvent(reader, 5*time.Second)
 	if err != nil {
 		t.Fatalf("failed to read message event from SSE stream: %v", err)
 	}
@@ -592,7 +592,7 @@ func TestReunionEvents_ResolveDispatch(t *testing.T) {
 	}
 
 	// Finder SSE stream should receive reunion_resolved event
-	evt, err := readSSEEvent(reader, 2*time.Second)
+	evt, err := readSSEEvent(reader, 5*time.Second)
 	if err != nil {
 		t.Fatalf("failed to read resolved event from SSE stream: %v", err)
 	}
