@@ -279,6 +279,8 @@ func (s *Server) routes() {
 	))
 	s.mux.HandleFunc("/api/v1/found-pets/{petID}/contact", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiFoundPetContact))
 	s.mux.HandleFunc("/api/v1/found-pets/{petID}/status", s.handleApiFoundPetStatus)
+	s.mux.HandleFunc("/api/v1/images/extract-metadata", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiImageExtractMetadata))
+	s.mux.HandleFunc("/api/v1/images/enhance", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiImageEnhance))
 	s.mux.HandleFunc("/api/v1/shelter-intakes/ingest", s.handleApiShelterIntakeIngest)
 	s.mux.HandleFunc("/api/v1/shelters/analytics", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiShelterAnalytics))
 	s.mux.HandleFunc("/api/v1/shelters/analytics/export.csv", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiShelterAnalyticsExportCSV))

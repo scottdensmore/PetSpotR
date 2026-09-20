@@ -389,3 +389,37 @@ func TestDisableRateLimitingOption(t *testing.T) {
 		}
 	}
 }
+
+func TestRateLimitModerate_ImageEndpoints(t *testing.T) {
+	srv := NewServer()
+	defer srv.Close()
+
+	clientIP := "192.0.2.110:1234"
+
+	// ModerateLimit allows 15 requests in burst
+	for i := 1; i <= 15; i++ {
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/images/extract-metadata", strings.NewReader("invalid"))
+		req.Header.Set("Content-Type", "application/json")
+		req.RemoteAddr = clientIP
+		rr := httptest.NewRecorder()
+
+		srv.ServeHTTP(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Fatalf("request %d expected 400 Bad Request, got %d", i, rr.Code)
+		}
+	}
+
+	// 16th request must be rate limited with 429
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/images/extract-metadata", strings.NewReader("invalid"))
+	req.Header.Set("Content-Type", "application/json")
+	req.RemoteAddr = clientIP
+	rr := httptest.NewRecorder()
+
+	srv.ServeHTTP(rr, req)
+	if rr.Code != http.StatusTooManyRequests {
+		t.Fatalf("request 16 expected 429 Too Many Requests, got %d", rr.Code)
+	}
+	if rr.Header().Get("Retry-After") == "" {
+		t.Fatal("expected Retry-After header on 429 response")
+	}
+}

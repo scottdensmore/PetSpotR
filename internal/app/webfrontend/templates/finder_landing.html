@@ -187,6 +187,59 @@
           Report where and when you spotted {{.PetName}} to help map their live movement trajectory and search perimeter.
         </p>
 
+        <!-- Photo Dropzone for Sighting Modal -->
+        <div class="form-group sighting-photo-group">
+          <label class="form-label">Photo (Optional — auto-detects EXIF location &amp; time)</label>
+          <div id="photo-dropzone" class="dropzone sighting-dropzone" tabindex="0" role="button" aria-label="Upload sighting photo" aria-describedby="sighting-dropzone-help">
+            <svg class="upload-icon" width="36" height="36" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span class="dropzone-title">Drag &amp; drop photo or click to upload</span>
+            <span id="sighting-dropzone-help" class="dropzone-help">Extracts GPS &amp; capture time from photo EXIF</span>
+          </div>
+          <input type="file" id="sighting-photo-input" accept="image/*" class="hidden">
+          <div id="sighting-preview-container" class="sighting-preview-container hidden">
+            <img id="sighting-photo-preview" class="sighting-photo-thumb" src="" alt="Sighting photo preview">
+          </div>
+        </div>
+
+        <!-- EXIF Pre-fill Toast Banner for Sighting -->
+        <div id="sighting-exif-toast" class="exif-prefill-toast hidden" role="dialog" aria-live="polite" aria-atomic="true">
+          <div class="exif-toast-content">
+            <span class="exif-toast-icon" aria-hidden="true">📍</span>
+            <span class="exif-toast-text" id="sighting-exif-toast-message">Found photo location: <strong class="exif-coords-display"></strong>. Pre-fill report?</span>
+          </div>
+          <div class="exif-toast-actions">
+            <button type="button" class="btn btn-sm btn-primary btn-exif-apply" id="btn-sighting-exif-apply">Apply</button>
+            <button type="button" class="btn btn-sm btn-secondary btn-exif-dismiss" id="btn-sighting-exif-dismiss">Keep Manual</button>
+          </div>
+        </div>
+
+        <!-- Auto-Enhance Controls for Sighting -->
+        <div id="sighting-auto-enhance" class="auto-enhance-container hidden" role="region" aria-label="Sighting photo auto-enhancement">
+          <div class="auto-enhance-bar">
+            <button type="button" class="btn btn-secondary btn-sm btn-auto-enhance" id="btn-sighting-auto-enhance">
+              ✨ Auto-Enhance
+            </button>
+            <span class="auto-enhance-status" role="status" aria-live="polite"></span>
+          </div>
+          <div class="enhance-comparison-container hidden">
+            <div class="enhance-slider-wrapper">
+              <img class="enhance-img enhance-img-before" src="" alt="Original sighting photo">
+              <div class="enhance-img-after-wrap">
+                <img class="enhance-img enhance-img-after" src="" alt="Auto-enhanced sighting photo">
+              </div>
+              <input type="range" min="0" max="100" value="50" class="enhance-slider" aria-label="Before and after enhancement comparison slider">
+            </div>
+            <div class="enhance-slider-labels">
+              <span class="badge badge-secondary">Original</span>
+              <span class="badge badge-primary">Enhanced</span>
+            </div>
+            <div class="enhance-action-buttons">
+              <button type="button" class="btn btn-primary btn-sm btn-accept-enhanced">Use Enhanced</button>
+              <button type="button" class="btn btn-secondary btn-sm btn-revert-enhanced">Keep Original</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Geolocation & Coordinates -->
         <div class="form-group">
           <label class="form-label">Sighting Coordinates</label>
@@ -521,6 +574,7 @@
   </div>
 
   <script src="/static/vendor/leaflet/leaflet.js"></script>
+  <script src="/static/js/image-enhancer.js" defer></script>
   <script src="/static/js/sighting-trajectory.js" defer></script>
   <script src="/static/js/search-party.js" defer></script>
   <script src="/static/js/finder-landing.js" defer></script>

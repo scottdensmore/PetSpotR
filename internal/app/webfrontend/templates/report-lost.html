@@ -116,17 +116,58 @@
         <!-- Step 2: Photo Upload & Drag Drop Zone -->
         <div class="wizard-step" id="wizard-step-2" hidden>
           <h2 class="section-title">Upload Pet Photo</h2>
-          <button type="button" id="dropzone" class="dropzone" aria-label="Upload pet photo" tabindex="0" aria-describedby="dropzone-help">
-            <svg class="upload-icon" width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-            <span class="dropzone-title">Drag & drop photo here, or click to browse</span>
-            <span id="dropzone-help" class="dropzone-help">Supports JPG, PNG, WEBP up to 10MB</span>
-          </button>
-          <input type="file" id="photoInput" accept="image/*" multiple hidden>
+          <div id="photo-dropzone" class="photo-dropzone-container">
+            <button type="button" id="dropzone" class="dropzone" aria-label="Upload pet photo" tabindex="0" aria-describedby="dropzone-help">
+              <svg class="upload-icon" width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              <span class="dropzone-title">Drag & drop photo here, or click to browse</span>
+              <span id="dropzone-help" class="dropzone-help">Supports JPG, PNG, WEBP up to 10MB</span>
+            </button>
+            <input type="file" id="photoInput" accept="image/*" multiple hidden>
+          </div>
           <div class="photo-counter-panel">
             <span id="photo-count-badge" class="photo-count-badge mapped-count-badge">0 / 3 photos added</span>
           </div>
           <p id="lost-photo-status" class="upload-status" role="status" aria-live="polite"></p>
           <p id="photo-error" class="field-error" role="alert" aria-live="assertive" hidden></p>
+
+          <!-- EXIF Pre-fill Toast Banner -->
+          <div id="exif-toast" class="exif-prefill-toast hidden" role="dialog" aria-live="polite" aria-atomic="true">
+            <div class="exif-toast-content">
+              <span class="exif-toast-icon" aria-hidden="true">📍</span>
+              <span class="exif-toast-text" id="exif-toast-message">Found photo location: <strong id="exif-coords-display" class="exif-coords-display"></strong>. Pre-fill report?</span>
+            </div>
+            <div class="exif-toast-actions">
+              <button type="button" class="btn btn-sm btn-primary btn-exif-apply" id="btn-exif-apply">Apply</button>
+              <button type="button" class="btn btn-sm btn-secondary btn-exif-dismiss" id="btn-exif-dismiss">Keep Manual</button>
+            </div>
+          </div>
+
+          <!-- Auto-Enhance Controls & Slider -->
+          <div id="auto-enhance-control" class="auto-enhance-container hidden" role="region" aria-label="Photo auto-enhancement">
+            <div class="auto-enhance-bar">
+              <button type="button" class="btn btn-secondary btn-sm btn-auto-enhance" id="btn-auto-enhance">
+                ✨ Auto-Enhance
+              </button>
+              <span id="auto-enhance-status" class="auto-enhance-status" role="status" aria-live="polite"></span>
+            </div>
+            <div id="enhance-slider-view" class="enhance-comparison-container hidden">
+              <div class="enhance-slider-wrapper">
+                <img id="enhance-img-before" class="enhance-img enhance-img-before" src="" alt="Original uploaded pet photo">
+                <div id="enhance-img-after-wrap" class="enhance-img-after-wrap">
+                  <img id="enhance-img-after" class="enhance-img enhance-img-after" src="" alt="Auto-enhanced pet photo">
+                </div>
+                <input type="range" min="0" max="100" value="50" class="enhance-slider" id="enhance-slider" aria-label="Before and after enhancement comparison slider">
+              </div>
+              <div class="enhance-slider-labels">
+                <span class="badge badge-secondary">Original</span>
+                <span class="badge badge-primary">Enhanced (Auto-Contrast)</span>
+              </div>
+              <div class="enhance-action-buttons">
+                <button type="button" class="btn btn-primary btn-sm btn-accept-enhanced" id="btn-accept-enhanced">Use Enhanced</button>
+                <button type="button" class="btn btn-secondary btn-sm btn-revert-enhanced" id="btn-revert-enhanced">Keep Original</button>
+              </div>
+            </div>
+          </div>
 
           <div id="staging-container" class="staged-photos-container form-grid" role="region" aria-label="Staged pet photos" hidden></div>
 
@@ -148,6 +189,15 @@
         <!-- Step 3: Location Picker -->
         <div class="wizard-step" id="wizard-step-3" hidden>
           <h2 class="section-title">Last Seen Location</h2>
+          <input type="hidden" id="latitude" name="latitude">
+          <input type="hidden" id="longitude" name="longitude">
+          <input type="hidden" id="lost-lat">
+          <input type="hidden" id="lost-lng">
+          <input type="hidden" id="lost-time" name="captureTime">
+          <div class="form-field">
+            <label for="lostDate" class="form-label">Date & Time Last Seen (Optional)</label>
+            <input class="form-control" type="datetime-local" id="lostDate" name="lastSeenTime">
+          </div>
           <div class="form-field">
             <label for="location" class="form-label">Address / Neighborhood *</label>
             <input class="form-control" type="text" id="location" name="location" required placeholder="e.g. Capitol Hill, Seattle, WA" aria-describedby="location-error">
@@ -211,7 +261,8 @@
   <div id="toast-container" class="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
   <script src="/static/js/theme.js"></script>
   <script src="/static/js/identity-session.js"></script>
-  <script src="/static/js/lost-wizard.js"></script>
+  <script src="/static/js/image-enhancer.js" defer></script>
+  <script src="/static/js/lost-wizard.js" defer></script>
   <script src="/static/js/outbox-sync.js" defer></script>
 </body>
 </html>
