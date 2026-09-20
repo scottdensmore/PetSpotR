@@ -54,4 +54,13 @@ func TestCanonicalCollectionNames(t *testing.T) {
 	if store.BreadcrumbsCollection != "volunteerBreadcrumbs" {
 		t.Fatalf("BreadcrumbsCollection = %q, want volunteerBreadcrumbs", store.BreadcrumbsCollection)
 	}
+	if store.SMSOptOutCollection != "smsOptOuts" {
+		t.Fatalf("SMSOptOutCollection = %q, want smsOptOuts", store.SMSOptOutCollection)
+	}
+	if store.SMSDeliveriesCollection != "smsDeliveries" {
+		t.Fatalf("SMSDeliveriesCollection = %q, want smsDeliveries", store.SMSDeliveriesCollection)
+	}
+	if store.TrajectoriesCollection != "trajectories" {
+		t.Fatalf("TrajectoriesCollection = %q, want trajectories", store.TrajectoriesCollection)
+	}
 }

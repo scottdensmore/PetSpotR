@@ -19,4 +19,7 @@ const (
 	WebhooksCollection                = "webhooks"
 	WebhookDeliveriesCollection       = "webhookDeliveries"
 	BreadcrumbsCollection             = "volunteerBreadcrumbs"
+	SMSOptOutCollection               = "smsOptOuts"
+	SMSDeliveriesCollection           = "smsDeliveries"
+	TrajectoriesCollection            = "trajectories"
 )

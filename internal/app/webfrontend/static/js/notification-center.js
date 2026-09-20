@@ -562,11 +562,13 @@
 
   function openPreferencesModal() {
     const modal = document.getElementById('notification-preferences-modal');
+    const alertPref = document.getElementById('modal-alert-preferences');
     const backdrop = document.getElementById('preferences-backdrop');
     if (!modal) return;
 
     modalLastFocused = document.activeElement;
     modal.classList.remove('hidden');
+    if (alertPref) alertPref.classList.remove('hidden');
     if (backdrop) backdrop.classList.remove('hidden');
 
     loadPreferences();
@@ -583,10 +585,12 @@
 
   function closePreferencesModal() {
     const modal = document.getElementById('notification-preferences-modal');
+    const alertPref = document.getElementById('modal-alert-preferences');
     const backdrop = document.getElementById('preferences-backdrop');
     if (!modal) return;
 
     modal.classList.add('hidden');
+    if (alertPref) alertPref.classList.add('hidden');
     if (backdrop) backdrop.classList.add('hidden');
 
     if (modalLastFocused && typeof modalLastFocused.focus === 'function') {
@@ -674,6 +678,62 @@
           if (Notification.permission !== 'granted') {
             pushBtn.click();
           }
+        }
+      });
+    }
+
+    // Connect SMS verification
+    const verifySmsBtn = document.getElementById('btn-verify-sms');
+    const phoneInput = document.getElementById('pref-phone-number');
+    const smsFeedback = document.getElementById('pref-sms-feedback');
+
+    if (verifySmsBtn && phoneInput) {
+      verifySmsBtn.addEventListener('click', async () => {
+        const phone = phoneInput.value.trim();
+        if (!phone) {
+          if (smsFeedback) {
+            smsFeedback.textContent = 'Please enter a phone number first.';
+            smsFeedback.className = 'form-feedback error';
+            smsFeedback.classList.remove('hidden');
+          }
+          return;
+        }
+
+        try {
+          verifySmsBtn.disabled = true;
+          verifySmsBtn.textContent = 'Sending...';
+
+          const res = await fetch('/api/v1/sms/subscribe', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ phone }),
+          });
+
+          const data = await res.json();
+          if (res.ok) {
+            if (smsFeedback) {
+              smsFeedback.textContent = data.message || 'Verification test SMS sent successfully!';
+              smsFeedback.className = 'form-feedback success';
+              smsFeedback.classList.remove('hidden');
+            }
+          } else {
+            if (smsFeedback) {
+              smsFeedback.textContent = data.error || 'Failed to send verification SMS.';
+              smsFeedback.className = 'form-feedback error';
+              smsFeedback.classList.remove('hidden');
+            }
+          }
+        } catch (err) {
+          if (smsFeedback) {
+            smsFeedback.textContent = 'Network error verifying SMS.';
+            smsFeedback.className = 'form-feedback error';
+            smsFeedback.classList.remove('hidden');
+          }
+        } finally {
+          verifySmsBtn.disabled = false;
+          verifySmsBtn.textContent = 'Verify SMS';
         }
       });
     }

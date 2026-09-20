@@ -270,28 +270,33 @@
   </aside>
 
   <div id="preferences-backdrop" class="modal-backdrop hidden" tabindex="-1"></div>
-  <div id="notification-preferences-modal" class="glass-card preferences-modal hidden" role="dialog" aria-modal="true" aria-labelledby="pref-modal-title">
-    <div class="modal-header">
-      <h2 id="pref-modal-title">Alert & Zone Preferences</h2>
-      <button type="button" class="btn-icon" id="btn-close-preferences" aria-label="Close settings">✕</button>
-    </div>
-    <form id="preferences-form" class="preferences-form">
-      <fieldset class="pref-fieldset">
-        <legend class="pref-legend">Delivery Channels</legend>
-        <div class="pref-channel-row">
-          <label class="pref-toggle-label">
-            <input type="checkbox" id="pref-email-enabled" name="emailEnabled">
-            <span>Email Alerts</span>
-          </label>
-          <input type="email" id="pref-email-address" name="email" class="form-control" placeholder="your.email@example.com" aria-label="Email address">
-        </div>
-        <div class="pref-channel-row">
-          <label class="pref-toggle-label">
-            <input type="checkbox" id="pref-sms-enabled" name="smsEnabled">
-            <span>SMS Text Alerts</span>
-          </label>
-          <input type="tel" id="pref-phone-number" name="phone" class="form-control" placeholder="+12065550199" aria-label="Phone number">
-        </div>
+  <div id="modal-alert-preferences" class="modal-alert-preferences hidden">
+    <div id="notification-preferences-modal" class="glass-card preferences-modal hidden" role="dialog" aria-modal="true" aria-labelledby="pref-modal-title">
+      <div class="modal-header">
+        <h2 id="pref-modal-title">Alert & Zone Preferences</h2>
+        <button type="button" class="btn-icon" id="btn-close-preferences" aria-label="Close settings">✕</button>
+      </div>
+      <form id="preferences-form" class="preferences-form">
+        <fieldset class="pref-fieldset">
+          <legend class="pref-legend">Delivery Channels</legend>
+          <div class="pref-channel-row">
+            <label class="pref-toggle-label">
+              <input type="checkbox" id="pref-email-enabled" name="emailEnabled">
+              <span>Email Alerts</span>
+            </label>
+            <input type="email" id="pref-email-address" name="email" class="form-control" placeholder="your.email@example.com" aria-label="Email address">
+          </div>
+          <div class="pref-channel-row">
+            <label class="pref-toggle-label">
+              <input type="checkbox" id="pref-sms-enabled" name="smsEnabled">
+              <span>SMS Text Alerts</span>
+            </label>
+            <div class="pref-sms-input-group">
+              <input type="tel" id="pref-phone-number" name="phone" class="form-control" placeholder="+12065550199" aria-label="Phone number">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-verify-sms">Verify SMS</button>
+            </div>
+            <div id="pref-sms-feedback" class="form-feedback hidden" role="status"></div>
+          </div>
         <div class="pref-channel-row">
           <label class="pref-toggle-label">
             <input type="checkbox" id="pref-push-enabled" name="pushEnabled">
@@ -325,6 +330,7 @@
         <button type="submit" class="btn btn-primary" id="btn-save-preferences">Save Preferences</button>
       </div>
     </form>
+  </div>
   </div>
 
   <div id="poster-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="poster-modal-title">
