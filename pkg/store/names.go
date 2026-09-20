@@ -13,4 +13,5 @@ const (
 	MatcherResultsCollection          = "matcherResults"
 	NotificationPreferencesCollection = "notificationPreferences"
 	InAppNotificationsCollection      = "inAppNotifications"
+	NotificationsCollection           = "notifications"
 )

@@ -466,7 +466,7 @@
       });
     }
 
-    if (btnSighting) {
+    if (btnSighting && !btnSighting.dataset.action) {
       btnSighting.addEventListener('click', (e) => {
         e.preventDefault();
         openSightingModal();

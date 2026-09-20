@@ -67,6 +67,12 @@ func (h *ReunionHub) Unsubscribe(matchID string, ch <-chan domain.ReunionStreamE
 	}
 }
 
+// Broadcast sends an event to all active subscriber channels for event.MatchID.
+// It delegates to BroadcastLocal.
+func (h *ReunionHub) Broadcast(event domain.ReunionStreamEvent) {
+	h.BroadcastLocal(event)
+}
+
 // BroadcastLocal sends an event to all active subscriber channels for event.MatchID.
 // Sends are non-blocking; if a subscriber's buffer is full, the event is dropped for that subscriber
 // to prevent slow consumers from head-of-line blocking other subscribers or publishers.

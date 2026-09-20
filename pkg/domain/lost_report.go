@@ -374,7 +374,9 @@ func NormalizeLostPetReport(report LostPetReport) LostPetReport {
 		report.Status = LostPetStatusLost
 	}
 	if report.GeocodingStatus == "" {
-		if report.Location == "" {
+		if report.Coordinates != nil && report.Coordinates.Validate() == nil {
+			report.GeocodingStatus = GeocodingVerified
+		} else if report.Location == "" {
 			report.GeocodingStatus = GeocodingUnavailable
 		} else {
 			report.GeocodingStatus = GeocodingPending

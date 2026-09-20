@@ -222,3 +222,32 @@ func TestReunionHubConcurrentStressRace(t *testing.T) {
 	close(stop)
 	wg.Wait()
 }
+
+func TestReunionHubBroadcast(t *testing.T) {
+	t.Parallel()
+	hub := NewReunionHub()
+
+	ch, unsub := hub.Subscribe("pet-broadcast-test")
+	defer unsub()
+
+	event := domain.ReunionStreamEvent{
+		EventID:   "evt-bcast-1",
+		Type:      domain.ReunionEventSighting,
+		MatchID:   "pet-broadcast-test",
+		Timestamp: time.Now().UTC(),
+	}
+
+	hub.Broadcast(event)
+
+	select {
+	case received := <-ch:
+		if received.EventID != "evt-bcast-1" {
+			t.Fatalf("received wrong event ID: %s", received.EventID)
+		}
+		if received.Type != domain.ReunionEventSighting {
+			t.Fatalf("received wrong event type: %s", received.Type)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("timeout waiting for broadcast event")
+	}
+}

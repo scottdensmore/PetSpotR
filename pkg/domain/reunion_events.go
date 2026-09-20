@@ -8,6 +8,7 @@ const (
 	ReunionEventMessageCreated ReunionEventType = "message"
 	ReunionEventPresence       ReunionEventType = "presence"
 	ReunionEventResolved       ReunionEventType = "reunion_resolved"
+	ReunionEventSighting       ReunionEventType = "sighting"
 )
 
 type ReunionStreamEvent struct {
