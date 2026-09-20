@@ -219,7 +219,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		s.smsProvider = sms.NewMockProvider()
 	}
 	s.routes()
-	s.handler = telemetry.TraceContextMiddleware(s.mux)
+	s.handler = telemetry.TraceContextMiddleware(s.localeMiddleware(s.mux))
 	return s
 }
 
@@ -299,6 +299,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/contact", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiLostPetContact))
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/status", s.handleApiLostPetStatus)
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/sightings", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiSightings))
+	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/sightings/{sightingID}/voice-memo", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiVoiceMemo))
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/trajectory", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiTrajectory))
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/search-party", s.rateLimiter.RequireRateLimitByMethodFunc(
 		map[string]ratelimit.Limit{
@@ -310,6 +311,14 @@ func (s *Server) routes() {
 	))
 	s.mux.HandleFunc("/api/v1/search-parties/{partyID}/sectors/{sectorID}/claim", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiClaimSector))
 	s.mux.HandleFunc("/api/v1/search-parties/{partyID}/sectors/{sectorID}/status", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiUpdateSectorStatus))
+	s.mux.HandleFunc("/api/v1/search-parties/{petID}/sectors/{sectorID}/breadcrumbs", s.rateLimiter.RequireRateLimitByMethodFunc(
+		map[string]ratelimit.Limit{
+			http.MethodPost: ratelimit.ModerateLimit,
+			http.MethodGet:  ratelimit.GenerousLimit,
+		},
+		nil,
+		s.handleApiSectorBreadcrumbs,
+	))
 	s.mux.HandleFunc("/api/v1/found-pets/extract-features", s.rateLimiter.RequireRateLimitFunc(ratelimit.StrictLimit, s.handleApiExtractFeatures))
 	s.mux.HandleFunc("/api/v1/found-pets", s.rateLimiter.RequireRateLimitByMethodFunc(
 		map[string]ratelimit.Limit{
@@ -360,15 +369,20 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	content, err := embeddedFiles.ReadFile("templates/layout.html")
+	tmpl, err := template.New("layout.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/layout.html")
 	if err != nil {
 		http.Error(w, "Failed to load layout template", http.StatusInternalServerError)
 		return
 	}
 
+	locale := LocaleFromContext(r.Context())
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(content)
+	_ = tmpl.Execute(w, struct {
+		Locale string
+	}{
+		Locale: locale,
+	})
 }
 
 func (s *Server) handleReportLost(w http.ResponseWriter, r *http.Request) {
@@ -1932,6 +1946,7 @@ type FinderLandingViewModel struct {
 	ReportFoundURL      string
 	ShortURLEncoded     string
 	ShareTextEncoded    string
+	Locale              string
 }
 
 func (s *Server) handleFinderLanding(w http.ResponseWriter, r *http.Request) {
@@ -2031,9 +2046,10 @@ func (s *Server) handleFinderLanding(w http.ResponseWriter, r *http.Request) {
 		ReportFoundURL:      fmt.Sprintf("/report-found?matchedPetId=%s", pet.PetID),
 		ShortURLEncoded:     url.QueryEscape(shortURL),
 		ShareTextEncoded:    url.QueryEscape(fmt.Sprintf("Help find %s! %s", petName, shortURL)),
+		Locale:              LocaleFromContext(r.Context()),
 	}
 
-	tmpl, err := template.ParseFS(embeddedFiles, "templates/finder_landing.html")
+	tmpl, err := template.New("finder_landing.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/finder_landing.html")
 	if err != nil {
 		http.Error(w, "Failed to load finder landing template", http.StatusInternalServerError)
 		return
@@ -2046,7 +2062,7 @@ func (s *Server) handleFinderLanding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(self), geolocation=(self), microphone=()")
+	w.Header().Set("Permissions-Policy", "camera=(self), geolocation=(self), microphone=(self)")
 	w.WriteHeader(http.StatusOK)
 	if r.Method != http.MethodHead {
 		_, _ = w.Write(buf.Bytes())
