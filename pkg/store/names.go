@@ -18,4 +18,5 @@ const (
 	SectorAssignmentsCollection       = "sectorAssignments"
 	WebhooksCollection                = "webhooks"
 	WebhookDeliveriesCollection       = "webhookDeliveries"
+	BreadcrumbsCollection             = "volunteerBreadcrumbs"
 )

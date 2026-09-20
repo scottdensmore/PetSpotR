@@ -37,12 +37,73 @@ func (s SectorStatus) Validate() error {
 
 // SearchSector defines a specific spatial polygon assigned to volunteers.
 type SearchSector struct {
-	SectorID      string                 `json:"sectorId"`
-	Name          string                 `json:"name"`
-	PolygonPoints []domain.LocationPoint `json:"polygonPoints"`
-	Status        SectorStatus           `json:"status"`
-	PriorityScore float64                `json:"priorityScore"`
-	TotalAreaSqM  float64                `json:"totalAreaSqM"`
+	SectorID      string                     `json:"sectorId"`
+	Name          string                     `json:"name"`
+	PolygonPoints []domain.LocationPoint     `json:"polygonPoints"`
+	Status        SectorStatus               `json:"status"`
+	PriorityScore float64                    `json:"priorityScore"`
+	TotalAreaSqM  float64                    `json:"totalAreaSqM"`
+	Breadcrumbs   []VolunteerBreadcrumbTrail `json:"breadcrumbs,omitempty"`
+}
+
+// BreadcrumbPoint represents a single GPS breadcrumb recorded during a volunteer search.
+type BreadcrumbPoint struct {
+	Latitude       float64   `json:"latitude"`
+	Longitude      float64   `json:"longitude"`
+	Timestamp      time.Time `json:"timestamp"`
+	AccuracyMeters float64   `json:"accuracyMeters"`
+}
+
+// Validate checks that BreadcrumbPoint has valid coordinates, timestamp, and accuracy.
+func (p BreadcrumbPoint) Validate() error {
+	if p.Latitude < -90.0 || p.Latitude > 90.0 {
+		return fmt.Errorf("searchparty: latitude must be between -90 and 90, got %f", p.Latitude)
+	}
+	if p.Longitude < -180.0 || p.Longitude > 180.0 {
+		return fmt.Errorf("searchparty: longitude must be between -180 and 180, got %f", p.Longitude)
+	}
+	if p.Timestamp.IsZero() {
+		return errors.New("searchparty: point timestamp is required")
+	}
+	if p.AccuracyMeters < 0 {
+		return errors.New("searchparty: accuracy must be non-negative")
+	}
+	return nil
+}
+
+// VolunteerBreadcrumbTrail encapsulates a continuous search path recorded by a volunteer in a sector.
+type VolunteerBreadcrumbTrail struct {
+	TrailID         string            `json:"trailId"`
+	SearchPartyID   string            `json:"searchPartyId"`
+	SectorID        string            `json:"sectorId"`
+	VolunteerAlias  string            `json:"volunteerAlias"`
+	Points          []BreadcrumbPoint `json:"points"`
+	TotalDistanceM  float64           `json:"totalDistanceM"`
+	DurationSeconds int               `json:"durationSeconds"`
+	CreatedAt       time.Time         `json:"createdAt"`
+	UpdatedAt       time.Time         `json:"updatedAt"`
+}
+
+// Validate checks required fields for VolunteerBreadcrumbTrail.
+func (t VolunteerBreadcrumbTrail) Validate() error {
+	if strings.TrimSpace(t.TrailID) == "" {
+		return errors.New("searchparty: trail ID is required")
+	}
+	if strings.TrimSpace(t.SearchPartyID) == "" {
+		return errors.New("searchparty: search party ID is required")
+	}
+	if strings.TrimSpace(t.SectorID) == "" {
+		return errors.New("searchparty: sector ID is required")
+	}
+	if strings.TrimSpace(t.VolunteerAlias) == "" {
+		return errors.New("searchparty: volunteer alias is required")
+	}
+	for i, pt := range t.Points {
+		if err := pt.Validate(); err != nil {
+			return fmt.Errorf("searchparty: invalid breadcrumb point at %d: %w", i, err)
+		}
+	}
+	return nil
 }
 
 // Validate checks required fields for SearchSector.

@@ -23,6 +23,248 @@
   let currentPetID = '';
   let activeEventSource = null;
   const sectorLayers = {}; // sectorId -> L.polygon
+  const trailLayers = {}; // trailId -> L.polyline
+  const sectorTrailsCache = {}; // sectorId -> array of VolunteerBreadcrumbTrail
+  let activeVolunteerMarker = null;
+
+  // Breadcrumbs recording state
+  let isRecordingTrail = false;
+  let activeWatchId = null;
+  let activeTrailId = null;
+  let activeSectorId = null;
+  let selectedSectorId = null;
+  let currentTrailPoints = [];
+  let currentTrailDistanceMeters = 0;
+
+  // IndexedDB offline buffer constants
+  const DB_NAME = 'petspotr_breadcrumbs_db';
+  const DB_VERSION = 1;
+  const STORE_NAME = 'search_party_breadcrumbs';
+  let dbInstance = null;
+
+  // Safe IndexedDB factory access
+  function getIndexedDB() {
+    if (typeof indexedDB !== 'undefined') return indexedDB;
+    if (typeof window !== 'undefined' && window.indexedDB) return window.indexedDB;
+    if (typeof globalThis !== 'undefined' && globalThis.indexedDB) return globalThis.indexedDB;
+    return null;
+  }
+
+  // Open IndexedDB database
+  function openBreadcrumbsDB() {
+    if (dbInstance) return Promise.resolve(dbInstance);
+    const idb = getIndexedDB();
+    if (!idb) return Promise.resolve(null);
+
+    return new Promise((resolve) => {
+      try {
+        const req = idb.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = function (e) {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+          }
+        };
+        req.onsuccess = function (e) {
+          dbInstance = e.target.result;
+          resolve(dbInstance);
+        };
+        req.onerror = function () {
+          resolve(null);
+        };
+      } catch (_) {
+        resolve(null);
+      }
+    });
+  }
+
+  // Queue breadcrumb batch in IndexedDB
+  async function queueOfflineBreadcrumbs(batch) {
+    const db = await openBreadcrumbsDB();
+    if (!db) return;
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        store.put(batch);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      } catch (_) {
+        resolve();
+      }
+    });
+  }
+
+  // Retrieve all queued breadcrumb batches
+  async function getQueuedBreadcrumbs() {
+    const db = await openBreadcrumbsDB();
+    if (!db) return [];
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => resolve([]);
+      } catch (_) {
+        resolve([]);
+      }
+    });
+  }
+
+  // Remove flushed breadcrumb from IndexedDB
+  async function removeQueuedBreadcrumb(id) {
+    const db = await openBreadcrumbsDB();
+    if (!db) return;
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        store.delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      } catch (_) {
+        resolve();
+      }
+    });
+  }
+
+  // Update offline badge in UI
+  async function updateOfflineBadge() {
+    const badge = document.getElementById('trail-offline-badge');
+    if (!badge) return;
+    const queued = await getQueuedBreadcrumbs();
+    if (queued && queued.length > 0) {
+      badge.textContent = `Buffered Offline (${queued.length})`;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+
+  // Auto-flush queued breadcrumbs when online
+  async function flushOfflineBreadcrumbs() {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    const queued = await getQueuedBreadcrumbs();
+    if (!queued || queued.length === 0) {
+      void updateOfflineBadge();
+      return;
+    }
+
+    const csrf = await getCsrfToken();
+    let flushedCount = 0;
+
+    for (const item of queued) {
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (csrf) headers['X-CSRF-Token'] = csrf;
+
+        const res = await fetch(
+          `/api/v1/search-parties/${encodeURIComponent(item.petId)}/sectors/${encodeURIComponent(item.sectorId)}/breadcrumbs`,
+          {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(item.payload),
+          }
+        );
+
+        if (res.ok) {
+          await removeQueuedBreadcrumb(item.id);
+          flushedCount++;
+        } else if (res.status >= 400 && res.status < 500) {
+          console.warn(`Breadcrumb batch rejected with client error ${res.status}, discarding item:`, item.id);
+          await removeQueuedBreadcrumb(item.id);
+        }
+      } catch (err) {
+        console.warn('Failed to flush breadcrumb batch:', err);
+        break; // Stop flushing if connection drop persists
+      }
+    }
+
+    await updateOfflineBadge();
+    if (flushedCount > 0) {
+      showToast(`Synced ${flushedCount} buffered search trail batch(es).`);
+    }
+  }
+
+  // Generate UUID v4 for offline queue keys
+  function generateUUID() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
+  // Spatial Distance Helpers
+  function haversineMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371000.0;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180.0;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180.0;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180.0) *
+        Math.cos((lat2 * Math.PI) / 180.0) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function calculateLocalTrailDistance(points) {
+    if (!Array.isArray(points) || points.length < 2) return 0;
+    let total = 0;
+    for (let i = 0; i < points.length - 1; i++) {
+      total += haversineMeters(
+        points[i].latitude,
+        points[i].longitude,
+        points[i + 1].latitude,
+        points[i + 1].longitude
+      );
+    }
+    return Math.round(total * 100) / 100;
+  }
+
+  function formatDistance(meters) {
+    if (typeof meters !== 'number' || isNaN(meters)) return '0.00 km';
+    if (meters >= 1000) {
+      return (meters / 1000).toFixed(2) + ' km';
+    }
+    return Math.round(meters) + ' m';
+  }
+
+  function updateDistanceDisplay(meters) {
+    const el = document.getElementById('trail-distance-walked');
+    if (el) {
+      el.textContent = formatDistance(meters);
+    }
+  }
+
+  // Volunteer Color Differentiation
+  const TRAIL_COLORS = [
+    '#4f46e5', // Indigo
+    '#059669', // Emerald
+    '#d97706', // Amber
+    '#db2777', // Pink
+    '#0891b2', // Cyan
+    '#7c3aed', // Purple
+    '#ea580c', // Orange
+    '#2563eb', // Blue
+  ];
+
+  function getTrailColor(key) {
+    if (!key) return TRAIL_COLORS[0];
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+      hash = (hash << 5) - hash + key.charCodeAt(i);
+      hash |= 0;
+    }
+    const idx = Math.abs(hash) % TRAIL_COLORS.length;
+    return TRAIL_COLORS[idx];
+  }
 
   // HTML entity escaper for safe DOM insertion
   function escapeHTML(str) {
@@ -154,6 +396,7 @@
 
   // Close Search Party Modal
   function closeSearchPartyModal() {
+    stopRecordingTrail();
     const modal = document.getElementById('pet-search-party-container');
     if (modal) {
       modal.classList.add('hidden');
@@ -205,6 +448,8 @@
       updateSummaryUI(party);
       renderSearchPartyMap(party);
       renderSectorCards(party);
+      void loadAllSectorTrails(party);
+      void updateOfflineBadge();
     } catch (err) {
       console.error('Error loading search party:', err);
       if (statusOverlay) {
@@ -258,6 +503,10 @@
     for (const key in sectorLayers) {
       delete sectorLayers[key];
     }
+    for (const key in trailLayers) {
+      delete trailLayers[key];
+    }
+    activeVolunteerMarker = null;
 
     searchPartyMapInstance = L.map(mapElement, {
       scrollWheelZoom: false,
@@ -333,6 +582,12 @@
     if (!currentParty || !Array.isArray(currentParty.sectors)) return;
     const sector = currentParty.sectors.find((s) => s.sectorId === sectorId);
     if (!sector) return;
+
+    selectedSectorId = sectorId;
+    const secLabel = document.getElementById('trail-active-sector-label');
+    if (secLabel) {
+      secLabel.textContent = sector.name;
+    }
 
     if (sector.status === 'unassigned') {
       openClaimModal(sector);
@@ -460,6 +715,9 @@
           <span class="badge badge-status-${sec.status}">${formatSectorStatus(sec.status)}</span>
         </div>
         <p class="sector-card-volunteer text-secondary">👤 ${volunteerText}</p>
+        <div class="sector-card-trail-info">
+          <span class="badge badge-trail" id="sector-trail-badge-${sec.sectorId}">👣 0 trails</span>
+        </div>
         <div class="sector-card-actions">
           <button type="button" class="btn ${btnClass} btn-sm btn-sector-action" data-action="${btnAction}" data-sector-id="${sec.sectorId}">
             ${btnLabel}
@@ -467,6 +725,7 @@
         </div>
       `;
       container.appendChild(card);
+      updateSectorTrailBadge(sec.sectorId);
     });
   }
 
@@ -660,6 +919,307 @@
     }
   }
 
+  // Draw or update a polyline on the Leaflet map for a breadcrumb trail
+  function drawTrailPolyline(trail) {
+    if (!searchPartyMapInstance || !trail || !Array.isArray(trail.points) || trail.points.length < 2) return;
+
+    const latLngs = trail.points.map((pt) => [pt.latitude, pt.longitude]);
+    const trailId = trail.trailId;
+
+    if (trailLayers[trailId]) {
+      trailLayers[trailId].setLatLngs(latLngs);
+    } else {
+      const color = getTrailColor(trail.volunteerAlias || trailId);
+      const poly = L.polyline(latLngs, {
+        color: color,
+        weight: 4,
+        opacity: 0.85,
+        smoothFactor: 1,
+        className: 'volunteer-trail-polyline',
+      }).addTo(searchPartyMapInstance);
+
+      poly.bindTooltip(
+        `<strong>${escapeHTML(trail.volunteerAlias || 'Volunteer')}</strong><br>Distance: ${formatDistance(trail.totalDistanceM)}<br>Points: ${trail.points.length}`,
+        { sticky: true }
+      );
+      trailLayers[trailId] = poly;
+    }
+  }
+
+  // Update or create pulsing marker for active volunteer position
+  function updateActiveVolunteerMarker(lat, lng) {
+    if (!searchPartyMapInstance) return;
+
+    const pulsingIcon = L.divIcon({
+      className: 'volunteer-pulse-marker-wrapper',
+      html: '<div class="volunteer-pulse-marker"><span class="pulse-ring"></span><span class="volunteer-pin">📍</span></div>',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
+
+    if (activeVolunteerMarker) {
+      activeVolunteerMarker.setLatLng([lat, lng]);
+    } else {
+      activeVolunteerMarker = L.marker([lat, lng], {
+        icon: pulsingIcon,
+        title: 'Active Search Position',
+        zIndexOffset: 1000,
+      }).addTo(searchPartyMapInstance);
+      activeVolunteerMarker.bindTooltip('<strong>Active Search Position</strong>', { permanent: false });
+    }
+  }
+
+  // Load existing trails for a sector from backend REST API
+  async function loadSectorTrails(petId, sectorId) {
+    try {
+      const res = await fetch(
+        `/api/v1/search-parties/${encodeURIComponent(petId)}/sectors/${encodeURIComponent(sectorId)}/breadcrumbs`,
+        { cache: 'no-store' }
+      );
+      if (!res.ok) return [];
+      const trails = await res.json();
+      sectorTrailsCache[sectorId] = trails || [];
+
+      if (Array.isArray(trails)) {
+        trails.forEach((tr) => drawTrailPolyline(tr));
+      }
+      updateSectorTrailBadge(sectorId);
+      return trails;
+    } catch (err) {
+      console.warn(`Failed to load trails for sector ${sectorId}:`, err);
+      return [];
+    }
+  }
+
+  // Load trails across all sectors
+  async function loadAllSectorTrails(party) {
+    if (!party || !Array.isArray(party.sectors)) return;
+    const petId = party.lostPetId || currentPetID;
+    for (const sec of party.sectors) {
+      await loadSectorTrails(petId, sec.sectorId);
+    }
+  }
+
+  // Update sector card badge with trail stats
+  function updateSectorTrailBadge(sectorId) {
+    const badge = document.getElementById(`sector-trail-badge-${sectorId}`);
+    if (!badge) return;
+    const trails = sectorTrailsCache[sectorId] || [];
+    if (trails.length === 0) {
+      badge.textContent = '👣 0 trails';
+      return;
+    }
+    let totalDist = 0;
+    trails.forEach((tr) => {
+      totalDist += tr.totalDistanceM || 0;
+    });
+    badge.textContent = `👣 ${trails.length} trail${trails.length > 1 ? 's' : ''} (${formatDistance(totalDist)})`;
+  }
+
+  // Get active volunteer alias
+  function getVolunteerAlias() {
+    if (activeSectorId && currentParty?.activeAssignments) {
+      const asgn = currentParty.activeAssignments.find((a) => a.sectorId === activeSectorId);
+      if (asgn && asgn.volunteerAlias) return asgn.volunteerAlias;
+    }
+    const aliasInput = document.getElementById('claim-volunteer-alias');
+    if (aliasInput && aliasInput.value.trim()) return aliasInput.value.trim();
+    return 'Volunteer Scout';
+  }
+
+  // Start recording volunteer GPS breadcrumbs
+  function startRecordingTrail(targetSectorId) {
+    if (!currentParty) return;
+
+    const sectorId =
+      targetSectorId ||
+      selectedSectorId ||
+      currentParty.activeAssignments?.[0]?.sectorId ||
+      currentParty.sectors?.[0]?.sectorId;
+
+    if (!sectorId) {
+      showToast('Please select a sector to record your search trail', true);
+      return;
+    }
+
+    const sector = currentParty.sectors?.find((s) => s.sectorId === sectorId);
+    activeSectorId = sectorId;
+    activeTrailId = `trail-${sectorId}-${Date.now()}`;
+    currentTrailPoints = [];
+    currentTrailDistanceMeters = 0;
+    isRecordingTrail = true;
+
+    // Update UI elements
+    const btnLabel = document.getElementById('record-trail-btn-label');
+    const btnIcon = document.getElementById('record-trail-icon');
+    const recordBtn = document.getElementById('btn-toggle-record-trail');
+    const recBadge = document.getElementById('recording-active-badge');
+    const secLabel = document.getElementById('trail-active-sector-label');
+
+    if (btnLabel) btnLabel.textContent = 'Stop Recording';
+    if (btnIcon) btnIcon.textContent = '⏹';
+    if (recordBtn) {
+      recordBtn.classList.remove('btn-secondary');
+      recordBtn.classList.add('btn-danger');
+    }
+    if (recBadge) recBadge.classList.remove('hidden');
+    if (secLabel && sector) secLabel.textContent = sector.name;
+
+    updateDistanceDisplay(0);
+
+    // Start geolocation watch
+    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      activeWatchId = navigator.geolocation.watchPosition(
+        onPositionUpdate,
+        (err) => {
+          console.warn('Geolocation watch error:', err);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      showToast('Geolocation is not supported by your browser', true);
+    }
+
+    showToast(`Started recording path for ${sector ? sector.name : sectorId}`);
+  }
+
+  // Stop recording volunteer GPS breadcrumbs
+  function stopRecordingTrail() {
+    if (!isRecordingTrail) return;
+
+    if (activeWatchId !== null && typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.clearWatch(activeWatchId);
+      activeWatchId = null;
+    }
+
+    isRecordingTrail = false;
+
+    // Update UI elements
+    const btnLabel = document.getElementById('record-trail-btn-label');
+    const btnIcon = document.getElementById('record-trail-icon');
+    const recordBtn = document.getElementById('btn-toggle-record-trail');
+    const recBadge = document.getElementById('recording-active-badge');
+
+    if (btnLabel) btnLabel.textContent = 'Record Search Path';
+    if (btnIcon) btnIcon.textContent = '⏺';
+    if (recordBtn) {
+      recordBtn.classList.remove('btn-danger');
+      recordBtn.classList.add('btn-secondary');
+    }
+    if (recBadge) recBadge.classList.add('hidden');
+
+    if (activeVolunteerMarker && searchPartyMapInstance) {
+      searchPartyMapInstance.removeLayer(activeVolunteerMarker);
+      activeVolunteerMarker = null;
+    }
+
+    void flushOfflineBreadcrumbs();
+    showToast(`Stopped recording. Total distance walked: ${formatDistance(currentTrailDistanceMeters)}`);
+  }
+
+  // Toggle recording state
+  function toggleRecordingTrail() {
+    if (isRecordingTrail) {
+      stopRecordingTrail();
+    } else {
+      startRecordingTrail();
+    }
+  }
+
+  // Handle GPS position update from navigator.geolocation.watchPosition
+  async function onPositionUpdate(pos) {
+    if (!isRecordingTrail || !pos || !pos.coords) return;
+
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const accuracy = pos.coords.accuracy || 0;
+    const timestamp = new Date(pos.timestamp || Date.now()).toISOString();
+
+    const pt = {
+      latitude: lat,
+      longitude: lng,
+      timestamp: timestamp,
+      accuracyMeters: accuracy,
+    };
+
+    currentTrailPoints.push(pt);
+    currentTrailDistanceMeters = calculateLocalTrailDistance(currentTrailPoints);
+    updateDistanceDisplay(currentTrailDistanceMeters);
+
+    updateActiveVolunteerMarker(lat, lng);
+
+    // Update local polyline live
+    const localTrail = {
+      trailId: activeTrailId,
+      searchPartyId: currentParty?.partyId || '',
+      sectorId: activeSectorId,
+      volunteerAlias: getVolunteerAlias(),
+      points: currentTrailPoints,
+      totalDistanceM: currentTrailDistanceMeters,
+    };
+    drawTrailPolyline(localTrail);
+
+    // Send breadcrumb batch to backend or offline queue
+    await sendBreadcrumbBatch([pt]);
+  }
+
+  // Transmit breadcrumbs batch or buffer in IndexedDB
+  async function sendBreadcrumbBatch(points) {
+    if (!currentParty || !activeSectorId || !points || points.length === 0) return;
+
+    const payload = {
+      trailId: activeTrailId,
+      volunteerAlias: getVolunteerAlias(),
+      points: points,
+    };
+
+    const petId = currentPetID || currentParty.lostPetId;
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      await queueOfflineBreadcrumbs({
+        id: generateUUID(),
+        petId: petId,
+        sectorId: activeSectorId,
+        payload: payload,
+        queuedAt: new Date().toISOString(),
+      });
+      await updateOfflineBadge();
+      return;
+    }
+
+    try {
+      const csrf = await getCsrfToken();
+      const headers = { 'Content-Type': 'application/json' };
+      if (csrf) headers['X-CSRF-Token'] = csrf;
+
+      const res = await fetch(
+        `/api/v1/search-parties/${encodeURIComponent(petId)}/sectors/${encodeURIComponent(activeSectorId)}/breadcrumbs`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      await updateOfflineBadge();
+      updateSectorTrailBadge(activeSectorId);
+    } catch (err) {
+      console.warn('Network error sending breadcrumbs, buffering offline:', err);
+      await queueOfflineBreadcrumbs({
+        id: generateUUID(),
+        petId: petId,
+        sectorId: activeSectorId,
+        payload: payload,
+        queuedAt: new Date().toISOString(),
+      });
+      await updateOfflineBadge();
+    }
+  }
+
   // Connect to SSE stream for live search party updates
   function connectSearchPartySSE(petId, matchId) {
     if (typeof EventSource !== 'function') return;
@@ -698,7 +1258,34 @@
         }
       };
 
+      const onBreadcrumb = (e) => {
+        try {
+          const payload = JSON.parse(e.data);
+          if (!payload) return;
+          const trail = payload.trail || (payload.trailId ? payload : null);
+          if (trail && Array.isArray(trail.points)) {
+            drawTrailPolyline(trail);
+            const secId = trail.sectorId || payload.sectorId;
+            if (secId) {
+              if (!sectorTrailsCache[secId]) {
+                sectorTrailsCache[secId] = [];
+              }
+              const existingIdx = sectorTrailsCache[secId].findIndex((t) => t.trailId === trail.trailId);
+              if (existingIdx >= 0) {
+                sectorTrailsCache[secId][existingIdx] = trail;
+              } else {
+                sectorTrailsCache[secId].push(trail);
+              }
+              updateSectorTrailBadge(secId);
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to parse breadcrumb SSE message:', err);
+        }
+      };
+
       evtSource.addEventListener('search_party_updated', onUpdate);
+      evtSource.addEventListener('breadcrumb_updated', onBreadcrumb);
       evtSource.addEventListener('message', onUpdate);
       evtSource.addEventListener('error', () => {
         // EventSource will automatically retry in modern browsers
@@ -724,6 +1311,14 @@
 
     // Global click listener for search party triggers and modals
     document.addEventListener('click', (e) => {
+      // 0. Toggle Record Trail Button
+      const recordBtn = e.target.closest('[data-action="toggle-record-trail"], #btn-toggle-record-trail');
+      if (recordBtn) {
+        e.preventDefault();
+        toggleRecordingTrail();
+        return;
+      }
+
       // 1. Open Search Party Trigger
       const searchPartyBtn = e.target.closest('[data-action="view-search-party"]');
       if (searchPartyBtn) {
@@ -800,4 +1395,28 @@
       }
     });
   });
+
+  // Online / Offline synchronization listeners
+  window.addEventListener('online', () => {
+    void flushOfflineBreadcrumbs();
+  });
+  window.addEventListener('offline', () => {
+    void updateOfflineBadge();
+  });
+
+  // Export for testability and headless automation
+  window.petspotrSearchParty = {
+    startRecordingTrail,
+    stopRecordingTrail,
+    toggleRecordingTrail,
+    isRecording: () => isRecordingTrail,
+    getQueuedBreadcrumbs,
+    flushOfflineBreadcrumbs,
+    drawTrailPolyline,
+    calculateLocalTrailDistance,
+    openBreadcrumbsDB,
+    updateActiveVolunteerMarker,
+    onPositionUpdate,
+    sendBreadcrumbBatch,
+  };
 })();
