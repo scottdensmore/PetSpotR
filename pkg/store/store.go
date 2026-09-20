@@ -25,6 +25,12 @@ type outboxIndexRecord struct {
 // SightingsCollection is the state store collection for pet sightings.
 const SightingsCollection = "sightings"
 
+// VoiceMemosCollection is the state store collection for sighting voice memo metadata.
+const VoiceMemosCollection = "voice_memos"
+
+// VoiceMemosAudioCollection is the state store collection for sighting voice memo binary audio.
+const VoiceMemosAudioCollection = "voice_memos_audio"
+
 // Sentinel errors for StateStore operations.
 var (
 	ErrStoreNotFound = errors.New("store: state store not found")

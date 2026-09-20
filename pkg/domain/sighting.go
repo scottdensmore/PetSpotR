@@ -35,6 +35,9 @@ type PetSightingRecord struct {
 	ImageObject         string         `json:"imageObject,omitempty"`
 	Notes               string         `json:"notes,omitempty"`
 	Status              SightingStatus `json:"status"`
+	VoiceMemoURL        string         `json:"voiceMemoUrl,omitempty"`
+	VoiceMemoDuration   float64        `json:"voiceMemoDuration,omitempty"`
+	VoiceMemoWaveform   []float64      `json:"voiceMemoWaveform,omitempty"`
 }
 
 // Validate checks that the PetSightingRecord contains required fields and valid coordinates.

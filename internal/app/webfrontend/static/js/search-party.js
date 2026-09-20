@@ -825,6 +825,9 @@
       const data = await res.json();
       closeClaimModal();
       showToast('Sector claimed successfully! Search status is now active.');
+      if (window.petspotrAnnounce) {
+        window.petspotrAnnounce('Search party updated: sector claimed');
+      }
 
       if (currentParty) {
         if (!Array.isArray(currentParty.activeAssignments)) {
@@ -1246,6 +1249,9 @@
               payload.coveragePercentage,
               payload.activeVolunteersCount
             );
+            if (window.petspotrAnnounce) {
+              window.petspotrAnnounce('Search party updated: sector status changed');
+            }
           }
         } catch (err) {
           console.warn('Failed to parse search party SSE message:', err);
