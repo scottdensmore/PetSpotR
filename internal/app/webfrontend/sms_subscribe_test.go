@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/scottdensmore/petspotr/internal/app/webfrontend"
+	"github.com/scottdensmore/petspotr/pkg/ratelimit"
 	"github.com/scottdensmore/petspotr/pkg/sms"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
@@ -120,4 +121,31 @@ func TestApiSmsSubscribe(t *testing.T) {
 			t.Errorf("expected phone to no longer be opted out, got %v (err: %v)", optedOut, err)
 		}
 	})
+}
+
+func TestApiSmsSubscribe_RateLimiting(t *testing.T) {
+	st := store.NewMemoryStore()
+	limiter := ratelimit.New()
+	srv := webfrontend.NewServerWithOptions(st, webfrontend.ServerOptions{
+		AllowPrivilegedMutations: true,
+		RateLimiter:              limiter,
+	})
+
+	body, _ := json.Marshal(map[string]string{"phone": "+12065550199"})
+
+	var got429 bool
+	for i := 0; i < 25; i++ {
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/sms/subscribe", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+		if w.Code == http.StatusTooManyRequests {
+			got429 = true
+			break
+		}
+	}
+
+	if !got429 {
+		t.Errorf("expected 429 Too Many Requests after exceeding rate limit burst on /api/v1/sms/subscribe")
+	}
 }

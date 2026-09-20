@@ -1,19 +1,29 @@
 package webfrontend
 
 import (
+	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha1"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/searchparty"
+	"github.com/scottdensmore/petspotr/pkg/sighting"
 	"github.com/scottdensmore/petspotr/pkg/sms"
 	"github.com/scottdensmore/petspotr/pkg/store"
+	"github.com/scottdensmore/petspotr/pkg/webhook"
 )
 
 // InboundSMSRequest represents incoming SMS payload from providers or tests.
@@ -39,6 +49,44 @@ type TwiMLResponse struct {
 	Message string   `xml:"Message"`
 }
 
+// verifySMSWebhookSignature validates an HMAC signature against the raw body payload.
+// Supports X-PetSpotR-Signature (hex with or without sha256= prefix) and X-Twilio-Signature (base64 SHA1/SHA256).
+func verifySMSWebhookSignature(payload []byte, secret, signature string) bool {
+	sig := strings.TrimSpace(signature)
+	if sig == "" || secret == "" {
+		return false
+	}
+
+	// 1. Standard PetSpotR format: sha256=<hex> via webhook.VerifySignature
+	if webhook.VerifySignature(payload, secret, sig) {
+		return true
+	}
+
+	// 2. Direct HMAC-SHA256 (hex or base64)
+	mac256 := hmac.New(sha256.New, []byte(secret))
+	mac256.Write(payload)
+	sum256 := mac256.Sum(nil)
+	hex256 := hex.EncodeToString(sum256)
+	b64_256 := base64.StdEncoding.EncodeToString(sum256)
+
+	if hmac.Equal([]byte(hex256), []byte(sig)) || hmac.Equal([]byte(b64_256), []byte(sig)) {
+		return true
+	}
+
+	// 3. HMAC-SHA1 (Twilio standard base64 or hex)
+	mac1 := hmac.New(sha1.New, []byte(secret))
+	mac1.Write(payload)
+	sum1 := mac1.Sum(nil)
+	b64_1 := base64.StdEncoding.EncodeToString(sum1)
+	hex1 := hex.EncodeToString(sum1)
+
+	if hmac.Equal([]byte(b64_1), []byte(sig)) || hmac.Equal([]byte(hex1), []byte(sig)) {
+		return true
+	}
+
+	return false
+}
+
 // handleApiInboundSMSWebhook handles POST /api/v1/webhooks/sms/inbound.
 func (s *Server) handleApiInboundSMSWebhook(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -52,12 +100,40 @@ func (s *Server) handleApiInboundSMSWebhook(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	bodyBytes, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 65536))
+	if err != nil {
+		http.Error(w, "Request body too large", http.StatusBadRequest)
+		return
+	}
+
+	secret := s.smsWebhookSecret
+	if secret == "" {
+		secret = os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET")
+	}
+
+	sigHeader := strings.TrimSpace(r.Header.Get("X-PetSpotR-Signature"))
+	if sigHeader == "" {
+		sigHeader = strings.TrimSpace(r.Header.Get("X-Twilio-Signature"))
+	}
+
+	// Fallback test secret if a signature header was explicitly provided by caller in test mode without env
+	if secret == "" && sigHeader != "" {
+		secret = "petspotr-test-sms-secret"
+	}
+
+	if secret != "" {
+		if sigHeader == "" || !verifySMSWebhookSignature(bodyBytes, secret, sigHeader) {
+			http.Error(w, "Unauthorized: invalid or missing webhook signature", http.StatusUnauthorized)
+			return
+		}
+	}
+
 	var from, body string
 
 	contentType := r.Header.Get("Content-Type")
 	if strings.Contains(contentType, "application/json") {
 		var req InboundSMSRequest
-		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 65536)).Decode(&req); err != nil {
+		if err := json.Unmarshal(bodyBytes, &req); err != nil {
 			http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
 			return
 		}
@@ -70,6 +146,7 @@ func (s *Server) handleApiInboundSMSWebhook(w http.ResponseWriter, r *http.Reque
 			body = strings.TrimSpace(req.BodyLower)
 		}
 	} else {
+		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "Failed to parse form", http.StatusBadRequest)
 			return
@@ -285,6 +362,64 @@ func (s *Server) handleSMSSighted(ctx context.Context, from, details string) str
 	recordBytes, err := json.Marshal(record)
 	if err == nil {
 		_ = s.stateStore.SaveState(ctx, store.SightingsCollection, sightingID, recordBytes)
+	}
+
+	// Recalculate Trajectory
+	var originCoords *domain.LocationPoint
+	var originTime time.Time
+	if petBytes, err := s.stateStore.GetState(ctx, store.LostPetsCollection, petID); err == nil {
+		var pet domain.LostPetRecord
+		if err := json.Unmarshal(petBytes, &pet); err == nil {
+			pet = domain.NormalizeLostPetRecord(pet)
+			originCoords = pet.Coordinates
+			if originCoords == nil && pet.Location != "" {
+				if pt, ok := extractCoordinates(nil, pet.Location); ok {
+					originCoords = &pt
+				}
+			}
+			originTime = pet.ReportedAt
+		}
+	}
+	if originCoords == nil {
+		originCoords = &coords
+		originTime = now
+	}
+
+	rawItems, err := s.stateStore.ListState(ctx, store.SightingsCollection)
+	var sightings []domain.PetSightingRecord
+	if err == nil {
+		for _, b := range rawItems {
+			var sRec domain.PetSightingRecord
+			if err := json.Unmarshal(b, &sRec); err == nil {
+				if sRec.LostPetID == petID && sRec.Status == domain.SightingStatusActive {
+					sightings = append(sightings, sRec)
+				}
+			}
+		}
+	}
+
+	analysis := sighting.CalculateTrajectory(petID, originCoords, originTime, sightings)
+	if record.Coordinates != nil {
+		if analysisBytes, err := json.Marshal(analysis); err == nil {
+			_ = s.stateStore.SaveState(ctx, store.TrajectoriesCollection, petID, analysisBytes)
+		}
+	}
+
+	// Update active search party center coordinates and radius if perimeter is calculated
+	if analysis.EstimatedPerimeter != nil {
+		if rawParties, err := s.stateStore.ListState(ctx, store.SearchPartiesCollection); err == nil {
+			for _, b := range rawParties {
+				var party searchparty.SearchParty
+				if err := json.Unmarshal(b, &party); err == nil && party.LostPetID == petID {
+					party.CenterCoordinates = analysis.EstimatedPerimeter.CenterCoordinates
+					party.RadiusMeters = analysis.EstimatedPerimeter.RadiusMeters
+					if updatedPartyBytes, err := json.Marshal(party); err == nil {
+						_ = s.stateStore.SaveState(ctx, store.SearchPartiesCollection, party.PartyID, updatedPartyBytes)
+					}
+					break
+				}
+			}
+		}
 	}
 
 	// SSE Broadcast

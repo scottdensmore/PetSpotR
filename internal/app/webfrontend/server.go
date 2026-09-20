@@ -15,6 +15,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -58,6 +59,7 @@ type Server struct {
 	webhookDispatcher        *webhook.Dispatcher
 	allowLocalhostWebhooks   bool
 	smsProvider              sms.Provider
+	smsWebhookSecret         string
 	handler                  http.Handler
 }
 
@@ -102,6 +104,7 @@ type ServerOptions struct {
 	WebhookDispatcher        *webhook.Dispatcher
 	AllowLocalhostWebhooks   bool
 	SMSProvider              sms.Provider
+	SMSWebhookSecret         string
 }
 
 // NewServer initializes an empty in-memory Server for tests and local callers.
@@ -207,6 +210,10 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		webhookDispatcher:        webhookDispatcher,
 		allowLocalhostWebhooks:   options.AllowLocalhostWebhooks,
 		smsProvider:              options.SMSProvider,
+		smsWebhookSecret:         strings.TrimSpace(options.SMSWebhookSecret),
+	}
+	if s.smsWebhookSecret == "" {
+		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
 	}
 	if s.smsProvider == nil {
 		s.smsProvider = sms.NewMockProvider()
@@ -277,7 +284,7 @@ func (s *Server) routes() {
 	))
 	s.mux.HandleFunc("/api/v1/webhooks/{id}", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiWebhookByID))
 	s.mux.HandleFunc("/api/v1/webhooks/{id}/test", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiWebhookTest))
-	s.mux.HandleFunc("/api/v1/webhooks/sms/inbound", s.handleApiInboundSMSWebhook)
+	s.mux.HandleFunc("/api/v1/webhooks/sms/inbound", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiInboundSMSWebhook))
 	s.mux.HandleFunc("/api/v1/pets", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleApiPets))
 	s.mux.HandleFunc("/api/v1/pets/{petID}/qr.svg", s.handleApiPetQR)
 	s.mux.HandleFunc("/api/v1/pets/{petID}/share-card.svg", s.handleApiPetShareCard)
@@ -328,7 +335,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/reunions/presence", s.handleApiReunionPresence)
 	s.mux.HandleFunc("/api/v1/push/subscribe", s.handleApiPushSubscribe)
 	s.mux.HandleFunc("/api/v1/push/test", s.handleApiPushTest)
-	s.mux.HandleFunc("/api/v1/sms/subscribe", s.handleApiSmsSubscribe)
+	s.mux.HandleFunc("/api/v1/sms/subscribe", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiSmsSubscribe))
 	s.mux.HandleFunc("/api/v1/notifications", s.handleApiNotifications)
 	s.mux.HandleFunc("/api/v1/notifications/mark-read", s.handleApiNotificationsMarkRead)
 	s.mux.HandleFunc("/api/v1/notifications/preferences", s.handleApiNotificationsPreferences)

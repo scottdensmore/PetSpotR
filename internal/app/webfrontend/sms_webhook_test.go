@@ -3,6 +3,9 @@ package webfrontend_test
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -13,9 +16,12 @@ import (
 
 	"github.com/scottdensmore/petspotr/internal/app/webfrontend"
 	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/ratelimit"
 	"github.com/scottdensmore/petspotr/pkg/searchparty"
+	"github.com/scottdensmore/petspotr/pkg/sighting"
 	"github.com/scottdensmore/petspotr/pkg/sms"
 	"github.com/scottdensmore/petspotr/pkg/store"
+	"github.com/scottdensmore/petspotr/pkg/webhook"
 )
 
 func setupTestServerWithSearchParty(t *testing.T) (*webfrontend.Server, store.StateStore, *webfrontend.ReunionHub, string) {
@@ -194,6 +200,22 @@ func TestSMSWebhook_Sighted(t *testing.T) {
 		t.Fatalf("expected 1 sighting in store, got %d", len(rawSightings))
 	}
 
+	// Verify trajectory recalculated and persisted in store.TrajectoriesCollection
+	rawTraj, err := st.GetState(context.Background(), store.TrajectoriesCollection, petID)
+	if err != nil {
+		t.Fatalf("failed to retrieve trajectory from store: %v", err)
+	}
+	var analysis sighting.TrajectoryAnalysis
+	if err := json.Unmarshal(rawTraj, &analysis); err != nil {
+		t.Fatalf("failed to unmarshal trajectory analysis: %v", err)
+	}
+	if analysis.LostPetID != petID {
+		t.Errorf("expected trajectory pet ID %s, got %s", petID, analysis.LostPetID)
+	}
+	if len(analysis.OrderedSightings) != 1 {
+		t.Errorf("expected 1 ordered sighting in trajectory, got %d", len(analysis.OrderedSightings))
+	}
+
 	// Verify SSE broadcast event received
 	select {
 	case evt := <-subCh:
@@ -318,5 +340,96 @@ func TestSMSWebhook_MethodNotAllowedAndInvalidRequests(t *testing.T) {
 	srv.ServeHTTP(wNoFrom, reqNoFrom)
 	if wNoFrom.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 Bad Request for missing From, got %d", wNoFrom.Code)
+	}
+}
+
+func TestSMSWebhook_SignatureValidation(t *testing.T) {
+	st := store.NewMemoryStore()
+	secret := "secret-sms-auth-token-123"
+	srv := webfrontend.NewServerWithOptions(st, webfrontend.ServerOptions{
+		AllowPrivilegedMutations: true,
+		DisableRateLimiting:      true,
+		SMSWebhookSecret:         secret,
+	})
+
+	payload := map[string]string{
+		"From": "+12065550199",
+		"Body": "STATUS",
+	}
+	bodyBytes, _ := json.Marshal(payload)
+
+	// 1. Missing signature header -> 401 Unauthorized
+	reqNoSig := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks/sms/inbound", bytes.NewReader(bodyBytes))
+	reqNoSig.Header.Set("Content-Type", "application/json")
+	wNoSig := httptest.NewRecorder()
+	srv.ServeHTTP(wNoSig, reqNoSig)
+	if wNoSig.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 Unauthorized for missing signature, got %d", wNoSig.Code)
+	}
+
+	// 2. Invalid signature header -> 401 Unauthorized
+	reqBadSig := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks/sms/inbound", bytes.NewReader(bodyBytes))
+	reqBadSig.Header.Set("Content-Type", "application/json")
+	reqBadSig.Header.Set("X-PetSpotR-Signature", "sha256=invalidhexsignature00000000")
+	wBadSig := httptest.NewRecorder()
+	srv.ServeHTTP(wBadSig, reqBadSig)
+	if wBadSig.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 Unauthorized for bad signature, got %d", wBadSig.Code)
+	}
+
+	// 3. Valid X-PetSpotR-Signature -> 200 OK
+	validPetSpotRSig := webhook.GenerateSignature(bodyBytes, secret)
+	reqValidSig := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks/sms/inbound", bytes.NewReader(bodyBytes))
+	reqValidSig.Header.Set("Content-Type", "application/json")
+	reqValidSig.Header.Set("X-PetSpotR-Signature", validPetSpotRSig)
+	wValidSig := httptest.NewRecorder()
+	srv.ServeHTTP(wValidSig, reqValidSig)
+	if wValidSig.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for valid PetSpotR signature, got %d", wValidSig.Code)
+	}
+
+	// 4. Valid X-Twilio-Signature (HMAC-SHA1 base64) -> 200 OK
+	mac := hmac.New(sha1.New, []byte(secret))
+	mac.Write(bodyBytes)
+	twilioSig := base64.StdEncoding.EncodeToString(mac.Sum(nil))
+
+	reqTwilio := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks/sms/inbound", bytes.NewReader(bodyBytes))
+	reqTwilio.Header.Set("Content-Type", "application/json")
+	reqTwilio.Header.Set("X-Twilio-Signature", twilioSig)
+	wTwilio := httptest.NewRecorder()
+	srv.ServeHTTP(wTwilio, reqTwilio)
+	if wTwilio.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for valid Twilio signature, got %d", wTwilio.Code)
+	}
+}
+
+func TestSMSWebhook_RateLimiting(t *testing.T) {
+	st := store.NewMemoryStore()
+	limiter := ratelimit.New()
+	srv := webfrontend.NewServerWithOptions(st, webfrontend.ServerOptions{
+		AllowPrivilegedMutations: true,
+		RateLimiter:              limiter,
+	})
+
+	payload := map[string]string{
+		"From": "+12065550199",
+		"Body": "STATUS",
+	}
+	bodyBytes, _ := json.Marshal(payload)
+
+	var got429 bool
+	for i := 0; i < 25; i++ {
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks/sms/inbound", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+		if w.Code == http.StatusTooManyRequests {
+			got429 = true
+			break
+		}
+	}
+
+	if !got429 {
+		t.Errorf("expected 429 Too Many Requests after exceeding rate limit burst")
 	}
 }
