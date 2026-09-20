@@ -45,4 +45,10 @@ func TestCanonicalCollectionNames(t *testing.T) {
 	if store.SectorAssignmentsCollection != "sectorAssignments" {
 		t.Fatalf("SectorAssignmentsCollection = %q, want sectorAssignments", store.SectorAssignmentsCollection)
 	}
+	if store.WebhooksCollection != "webhooks" {
+		t.Fatalf("WebhooksCollection = %q, want webhooks", store.WebhooksCollection)
+	}
+	if store.WebhookDeliveriesCollection != "webhookDeliveries" {
+		t.Fatalf("WebhookDeliveriesCollection = %q, want webhookDeliveries", store.WebhookDeliveriesCollection)
+	}
 }

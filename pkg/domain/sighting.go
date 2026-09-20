@@ -19,6 +19,9 @@ const (
 	SightingStatusDismissed SightingStatus = "dismissed"
 )
 
+// SightingRecord is an alias for PetSightingRecord for syndication feeds and external consumers.
+type SightingRecord = PetSightingRecord
+
 // PetSightingRecord captures a community witness report of a lost pet.
 type PetSightingRecord struct {
 	SightingID          string         `json:"sightingId"`

@@ -30,6 +30,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/store"
 	"github.com/scottdensmore/petspotr/pkg/telemetry"
+	"github.com/scottdensmore/petspotr/pkg/webhook"
 )
 
 //go:embed static/* templates/*
@@ -53,6 +54,8 @@ type Server struct {
 	rateLimiter              ratelimit.Limiter
 	reunionHub               *ReunionHub
 	reunionPingInterval      time.Duration
+	webhookDispatcher        *webhook.Dispatcher
+	allowLocalhostWebhooks   bool
 	handler                  http.Handler
 }
 
@@ -94,6 +97,8 @@ type ServerOptions struct {
 	DisableRateLimiting      bool
 	ReunionHub               *ReunionHub
 	ReunionPingInterval      time.Duration
+	WebhookDispatcher        *webhook.Dispatcher
+	AllowLocalhostWebhooks   bool
 }
 
 // NewServer initializes an empty in-memory Server for tests and local callers.
@@ -173,6 +178,14 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 	if reunionHub == nil {
 		reunionHub = NewReunionHub()
 	}
+	webhookDispatcher := options.WebhookDispatcher
+	if webhookDispatcher == nil && st != nil {
+		var dOpts []webhook.DispatcherOption
+		if options.AllowLocalhostWebhooks {
+			dOpts = append(dOpts, webhook.WithAllowLocalhost(true))
+		}
+		webhookDispatcher = webhook.NewDispatcher(st, dOpts...)
+	}
 	s := &Server{
 		mux:                      http.NewServeMux(),
 		metrics:                  telemetry.NewMetricsRegistry("web-frontend"),
@@ -188,6 +201,8 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		rateLimiter:              rateLimiter,
 		reunionHub:               reunionHub,
 		reunionPingInterval:      options.ReunionPingInterval,
+		webhookDispatcher:        webhookDispatcher,
+		allowLocalhostWebhooks:   options.AllowLocalhostWebhooks,
 	}
 	s.routes()
 	s.handler = telemetry.TraceContextMiddleware(s.mux)
@@ -239,10 +254,22 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/report-found", s.handleReportFound)
 	s.mux.HandleFunc("/matches", s.handleMatches)
 	s.mux.HandleFunc("/shelters/analytics", s.handleShelterAnalytics)
+	s.mux.HandleFunc("/feeds/lost-pets.atom", s.handleLostPetsFeed)
+	s.mux.HandleFunc("/feeds/sightings.atom", s.handleSightingsFeed)
 	if s.rateLimiter == nil {
 		s.rateLimiter = ratelimit.NewNoop()
 	}
 
+	s.mux.HandleFunc("/api/v1/webhooks", s.rateLimiter.RequireRateLimitByMethodFunc(
+		map[string]ratelimit.Limit{
+			http.MethodPost: ratelimit.StrictLimit,
+			http.MethodGet:  ratelimit.GenerousLimit,
+		},
+		nil,
+		s.handleApiWebhooks,
+	))
+	s.mux.HandleFunc("/api/v1/webhooks/{id}", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiWebhookByID))
+	s.mux.HandleFunc("/api/v1/webhooks/{id}/test", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiWebhookTest))
 	s.mux.HandleFunc("/api/v1/pets", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleApiPets))
 	s.mux.HandleFunc("/api/v1/pets/{petID}/qr.svg", s.handleApiPetQR)
 	s.mux.HandleFunc("/api/v1/pets/{petID}/share-card.svg", s.handleApiPetShareCard)

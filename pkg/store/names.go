@@ -16,4 +16,6 @@ const (
 	NotificationsCollection           = "notifications"
 	SearchPartiesCollection           = "searchParties"
 	SectorAssignmentsCollection       = "sectorAssignments"
+	WebhooksCollection                = "webhooks"
+	WebhookDeliveriesCollection       = "webhookDeliveries"
 )
