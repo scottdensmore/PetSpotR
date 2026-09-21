@@ -2372,3 +2372,82 @@ func TestSearchPartyAssets(t *testing.T) {
 		}
 	}
 }
+
+func TestEvacuationAssets(t *testing.T) {
+	t.Parallel()
+
+	srv := NewDemoServer()
+
+	// 1. Verify GET /evacuation returns 200 OK with HTML and dashboard markup
+	req := httptest.NewRequest(http.MethodGet, "/evacuation", nil)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for /evacuation, got %d: %s", rec.Code, rec.Body.String())
+	}
+	htmlBody := rec.Body.String()
+	expectedHTMLSnippets := []string{
+		"metric-evacuated-total",
+		"metric-active-hubs",
+		"metric-open-capacity",
+		"metric-reunifications-pending",
+		"tab-hubs",
+		"tab-intake",
+		"tab-transfers",
+		"tab-reunifications",
+		"hubs-card-grid",
+		"intake-dropzone",
+		"intake-file-input",
+		"intake-hub-select",
+		"btn-process-batch",
+		"transfers-ledger-table",
+		"transfers-status-filter",
+		"reunifications-grid",
+		"modal-new-hub",
+		"modal-stage-transfer",
+		`<script src="/static/js/evacuation.js"></script>`,
+	}
+	for _, snippet := range expectedHTMLSnippets {
+		if !strings.Contains(htmlBody, snippet) {
+			t.Errorf("/evacuation missing expected markup snippet: %q", snippet)
+		}
+	}
+
+	// 2. Verify GET /static/js/evacuation.js returns 200 OK with javascript content-type
+	jsReq := httptest.NewRequest(http.MethodGet, "/static/js/evacuation.js", nil)
+	jsRec := httptest.NewRecorder()
+	srv.ServeHTTP(jsRec, jsReq)
+
+	if jsRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for /static/js/evacuation.js, got %d: %s", jsRec.Code, jsRec.Body.String())
+	}
+	ct := jsRec.Header().Get("Content-Type")
+	if !strings.Contains(ct, "javascript") {
+		t.Errorf("expected javascript Content-Type for /static/js/evacuation.js, got %q", ct)
+	}
+
+	// 3. Verify embedded evacuation.js content
+	jsData, err := embeddedFiles.ReadFile("static/js/evacuation.js")
+	if err != nil {
+		t.Fatalf("failed to read embedded static/js/evacuation.js: %v", err)
+	}
+	jsContent := string(jsData)
+	expectedJSSnippets := []string{
+		"/api/v1/evacuations/hubs",
+		"/api/v1/evacuations/intake-batch",
+		"/api/v1/evacuations/transfers",
+		"/api/v1/evacuations/reunification-queue",
+		"intake-dropzone",
+		"btn-process-batch",
+		"transfers-ledger-table",
+		"reunifications-grid",
+		"modal-new-hub",
+		"modal-stage-transfer",
+	}
+	for _, snippet := range expectedJSSnippets {
+		if !strings.Contains(jsContent, snippet) {
+			t.Errorf("static/js/evacuation.js missing snippet %q", snippet)
+		}
+	}
+}
