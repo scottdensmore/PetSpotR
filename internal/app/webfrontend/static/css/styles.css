@@ -6383,7 +6383,7 @@ textarea:focus-visible,
 [data-theme="light"] .transfer-status-intransit,
 [data-theme="light"] .badge-transfer-intransit {
   background: #e0f2fe;
-  color: #075985;
+  color: #0c4a6e;
   border-color: #0284c7;
 }
 
@@ -6562,9 +6562,9 @@ textarea:focus-visible,
 
 .btn-contact-owner,
 #btn-contact-owner {
-  background: #ef4444;
+  background: #991b1b;
   color: #ffffff;
-  border: 1px solid #b91c1c;
+  border: 1px solid #ef4444;
   font-weight: 700;
   padding: 0.65rem 1.25rem;
   border-radius: 6px;
@@ -6579,7 +6579,7 @@ textarea:focus-visible,
 
 .btn-contact-owner:hover,
 #btn-contact-owner:hover {
-  background: #dc2626;
+  background: #7f1d1d;
   box-shadow: 0 0 16px rgba(239, 68, 68, 0.4);
 }
 
@@ -6591,14 +6591,14 @@ textarea:focus-visible,
 
 [data-theme="light"] .btn-contact-owner,
 [data-theme="light"] #btn-contact-owner {
-  background: #b91c1c;
+  background: #991b1b;
   color: #ffffff;
-  border-color: #991b1b;
+  border-color: #7f1d1d;
 }
 
 [data-theme="light"] .btn-contact-owner:hover,
 [data-theme="light"] #btn-contact-owner:hover {
-  background: #991b1b;
+  background: #7f1d1d;
   box-shadow: 0 0 12px rgba(185, 28, 28, 0.3);
 }
 
