@@ -76,6 +76,7 @@ func (s *Server) handleApiCreateSearchParty(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if found {
+		s.annotatePartySectorsWithUrgency(r.Context(), pet, &existingParty)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(SearchPartyResponse{
@@ -165,6 +166,8 @@ func (s *Server) handleApiCreateSearchParty(w http.ResponseWriter, r *http.Reque
 		ActiveVolunteersCount: 0,
 	}
 
+	s.annotatePartySectorsWithUrgency(r.Context(), pet, &party)
+
 	partyBytes, err := json.Marshal(party)
 	if err != nil {
 		http.Error(w, "Failed to serialize search party", http.StatusInternalServerError)
@@ -226,6 +229,8 @@ func (s *Server) handleApiGetSearchParty(w http.ResponseWriter, r *http.Request)
 
 	party.CoveragePercentage = party.CalculateCoverage()
 	party.ActiveVolunteersCount = countActiveVolunteers(party.ActiveAssignments)
+
+	s.annotatePartySectorsWithUrgency(r.Context(), pet, &party)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -628,4 +633,78 @@ func sanitizeVolunteerAlias(raw string, seq int) string {
 		trimmed = trimmed[:40]
 	}
 	return trimmed
+}
+
+// annotatePartySectorsWithUrgency scores each sector against predictive trajectory isochrones
+// and sets priorityScore, urgencyLevel, and hidingClusterIds.
+func (s *Server) annotatePartySectorsWithUrgency(ctx context.Context, pet domain.LostPetRecord, party *searchparty.SearchParty) {
+	if party == nil || len(party.Sectors) == 0 {
+		return
+	}
+
+	originCoords := pet.Coordinates
+	if originCoords == nil && pet.Location != "" {
+		if pt, ok := extractCoordinates(nil, pet.Location); ok {
+			originCoords = &pt
+		}
+	}
+
+	sightings := s.getActiveSightingsForPet(ctx, pet.PetID)
+	if originCoords == nil && len(sightings) == 0 {
+		return
+	}
+
+	species := strings.ToLower(strings.TrimSpace(pet.Species))
+	if species == "" {
+		species = "dog"
+	}
+
+	elapsedHours := 1.0
+	var lastTime time.Time
+	if len(sightings) > 0 {
+		for _, sRec := range sightings {
+			if sRec.SightedAt.After(lastTime) {
+				lastTime = sRec.SightedAt
+			}
+		}
+	} else if !pet.ReportedAt.IsZero() {
+		lastTime = pet.ReportedAt
+	}
+	if !lastTime.IsZero() {
+		diff := time.Since(lastTime)
+		if diff > 0 {
+			elapsedHours = diff.Hours()
+		}
+	}
+	if elapsedHours <= 0 {
+		elapsedHours = 1.0
+	}
+
+	predResult := sighting.GeneratePredictiveTrajectory(pet.PetID, species, originCoords, sightings, elapsedHours)
+
+	for i := range party.Sectors {
+		dSec := domain.SearchSector{
+			SectorID:        party.Sectors[i].SectorID,
+			Name:            party.Sectors[i].Name,
+			BoundingPolygon: party.Sectors[i].PolygonPoints,
+			PolygonPoints:   party.Sectors[i].PolygonPoints,
+			Status:          string(party.Sectors[i].Status),
+			TotalAreaSqM:    party.Sectors[i].TotalAreaSqM,
+		}
+		score, urgency := sighting.ScoreSectorUrgency(dSec, predResult.Isochrones)
+		party.Sectors[i].PriorityScore = score
+		party.Sectors[i].UrgencyLevel = urgency
+
+		var clusterIDs []string
+		for _, hc := range predResult.HidingClusters {
+			bcPt := searchparty.BreadcrumbPoint{
+				Latitude:  hc.Centroid.Latitude,
+				Longitude: hc.Centroid.Longitude,
+			}
+			if searchparty.PointInSectorPolygon(bcPt, party.Sectors[i].PolygonPoints) {
+				clusterIDs = append(clusterIDs, hc.ID)
+			}
+		}
+		party.Sectors[i].HidingClusterIDs = clusterIDs
+	}
 }

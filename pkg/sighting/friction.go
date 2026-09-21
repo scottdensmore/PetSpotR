@@ -295,8 +295,10 @@ func GeneratePredictiveTrajectory(
 		if len(sortedSightings) >= 2 {
 			p1 := *sortedSightings[len(sortedSightings)-2].Coordinates
 			p2 := *sortedSightings[len(sortedSightings)-1].Coordinates
-			headingDegrees = initialBearingDegrees(p1, p2)
-			hasHeading = true
+			if p1.Latitude != p2.Latitude || p1.Longitude != p2.Longitude {
+				headingDegrees = initialBearingDegrees(p1, p2)
+				hasHeading = true
+			}
 		}
 	} else if len(sightings) == 1 && origin != nil && sightings[0].Coordinates != nil {
 		p1 := *origin
@@ -479,7 +481,7 @@ func GeneratePredictiveTrajectory(
 		}
 		// Early stop if far beyond search envelope
 		if top.cost > budgetMeters*1.30 {
-			continue
+			break
 		}
 
 		for _, d := range directions {

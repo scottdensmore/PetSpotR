@@ -37,13 +37,15 @@ func (s SectorStatus) Validate() error {
 
 // SearchSector defines a specific spatial polygon assigned to volunteers.
 type SearchSector struct {
-	SectorID      string                     `json:"sectorId"`
-	Name          string                     `json:"name"`
-	PolygonPoints []domain.LocationPoint     `json:"polygonPoints"`
-	Status        SectorStatus               `json:"status"`
-	PriorityScore float64                    `json:"priorityScore"`
-	TotalAreaSqM  float64                    `json:"totalAreaSqM"`
-	Breadcrumbs   []VolunteerBreadcrumbTrail `json:"breadcrumbs,omitempty"`
+	SectorID         string                     `json:"sectorId"`
+	Name             string                     `json:"name"`
+	PolygonPoints    []domain.LocationPoint     `json:"polygonPoints"`
+	Status           SectorStatus               `json:"status"`
+	PriorityScore    float64                    `json:"priorityScore"`
+	UrgencyLevel     domain.SectorUrgencyLevel  `json:"urgencyLevel,omitempty"`
+	HidingClusterIDs []string                   `json:"hidingClusterIds,omitempty"`
+	TotalAreaSqM     float64                    `json:"totalAreaSqM"`
+	Breadcrumbs      []VolunteerBreadcrumbTrail `json:"breadcrumbs,omitempty"`
 }
 
 // BreadcrumbPoint represents a single GPS breadcrumb recorded during a volunteer search.

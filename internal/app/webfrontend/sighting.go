@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/sighting"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
@@ -263,78 +262,4 @@ func (s *Server) handleApiListSightings(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(sightings)
-}
-
-func (s *Server) handleApiTrajectory(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	s.handleApiGetTrajectory(w, r)
-}
-
-func (s *Server) handleApiGetTrajectory(w http.ResponseWriter, r *http.Request) {
-	if s.stateStore == nil {
-		http.Error(w, "state store uninitialized", http.StatusInternalServerError)
-		return
-	}
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	petID := strings.TrimSpace(r.PathValue("petID"))
-	if petID == "" {
-		http.NotFound(w, r)
-		return
-	}
-
-	petBytes, err := s.stateStore.GetState(r.Context(), store.LostPetsCollection, petID)
-	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-		http.NotFound(w, r)
-		return
-	}
-	if err != nil {
-		http.Error(w, "Failed to retrieve lost pet", http.StatusInternalServerError)
-		return
-	}
-
-	var pet domain.LostPetRecord
-	if err := json.Unmarshal(petBytes, &pet); err != nil {
-		http.Error(w, "Failed to decode lost pet", http.StatusInternalServerError)
-		return
-	}
-	pet = domain.NormalizeLostPetRecord(pet)
-
-	rawItems, err := s.stateStore.ListState(r.Context(), store.SightingsCollection)
-	if err != nil && !errors.Is(err, store.ErrStoreNotFound) && !errors.Is(err, store.ErrNotFound) {
-		http.Error(w, "Failed to list sightings", http.StatusInternalServerError)
-		return
-	}
-
-	sightings := make([]domain.PetSightingRecord, 0)
-	for _, b := range rawItems {
-		var sRec domain.PetSightingRecord
-		if err := json.Unmarshal(b, &sRec); err != nil {
-			continue
-		}
-		if sRec.LostPetID == petID && sRec.Status == domain.SightingStatusActive {
-			sightings = append(sightings, sRec)
-		}
-	}
-
-	originCoords := pet.Coordinates
-	if originCoords == nil && pet.Location != "" {
-		if pt, ok := extractCoordinates(nil, pet.Location); ok {
-			originCoords = &pt
-		}
-	}
-
-	analysis := sighting.CalculateTrajectory(petID, originCoords, pet.ReportedAt, sightings)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(analysis)
 }
