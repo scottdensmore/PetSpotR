@@ -424,20 +424,22 @@ func (s *Server) handleMatches(w http.ResponseWriter, r *http.Request) {
 }
 
 type LostPetFormRequest struct {
-	PetID         string                `json:"petId"`
-	PetName       string                `json:"petName"`
-	Species       string                `json:"species"`
-	Breed         string                `json:"breed"`
-	PrimaryColor  string                `json:"primaryColor"`
-	Description   string                `json:"description"`
-	Location      string                `json:"location"`
-	ReporterEmail string                `json:"reporterEmail"`
-	Phone         string                `json:"phone"`
-	MicrochipID   string                `json:"microchipId,omitempty"`
-	Coordinates   *domain.LocationPoint `json:"coordinates,omitempty"`
-	ImageObject   string                `json:"imageObject,omitempty"`
-	Images        []domain.PetImage     `json:"images,omitempty"`
-	ReportedAt    time.Time             `json:"reportedAt"`
+	PetID              string                     `json:"petId"`
+	PetName            string                     `json:"petName"`
+	Species            string                     `json:"species"`
+	Breed              string                     `json:"breed"`
+	PrimaryColor       string                     `json:"primaryColor"`
+	Description        string                     `json:"description"`
+	Location           string                     `json:"location"`
+	ReporterEmail      string                     `json:"reporterEmail"`
+	Phone              string                     `json:"phone"`
+	MicrochipID        string                     `json:"microchipId,omitempty"`
+	Coordinates        *domain.LocationPoint      `json:"coordinates,omitempty"`
+	ImageObject        string                     `json:"imageObject,omitempty"`
+	Images             []domain.PetImage          `json:"images,omitempty"`
+	ReportedAt         time.Time                  `json:"reportedAt"`
+	CollarBeacon       *domain.CollarBeaconConfig `json:"collarBeacon,omitempty"`
+	CollarBeaconConfig *domain.CollarBeaconConfig `json:"collarBeaconConfig,omitempty"`
 }
 
 func newLostPetID(petName string) (string, error) {
@@ -689,6 +691,11 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		geocodingStatus = domain.GeocodingPending
 	}
 
+	collarBeacon := req.CollarBeacon
+	if collarBeacon == nil && req.CollarBeaconConfig != nil {
+		collarBeacon = req.CollarBeaconConfig
+	}
+
 	command := lostpet.ReportCommand{
 		PetID:           petID,
 		PetName:         req.PetName,
@@ -705,6 +712,7 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		Location:        req.Location,
 		GeocodingStatus: geocodingStatus,
 		Coordinates:     req.Coordinates,
+		CollarBeacon:    collarBeacon,
 		OwnedBy:         ownedBy,
 	}
 

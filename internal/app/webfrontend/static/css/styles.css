@@ -4728,9 +4728,10 @@ footer {
   margin-top: 0.25rem;
 }
 
-/* Action Modals: Claim & Clear */
+/* Action Modals: Claim, Clear & Sighting */
 #modal-claim-sector,
-#modal-clear-sector {
+#modal-clear-sector,
+#modal-report-sighting {
   z-index: 1200;
 }
 

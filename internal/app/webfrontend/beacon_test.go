@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -344,5 +345,65 @@ func TestSearchParty_IncludesCollarBeacon(t *testing.T) {
 	}
 	if getResp.CollarBeacon.UUID != "FDA50693-A4E2-4FB1-AFCF-C6EB07647825" {
 		t.Errorf("expected UUID 'FDA50693-A4E2-4FB1-AFCF-C6EB07647825', got %q", getResp.CollarBeacon.UUID)
+	}
+}
+
+func TestPostLostPet_WithCollarBeacon(t *testing.T) {
+	memStore := store.NewMemoryStore()
+	server := webfrontend.NewTestServer(t, memStore)
+
+	petID := "pet-post-beacon-tag"
+	postPayload := `{
+		"petId": "` + petID + `",
+		"petName": "BeaconRover",
+		"species": "Dog",
+		"location": "Volunteer Park, Seattle, WA",
+		"reporterEmail": "rover@example.com",
+		"coordinates": {"latitude": 47.63, "longitude": -122.315},
+		"collarBeacon": {
+			"protocol": "ibeacon",
+			"uuid": "e2c56db5-dffb-48d2-b060-d0f5a71096e0",
+			"major": 100,
+			"minor": 200,
+			"calibratedRssi": -59
+		}
+	}`
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/lost-pets", strings.NewReader(postPayload))
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated && w.Code != http.StatusOK {
+		t.Fatalf("POST /api/v1/lost-pets failed: %d: %s", w.Code, w.Body.String())
+	}
+
+	// Now create search party for this pet
+	spReq := httptest.NewRequest(http.MethodPost, "/api/v1/lost-pets/"+petID+"/search-party", strings.NewReader(`{"sectorCount":4}`))
+	spW := httptest.NewRecorder()
+	server.ServeHTTP(spW, spReq)
+
+	if spW.Code != http.StatusCreated && spW.Code != http.StatusOK {
+		t.Fatalf("POST search party failed: %d: %s", spW.Code, spW.Body.String())
+	}
+
+	var spResp webfrontend.SearchPartyResponse
+	if err := json.Unmarshal(spW.Body.Bytes(), &spResp); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+
+	if spResp.CollarBeacon == nil {
+		t.Fatal("expected CollarBeacon in SearchPartyResponse, got nil")
+	}
+	if spResp.CollarBeacon.UUID != "e2c56db5-dffb-48d2-b060-d0f5a71096e0" {
+		t.Errorf("expected UUID e2c56db5-dffb-48d2-b060-d0f5a71096e0, got %s", spResp.CollarBeacon.UUID)
+	}
+	if spResp.CollarBeacon.Major == nil || *spResp.CollarBeacon.Major != 100 {
+		t.Errorf("expected major 100, got %v", spResp.CollarBeacon.Major)
+	}
+	if spResp.CollarBeacon.Minor == nil || *spResp.CollarBeacon.Minor != 200 {
+		t.Errorf("expected minor 200, got %v", spResp.CollarBeacon.Minor)
+	}
+	if spResp.CollarBeacon.CalibratedRSSI != -59 {
+		t.Errorf("expected CalibratedRSSI -59, got %d", spResp.CollarBeacon.CalibratedRSSI)
 	}
 }

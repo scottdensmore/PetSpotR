@@ -285,8 +285,16 @@
       const txPower = typeof rawTxPower === 'number' && !isNaN(rawTxPower) ? rawTxPower : this.getTxPower1m();
       const smoothed = this._smoothRssi(rawRssi);
       const roundedRssi = Math.round(smoothed);
-      const distance = this._calculateDistance(smoothed, txPower);
-      const proximity = this._determineProximity(distance, roundedRssi);
+      let distance = this._calculateDistance(smoothed, txPower);
+      if (typeof rawData.distanceMeters === 'number') {
+        distance = rawData.distanceMeters;
+      } else if (typeof rawData.distance === 'number') {
+        distance = rawData.distance;
+      }
+      let proximity = this._determineProximity(distance, roundedRssi);
+      if (typeof rawData.proximity === 'string') {
+        proximity = rawData.proximity;
+      }
 
       this.latestDistance = distance;
       this.latestProximity = proximity;

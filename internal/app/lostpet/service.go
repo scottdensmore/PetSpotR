@@ -52,6 +52,7 @@ type ReportCommand struct {
 	Coordinates       *domain.LocationPoint
 	MicrochipID       string
 	MicrochipRegistry string
+	CollarBeacon      *domain.CollarBeaconConfig
 	// OwnedBy is trusted transport identity, never a caller-supplied JSON field.
 	OwnedBy *domain.PrincipalRef
 }
@@ -471,6 +472,7 @@ func (s *Service) ReportLostPet(
 		OwnedBy:           command.OwnedBy,
 		MicrochipID:       command.MicrochipID,
 		MicrochipRegistry: command.MicrochipRegistry,
+		CollarBeacon:      command.CollarBeacon,
 	})
 	if err := report.Validate(); err != nil {
 		return ReportResult{}, &invalidReportError{cause: err}
