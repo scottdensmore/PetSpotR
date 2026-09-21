@@ -5140,4 +5140,327 @@ textarea:focus-visible,
   }
 }
 
+/* ==========================================================================
+   Milestone 10.1: BLE Collar Beacon Scanning & Proximity Radar HUD
+   ========================================================================== */
+
+/* Glassmorphic Radar Panel Container */
+.beacon-radar-panel {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-theme="light"] .beacon-radar-panel {
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.beacon-radar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.beacon-radar-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.beacon-radar-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+[data-theme="light"] .beacon-radar-title {
+  color: #1e293b;
+}
+
+#beacon-scanner-status {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  transition: all 0.2s ease;
+}
+
+#beacon-scanner-status.scanning {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+#beacon-scanner-status.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+/* Telemetry Grid */
+.beacon-telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.beacon-telemetry-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.beacon-telemetry-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+[data-theme="light"] .beacon-telemetry-label {
+  color: #64748b;
+}
+
+#beacon-distance-display,
+#beacon-rssi-display {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+[data-theme="light"] #beacon-distance-display,
+[data-theme="light"] #beacon-rssi-display {
+  color: #0f172a;
+}
+
+/* Proximity Badge */
+#beacon-proximity-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  width: fit-content;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+}
+
+#beacon-proximity-badge.immediate {
+  background: rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  border-color: #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+  animation: beacon-immediate-pulse 1s infinite alternate ease-in-out;
+}
+
+#beacon-proximity-badge.near {
+  background: rgba(59, 130, 246, 0.25);
+  color: #60a5fa;
+  border-color: #3b82f6;
+}
+
+#beacon-proximity-badge.far {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  border-color: #f59e0b;
+}
+
+#beacon-proximity-badge.out_of_range,
+#beacon-proximity-badge.out-of-range {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+@keyframes beacon-immediate-pulse {
+  0% {
+    box-shadow: 0 0 4px rgba(16, 185, 129, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.8);
+  }
+}
+
+/* Signal Meter & 4-Segment Strength Bar */
+.signal-meter,
+.beacon-signal-meter {
+  position: relative;
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="light"] .signal-meter,
+[data-theme="light"] .beacon-signal-meter {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.signal-meter .meter-fill,
+.beacon-signal-meter .meter-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #94a3b8 0%, #f59e0b 40%, #10b981 80%, #06b6d4 100%);
+  transition: width 0.25s ease, background 0.25s ease;
+}
+
+.signal-strength-bar {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  height: 12px;
+}
+
+.signal-strength-bar .signal-bar-segment {
+  flex: 1;
+  height: 8px;
+  border-radius: 2px;
+  background: rgba(148, 163, 184, 0.25);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.signal-strength-bar[data-strength="out-of-range"] .signal-bar-segment,
+.signal-strength-bar[data-strength="out_of_range"] .signal-bar-segment {
+  background: rgba(148, 163, 184, 0.25);
+}
+
+.signal-strength-bar[data-strength="far"] .signal-bar-segment:nth-child(1),
+.signal-strength-bar[data-strength="far"] .signal-bar-segment:nth-child(2) {
+  background: #f59e0b;
+}
+
+.signal-strength-bar[data-strength="near"] .signal-bar-segment:nth-child(1),
+.signal-strength-bar[data-strength="near"] .signal-bar-segment:nth-child(2),
+.signal-strength-bar[data-strength="near"] .signal-bar-segment:nth-child(3) {
+  background: #10b981;
+}
+
+.signal-strength-bar[data-strength="immediate"] .signal-bar-segment {
+  background: #06b6d4;
+  box-shadow: 0 0 6px #06b6d4;
+  animation: beacon-immediate-pulse 0.8s infinite alternate ease-in-out;
+}
+
+/* Glowing Beacon Pulse Indicator (radar pulse & leaflet marker halo) */
+.beacon-pulse-indicator {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.beacon-pulse-indicator::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid #06b6d4;
+  animation: beacon-pulse-anim 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+@keyframes beacon-pulse-anim {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Leaflet Beacon Ping Marker */
+.beacon-ping-marker {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(6, 182, 212, 0.3);
+  border: 2px solid #06b6d4;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.6);
+}
+
+.beacon-ping-marker .beacon-ping-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #06b6d4;
+}
+
+/* Accessible Action Buttons (WCAG AAA High Contrast) */
+.btn-beacon-action {
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.btn-beacon-action:focus-visible {
+  outline: 3px solid #6366f1 !important;
+  outline-offset: 2px !important;
+}
+
+[data-theme="light"] .btn-beacon-action:focus-visible {
+  outline: 3px solid #312e81 !important;
+  outline-offset: 2px !important;
+}
+
+.beacon-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .beacon-telemetry-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .beacon-action-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .beacon-action-buttons .btn-beacon-action {
+    width: 100%;
+  }
+}
+
+
 
