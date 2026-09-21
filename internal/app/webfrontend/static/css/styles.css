@@ -4294,9 +4294,9 @@ footer {
 }
 
 [data-theme="light"] .badge-critical {
-  background: #b91c1c;
-  color: #ffffff;
-  border: 1px solid #991b1b;
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #f87171;
 }
 
 .badge-high {
@@ -4313,9 +4313,9 @@ footer {
 }
 
 [data-theme="light"] .badge-high {
-  background: #b45309;
-  color: #ffffff;
-  border: 1px solid #92400e;
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fbbf24;
 }
 
 .badge-success {
@@ -4838,6 +4838,38 @@ footer {
   background: rgba(0, 0, 0, 0.02);
 }
 
+.legend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+#btn-sort-sectors-urgency {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 600;
+  transition: all var(--transition-fast, 0.2s ease);
+}
+
+#btn-sort-sectors-urgency.active,
+#btn-sort-sectors-urgency[aria-pressed="true"] {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(220, 38, 38, 0.45));
+  border-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+[data-theme="light"] #btn-sort-sectors-urgency.active,
+[data-theme="light"] #btn-sort-sectors-urgency[aria-pressed="true"] {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.25);
+}
+
 .legend-color-box {
   display: inline-block;
   width: 20px;
@@ -4925,6 +4957,13 @@ footer {
   gap: 0.5rem;
 }
 
+.sector-card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .sector-card-name {
   margin: 0;
   font-size: 0.9rem;
@@ -4989,6 +5028,41 @@ footer {
   font-size: 0.85rem;
   line-height: 1.4;
   margin: 0;
+}
+
+.sector-barrier-advisory {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+}
+
+[data-theme="light"] .sector-barrier-advisory {
+  background: #fef2f2;
+  border-color: #f87171;
+  color: #991b1b;
+  box-shadow: 0 1px 3px rgba(153, 27, 27, 0.1);
+}
+
+.sector-barrier-advisory.hidden {
+  display: none !important;
+}
+
+.sector-urgency-critical {
+  filter: drop-shadow(0 0 6px rgba(225, 29, 72, 0.75));
+}
+
+.sector-urgency-high {
+  filter: drop-shadow(0 0 4px rgba(217, 119, 6, 0.6));
 }
 /* Volunteer GPS Breadcrumbs & Trail Recording */
 .search-party-trail-strip {

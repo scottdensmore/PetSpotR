@@ -39,10 +39,11 @@
     // Update segmented radio buttons and ARIA states
     const toggleButtons = document.querySelectorAll('.trajectory-layer-toggle .layer-pill-btn');
     toggleButtons.forEach((btn) => {
-      const isTarget = btn.dataset.layer === layerName;
+      const isTarget = btn.dataset.layer === layerName || btn.id === `btn-layer-${layerName}`;
       btn.classList.toggle('active', isTarget);
       btn.classList.toggle('layer-pill-active', isTarget);
       btn.setAttribute('aria-checked', isTarget ? 'true' : 'false');
+      btn.tabIndex = isTarget ? 0 : -1;
     });
 
     if (typeof L === 'undefined' || !mapInstance) return;
@@ -1079,6 +1080,13 @@
           }
         }
       });
+    });
+
+    // Initialize roving tabIndex on trajectory layer radio buttons
+    const initialLayerBtns = document.querySelectorAll('.trajectory-layer-toggle .layer-pill-btn');
+    initialLayerBtns.forEach((btn) => {
+      const isChecked = btn.getAttribute('aria-checked') === 'true' || btn.classList.contains('active');
+      btn.tabIndex = isChecked ? 0 : -1;
     });
 
     // Geolocation trigger

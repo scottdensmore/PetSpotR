@@ -100,6 +100,9 @@
       <div class="search-party-legend" id="search-party-legend">
         <div class="legend-header">
           <h4>Sector Status Legend &amp; Assignments</h4>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-sort-sectors-urgency" aria-pressed="false">
+            🔥 Sort by Urgency
+          </button>
         </div>
         <div class="legend-items">
           <div class="legend-item">
@@ -140,6 +143,7 @@
       <div class="sector-info-card" id="claim-sector-info">
         <h4 id="claim-sector-name" class="sector-info-name">Sector</h4>
         <p id="claim-sector-details" class="text-secondary sector-info-details"></p>
+        <div id="sector-barrier-advisory" class="sector-barrier-advisory hidden" role="note" aria-live="polite"></div>
       </div>
 
       <p class="text-secondary modal-info-text">
