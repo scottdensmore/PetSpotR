@@ -184,6 +184,34 @@ func TestEvacuationHubs_Create_ValidationErrors(t *testing.T) {
 	if w2.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 Bad Request for zero capacity, got %d", w2.Code)
 	}
+
+	// Negative dog capacity
+	invalidDogCap := map[string]interface{}{
+		"name":          "Negative Dog Capacity Hub",
+		"totalCapacity": 50,
+		"dogCapacity":   -1,
+	}
+	body3, _ := json.Marshal(invalidDogCap)
+	req3 := httptest.NewRequest(http.MethodPost, "/api/v1/evacuations/hubs", bytes.NewReader(body3))
+	w3 := httptest.NewRecorder()
+	srv.ServeHTTP(w3, req3)
+	if w3.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 Bad Request for negative dog capacity, got %d", w3.Code)
+	}
+
+	// Negative cat capacity
+	invalidCatCap := map[string]interface{}{
+		"name":          "Negative Cat Capacity Hub",
+		"totalCapacity": 50,
+		"catCapacity":   -5,
+	}
+	body4, _ := json.Marshal(invalidCatCap)
+	req4 := httptest.NewRequest(http.MethodPost, "/api/v1/evacuations/hubs", bytes.NewReader(body4))
+	w4 := httptest.NewRecorder()
+	srv.ServeHTTP(w4, req4)
+	if w4.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 Bad Request for negative cat capacity, got %d", w4.Code)
+	}
 }
 
 func TestEvacuationIntakeBatch_JSON(t *testing.T) {
@@ -495,6 +523,17 @@ func TestEvacuationTransfers_LifecycleAndOccupancy(t *testing.T) {
 		t.Errorf("expected 1 staged manifest, got %d", len(manifests))
 	}
 
+	// 2b. Attempt invalid transition: STAGED -> RECEIVED (should return 409 Conflict)
+	invalidSkipUpdate := map[string]string{"status": string(domain.TransferStatusReceived)}
+	invalidSkipData, _ := json.Marshal(invalidSkipUpdate)
+	invalidReq := httptest.NewRequest(http.MethodPut, "/api/v1/evacuations/transfers/"+stagedManifest.TransferID+"/status", bytes.NewReader(invalidSkipData))
+	invalidReq.Header.Set("Content-Type", "application/json")
+	invalidW := httptest.NewRecorder()
+	srv.ServeHTTP(invalidW, invalidReq)
+	if invalidW.Code != http.StatusConflict {
+		t.Fatalf("expected 409 Conflict attempting STAGED -> RECEIVED, got %d: %s", invalidW.Code, invalidW.Body.String())
+	}
+
 	// 3. Update status: STAGED -> IN_TRANSIT
 	inTransitUpdate := map[string]string{"status": string(domain.TransferStatusInTransit)}
 	statusData, _ := json.Marshal(inTransitUpdate)
@@ -514,6 +553,26 @@ func TestEvacuationTransfers_LifecycleAndOccupancy(t *testing.T) {
 	}
 	if inTransitManifest.DepartureTime == nil {
 		t.Error("expected non-nil DepartureTime on IN_TRANSIT")
+	}
+
+	// 3b. Test idempotency: calling IN_TRANSIT again returns 200 OK
+	putReqRetry := httptest.NewRequest(http.MethodPut, "/api/v1/evacuations/transfers/"+stagedManifest.TransferID+"/status", bytes.NewReader(statusData))
+	putReqRetry.Header.Set("Content-Type", "application/json")
+	putWRetry := httptest.NewRecorder()
+	srv.ServeHTTP(putWRetry, putReqRetry)
+	if putWRetry.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for idempotent IN_TRANSIT update, got %d: %s", putWRetry.Code, putWRetry.Body.String())
+	}
+
+	// 3c. Attempt invalid regression: IN_TRANSIT -> STAGED (should return 409 Conflict)
+	invalidRegress := map[string]string{"status": string(domain.TransferStatusStaged)}
+	invalidRegressData, _ := json.Marshal(invalidRegress)
+	regressReq := httptest.NewRequest(http.MethodPut, "/api/v1/evacuations/transfers/"+stagedManifest.TransferID+"/status", bytes.NewReader(invalidRegressData))
+	regressReq.Header.Set("Content-Type", "application/json")
+	regressW := httptest.NewRecorder()
+	srv.ServeHTTP(regressW, regressReq)
+	if regressW.Code != http.StatusConflict {
+		t.Fatalf("expected 409 Conflict attempting IN_TRANSIT -> STAGED, got %d: %s", regressW.Code, regressW.Body.String())
 	}
 
 	// Verify origin hub occupancy decremented!
@@ -546,6 +605,26 @@ func TestEvacuationTransfers_LifecycleAndOccupancy(t *testing.T) {
 	}
 	if receivedManifest.ArrivalTime == nil {
 		t.Error("expected non-nil ArrivalTime on RECEIVED")
+	}
+
+	// 4b. Test idempotency: calling RECEIVED again returns 200 OK and does not double-increment
+	putReq2Retry := httptest.NewRequest(http.MethodPut, "/api/v1/evacuations/transfers/"+stagedManifest.TransferID+"/status", bytes.NewReader(statusData2))
+	putReq2Retry.Header.Set("Content-Type", "application/json")
+	putW2Retry := httptest.NewRecorder()
+	srv.ServeHTTP(putW2Retry, putReq2Retry)
+	if putW2Retry.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for idempotent RECEIVED update, got %d: %s", putW2Retry.Code, putW2Retry.Body.String())
+	}
+
+	// 4c. Attempt invalid regression: RECEIVED -> IN_TRANSIT (should return 409 Conflict)
+	invalidRegress2 := map[string]string{"status": string(domain.TransferStatusInTransit)}
+	invalidRegressData2, _ := json.Marshal(invalidRegress2)
+	regressReq2 := httptest.NewRequest(http.MethodPut, "/api/v1/evacuations/transfers/"+stagedManifest.TransferID+"/status", bytes.NewReader(invalidRegressData2))
+	regressReq2.Header.Set("Content-Type", "application/json")
+	regressW2 := httptest.NewRecorder()
+	srv.ServeHTTP(regressW2, regressReq2)
+	if regressW2.Code != http.StatusConflict {
+		t.Fatalf("expected 409 Conflict attempting RECEIVED -> IN_TRANSIT, got %d: %s", regressW2.Code, regressW2.Body.String())
 	}
 
 	// Verify destination hub occupancy incremented!
@@ -674,5 +753,202 @@ func TestEvacuationCrisisReunificationQueue_ContactDispatch(t *testing.T) {
 	srv.ServeHTTP(missingW, missingReq)
 	if missingW.Code != http.StatusNotFound {
 		t.Errorf("expected 404 Not Found for non-existent match, got %d", missingW.Code)
+	}
+}
+
+func TestEvacuationTransfers_IdempotencyAndStateTransitions(t *testing.T) {
+	t.Parallel()
+	srv, st := newTestEvacServer(t)
+
+	now := time.Now().UTC()
+	origHub := domain.EvacuationHub{
+		HubID:            "hub-origin-alpha",
+		Name:             "Origin Alpha",
+		Type:             domain.HubTypePopUpCrisisCenter,
+		Status:           domain.HubStatusActive,
+		TotalCapacity:    100,
+		CurrentOccupancy: 10,
+		DogCapacity:      60,
+		DogOccupancy:     6,
+		CatCapacity:      40,
+		CatOccupancy:     4,
+		CreatedAt:        now,
+		UpdatedAt:        now,
+	}
+	destHub := domain.EvacuationHub{
+		HubID:            "hub-dest-beta",
+		Name:             "Destination Beta",
+		Type:             domain.HubTypePermanentShelter,
+		Status:           domain.HubStatusActive,
+		TotalCapacity:    100,
+		CurrentOccupancy: 0,
+		DogCapacity:      60,
+		DogOccupancy:     0,
+		CatCapacity:      40,
+		CatOccupancy:     0,
+		CreatedAt:        now,
+		UpdatedAt:        now,
+	}
+	origBytes, _ := json.Marshal(origHub)
+	destBytes, _ := json.Marshal(destHub)
+	_ = st.SaveState(context.Background(), store.EvacuationHubsCollection, origHub.HubID, origBytes)
+	_ = st.SaveState(context.Background(), store.EvacuationHubsCollection, destHub.HubID, destBytes)
+
+	// Seed 2 found pets
+	pet1 := domain.FoundPetRecord{
+		PetID:     "pet-dog-100",
+		Species:   "Dog",
+		ShelterID: origHub.HubID,
+	}
+	pet2 := domain.FoundPetRecord{
+		PetID:     "pet-cat-200",
+		Species:   "Cat",
+		ShelterID: origHub.HubID,
+	}
+	p1Bytes, _ := json.Marshal(pet1)
+	p2Bytes, _ := json.Marshal(pet2)
+	_ = st.SaveState(context.Background(), store.FoundPetsCollection, pet1.PetID, p1Bytes)
+	_ = st.SaveState(context.Background(), store.FoundPetsCollection, pet2.PetID, p2Bytes)
+
+	// Create Transfer (starts in STAGED)
+	manifest := domain.TransferManifest{
+		TransferID:   "xfer-state-test",
+		OriginHubID:  origHub.HubID,
+		DestHubID:    destHub.HubID,
+		AnimalIDs:    []string{"pet-dog-100", "pet-cat-200"},
+		TotalAnimals: 2,
+		Status:       domain.TransferStatusStaged,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	mBytes, _ := json.Marshal(manifest)
+	_ = st.SaveState(context.Background(), store.TransferManifestsCollection, manifest.TransferID, mBytes)
+
+	sendUpdate := func(status string) (int, map[string]interface{}) {
+		body, _ := json.Marshal(map[string]string{"status": status})
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/evacuations/transfers/"+manifest.TransferID+"/status", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, req)
+		var resp map[string]interface{}
+		_ = json.NewDecoder(w.Body).Decode(&resp)
+		return w.Code, resp
+	}
+
+	getHub := func(id string) domain.EvacuationHub {
+		data, err := st.GetState(context.Background(), store.EvacuationHubsCollection, id)
+		if err != nil {
+			t.Fatalf("failed to get hub %s: %v", id, err)
+		}
+		var h domain.EvacuationHub
+		_ = json.Unmarshal(data, &h)
+		return h
+	}
+
+	// 1. Invalid transition from STAGED -> RECEIVED should return 409 Conflict
+	code, resp := sendUpdate("RECEIVED")
+	if code != http.StatusConflict {
+		t.Errorf("expected 409 Conflict for STAGED -> RECEIVED, got %d", code)
+	}
+	if resp["error"] == nil {
+		t.Error("expected error message in JSON response")
+	}
+
+	// 2. Invalid transition from STAGED -> RECONCILED should return 409 Conflict
+	code, _ = sendUpdate("RECONCILED")
+	if code != http.StatusConflict {
+		t.Errorf("expected 409 Conflict for STAGED -> RECONCILED, got %d", code)
+	}
+
+	// 3. Bogus status should return 400 Bad Request
+	code, _ = sendUpdate("NOT_A_VALID_STATUS")
+	if code != http.StatusBadRequest {
+		t.Errorf("expected 400 Bad Request for bogus status, got %d", code)
+	}
+
+	// Verify occupancies remained unchanged
+	if h := getHub(origHub.HubID); h.CurrentOccupancy != 10 {
+		t.Errorf("expected origin occupancy 10, got %d", h.CurrentOccupancy)
+	}
+	if h := getHub(destHub.HubID); h.CurrentOccupancy != 0 {
+		t.Errorf("expected dest occupancy 0, got %d", h.CurrentOccupancy)
+	}
+
+	// 4. Valid transition: STAGED -> IN_TRANSIT
+	code, _ = sendUpdate("IN_TRANSIT")
+	if code != http.StatusOK {
+		t.Fatalf("expected 200 OK for STAGED -> IN_TRANSIT, got %d", code)
+	}
+	if h := getHub(origHub.HubID); h.CurrentOccupancy != 8 || h.DogOccupancy != 5 || h.CatOccupancy != 3 {
+		t.Errorf("expected origin occupancy (8, d:5, c:3), got (%d, d:%d, c:%d)", h.CurrentOccupancy, h.DogOccupancy, h.CatOccupancy)
+	}
+
+	// 5. Idempotent status update: IN_TRANSIT again should return 200 OK without re-decrementing
+	code, _ = sendUpdate("IN_TRANSIT")
+	if code != http.StatusOK {
+		t.Fatalf("expected 200 OK for idempotent IN_TRANSIT, got %d", code)
+	}
+	if h := getHub(origHub.HubID); h.CurrentOccupancy != 8 || h.DogOccupancy != 5 || h.CatOccupancy != 3 {
+		t.Errorf("idempotency failed: origin occupancy changed on retry to (%d, d:%d, c:%d)", h.CurrentOccupancy, h.DogOccupancy, h.CatOccupancy)
+	}
+
+	// 6. Invalid regression: IN_TRANSIT -> STAGED should return 409 Conflict
+	code, _ = sendUpdate("STAGED")
+	if code != http.StatusConflict {
+		t.Errorf("expected 409 Conflict for IN_TRANSIT -> STAGED, got %d", code)
+	}
+
+	// 7. Invalid transition: IN_TRANSIT -> RECONCILED should return 409 Conflict
+	code, _ = sendUpdate("RECONCILED")
+	if code != http.StatusConflict {
+		t.Errorf("expected 409 Conflict for IN_TRANSIT -> RECONCILED, got %d", code)
+	}
+
+	// 8. Valid transition: IN_TRANSIT -> RECEIVED
+	code, _ = sendUpdate("RECEIVED")
+	if code != http.StatusOK {
+		t.Fatalf("expected 200 OK for IN_TRANSIT -> RECEIVED, got %d", code)
+	}
+	if h := getHub(destHub.HubID); h.CurrentOccupancy != 2 || h.DogOccupancy != 1 || h.CatOccupancy != 1 {
+		t.Errorf("expected dest occupancy (2, d:1, c:1), got (%d, d:%d, c:%d)", h.CurrentOccupancy, h.DogOccupancy, h.CatOccupancy)
+	}
+
+	// 9. Idempotent status update: RECEIVED again should return 200 OK without double-incrementing
+	code, _ = sendUpdate("RECEIVED")
+	if code != http.StatusOK {
+		t.Fatalf("expected 200 OK for idempotent RECEIVED, got %d", code)
+	}
+	if h := getHub(destHub.HubID); h.CurrentOccupancy != 2 || h.DogOccupancy != 1 || h.CatOccupancy != 1 {
+		t.Errorf("idempotency failed: dest occupancy changed on retry to (%d, d:%d, c:%d)", h.CurrentOccupancy, h.DogOccupancy, h.CatOccupancy)
+	}
+
+	// 10. Invalid regression: RECEIVED -> IN_TRANSIT should return 409 Conflict
+	code, _ = sendUpdate("IN_TRANSIT")
+	if code != http.StatusConflict {
+		t.Errorf("expected 409 Conflict for RECEIVED -> IN_TRANSIT, got %d", code)
+	}
+
+	// 11. Invalid regression: RECEIVED -> STAGED should return 409 Conflict
+	code, _ = sendUpdate("STAGED")
+	if code != http.StatusConflict {
+		t.Errorf("expected 409 Conflict for RECEIVED -> STAGED, got %d", code)
+	}
+
+	// 12. Valid transition: RECEIVED -> RECONCILED
+	code, _ = sendUpdate("RECONCILED")
+	if code != http.StatusOK {
+		t.Fatalf("expected 200 OK for RECEIVED -> RECONCILED, got %d", code)
+	}
+
+	// 13. Idempotent status update: RECONCILED again should return 200 OK
+	code, _ = sendUpdate("RECONCILED")
+	if code != http.StatusOK {
+		t.Fatalf("expected 200 OK for idempotent RECONCILED, got %d", code)
+	}
+
+	// 14. Invalid regression: RECONCILED -> RECEIVED should return 409 Conflict
+	code, _ = sendUpdate("RECEIVED")
+	if code != http.StatusConflict {
+		t.Errorf("expected 409 Conflict for RECONCILED -> RECEIVED, got %d", code)
 	}
 }

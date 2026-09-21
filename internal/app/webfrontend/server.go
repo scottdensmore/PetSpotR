@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/scottdensmore/petspotr/internal/app/foundpet"
@@ -60,6 +61,7 @@ type Server struct {
 	allowLocalhostWebhooks   bool
 	smsProvider              sms.Provider
 	smsWebhookSecret         string
+	evacSeedMu               sync.Mutex
 	handler                  http.Handler
 }
 

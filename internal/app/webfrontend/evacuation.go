@@ -108,15 +108,28 @@ func (s *Server) handleListEvacuationHubs(w http.ResponseWriter, r *http.Request
 	now := time.Now().UTC()
 
 	if len(rawHubs) == 0 {
-		defaults := defaultEvacuationHubs(now)
-		for _, dh := range defaults {
-			data, err := json.Marshal(dh)
-			if err == nil {
-				_ = s.stateStore.SaveState(r.Context(), store.EvacuationHubsCollection, dh.HubID, data)
-				hubs = append(hubs, dh)
+		s.evacSeedMu.Lock()
+		// Re-check under lock in case another goroutine already seeded defaults
+		rawHubs, err = s.stateStore.ListState(r.Context(), store.EvacuationHubsCollection)
+		if err != nil && !errors.Is(err, store.ErrNotFound) && !errors.Is(err, store.ErrStoreNotFound) {
+			s.evacSeedMu.Unlock()
+			http.Error(w, "failed to list evacuation hubs", http.StatusInternalServerError)
+			return
+		}
+		if len(rawHubs) == 0 {
+			defaults := defaultEvacuationHubs(now)
+			for _, dh := range defaults {
+				data, err := json.Marshal(dh)
+				if err == nil {
+					_ = s.stateStore.SaveState(r.Context(), store.EvacuationHubsCollection, dh.HubID, data)
+					hubs = append(hubs, dh)
+				}
 			}
 		}
-	} else {
+		s.evacSeedMu.Unlock()
+	}
+
+	if len(hubs) == 0 {
 		for _, raw := range rawHubs {
 			var hub domain.EvacuationHub
 			if err := json.Unmarshal(raw, &hub); err == nil {
@@ -148,6 +161,10 @@ func (s *Server) handleCreateEvacuationHub(w http.ResponseWriter, r *http.Reques
 	}
 	if hub.TotalCapacity <= 0 {
 		http.Error(w, "totalCapacity must be greater than zero", http.StatusBadRequest)
+		return
+	}
+	if hub.DogCapacity < 0 || hub.CatCapacity < 0 {
+		http.Error(w, "dogCapacity and catCapacity must be non-negative", http.StatusBadRequest)
 		return
 	}
 
@@ -393,12 +410,26 @@ func (s *Server) handleApiEvacuationIntakeBatch(w http.ResponseWriter, r *http.R
 		targetHub.Status = domain.HubStatusFull
 	}
 	targetHub.UpdatedAt = time.Now().UTC()
-	updatedHubBytes, _ := json.Marshal(targetHub)
-	_ = s.stateStore.SaveState(r.Context(), store.EvacuationHubsCollection, targetHub.HubID, updatedHubBytes)
+	updatedHubBytes, err := json.Marshal(targetHub)
+	if err != nil {
+		http.Error(w, "failed to marshal updated hub", http.StatusInternalServerError)
+		return
+	}
+	if err := s.stateStore.SaveState(r.Context(), store.EvacuationHubsCollection, targetHub.HubID, updatedHubBytes); err != nil {
+		http.Error(w, "failed to save updated hub", http.StatusInternalServerError)
+		return
+	}
 
 	// Persist batch summary in CrisisIntakesCollection
-	sumBytes, _ := json.Marshal(summary)
-	_ = s.stateStore.SaveState(r.Context(), store.CrisisIntakesCollection, summary.BatchID, sumBytes)
+	sumBytes, err := json.Marshal(summary)
+	if err != nil {
+		http.Error(w, "failed to marshal batch summary", http.StatusInternalServerError)
+		return
+	}
+	if err := s.stateStore.SaveState(r.Context(), store.CrisisIntakesCollection, summary.BatchID, sumBytes); err != nil {
+		http.Error(w, "failed to save batch summary", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -562,95 +593,170 @@ func (s *Server) handleApiEvacuationTransferStatus(w http.ResponseWriter, r *htt
 		Status string `json:"status"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		http.Error(w, fmt.Sprintf("invalid JSON payload: %v", err), http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": fmt.Sprintf("invalid JSON payload: %v", err),
+		})
 		return
 	}
 
 	targetStatus := domain.TransferStatus(strings.ToUpper(strings.TrimSpace(payload.Status)))
+	switch targetStatus {
+	case domain.TransferStatusStaged, domain.TransferStatusInTransit, domain.TransferStatusReceived, domain.TransferStatusReconciled:
+		// valid target status
+	default:
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": fmt.Sprintf("invalid transfer status: %s", payload.Status),
+		})
+		return
+	}
+
+	// Idempotent no-op: if target status is already the current status, return 200 without adjusting occupancies.
+	if manifest.Status == targetStatus {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(manifest)
+		return
+	}
+
 	now := time.Now().UTC()
 
 	switch targetStatus {
 	case domain.TransferStatusInTransit:
+		if manifest.Status != domain.TransferStatusStaged {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"error": fmt.Sprintf("cannot transition transfer from %s to IN_TRANSIT", manifest.Status),
+			})
+			return
+		}
 		manifest.DepartureTime = &now
 		// Decrement origin hub occupancy
-		if origBytes, err := s.stateStore.GetState(r.Context(), store.EvacuationHubsCollection, manifest.OriginHubID); err == nil {
-			var origHub domain.EvacuationHub
-			if err := json.Unmarshal(origBytes, &origHub); err == nil {
-				dogCount := 0
-				catCount := 0
-				for _, petID := range manifest.AnimalIDs {
-					if petBytes, err := s.stateStore.GetState(r.Context(), store.FoundPetsCollection, petID); err == nil {
-						var pet domain.FoundPetRecord
-						if err := json.Unmarshal(petBytes, &pet); err == nil {
-							if strings.EqualFold(pet.Species, "dog") {
-								dogCount++
-							} else if strings.EqualFold(pet.Species, "cat") {
-								catCount++
-							}
-						}
+		origBytes, err := s.stateStore.GetState(r.Context(), store.EvacuationHubsCollection, manifest.OriginHubID)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to get origin hub: %v", err), http.StatusInternalServerError)
+			return
+		}
+		var origHub domain.EvacuationHub
+		if err := json.Unmarshal(origBytes, &origHub); err != nil {
+			http.Error(w, "failed to parse origin hub", http.StatusInternalServerError)
+			return
+		}
+		dogCount := 0
+		catCount := 0
+		for _, petID := range manifest.AnimalIDs {
+			if petBytes, err := s.stateStore.GetState(r.Context(), store.FoundPetsCollection, petID); err == nil {
+				var pet domain.FoundPetRecord
+				if err := json.Unmarshal(petBytes, &pet); err == nil {
+					if strings.EqualFold(pet.Species, "dog") {
+						dogCount++
+					} else if strings.EqualFold(pet.Species, "cat") {
+						catCount++
 					}
 				}
-				origHub.CurrentOccupancy = max(0, origHub.CurrentOccupancy-manifest.TotalAnimals)
-				origHub.DogOccupancy = max(0, origHub.DogOccupancy-dogCount)
-				origHub.CatOccupancy = max(0, origHub.CatOccupancy-catCount)
-				if origHub.CurrentOccupancy < origHub.TotalCapacity && origHub.Status == domain.HubStatusFull {
-					origHub.Status = domain.HubStatusActive
-				}
-				origHub.UpdatedAt = now
-				updatedOrigBytes, _ := json.Marshal(origHub)
-				_ = s.stateStore.SaveState(r.Context(), store.EvacuationHubsCollection, origHub.HubID, updatedOrigBytes)
 			}
+		}
+		origHub.CurrentOccupancy = max(0, origHub.CurrentOccupancy-manifest.TotalAnimals)
+		origHub.DogOccupancy = max(0, origHub.DogOccupancy-dogCount)
+		origHub.CatOccupancy = max(0, origHub.CatOccupancy-catCount)
+		if origHub.CurrentOccupancy < origHub.TotalCapacity && origHub.Status == domain.HubStatusFull {
+			origHub.Status = domain.HubStatusActive
+		}
+		origHub.UpdatedAt = now
+		updatedOrigBytes, err := json.Marshal(origHub)
+		if err != nil {
+			http.Error(w, "failed to marshal origin hub", http.StatusInternalServerError)
+			return
+		}
+		if err := s.stateStore.SaveState(r.Context(), store.EvacuationHubsCollection, origHub.HubID, updatedOrigBytes); err != nil {
+			http.Error(w, "failed to save origin hub", http.StatusInternalServerError)
+			return
 		}
 
 	case domain.TransferStatusReceived:
+		if manifest.Status != domain.TransferStatusInTransit {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"error": fmt.Sprintf("cannot transition transfer from %s to RECEIVED", manifest.Status),
+			})
+			return
+		}
 		manifest.ArrivalTime = &now
 		// Increment destination hub occupancy and update pet records
-		if destBytes, err := s.stateStore.GetState(r.Context(), store.EvacuationHubsCollection, manifest.DestHubID); err == nil {
-			var destHub domain.EvacuationHub
-			if err := json.Unmarshal(destBytes, &destHub); err == nil {
-				dogCount := 0
-				catCount := 0
-				for _, petID := range manifest.AnimalIDs {
-					if petBytes, err := s.stateStore.GetState(r.Context(), store.FoundPetsCollection, petID); err == nil {
-						var pet domain.FoundPetRecord
-						if err := json.Unmarshal(petBytes, &pet); err == nil {
-							if strings.EqualFold(pet.Species, "dog") {
-								dogCount++
-							} else if strings.EqualFold(pet.Species, "cat") {
-								catCount++
-							}
-							pet.Location = destHub.Address
-							if pet.Location == "" {
-								pet.Location = destHub.Name
-							}
-							pet.ShelterID = destHub.HubID
-							pet.ShelterName = destHub.Name
-							if destHub.Coordinates.Latitude != 0 || destHub.Coordinates.Longitude != 0 {
-								pet.Coordinates = &destHub.Coordinates
-								pet.GeocodingStatus = domain.GeocodingVerified
-							}
-							updatedPetBytes, _ := json.Marshal(pet)
-							_ = s.stateStore.SaveState(r.Context(), store.FoundPetsCollection, pet.PetID, updatedPetBytes)
-						}
+		destBytes, err := s.stateStore.GetState(r.Context(), store.EvacuationHubsCollection, manifest.DestHubID)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to get destination hub: %v", err), http.StatusInternalServerError)
+			return
+		}
+		var destHub domain.EvacuationHub
+		if err := json.Unmarshal(destBytes, &destHub); err != nil {
+			http.Error(w, "failed to parse destination hub", http.StatusInternalServerError)
+			return
+		}
+		dogCount := 0
+		catCount := 0
+		for _, petID := range manifest.AnimalIDs {
+			if petBytes, err := s.stateStore.GetState(r.Context(), store.FoundPetsCollection, petID); err == nil {
+				var pet domain.FoundPetRecord
+				if err := json.Unmarshal(petBytes, &pet); err == nil {
+					if strings.EqualFold(pet.Species, "dog") {
+						dogCount++
+					} else if strings.EqualFold(pet.Species, "cat") {
+						catCount++
+					}
+					pet.Location = destHub.Address
+					if pet.Location == "" {
+						pet.Location = destHub.Name
+					}
+					pet.ShelterID = destHub.HubID
+					pet.ShelterName = destHub.Name
+					if destHub.Coordinates.Latitude != 0 || destHub.Coordinates.Longitude != 0 {
+						pet.Coordinates = &destHub.Coordinates
+						pet.GeocodingStatus = domain.GeocodingVerified
+					}
+					if updatedPetBytes, err := json.Marshal(pet); err == nil {
+						_ = s.stateStore.SaveState(r.Context(), store.FoundPetsCollection, pet.PetID, updatedPetBytes)
 					}
 				}
-				destHub.CurrentOccupancy += manifest.TotalAnimals
-				destHub.DogOccupancy += dogCount
-				destHub.CatOccupancy += catCount
-				if destHub.CurrentOccupancy >= destHub.TotalCapacity {
-					destHub.Status = domain.HubStatusFull
-				}
-				destHub.UpdatedAt = now
-				updatedDestBytes, _ := json.Marshal(destHub)
-				_ = s.stateStore.SaveState(r.Context(), store.EvacuationHubsCollection, destHub.HubID, updatedDestBytes)
 			}
+		}
+		destHub.CurrentOccupancy += manifest.TotalAnimals
+		destHub.DogOccupancy += dogCount
+		destHub.CatOccupancy += catCount
+		if destHub.CurrentOccupancy >= destHub.TotalCapacity {
+			destHub.Status = domain.HubStatusFull
+		}
+		destHub.UpdatedAt = now
+		updatedDestBytes, err := json.Marshal(destHub)
+		if err != nil {
+			http.Error(w, "failed to marshal destination hub", http.StatusInternalServerError)
+			return
+		}
+		if err := s.stateStore.SaveState(r.Context(), store.EvacuationHubsCollection, destHub.HubID, updatedDestBytes); err != nil {
+			http.Error(w, "failed to save destination hub", http.StatusInternalServerError)
+			return
 		}
 
 	case domain.TransferStatusReconciled:
-		// Reconciled - marks transfer finalized
+		if manifest.Status != domain.TransferStatusReceived {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"error": fmt.Sprintf("cannot transition transfer from %s to RECONCILED", manifest.Status),
+			})
+			return
+		}
 
-	default:
-		http.Error(w, fmt.Sprintf("invalid transfer status: %s", payload.Status), http.StatusBadRequest)
+	case domain.TransferStatusStaged:
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": fmt.Sprintf("cannot transition transfer from %s to STAGED", manifest.Status),
+		})
 		return
 	}
 
