@@ -4855,7 +4855,8 @@ footer {
 }
 
 #btn-sort-sectors-urgency.active,
-#btn-sort-sectors-urgency[aria-pressed="true"] {
+#btn-sort-sectors-urgency[aria-pressed="true"],
+.btn-sort-urgency.active {
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(220, 38, 38, 0.45));
   border-color: #ef4444;
   color: #ffffff;
@@ -4863,10 +4864,11 @@ footer {
 }
 
 [data-theme="light"] #btn-sort-sectors-urgency.active,
-[data-theme="light"] #btn-sort-sectors-urgency[aria-pressed="true"] {
+[data-theme="light"] #btn-sort-sectors-urgency[aria-pressed="true"],
+[data-theme="light"] .btn-sort-urgency.active {
   background: #fee2e2;
   border-color: #ef4444;
-  color: #991b1b;
+  color: #7f1d1d;
   box-shadow: 0 0 6px rgba(239, 68, 68, 0.25);
 }
 

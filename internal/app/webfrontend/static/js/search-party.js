@@ -1126,16 +1126,18 @@
     if (sector.hasTerrainBarrier === true) return true;
     if (typeof sector.notes === 'string' && /barrier|slope|freeway|highway|water|traffic|roadway|steep/i.test(sector.notes)) return true;
     if (Array.isArray(sector.hidingClusterIds) && sector.hidingClusterIds.length > 0) return true;
-    if (sector.urgencyLevel === 'CRITICAL') return true;
 
     // Geometric intersection check against loaded active barriers
     if (Array.isArray(activeBarriers) && activeBarriers.length > 0 && Array.isArray(sector.polygonPoints) && sector.polygonPoints.length >= 3) {
       for (const b of activeBarriers) {
-        if (b.isPassable) continue;
+        const isHazard = b.type === 'freeway' || b.type === 'waterway' || b.type === 'steep_slope' || (b.frictionCost && b.frictionCost >= 2.0);
+        if (!isHazard) continue;
         if (Array.isArray(b.geometry)) {
           for (const coord of b.geometry) {
-            if (Array.isArray(coord) && coord.length >= 2) {
-              if (pointInSectorPolygon({ lat: coord[0], lng: coord[1] }, sector.polygonPoints)) {
+            const lat = typeof coord?.latitude === 'number' ? coord.latitude : (Array.isArray(coord) ? coord[0] : coord?.lat);
+            const lng = typeof coord?.longitude === 'number' ? coord.longitude : (Array.isArray(coord) ? coord[1] : coord?.lng);
+            if (typeof lat === 'number' && typeof lng === 'number') {
+              if (pointInSectorPolygon({ lat, lng }, sector.polygonPoints)) {
                 return true;
               }
             }
