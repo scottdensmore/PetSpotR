@@ -94,11 +94,13 @@
     }
     switch (standard) {
       case 'ISO_11784_11785':
+      case 'iso_15':
         return '<span class="badge badge-info text-small">ISO 15-Digit</span>';
       case 'AVID_9_DIGIT':
+      case 'avid_9':
         return '<span class="badge badge-secondary text-small">Avid 9-Digit</span>';
       case 'AVID_10_DIGIT':
-        return '<span class="badge badge-secondary text-small">Avid 10-Hex</span>';
+      case 'euro_10':
       case 'EURO_FDX_A':
         return '<span class="badge badge-secondary text-small">Euro FDX-A</span>';
       default:

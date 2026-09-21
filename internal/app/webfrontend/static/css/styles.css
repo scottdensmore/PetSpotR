@@ -2043,7 +2043,7 @@ footer {
 }
 
 /* Responsive Viewports */
-@media (min-width: 769px) and (max-width: 1119px) {
+@media (min-width: 769px) and (max-width: 1279px) {
   .home-navbar {
     height: auto;
     min-height: 4.5rem;
@@ -2051,6 +2051,11 @@ footer {
     padding-bottom: 0.75rem;
     flex-wrap: wrap;
     gap: 0.75rem 1rem;
+  }
+
+  .home-navbar .nav-links {
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
   }
 
   .home-nav-actions {
