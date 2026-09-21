@@ -301,6 +301,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/sightings", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiSightings))
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/sightings/{sightingID}/voice-memo", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiVoiceMemo))
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/trajectory", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiTrajectory))
+	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/predictive-trajectory", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleGetPredictiveTrajectoryScenario))
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/search-party", s.rateLimiter.RequireRateLimitByMethodFunc(
 		map[string]ratelimit.Limit{
 			http.MethodPost: ratelimit.ModerateLimit,

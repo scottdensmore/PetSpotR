@@ -42,14 +42,15 @@ type SearchPerimeter struct {
 
 // TrajectoryAnalysis encapsulates the chronological path and motion metrics of a lost pet.
 type TrajectoryAnalysis struct {
-	LostPetID          string                     `json:"lostPetId"`
-	GeneratedAt        time.Time                  `json:"generatedAt"`
-	OriginLocation     *domain.LocationPoint      `json:"originLocation,omitempty"` // Initial last seen spot from LostPetRecord
-	SightingsCount     int                        `json:"sightingsCount"`
-	OrderedSightings   []domain.PetSightingRecord `json:"orderedSightings"`
-	Legs               []TrajectoryLeg            `json:"legs"`
-	TotalDistanceMiles float64                    `json:"totalDistanceMiles"`
-	EstimatedPerimeter *SearchPerimeter           `json:"estimatedPerimeter,omitempty"`
+	LostPetID          string                             `json:"lostPetId"`
+	GeneratedAt        time.Time                          `json:"generatedAt"`
+	OriginLocation     *domain.LocationPoint              `json:"originLocation,omitempty"` // Initial last seen spot from LostPetRecord
+	SightingsCount     int                                `json:"sightingsCount"`
+	OrderedSightings   []domain.PetSightingRecord         `json:"orderedSightings"`
+	Legs               []TrajectoryLeg                    `json:"legs"`
+	TotalDistanceMiles float64                            `json:"totalDistanceMiles"`
+	EstimatedPerimeter *SearchPerimeter                   `json:"estimatedPerimeter,omitempty"`
+	PredictiveModel    *domain.PredictiveTrajectoryResult `json:"predictiveModel,omitempty"`
 }
 
 // CalculateTrajectory processes chronological sightings and computes movement velocity,

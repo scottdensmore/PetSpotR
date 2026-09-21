@@ -571,6 +571,13 @@
       </div>
 
       <div class="trajectory-modal-body">
+        <!-- Layer Selector Controls -->
+        <div class="trajectory-layer-toggle" role="radiogroup" aria-label="Trajectory Map Layer Selection">
+          <button type="button" class="layer-pill-btn active" data-layer="friction" role="radio" aria-checked="true" id="btn-layer-friction">Friction Isochrones</button>
+          <button type="button" class="layer-pill-btn" data-layer="standard" role="radio" aria-checked="false" id="btn-layer-standard">Standard Perimeter</button>
+          <button type="button" class="layer-pill-btn" data-layer="clusters" role="radio" aria-checked="false" id="btn-layer-clusters">Hiding Clusters</button>
+        </div>
+
         <!-- Summary Stats Strip -->
         <div class="trajectory-stats-strip" id="trajectory-stats-strip">
           <div class="traj-stat-item">
@@ -600,7 +607,7 @@
         <!-- Legend & Timeline Strip -->
         <div class="trajectory-legend" id="trajectory-legend">
           <div class="legend-header">
-            <h4>Milestone Legend</h4>
+            <h4>Milestone &amp; Layer Legend</h4>
           </div>
           <div class="legend-items">
             <div class="legend-item">
@@ -614,6 +621,22 @@
             <div class="legend-item">
               <span class="legend-circle"></span>
               <span><strong>Search Perimeter</strong> — Dynamic radial bound</span>
+            </div>
+            <div class="legend-item legend-item-friction">
+              <span class="legend-chip legend-chip-core"></span>
+              <span><strong>50% Core</strong> — High probability zone</span>
+            </div>
+            <div class="legend-item legend-item-friction">
+              <span class="legend-chip legend-chip-active"></span>
+              <span><strong>75% Active</strong> — Search envelope</span>
+            </div>
+            <div class="legend-item legend-item-friction">
+              <span class="legend-chip legend-chip-containment"></span>
+              <span><strong>90% Containment</strong> — Dispersion boundary</span>
+            </div>
+            <div class="legend-item legend-item-clusters">
+              <span class="legend-cluster-icon">🏕️</span>
+              <span><strong>Hiding Refuge</strong> — Attraction cluster</span>
             </div>
           </div>
           <div class="timeline-sightings-list" id="timeline-sightings-list"></div>
@@ -724,6 +747,9 @@
         <div class="search-party-legend" id="search-party-legend">
           <div class="legend-header">
             <h4>Sector Status Legend &amp; Assignments</h4>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-sort-sectors-urgency" aria-pressed="false">
+              🔥 Sort by Urgency
+            </button>
           </div>
           <div class="legend-items">
             <div class="legend-item">
@@ -764,6 +790,7 @@
         <div class="sector-info-card" id="claim-sector-info">
           <h4 id="claim-sector-name" class="sector-info-name">Sector</h4>
           <p id="claim-sector-details" class="text-secondary sector-info-details"></p>
+          <div id="sector-barrier-advisory" class="sector-barrier-advisory hidden" role="note" aria-live="polite"></div>
         </div>
 
         <p class="text-secondary modal-info-text">

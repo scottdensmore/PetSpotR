@@ -36,6 +36,10 @@
   let currentTrailPoints = [];
   let currentTrailDistanceMeters = 0;
 
+  // Urgency prioritization & barrier state
+  let sortSectorsByUrgency = false;
+  let activeBarriers = [];
+
   // BLE Beacon Scanner state
   let beaconScannerInstance = null;
   let latestBeaconPing = null;
@@ -300,43 +304,60 @@
     }
   }
 
-  // Sector style definition by status
-  function getSectorStyle(status) {
+  // Sector style definition by status and urgency
+  function getSectorStyle(status, urgencyLevel) {
+    let baseStyle;
     switch (status) {
       case 'active_search':
-        return {
+        baseStyle = {
           color: '#4f46e5',
           fillColor: '#6366f1',
           fillOpacity: 0.5,
           weight: 2,
           className: 'sector-polygon sector-active-search',
         };
+        break;
       case 'cleared':
-        return {
+        baseStyle = {
           color: '#16a34a',
           fillColor: '#22c55e',
           fillOpacity: 0.4,
           weight: 2,
           className: 'sector-polygon sector-cleared',
         };
+        break;
       case 'sighting_reported':
-        return {
+        baseStyle = {
           color: '#dc2626',
           fillColor: '#ef4444',
           fillOpacity: 0.45,
           weight: 3,
           className: 'sector-polygon sector-sighting-reported sector-pulse',
         };
+        break;
       case 'unassigned':
       default:
-        return {
+        baseStyle = {
           color: '#d97706',
           fillColor: '#f59e0b',
           fillOpacity: 0.4,
           weight: 2,
           className: 'sector-polygon sector-unassigned',
         };
+        break;
     }
+
+    if (urgencyLevel === 'CRITICAL') {
+      baseStyle.color = '#e11d48';
+      baseStyle.weight = 3;
+      baseStyle.className += ' sector-urgency-critical';
+    } else if (urgencyLevel === 'HIGH') {
+      baseStyle.color = '#d97706';
+      baseStyle.weight = 3;
+      baseStyle.className += ' sector-urgency-high';
+    }
+
+    return baseStyle;
   }
 
   // CSRF token retriever
@@ -841,6 +862,13 @@
     clearBeaconMapLayers();
     resetBeaconHUD();
 
+    sortSectorsByUrgency = false;
+    const sortBtn = document.getElementById('btn-sort-sectors-urgency');
+    if (sortBtn) {
+      sortBtn.setAttribute('aria-pressed', 'false');
+      sortBtn.classList.remove('active');
+    }
+
     const titleEl = document.getElementById('search-party-modal-title');
     const badgeEl = document.getElementById('search-party-pet-badge');
 
@@ -863,6 +891,7 @@
       beaconScannerInstance.stopScan();
     }
     clearBeaconMapLayers();
+    activeBarriers = [];
     const modal = document.getElementById('pet-search-party-container');
     if (modal) {
       modal.classList.add('hidden');
@@ -879,6 +908,16 @@
     latestTriangulation = null;
     clearBeaconMapLayers();
     resetBeaconHUD();
+
+    // Fetch trajectory barriers asynchronously for physical barrier intersection checks
+    fetch(`/api/v1/lost-pets/${encodeURIComponent(petId)}/trajectory`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((trajData) => {
+        if (trajData?.predictiveModel?.barriersEncountered) {
+          activeBarriers = trajData.predictiveModel.barriersEncountered;
+        }
+      })
+      .catch(() => {});
 
     const statusOverlay = document.getElementById('search-party-map-status');
     if (statusOverlay) {
@@ -1019,13 +1058,14 @@
           return [pt.latitude, pt.longitude];
         });
 
-        const style = getSectorStyle(sector.status);
+        const style = getSectorStyle(sector.status, sector.urgencyLevel);
         const polygon = L.polygon(latLngs, style).addTo(searchPartyMapInstance);
         sectorLayers[sector.sectorId] = polygon;
 
         // Tooltip
+        const urgencyLabel = sector.urgencyLevel === 'CRITICAL' ? ' [🔥 Critical]' : (sector.urgencyLevel === 'HIGH' ? ' [⚡ High Priority]' : '');
         polygon.bindTooltip(
-          `<strong>${escapeHTML(sector.name)}</strong><br>Status: ${formatSectorStatus(sector.status)}<br><em>Click to claim or update</em>`,
+          `<strong>${escapeHTML(sector.name)}${urgencyLabel}</strong><br>Status: ${formatSectorStatus(sector.status)}<br><em>Click to claim or update</em>`,
           { sticky: true }
         );
 
@@ -1059,6 +1099,81 @@
     }, 150);
   }
 
+  // Point in sector polygon geometry test
+  function pointInSectorPolygon(pt, poly) {
+    if (!poly || poly.length < 3) return false;
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i].longitude ?? poly[i].lng ?? poly[i][1];
+      const yi = poly[i].latitude ?? poly[i].lat ?? poly[i][0];
+      const xj = poly[j].longitude ?? poly[j].lng ?? poly[j][1];
+      const yj = poly[j].latitude ?? poly[j].lat ?? poly[j][0];
+      const intersect = ((yi > pt.lat) !== (yj > pt.lat)) &&
+        (pt.lng < (xj - xi) * (pt.lat - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  // Check if sector intersects an impassable barrier, hiding cluster, or has terrain advisory
+  function sectorHasBarrierAdvisory(sector) {
+    if (!sector) return false;
+    if (sector.hasBarrier === true) return true;
+    if (Array.isArray(sector.barriers) && sector.barriers.length > 0) return true;
+    if (Array.isArray(sector.impassableBarriers) && sector.impassableBarriers.length > 0) return true;
+    if (Array.isArray(sector.terrainFeatures) && sector.terrainFeatures.length > 0) return true;
+    if (typeof sector.terrainAdvisory === 'string' && sector.terrainAdvisory.trim() !== '') return true;
+    if (sector.hasTerrainBarrier === true) return true;
+    if (typeof sector.notes === 'string' && /barrier|slope|freeway|highway|water|traffic|roadway|steep/i.test(sector.notes)) return true;
+    if (Array.isArray(sector.hidingClusterIds) && sector.hidingClusterIds.length > 0) return true;
+
+    // Geometric intersection check against loaded active barriers
+    if (Array.isArray(activeBarriers) && activeBarriers.length > 0 && Array.isArray(sector.polygonPoints) && sector.polygonPoints.length >= 3) {
+      for (const b of activeBarriers) {
+        const isHazard = b.type === 'freeway' || b.type === 'waterway' || b.type === 'steep_slope' || (b.frictionCost && b.frictionCost >= 2.0);
+        if (!isHazard) continue;
+        if (Array.isArray(b.geometry)) {
+          for (const coord of b.geometry) {
+            const lat = typeof coord?.latitude === 'number' ? coord.latitude : (Array.isArray(coord) ? coord[0] : coord?.lat);
+            const lng = typeof coord?.longitude === 'number' ? coord.longitude : (Array.isArray(coord) ? coord[1] : coord?.lng);
+            if (typeof lat === 'number' && typeof lng === 'number') {
+              if (pointInSectorPolygon({ lat, lng }, sector.polygonPoints)) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  // Update sector barrier safety advisory display
+  function updateBarrierAdvisory(sector) {
+    const advisoryEl = document.getElementById('sector-barrier-advisory');
+    if (!advisoryEl) return;
+    if (sector && sectorHasBarrierAdvisory(sector)) {
+      advisoryEl.textContent = '⚠️ Safety Advisory: Sector intersects physical terrain barrier. Caution advised near steep slopes or roadways.';
+      advisoryEl.classList.remove('hidden');
+    } else {
+      advisoryEl.textContent = '';
+      advisoryEl.classList.add('hidden');
+    }
+  }
+
+  // Toggle sorting sectors by priority score / urgency
+  function toggleSortSectorsUrgency() {
+    sortSectorsByUrgency = !sortSectorsByUrgency;
+    const sortBtn = document.getElementById('btn-sort-sectors-urgency');
+    if (sortBtn) {
+      sortBtn.setAttribute('aria-pressed', sortSectorsByUrgency ? 'true' : 'false');
+      sortBtn.classList.toggle('active', sortSectorsByUrgency);
+    }
+    if (currentParty) {
+      renderSectorCards(currentParty);
+    }
+  }
+
   // Handle sector click from map polygon or list card
   function handleSectorClick(sectorId) {
     if (!currentParty || !Array.isArray(currentParty.sectors)) return;
@@ -1070,6 +1185,8 @@
     if (secLabel) {
       secLabel.textContent = sector.name;
     }
+
+    updateBarrierAdvisory(sector);
 
     if (sector.status === 'unassigned') {
       openClaimModal(sector);
@@ -1101,6 +1218,8 @@
       detailsEl.textContent = `Area: ${areaSqMi} sq mi · Priority: ${priority} · Status: Unassigned`;
     }
 
+    updateBarrierAdvisory(sector);
+
     if (feedbackEl) {
       feedbackEl.textContent = '';
       feedbackEl.classList.add('hidden');
@@ -1119,6 +1238,7 @@
     if (modal) {
       modal.classList.add('hidden');
     }
+    updateBarrierAdvisory(null);
   }
 
   // Open Clear / Status Update Modal
@@ -1179,7 +1299,16 @@
     container.innerHTML = '';
     if (!party || !Array.isArray(party.sectors)) return;
 
-    party.sectors.forEach((sec) => {
+    let sectors = party.sectors.slice();
+    if (sortSectorsByUrgency) {
+      sectors.sort((a, b) => {
+        const scoreA = typeof a.priorityScore === 'number' ? a.priorityScore : 0;
+        const scoreB = typeof b.priorityScore === 'number' ? b.priorityScore : 0;
+        return scoreB - scoreA;
+      });
+    }
+
+    sectors.forEach((sec) => {
       const card = document.createElement('div');
       card.className = `sector-card sector-card-${sec.status}`;
       card.dataset.sectorId = sec.sectorId;
@@ -1191,9 +1320,19 @@
       const btnLabel = isUnassigned ? 'Claim Sector' : 'Update Status';
       const btnClass = isUnassigned ? 'btn-primary' : 'btn-secondary';
 
+      let urgencyBadgeHtml = '';
+      if (sec.urgencyLevel === 'CRITICAL') {
+        urgencyBadgeHtml = '<span class="badge badge-critical" data-testid="sector-urgency-critical">🔥 Critical Search Zone</span>';
+      } else if (sec.urgencyLevel === 'HIGH') {
+        urgencyBadgeHtml = '<span class="badge badge-high" data-testid="sector-urgency-high">⚡ High Priority</span>';
+      }
+
       card.innerHTML = `
         <div class="sector-card-header">
-          <h4 class="sector-card-name">${escapeHTML(sec.name)}</h4>
+          <div class="sector-card-title-group">
+            <h4 class="sector-card-name">${escapeHTML(sec.name)}</h4>
+            ${urgencyBadgeHtml}
+          </div>
           <span class="badge badge-status-${sec.status}">${formatSectorStatus(sec.status)}</span>
         </div>
         <p class="sector-card-volunteer text-secondary">👤 ${volunteerText}</p>
@@ -1232,7 +1371,8 @@
     // Update Polygon on Leaflet map
     const poly = sectorLayers[sectorId];
     if (poly) {
-      const newStyle = getSectorStyle(newStatus);
+      const sec = currentParty?.sectors ? currentParty.sectors.find((s) => s.sectorId === sectorId) : null;
+      const newStyle = getSectorStyle(newStatus, sec?.urgencyLevel);
       poly.setStyle(newStyle);
 
       // Handle pulsing animation class on SVG path element
@@ -1246,10 +1386,10 @@
       }
 
       if (currentParty.sectors) {
-        const sec = currentParty.sectors.find((s) => s.sectorId === sectorId);
         if (sec) {
+          const urgencyLabel = sec.urgencyLevel === 'CRITICAL' ? ' [🔥 Critical]' : (sec.urgencyLevel === 'HIGH' ? ' [⚡ High Priority]' : '');
           poly.setTooltipContent(
-            `<strong>${escapeHTML(sec.name)}</strong><br>Status: ${formatSectorStatus(sec.status)}<br><em>Click to claim or update</em>`
+            `<strong>${escapeHTML(sec.name)}${urgencyLabel}</strong><br>Status: ${formatSectorStatus(sec.status)}<br><em>Click to claim or update</em>`
           );
         }
       }
@@ -1825,7 +1965,15 @@
 
     // Global click listener for search party triggers and modals
     document.addEventListener('click', (e) => {
-      // 0. Toggle Record Trail Button
+      // 0a. Sort Sectors by Urgency Button
+      const sortUrgencyBtn = e.target.closest('#btn-sort-sectors-urgency');
+      if (sortUrgencyBtn) {
+        e.preventDefault();
+        toggleSortSectorsUrgency();
+        return;
+      }
+
+      // 0b. Toggle Record Trail Button
       const recordBtn = e.target.closest('[data-action="toggle-record-trail"], #btn-toggle-record-trail');
       if (recordBtn) {
         e.preventDefault();

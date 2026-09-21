@@ -759,3 +759,91 @@ func TestActiveVolunteersCountIncludesSightingReported(t *testing.T) {
 		t.Errorf("expected GET search party activeVolunteersCount=1, got %d", getParty.ActiveVolunteersCount)
 	}
 }
+
+func TestSearchParty_SectorUrgencyAndPriorityAnnotation(t *testing.T) {
+	t.Parallel()
+
+	st := store.NewMemoryStore()
+	srv := webfrontend.NewServerWithOptions(st, webfrontend.ServerOptions{
+		AllowPrivilegedMutations: true,
+	})
+
+	petID := "lost-party-urgency"
+	now := time.Now().UTC()
+	pet := domain.LostPetRecord{
+		PetID:      petID,
+		PetName:    "Cooper",
+		Species:    "dog",
+		ReportedAt: now.Add(-2 * time.Hour),
+		Coordinates: &domain.LocationPoint{
+			Latitude:  47.6062,
+			Longitude: -122.3321,
+		},
+		Status: domain.LostPetStatusLost,
+	}
+	petBytes, _ := json.Marshal(pet)
+	_ = st.SaveState(context.Background(), store.LostPetsCollection, petID, petBytes)
+
+	// Create search party
+	createReq := httptest.NewRequest(http.MethodPost, "/api/v1/lost-pets/"+petID+"/search-party", nil)
+	createRec := httptest.NewRecorder()
+	srv.ServeHTTP(createRec, createReq)
+	if createRec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 Created, got %d: %s", createRec.Code, createRec.Body.String())
+	}
+
+	// GET search party and check urgency annotations
+	getReq := httptest.NewRequest(http.MethodGet, "/api/v1/lost-pets/"+petID+"/search-party", nil)
+	getRec := httptest.NewRecorder()
+	srv.ServeHTTP(getRec, getReq)
+
+	if getRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d: %s", getRec.Code, getRec.Body.String())
+	}
+
+	var partyResp struct {
+		searchparty.SearchParty
+		CollarBeacon *domain.CollarBeaconConfig `json:"collarBeacon,omitempty"`
+	}
+	if err := json.Unmarshal(getRec.Body.Bytes(), &partyResp); err != nil {
+		t.Fatalf("failed to decode search party response: %v", err)
+	}
+
+	if len(partyResp.Sectors) == 0 {
+		t.Fatal("expected sectors in search party, got 0")
+	}
+
+	hasCriticalOrHigh := false
+	for _, sec := range partyResp.Sectors {
+		if sec.PriorityScore <= 0 {
+			t.Errorf("expected sector %s priorityScore > 0, got %f", sec.SectorID, sec.PriorityScore)
+		}
+		if sec.UrgencyLevel == "" {
+			t.Errorf("expected sector %s urgencyLevel to be populated", sec.SectorID)
+		}
+		if sec.UrgencyLevel == domain.SectorUrgencyCritical || sec.UrgencyLevel == domain.SectorUrgencyHigh {
+			hasCriticalOrHigh = true
+		}
+	}
+
+	if !hasCriticalOrHigh {
+		t.Error("expected at least one sector with CRITICAL or HIGH urgency")
+	}
+
+	// Check raw JSON fields
+	var rawMap map[string]interface{}
+	if err := json.Unmarshal(getRec.Body.Bytes(), &rawMap); err != nil {
+		t.Fatalf("failed to unmarshal raw map: %v", err)
+	}
+	sectorsRaw, ok := rawMap["sectors"].([]interface{})
+	if !ok || len(sectorsRaw) == 0 {
+		t.Fatal("expected sectors array in raw json")
+	}
+	firstSec := sectorsRaw[0].(map[string]interface{})
+	if _, ok := firstSec["urgencyLevel"]; !ok {
+		t.Errorf("expected urgencyLevel key in sector JSON: %v", firstSec)
+	}
+	if _, ok := firstSec["priorityScore"]; !ok {
+		t.Errorf("expected priorityScore key in sector JSON: %v", firstSec)
+	}
+}

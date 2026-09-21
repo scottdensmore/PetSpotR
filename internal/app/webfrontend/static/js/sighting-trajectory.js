@@ -15,6 +15,10 @@
   let currentTrajectoryPetID = '';
   let sightingCoordinates = null;
   let activeEventSource = null;
+  let standardPerimeterGroup = null;
+  let frictionIsochroneGroup = null;
+  let hidingClusterGroup = null;
+  let currentActiveLayer = 'friction';
 
   // HTML entity escaper for safe DOM insertion
   function escapeHTML(str) {
@@ -25,6 +29,63 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  // Switch active Leaflet trajectory layer
+  function switchActiveLayer(layerName) {
+    if (!layerName) return;
+    currentActiveLayer = layerName;
+
+    // Update segmented radio buttons and ARIA states
+    const toggleButtons = document.querySelectorAll('.trajectory-layer-toggle .layer-pill-btn');
+    toggleButtons.forEach((btn) => {
+      const isTarget = btn.dataset.layer === layerName || btn.id === `btn-layer-${layerName}`;
+      btn.classList.toggle('active', isTarget);
+      btn.classList.toggle('layer-pill-active', isTarget);
+      btn.setAttribute('aria-checked', isTarget ? 'true' : 'false');
+      btn.tabIndex = isTarget ? 0 : -1;
+    });
+
+    if (typeof L === 'undefined' || !mapInstance) return;
+
+    // Standard Perimeter Group
+    if (standardPerimeterGroup) {
+      if (layerName === 'standard') {
+        if (!mapInstance.hasLayer(standardPerimeterGroup)) {
+          mapInstance.addLayer(standardPerimeterGroup);
+        }
+      } else {
+        if (mapInstance.hasLayer(standardPerimeterGroup)) {
+          mapInstance.removeLayer(standardPerimeterGroup);
+        }
+      }
+    }
+
+    // Friction Isochrones Group
+    if (frictionIsochroneGroup) {
+      if (layerName === 'friction') {
+        if (!mapInstance.hasLayer(frictionIsochroneGroup)) {
+          mapInstance.addLayer(frictionIsochroneGroup);
+        }
+      } else {
+        if (mapInstance.hasLayer(frictionIsochroneGroup)) {
+          mapInstance.removeLayer(frictionIsochroneGroup);
+        }
+      }
+    }
+
+    // Hiding Refuge Clusters Group
+    if (hidingClusterGroup) {
+      if (layerName === 'clusters') {
+        if (!mapInstance.hasLayer(hidingClusterGroup)) {
+          mapInstance.addLayer(hidingClusterGroup);
+        }
+      } else {
+        if (mapInstance.hasLayer(hidingClusterGroup)) {
+          mapInstance.removeLayer(hidingClusterGroup);
+        }
+      }
+    }
   }
 
   // Format timestamp helper
@@ -518,6 +579,10 @@
         maxZoom: 19,
       }).addTo(mapInstance);
 
+      standardPerimeterGroup = L.layerGroup();
+      frictionIsochroneGroup = L.layerGroup();
+      hidingClusterGroup = L.layerGroup();
+
       const bounds = L.latLngBounds();
       const pathCoordinates = [];
 
@@ -629,7 +694,7 @@
         }).addTo(mapInstance);
       }
 
-      // 4. Dynamic Search Perimeter Circle
+      // 4. Dynamic Search Perimeter Circle (Standard Perimeter Layer)
       if (data.estimatedPerimeter && data.estimatedPerimeter.centerCoordinates) {
         const center = [
           data.estimatedPerimeter.centerCoordinates.latitude,
@@ -646,7 +711,7 @@
           fillOpacity: 0.15,
           weight: 2,
           dashArray: '6, 6',
-        }).addTo(mapInstance);
+        });
 
         circle.bindPopup(`
           <div class="trajectory-popup">
@@ -657,6 +722,8 @@
           </div>
         `);
 
+        circle.addTo(standardPerimeterGroup);
+
         try {
           bounds.extend(circle.getBounds());
         } catch (_) {
@@ -664,7 +731,175 @@
         }
       }
 
-      // 5. Fit Viewport Bounds
+      // 5. Friction Isochrone Contours & Encountered Barriers (Predictive Friction Layer)
+      if (data.predictiveModel && Array.isArray(data.predictiveModel.isochrones)) {
+        // Sort descending by probabilityLevel (0.90, 0.75, 0.50) so higher probability is drawn on top
+        const sortedIsochrones = [...data.predictiveModel.isochrones].sort(
+          (a, b) => (b.probabilityLevel || 0) - (a.probabilityLevel || 0)
+        );
+
+        sortedIsochrones.forEach((iso) => {
+          if (!iso.polygonCoordinates || iso.polygonCoordinates.length === 0) return;
+
+          const latlngs = iso.polygonCoordinates.map((ring) =>
+            ring.map((pt) => [pt.latitude, pt.longitude])
+          );
+
+          const prob = iso.probabilityLevel || 0.5;
+          let color = iso.colorHex || '#ef4444';
+          let fillOpacity = 0.25;
+          let dashArray = undefined;
+
+          if (prob <= 0.55) {
+            color = iso.colorHex || '#ef4444';
+            fillOpacity = 0.25;
+          } else if (prob <= 0.80) {
+            color = iso.colorHex || '#f59e0b';
+            fillOpacity = 0.18;
+            dashArray = '6, 6';
+          } else {
+            color = iso.colorHex || '#0ea5e9';
+            fillOpacity = 0.10;
+            dashArray = '4, 6';
+          }
+
+          const polygon = L.polygon(latlngs, {
+            color: color,
+            fillColor: color,
+            fillOpacity: fillOpacity,
+            weight: 2,
+            dashArray: dashArray,
+          });
+
+          const pct = Math.round(prob * 100);
+          const elapsed = data.predictiveModel.elapsedHours
+            ? `${data.predictiveModel.elapsedHours.toFixed(1)} hrs`
+            : '1.0 hr';
+
+          polygon.bindPopup(`
+            <div class="trajectory-popup">
+              <h4>${escapeHTML(iso.label || `${pct}% Probability Isochrone`)}</h4>
+              <p><strong>Containment Probability:</strong> <span class="badge ${prob <= 0.55 ? 'badge-critical' : prob <= 0.8 ? 'badge-high' : 'badge-primary'}">${pct}%</span></p>
+              <p><strong>Elapsed Time:</strong> ${escapeHTML(elapsed)}</p>
+              <p class="text-secondary">Anisotropic cost-distance contour accounting for terrain obstacles and travel speed.</p>
+            </div>
+          `);
+
+          polygon.addTo(frictionIsochroneGroup);
+
+          try {
+            bounds.extend(polygon.getBounds());
+          } catch (_) {}
+        });
+      }
+
+      // Barriers encountered inside frictionIsochroneGroup
+      if (data.predictiveModel && Array.isArray(data.predictiveModel.barriersEncountered)) {
+        data.predictiveModel.barriersEncountered.forEach((b) => {
+          if (!b.geometry || b.geometry.length < 2) return;
+
+          const polyCoords = b.geometry.map((pt) => [pt.latitude, pt.longitude]);
+          let strokeColor = '#dc2626';
+          let strokeDash = '8, 6';
+          let strokeWidth = 4;
+          let strokeOpacity = 0.9;
+          let className = 'barrier-polyline-highway';
+
+          if (b.type === 'waterway') {
+            strokeColor = '#0284c7';
+            strokeDash = undefined;
+            strokeWidth = 3;
+            strokeOpacity = 0.85;
+            className = 'barrier-polyline-water';
+          } else if (b.type === 'greenway') {
+            strokeColor = '#10b981';
+            strokeDash = '5, 5';
+            strokeWidth = 3;
+            strokeOpacity = 0.85;
+            className = 'barrier-polyline-corridor';
+          }
+
+          const polyline = L.polyline(polyCoords, {
+            color: strokeColor,
+            weight: strokeWidth,
+            opacity: strokeOpacity,
+            dashArray: strokeDash,
+            className: className,
+          });
+
+          const bTypeLabel = b.type ? b.type.replace('_', ' ').toUpperCase() : 'BARRIER';
+          polyline.bindPopup(`
+            <div class="trajectory-popup">
+              <h4>🚧 ${escapeHTML(b.name || 'Terrain Feature')}</h4>
+              <p><strong>Classification:</strong> ${escapeHTML(bTypeLabel)}</p>
+              <p><strong>Friction Multiplier:</strong> ${b.frictionCost ? b.frictionCost.toFixed(1) + 'x' : 'N/A'}</p>
+              <p class="text-secondary">${b.frictionCost >= 10 ? 'High-friction obstacle deflecting animal trajectory.' : 'Favorable green corridor encouraging refuge movement.'}</p>
+            </div>
+          `);
+
+          polyline.addTo(frictionIsochroneGroup);
+
+          try {
+            bounds.extend(polyline.getBounds());
+          } catch (_) {}
+        });
+      }
+
+      // 6. Hiding Refuge Clusters (Hiding Cluster Layer)
+      if (data.predictiveModel && Array.isArray(data.predictiveModel.hidingClusters)) {
+        data.predictiveModel.hidingClusters.forEach((cluster) => {
+          if (!cluster.centroid || isNaN(cluster.centroid.latitude) || isNaN(cluster.centroid.longitude)) return;
+
+          const clusterLatLng = [cluster.centroid.latitude, cluster.centroid.longitude];
+
+          // Soft buffer circle around cluster
+          if (cluster.radiusMeters && cluster.radiusMeters > 0) {
+            const clusterCircle = L.circle(clusterLatLng, {
+              radius: cluster.radiusMeters,
+              color: '#10b981',
+              fillColor: '#10b981',
+              fillOpacity: 0.15,
+              weight: 1.5,
+              dashArray: '4, 4',
+            });
+            clusterCircle.addTo(hidingClusterGroup);
+          }
+
+          const clusterIcon = L.divIcon({
+            className: 'custom-cluster-marker',
+            html: `<div class="hiding-cluster-pin" role="img" aria-label="Hiding Refuge: ${escapeHTML(cluster.name || 'Refuge')}">🏕️</div>`,
+            iconSize: [36, 36],
+            iconAnchor: [18, 18],
+            popupAnchor: [0, -20],
+          });
+
+          const clusterMarker = L.marker(clusterLatLng, {
+            icon: clusterIcon,
+            title: cluster.name || 'Hiding Refuge',
+            zIndexOffset: 300,
+          });
+
+          const scorePct = Math.round((cluster.attractionScore || 0) * 100);
+          const descHtml = cluster.description
+            ? `<p class="popup-notes">"${escapeHTML(cluster.description)}"</p>`
+            : '';
+
+          clusterMarker.bindPopup(`
+            <div class="trajectory-popup">
+              <h4>🏕️ ${escapeHTML(cluster.name || 'High-Probability Hiding Refuge')}</h4>
+              <p><strong>Attraction Score:</strong> <span class="badge badge-success">${scorePct}%</span></p>
+              <p><strong>Search Radius:</strong> ${Math.round(cluster.radiusMeters || 50)} m</p>
+              ${descHtml}
+              <p class="text-secondary">Key shelter point. Recommend intensive visual & sound checks in this sector.</p>
+            </div>
+          `);
+
+          clusterMarker.addTo(hidingClusterGroup);
+          bounds.extend(clusterLatLng);
+        });
+      }
+
+      // 7. Fit Viewport Bounds
       if (bounds.isValid()) {
         if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
           mapInstance.setView(bounds.getCenter(), 14);
@@ -674,6 +909,15 @@
       } else {
         mapInstance.setView([47.6062, -122.3321], 13);
       }
+
+      // 8. Activate Default Layer (friction if predictiveModel present, else standard)
+      const hasPredictiveModel = Boolean(
+        data.predictiveModel &&
+        Array.isArray(data.predictiveModel.isochrones) &&
+        data.predictiveModel.isochrones.length > 0
+      );
+      const defaultLayer = hasPredictiveModel ? 'friction' : 'standard';
+      switchActiveLayer(defaultLayer);
 
       setTimeout(() => {
         if (mapInstance) {
@@ -792,6 +1036,57 @@
         closeTrajectoryModal();
         return;
       }
+
+      // 5. Trajectory layer toggle buttons
+      const layerBtn = e.target.closest('.trajectory-layer-toggle .layer-pill-btn, #btn-layer-friction, #btn-layer-standard, #btn-layer-clusters');
+      if (layerBtn) {
+        e.preventDefault();
+        const layer = layerBtn.dataset.layer || (
+          layerBtn.id === 'btn-layer-friction' ? 'friction' :
+          layerBtn.id === 'btn-layer-standard' ? 'standard' :
+          layerBtn.id === 'btn-layer-clusters' ? 'clusters' : ''
+        );
+        if (layer) {
+          switchActiveLayer(layer);
+        }
+        return;
+      }
+    });
+
+    // Arrow-key cycling for trajectory layer toggle radiogroups
+    const toggleRadiogroups = document.querySelectorAll('.trajectory-layer-toggle');
+    toggleRadiogroups.forEach((rg) => {
+      rg.addEventListener('keydown', (evt) => {
+        if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(evt.key)) {
+          evt.preventDefault();
+          const btns = Array.from(rg.querySelectorAll('.layer-pill-btn'));
+          const curIndex = btns.findIndex(b => b.classList.contains('active') || b.getAttribute('aria-checked') === 'true');
+          let nextIndex = curIndex >= 0 ? curIndex : 0;
+          if (evt.key === 'ArrowRight' || evt.key === 'ArrowDown') {
+            nextIndex = (curIndex + 1) % btns.length;
+          } else if (evt.key === 'ArrowLeft' || evt.key === 'ArrowUp') {
+            nextIndex = (curIndex - 1 + btns.length) % btns.length;
+          }
+          if (btns[nextIndex]) {
+            btns[nextIndex].focus();
+            const targetLayer = btns[nextIndex].dataset.layer || (
+              btns[nextIndex].id === 'btn-layer-friction' ? 'friction' :
+              btns[nextIndex].id === 'btn-layer-standard' ? 'standard' :
+              btns[nextIndex].id === 'btn-layer-clusters' ? 'clusters' : ''
+            );
+            if (targetLayer) {
+              switchActiveLayer(targetLayer);
+            }
+          }
+        }
+      });
+    });
+
+    // Initialize roving tabIndex on trajectory layer radio buttons
+    const initialLayerBtns = document.querySelectorAll('.trajectory-layer-toggle .layer-pill-btn');
+    initialLayerBtns.forEach((btn) => {
+      const isChecked = btn.getAttribute('aria-checked') === 'true' || btn.classList.contains('active');
+      btn.tabIndex = isChecked ? 0 : -1;
     });
 
     // Geolocation trigger
@@ -837,6 +1132,13 @@
     loadAndRenderTrajectory,
     handleGeolocation,
     connectSightingSSE,
+    switchActiveLayer,
+    getActiveLayer: () => currentActiveLayer,
+    getLayerGroups: () => ({
+      standardPerimeterGroup,
+      frictionIsochroneGroup,
+      hidingClusterGroup,
+    }),
   };
 
   if (document.readyState === 'loading') {
