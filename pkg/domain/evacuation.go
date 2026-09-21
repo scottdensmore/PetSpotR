@@ -98,4 +98,5 @@ type CrisisReunificationItem struct {
 	SimilarityScore float64                     `json:"similarityScore"`
 	Status          string                      `json:"status"` // PENDING, CONTACTED, RESOLVED
 	IdentifiedAt    time.Time                   `json:"identifiedAt"`
+	ContactedAt     *time.Time                  `json:"contactedAt,omitempty"`
 }

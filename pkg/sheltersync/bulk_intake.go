@@ -236,10 +236,16 @@ func processIntakeRow(
 	}
 
 	var petID string
+	cleanIntake := sanitizeIdentifier(row.IntakeID)
 	if row.PetID != "" {
 		petID = row.PetID
-	} else if row.IntakeID != "" {
-		petID = fmt.Sprintf("found-%s-%s", sanitizeIdentifier(hubID), sanitizeIdentifier(row.IntakeID))
+	} else if cleanIntake != "" {
+		cleanHub := sanitizeIdentifier(hubID)
+		if cleanHub != "" {
+			petID = fmt.Sprintf("found-%s-%s", cleanHub, cleanIntake)
+		} else {
+			petID = fmt.Sprintf("found-%s", cleanIntake)
+		}
 	} else {
 		petID = newIntakePetID(hubID)
 	}
@@ -297,6 +303,9 @@ func processIntakeRow(
 	var markings []string
 	if notes := strings.TrimSpace(row.Notes); notes != "" {
 		markings = append(markings, notes)
+	}
+	if gender := strings.TrimSpace(row.Gender); gender != "" {
+		markings = append(markings, fmt.Sprintf("Gender: %s", gender))
 	}
 
 	rec := domain.FoundPetRecord{
@@ -433,9 +442,9 @@ func newBatchID(hubID string) string {
 }
 
 func newIntakePetID(hubID string) string {
-	var random [12]byte
+	var random [8]byte
 	_, _ = rand.Read(random[:])
-	suffix := hex.EncodeToString(random[:])
+	suffix := fmt.Sprintf("%d-%s", time.Now().UnixNano(), hex.EncodeToString(random[:]))
 	cleanHub := sanitizeIdentifier(hubID)
 	if cleanHub != "" {
 		return fmt.Sprintf("found-%s-%s", cleanHub, suffix)
