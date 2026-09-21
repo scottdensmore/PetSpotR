@@ -110,31 +110,29 @@ func TestBeaconScannerAssets(t *testing.T) {
 func TestBeaconHUDIntegrationAssets(t *testing.T) {
 	t.Parallel()
 
-	// 1. Verify search-party.js and pet-search-party.js content
-	for _, jsFile := range []string{"static/js/search-party.js", "static/js/pet-search-party.js"} {
-		jsData, err := embeddedFiles.ReadFile(jsFile)
-		if err != nil {
-			t.Fatalf("failed to read %s: %v", jsFile, err)
-		}
-		content := string(jsData)
-		expectedSnippets := []string{
-			"PetBeaconScanner",
-			"initBeaconScanner",
-			"handleBeaconPing",
-			"renderBeaconPingOnMap",
-			"handleLogBeaconSightingClick",
-			"beacon_ping",
-			"btn-start-beacon-scan",
-			"btn-toggle-beacon-audio",
-			"btn-log-beacon-sighting",
-			"beacon-confidence-circle",
-			"beacon-pulse-indicator",
-			"Collar beacon detected nearby",
-		}
-		for _, snippet := range expectedSnippets {
-			if !strings.Contains(content, snippet) {
-				t.Errorf("%s missing expected snippet %q", jsFile, snippet)
-			}
+	// 1. Verify search-party.js content
+	jsData, err := embeddedFiles.ReadFile("static/js/search-party.js")
+	if err != nil {
+		t.Fatalf("failed to read static/js/search-party.js: %v", err)
+	}
+	content := string(jsData)
+	expectedSnippets := []string{
+		"PetBeaconScanner",
+		"initBeaconScanner",
+		"handleBeaconPing",
+		"renderBeaconPingOnMap",
+		"handleLogBeaconSightingClick",
+		"beacon_ping",
+		"btn-start-beacon-scan",
+		"btn-toggle-beacon-audio",
+		"btn-log-beacon-sighting",
+		"beacon-confidence-circle",
+		"beacon-pulse-indicator",
+		"Collar beacon detected nearby",
+	}
+	for _, snippet := range expectedSnippets {
+		if !strings.Contains(content, snippet) {
+			t.Errorf("static/js/search-party.js missing expected snippet %q", snippet)
 		}
 	}
 

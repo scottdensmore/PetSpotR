@@ -6,7 +6,7 @@
   'use strict';
 
   const DB_NAME = 'petspotr_offline_db';
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const STORE_NAME = 'outbox_reports';
   const BEACON_STORE_NAME = 'petspotr_beacon_outbox';
 
@@ -152,35 +152,6 @@
         dbInstance.onerror = function (err) {
           console.warn('IndexedDB connection error:', err);
         };
-
-        // If existing database was created without BEACON_STORE_NAME, dynamically upgrade
-        if (!dbInstance.objectStoreNames.contains(BEACON_STORE_NAME)) {
-          const currentVersion = dbInstance.version;
-          dbInstance.close();
-          dbInstance = null;
-          const upgradeReq = idb.open(DB_NAME, currentVersion + 1);
-          upgradeReq.onupgradeneeded = function (e) {
-            const upDb = e.target.result;
-            if (!upDb.objectStoreNames.contains(BEACON_STORE_NAME)) {
-              const bStore = upDb.createObjectStore(BEACON_STORE_NAME, { keyPath: 'id' });
-              bStore.createIndex('by_pet', 'petId', { unique: false });
-              bStore.createIndex('by_created', 'createdAt', { unique: false });
-            }
-          };
-          upgradeReq.onsuccess = async function () {
-            dbInstance = upgradeReq.result;
-            try {
-              await recoverStrandedRecords(dbInstance);
-            } catch (e) {
-              console.warn('Failed to recover stranded outbox records:', e);
-            }
-            resolve(dbInstance);
-          };
-          upgradeReq.onerror = function () {
-            reject(upgradeReq.error);
-          };
-          return;
-        }
 
         try {
           await recoverStrandedRecords(dbInstance);

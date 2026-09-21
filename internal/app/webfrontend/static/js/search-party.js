@@ -759,7 +759,7 @@
     }
   }
 
-  // Wire buttons in Radar HUD
+  // Wire buttons in Radar HUD (initial text & attributes; click events handled via delegated listener)
   function setupBeaconHUDControls() {
     const btnScan = document.getElementById('btn-start-beacon-scan');
     const btnAudio = document.getElementById('btn-toggle-beacon-audio');
@@ -772,43 +772,17 @@
 
     if (btnScan) {
       btnScan.textContent = '📡 Start Beacon Scan';
-      btnScan.onclick = async (e) => {
-        e?.preventDefault?.();
-        if (!beaconScannerInstance) return;
-        if (beaconScannerInstance.isScanning) {
-          beaconScannerInstance.stopScan();
-          btnScan.textContent = '📡 Start Beacon Scan';
-        } else {
-          try {
-            await beaconScannerInstance.startScan();
-            btnScan.textContent = '🛑 Stop Beacon Scan';
-          } catch (err) {
-            console.warn('Failed to start beacon scan:', err);
-          }
-        }
-      };
     }
 
     if (btnAudio && beaconScannerInstance) {
       const isMuted = beaconScannerInstance.isAudioMuted;
       btnAudio.textContent = isMuted ? '🔇 Audio Ping: Muted' : '🔊 Audio Ping: Active';
       btnAudio.setAttribute('aria-pressed', isMuted ? 'false' : 'true');
-
-      btnAudio.onclick = (e) => {
-        e?.preventDefault?.();
-        if (!beaconScannerInstance) return;
-        const muted = beaconScannerInstance.toggleAudio();
-        btnAudio.textContent = muted ? '🔇 Audio Ping: Muted' : '🔊 Audio Ping: Active';
-        btnAudio.setAttribute('aria-pressed', muted ? 'false' : 'true');
-      };
     }
 
     if (btnLog) {
       btnLog.hidden = true;
-      btnLog.onclick = (e) => {
-        e?.preventDefault?.();
-        handleLogBeaconSightingClick();
-      };
+      btnLog.setAttribute('hidden', '');
     }
   }
 
@@ -862,6 +836,11 @@
     if (!modal) return;
 
     currentPetID = petId || '';
+    latestBeaconPing = null;
+    latestTriangulation = null;
+    clearBeaconMapLayers();
+    resetBeaconHUD();
+
     const titleEl = document.getElementById('search-party-modal-title');
     const badgeEl = document.getElementById('search-party-pet-badge');
 
@@ -896,6 +875,11 @@
 
   // Fetch or initialize active search party
   async function loadAndRenderSearchParty(petId, petName) {
+    latestBeaconPing = null;
+    latestTriangulation = null;
+    clearBeaconMapLayers();
+    resetBeaconHUD();
+
     const statusOverlay = document.getElementById('search-party-map-status');
     if (statusOverlay) {
       statusOverlay.textContent = 'Loading search party sectors...';
@@ -1522,7 +1506,7 @@
     }
     const aliasInput = document.getElementById('claim-volunteer-alias');
     if (aliasInput && aliasInput.value.trim()) return aliasInput.value.trim();
-    return 'Volunteer Scout';
+    return 'Volunteer Alpha';
   }
 
   // Start recording volunteer GPS breadcrumbs
