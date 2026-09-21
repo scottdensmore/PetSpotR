@@ -176,6 +176,16 @@
     }
 
     /**
+     * Destroys the scanner instance, halts scanning, and unregisters from mock hooks.
+     */
+    destroy() {
+      this.stopScan();
+      if (typeof window !== 'undefined' && window.__mockBluetoothScanner && typeof window.__mockBluetoothScanner.unregisterScanner === 'function') {
+        window.__mockBluetoothScanner.unregisterScanner(this);
+      }
+    }
+
+    /**
      * Toggles Geiger counter audio muted state and saves preference.
      * @returns {boolean} New muted state
      */
