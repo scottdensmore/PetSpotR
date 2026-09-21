@@ -589,7 +589,7 @@
         if (respData.triangulation) {
           handleTriangulationUpdate(respData.triangulation);
         }
-      } else {
+      } else if (res.status >= 500 || res.status === 0) {
         if (window.PetSpotROutbox && typeof window.PetSpotROutbox.queueBeaconPing === 'function') {
           await window.PetSpotROutbox.queueBeaconPing(petId, payload);
         }
@@ -1748,6 +1748,9 @@
         try {
           const payload = JSON.parse(e.data);
           if (!payload) return;
+          if (payload.petId && currentPetID && payload.petId !== currentPetID) {
+            return;
+          }
           const ping = payload.ping || (payload.type === 'beacon_ping' ? payload : null);
           if (ping && (ping.observerCoords || ping.distanceMeters != null)) {
             const distEl = document.getElementById('beacon-distance-display');

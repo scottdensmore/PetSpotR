@@ -116,26 +116,38 @@ func (s *Server) handleBeaconPingSubmission(w http.ResponseWriter, r *http.Reque
 		RecordedAt:     recordedAt,
 	}
 
-	pingBytes, err := json.Marshal(ping)
-	if err != nil {
-		http.Error(w, "Failed to serialize beacon ping", http.StatusInternalServerError)
-		return
-	}
-
-	storeKey := petID + ":" + pingID
-	if err := s.stateStore.SaveState(r.Context(), store.BeaconPingsCollection, storeKey, pingBytes); err != nil {
-		http.Error(w, "Failed to save beacon ping", http.StatusInternalServerError)
-		return
-	}
-
 	// Retrieve recent pings for pet within last 15 minutes
-	pings, err := s.getRecentBeaconPings(r.Context(), petID, now)
+	existingPings, err := s.getRecentBeaconPings(r.Context(), petID, now)
 	if err != nil {
 		http.Error(w, "Failed to load recent beacon pings", http.StatusInternalServerError)
 		return
 	}
 
-	triangulation := beacon.TriangulateBeacon(pings)
+	// Prepend new ping and filter out expired pings, capping at latest 50 pings
+	cutoff := now.Add(-beaconPingWindowDuration)
+	var activePings []beacon.BeaconPing
+	activePings = append(activePings, ping)
+	for _, p := range existingPings {
+		if (p.RecordedAt.After(cutoff) || p.RecordedAt.Equal(cutoff)) && p.PingID != ping.PingID {
+			activePings = append(activePings, p)
+		}
+		if len(activePings) >= 50 {
+			break
+		}
+	}
+
+	activeBytes, err := json.Marshal(activePings)
+	if err != nil {
+		http.Error(w, "Failed to serialize beacon pings", http.StatusInternalServerError)
+		return
+	}
+
+	if err := s.stateStore.SaveState(r.Context(), store.BeaconPingsCollection, petID, activeBytes); err != nil {
+		http.Error(w, "Failed to save beacon pings", http.StatusInternalServerError)
+		return
+	}
+
+	triangulation := beacon.TriangulateBeacon(activePings)
 
 	// SSE Broadcast if hub is available
 	if s.reunionHub != nil {
@@ -165,9 +177,6 @@ func (s *Server) handleGetBeaconTriangulation(w http.ResponseWriter, r *http.Req
 
 	petID := strings.TrimSpace(r.PathValue("petId"))
 	if petID == "" {
-		petID = strings.TrimSpace(r.PathValue("petID"))
-	}
-	if petID == "" {
 		http.Error(w, "petId is required", http.StatusBadRequest)
 		return
 	}
@@ -196,7 +205,7 @@ func (s *Server) getRecentBeaconPings(ctx context.Context, petID string, now tim
 		return []beacon.BeaconPing{}, nil
 	}
 
-	rawItems, err := s.stateStore.ListState(ctx, store.BeaconPingsCollection)
+	rawBytes, err := s.stateStore.GetState(ctx, store.BeaconPingsCollection, petID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
 			return []beacon.BeaconPing{}, nil
@@ -204,14 +213,21 @@ func (s *Server) getRecentBeaconPings(ctx context.Context, petID string, now tim
 		return nil, err
 	}
 
+	var storedPings []beacon.BeaconPing
+	if err := json.Unmarshal(rawBytes, &storedPings); err != nil {
+		var single beacon.BeaconPing
+		if err2 := json.Unmarshal(rawBytes, &single); err2 == nil {
+			storedPings = []beacon.BeaconPing{single}
+		} else {
+			return []beacon.BeaconPing{}, nil
+		}
+	}
+
 	cutoff := now.Add(-beaconPingWindowDuration)
 	var pings []beacon.BeaconPing
-	for _, raw := range rawItems {
-		var p beacon.BeaconPing
-		if err := json.Unmarshal(raw, &p); err == nil {
-			if p.PetID == petID && (p.RecordedAt.After(cutoff) || p.RecordedAt.Equal(cutoff)) {
-				pings = append(pings, p)
-			}
+	for _, p := range storedPings {
+		if (p.RecordedAt.After(cutoff) || p.RecordedAt.Equal(cutoff)) && p.PetID == petID {
+			pings = append(pings, p)
 		}
 	}
 
