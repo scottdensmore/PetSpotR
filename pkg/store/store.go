@@ -34,6 +34,18 @@ const VoiceMemosAudioCollection = "voice_memos_audio"
 // BeaconPingsCollection is the state store collection for pet collar beacon pings.
 const BeaconPingsCollection = "beacon_pings"
 
+// EvacuationHubsCollection is the state store collection for disaster evacuation hubs.
+const EvacuationHubsCollection = "evacuation_hubs"
+
+// TransferManifestsCollection is the state store collection for mutual aid transfer manifests.
+const TransferManifestsCollection = "transfer_manifests"
+
+// CrisisIntakesCollection is the state store collection for disaster bulk intake batches.
+const CrisisIntakesCollection = "crisis_intakes"
+
+// CrisisReunificationsCollection is the state store collection for prioritized disaster reunifications.
+const CrisisReunificationsCollection = "crisis_reunifications"
+
 // Sentinel errors for StateStore operations.
 var (
 	ErrStoreNotFound = errors.New("store: state store not found")
