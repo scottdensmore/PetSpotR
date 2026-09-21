@@ -319,6 +319,8 @@ func (s *Server) routes() {
 		nil,
 		s.handleApiSectorBreadcrumbs,
 	))
+	s.mux.HandleFunc("/api/v1/search-parties/{petId}/beacon-pings", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleBeaconPingSubmission))
+	s.mux.HandleFunc("/api/v1/search-parties/{petId}/beacon-triangulation", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleGetBeaconTriangulation))
 	s.mux.HandleFunc("/api/v1/found-pets/extract-features", s.rateLimiter.RequireRateLimitFunc(ratelimit.StrictLimit, s.handleApiExtractFeatures))
 	s.mux.HandleFunc("/api/v1/found-pets", s.rateLimiter.RequireRateLimitByMethodFunc(
 		map[string]ratelimit.Limit{
@@ -1760,6 +1762,11 @@ func (s *Server) securityPolicy() string {
 // RateLimiter returns the configured rate limiter.
 func (s *Server) RateLimiter() ratelimit.Limiter {
 	return s.rateLimiter
+}
+
+// ReunionHub returns the active ReunionHub instance.
+func (s *Server) ReunionHub() *ReunionHub {
+	return s.reunionHub
 }
 
 // Close releases server resources including background rate limiting workers.
