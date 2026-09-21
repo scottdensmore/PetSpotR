@@ -75,24 +75,47 @@ const (
 // LostPetReport is the canonical application-boundary model for a lost-pet
 // report. Persisted separates its private contact into ReportContact.
 type LostPetReport struct {
-	PetID             string          `json:"petId"`
-	PetName           string          `json:"petName,omitempty"`
-	Species           string          `json:"species,omitempty"`
-	Breed             string          `json:"breed,omitempty"`
-	PrimaryColor      string          `json:"primaryColor,omitempty"`
-	Description       string          `json:"description,omitempty"`
-	ReporterEmail     string          `json:"reporterEmail"`
-	Phone             string          `json:"phone,omitempty"`
-	ImageObject       string          `json:"imageObject,omitempty"`
-	Images            []PetImage      `json:"images,omitempty"`
-	ReportedAt        time.Time       `json:"reportedAt"`
-	Location          string          `json:"location"`
-	GeocodingStatus   GeocodingStatus `json:"geocodingStatus"`
-	Coordinates       *LocationPoint  `json:"coordinates,omitempty"`
-	Status            LostPetStatus   `json:"status"`
-	OwnedBy           *PrincipalRef   `json:"-"`
-	MicrochipID       string          `json:"microchipId,omitempty"`
-	MicrochipRegistry string          `json:"microchipRegistry,omitempty"`
+	PetID             string              `json:"petId"`
+	PetName           string              `json:"petName,omitempty"`
+	Species           string              `json:"species,omitempty"`
+	Breed             string              `json:"breed,omitempty"`
+	PrimaryColor      string              `json:"primaryColor,omitempty"`
+	Description       string              `json:"description,omitempty"`
+	ReporterEmail     string              `json:"reporterEmail"`
+	Phone             string              `json:"phone,omitempty"`
+	ImageObject       string              `json:"imageObject,omitempty"`
+	Images            []PetImage          `json:"images,omitempty"`
+	ReportedAt        time.Time           `json:"reportedAt"`
+	Location          string              `json:"location"`
+	GeocodingStatus   GeocodingStatus     `json:"geocodingStatus"`
+	Coordinates       *LocationPoint      `json:"coordinates,omitempty"`
+	Status            LostPetStatus       `json:"status"`
+	OwnedBy           *PrincipalRef       `json:"-"`
+	MicrochipID       string              `json:"microchipId,omitempty"`
+	MicrochipRegistry string              `json:"microchipRegistry,omitempty"`
+	CollarBeacon      *CollarBeaconConfig `json:"collarBeacon,omitempty"`
+}
+
+// BeaconProtocol identifies the BLE advertisement standard emitted by a collar tag.
+type BeaconProtocol string
+
+const (
+	BeaconProtocolIBeacon   BeaconProtocol = "ibeacon"
+	BeaconProtocolEddystone BeaconProtocol = "eddystone"
+	BeaconProtocolAltBeacon BeaconProtocol = "altbeacon"
+	BeaconProtocolCustomBLE BeaconProtocol = "custom_ble"
+)
+
+// CollarBeaconConfig configures Bluetooth Low Energy collar beacon tracking.
+type CollarBeaconConfig struct {
+	Protocol       BeaconProtocol `json:"protocol"`
+	UUID           string         `json:"uuid,omitempty"`           // iBeacon Proximity UUID or Eddystone Namespace
+	Major          *uint16        `json:"major,omitempty"`          // iBeacon Major
+	Minor          *uint16        `json:"minor,omitempty"`          // iBeacon Minor
+	InstanceID     string         `json:"instanceId,omitempty"`     // Eddystone Instance ID
+	DeviceAddress  string         `json:"deviceAddress,omitempty"`  // MAC address / peripheral ID
+	DeviceName     string         `json:"deviceName,omitempty"`     // Human label e.g. "PetSpotR-Tag-042"
+	CalibratedRSSI int            `json:"calibratedRssi,omitempty"` // Measured RSSI at 1m (default: -59 dBm)
 }
 
 // LostPetRecord is the persisted lost-pet aggregate. Private owner contact is
@@ -119,6 +142,7 @@ type LostPetRecord struct {
 	LifecycleAudit    *LostPetLifecycleAudit `json:"lifecycleAudit,omitempty"`
 	MicrochipID       string                 `json:"microchipId,omitempty"`
 	MicrochipRegistry string                 `json:"microchipRegistry,omitempty"`
+	CollarBeacon      *CollarBeaconConfig    `json:"collarBeacon,omitempty"`
 }
 
 // LostPetReportedV2 is the additive payload-v2 integration event. Its legacy
@@ -394,6 +418,10 @@ func NormalizeLostPetReport(report LostPetReport) LostPetReport {
 			}
 		}
 	}
+	if report.CollarBeacon != nil {
+		beacon := *report.CollarBeacon
+		report.CollarBeacon = &beacon
+	}
 	return report
 }
 
@@ -553,6 +581,7 @@ func (r LostPetReport) Persisted() (LostPetRecord, ReportContact) {
 			OwnedBy:           normalizePrincipalRef(r.OwnedBy),
 			MicrochipID:       r.MicrochipID,
 			MicrochipRegistry: r.MicrochipRegistry,
+			CollarBeacon:      r.CollarBeacon,
 		}, NormalizeReportContact(ReportContact{
 			IdentityRef: identityRef,
 			Email:       r.ReporterEmail,
@@ -592,6 +621,10 @@ func NormalizeLostPetRecord(record LostPetRecord) LostPetRecord {
 	if record.LifecycleAudit != nil {
 		audit := *record.LifecycleAudit
 		normalized.LifecycleAudit = &audit
+	}
+	if record.CollarBeacon != nil {
+		beacon := *record.CollarBeacon
+		normalized.CollarBeacon = &beacon
 	}
 	return normalized
 }

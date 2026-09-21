@@ -678,6 +678,42 @@
           </div>
         </div>
 
+        <!-- Collar Beacon Scanner Radar HUD Panel (Milestone 10.1) -->
+        <div id="beacon-scanner-container" class="beacon-radar-panel" hidden>
+          <div class="beacon-radar-header">
+            <div class="beacon-radar-title-group">
+              <h3 class="beacon-radar-title">📡 Collar Beacon Radar HUD</h3>
+              <span id="beacon-scanner-status">Scanner Ready</span>
+            </div>
+            <span id="beacon-proximity-badge" class="badge">Out of Range</span>
+          </div>
+
+          <div class="beacon-telemetry-grid">
+            <div class="beacon-telemetry-item">
+              <span class="beacon-telemetry-label">Distance</span>
+              <span id="beacon-distance-display">--</span>
+            </div>
+            <div class="beacon-telemetry-item">
+              <span class="beacon-telemetry-label">Signal RSSI</span>
+              <span id="beacon-rssi-display">-- dBm</span>
+            </div>
+            <div class="beacon-telemetry-item">
+              <span class="beacon-telemetry-label">Signal Level</span>
+              <div id="beacon-rssi-meter" class="signal-meter" aria-hidden="true">
+                <div class="meter-fill"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="beacon-action-buttons">
+            <button id="btn-start-beacon-scan" class="btn btn-primary btn-beacon-action" type="button">📡 Start Beacon Scan</button>
+            <button id="btn-toggle-beacon-audio" class="btn btn-secondary btn-beacon-action" type="button" aria-pressed="false">🔇 Audio Ping: Muted</button>
+            <button id="btn-log-beacon-sighting" class="btn btn-success btn-beacon-action" type="button" hidden>📍 Confirm &amp; Log Sighting</button>
+          </div>
+
+          <div id="beacon-aria-announcer" class="visually-hidden" aria-live="polite"></div>
+        </div>
+
         <!-- Search Party Map Wrapper -->
         <div class="search-party-map-wrapper">
           <div id="search-party-map" class="search-party-map" role="region" aria-label="Interactive map showing search party sector overlay"></div>
@@ -810,6 +846,7 @@
   <script src="/static/js/notification-center.js"></script>
   <script src="/static/js/image-enhancer.js" defer></script>
   <script src="/static/js/sighting-trajectory.js" defer></script>
+  <script src="/static/js/pet-beacon-scanner.js" defer></script>
   <script src="/static/js/search-party.js" defer></script>
   <script src="/static/js/outbox-sync.js" defer></script>
   <script src="/static/js/audio-memo.js" defer></script>

@@ -36,6 +36,13 @@
   let currentTrailPoints = [];
   let currentTrailDistanceMeters = 0;
 
+  // BLE Beacon Scanner state
+  let beaconScannerInstance = null;
+  let latestBeaconPing = null;
+  let latestTriangulation = null;
+  let beaconPingMarker = null;
+  let beaconAccuracyCircle = null;
+
   // IndexedDB offline buffer constants
   const DB_NAME = 'petspotr_breadcrumbs_db';
   const DB_VERSION = 1;
@@ -373,12 +380,467 @@
     }, 4500);
   }
 
+  // =========================================================================
+  // BLE Collar Beacon Radar HUD, Leaflet Pulse & Sighting Auto-Fill
+  // =========================================================================
+
+  // Clear beacon layers from Leaflet map
+  function clearBeaconMapLayers() {
+    if (searchPartyMapInstance) {
+      if (beaconPingMarker) {
+        searchPartyMapInstance.removeLayer(beaconPingMarker);
+        beaconPingMarker = null;
+      }
+      if (beaconAccuracyCircle) {
+        searchPartyMapInstance.removeLayer(beaconAccuracyCircle);
+        beaconAccuracyCircle = null;
+      }
+    }
+  }
+
+  // Reset HUD readouts and hide sighting button
+  function resetBeaconHUD() {
+    const distEl = document.getElementById('beacon-distance-display');
+    if (distEl) distEl.textContent = '--';
+
+    const rssiEl = document.getElementById('beacon-rssi-display');
+    if (rssiEl) rssiEl.textContent = '-- dBm';
+
+    const badgeEl = document.getElementById('beacon-proximity-badge');
+    if (badgeEl) {
+      badgeEl.className = 'badge';
+      badgeEl.textContent = 'Out of Range';
+    }
+
+    const meter = document.getElementById('beacon-rssi-meter');
+    if (meter) {
+      meter.dataset.strength = 'out_of_range';
+      const fill = meter.querySelector('.meter-fill');
+      if (fill) fill.style.width = '0%';
+    }
+
+    const btnLog = document.getElementById('btn-log-beacon-sighting');
+    if (btnLog) {
+      btnLog.hidden = true;
+      btnLog.setAttribute('hidden', '');
+    }
+
+    const announcer = document.getElementById('beacon-aria-announcer');
+    if (announcer) announcer.textContent = '';
+  }
+
+  // Determine volunteer coordinates for beacon ping
+  function getBeaconObserverCoords() {
+    if (currentTrailPoints && currentTrailPoints.length > 0) {
+      const last = currentTrailPoints[currentTrailPoints.length - 1];
+      return { latitude: last.latitude, longitude: last.longitude };
+    }
+    if (activeVolunteerMarker) {
+      const latLng = activeVolunteerMarker.getLatLng();
+      return { latitude: latLng.lat, longitude: latLng.lng };
+    }
+    if (currentParty?.centerCoordinates && typeof currentParty.centerCoordinates.latitude === 'number') {
+      return {
+        latitude: currentParty.centerCoordinates.latitude,
+        longitude: currentParty.centerCoordinates.longitude,
+      };
+    }
+    return new Promise((resolve) => {
+      if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+          () => resolve({ latitude: 0, longitude: 0 }),
+          { timeout: 3000, maximumAge: 60000 }
+        );
+      } else {
+        resolve({ latitude: 0, longitude: 0 });
+      }
+    });
+  }
+
+  // Draw or update pulsing beacon pin and confidence circle on map
+  function renderBeaconPingOnMap(ping) {
+    if (!searchPartyMapInstance || !ping || !ping.observerCoords) return;
+    const { latitude, longitude } = ping.observerCoords;
+    if (typeof latitude !== 'number' || typeof longitude !== 'number' || (latitude === 0 && longitude === 0)) {
+      return;
+    }
+
+    const latLng = [latitude, longitude];
+
+    // Pulsing glowing Leaflet marker
+    if (beaconPingMarker) {
+      beaconPingMarker.setLatLng(latLng);
+    } else {
+      const beaconIcon = L.divIcon({
+        className: 'beacon-pulse-indicator',
+        html: '<div class="beacon-ping-marker"><div class="beacon-ping-dot"></div></div>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      });
+
+      beaconPingMarker = L.marker(latLng, {
+        icon: beaconIcon,
+        title: 'Beacon Ping Detection',
+        zIndexOffset: 1200,
+      }).addTo(searchPartyMapInstance);
+
+      beaconPingMarker.bindTooltip(
+        `<strong>📡 Collar Beacon Ping</strong><br>Distance: ~${(ping.distanceMeters ?? 0).toFixed(1)}m (${ping.rssi} dBm)`,
+        { sticky: true }
+      );
+    }
+
+    if (beaconPingMarker && ping.distanceMeters != null) {
+      beaconPingMarker.setTooltipContent(
+        `<strong>📡 Collar Beacon Ping</strong><br>Distance: ~${ping.distanceMeters.toFixed(1)}m (${ping.rssi} dBm)`
+      );
+    }
+
+    // Confidence / distance circle (emerald green for near/immediate, cyan for far)
+    const radiusMeters = (latestTriangulation && typeof latestTriangulation.accuracyRadiusMeters === 'number' && latestTriangulation.accuracyRadiusMeters > 0)
+      ? latestTriangulation.accuracyRadiusMeters
+      : Math.max(1, ping.distanceMeters || 5);
+
+    const circleColor = (ping.proximity === 'immediate' || ping.proximity === 'near') ? '#10b981' : '#06b6d4';
+
+    if (beaconAccuracyCircle) {
+      beaconAccuracyCircle.setLatLng(latLng);
+      beaconAccuracyCircle.setRadius(radiusMeters);
+      beaconAccuracyCircle.setStyle({
+        color: circleColor,
+        fillColor: circleColor,
+      });
+    } else {
+      beaconAccuracyCircle = L.circle(latLng, {
+        radius: radiusMeters,
+        color: circleColor,
+        fillColor: circleColor,
+        fillOpacity: 0.2,
+        weight: 2,
+        dashArray: '4, 6',
+        className: 'beacon-confidence-circle',
+      }).addTo(searchPartyMapInstance);
+    }
+  }
+
+  // Update map when server triangulation result arrives
+  function handleTriangulationUpdate(triangulation) {
+    if (!triangulation) return;
+    latestTriangulation = triangulation;
+
+    if (triangulation.estimatedCoordinates && typeof triangulation.estimatedCoordinates.latitude === 'number') {
+      const estCoords = triangulation.estimatedCoordinates;
+      if (estCoords.latitude !== 0 || estCoords.longitude !== 0) {
+        const radius = (typeof triangulation.accuracyRadiusMeters === 'number' && triangulation.accuracyRadiusMeters > 0)
+          ? triangulation.accuracyRadiusMeters
+          : 10;
+        if (beaconAccuracyCircle) {
+          beaconAccuracyCircle.setLatLng([estCoords.latitude, estCoords.longitude]);
+          beaconAccuracyCircle.setRadius(radius);
+        } else if (searchPartyMapInstance) {
+          beaconAccuracyCircle = L.circle([estCoords.latitude, estCoords.longitude], {
+            radius: radius,
+            color: '#10b981',
+            fillColor: '#10b981',
+            fillOpacity: 0.25,
+            weight: 2,
+            dashArray: '4, 6',
+            className: 'beacon-confidence-circle',
+          }).addTo(searchPartyMapInstance);
+        }
+      }
+    }
+  }
+
+  // Transmit ping to REST backend or queue offline
+  async function transmitBeaconPing(ping) {
+    const petId = currentPetID || currentParty?.lostPetId;
+    if (!petId) return;
+
+    const payload = {
+      volunteerAlias: ping.volunteerAlias || getVolunteerAlias() || 'Volunteer Alpha',
+      observerCoords: ping.observerCoords,
+      rssi: ping.rssi,
+      txPower1m: ping.txPower1m,
+      recordedAt: ping.recordedAt,
+    };
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      if (window.PetSpotROutbox && typeof window.PetSpotROutbox.queueBeaconPing === 'function') {
+        await window.PetSpotROutbox.queueBeaconPing(petId, payload);
+      }
+      return;
+    }
+
+    try {
+      const csrf = await getCsrfToken();
+      const headers = { 'Content-Type': 'application/json' };
+      if (csrf) headers['X-CSRF-Token'] = csrf;
+
+      const res = await fetch(`/api/v1/search-parties/${encodeURIComponent(petId)}/beacon-pings`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const respData = await res.json();
+        if (respData.triangulation) {
+          handleTriangulationUpdate(respData.triangulation);
+        }
+      } else if (res.status >= 500 || res.status === 0) {
+        if (window.PetSpotROutbox && typeof window.PetSpotROutbox.queueBeaconPing === 'function') {
+          await window.PetSpotROutbox.queueBeaconPing(petId, payload);
+        }
+      }
+    } catch (err) {
+      console.warn('Error transmitting beacon ping, queuing offline:', err);
+      if (window.PetSpotROutbox && typeof window.PetSpotROutbox.queueBeaconPing === 'function') {
+        await window.PetSpotROutbox.queueBeaconPing(petId, payload);
+      }
+    }
+  }
+
+  // Handle ping callback from PetBeaconScanner
+  async function handleBeaconPing(ping) {
+    if (!ping) return;
+    latestBeaconPing = ping;
+
+    // 1. Distance display
+    const distEl = document.getElementById('beacon-distance-display');
+    if (distEl) {
+      const dist = typeof ping.distanceMeters === 'number' ? ping.distanceMeters.toFixed(1) : '--';
+      distEl.textContent = `~${dist}m (${ping.proximity || 'unknown'})`;
+    }
+
+    // 2. RSSI display
+    const rssiEl = document.getElementById('beacon-rssi-display');
+    if (rssiEl) {
+      rssiEl.textContent = `${ping.rssi} dBm`;
+    }
+
+    // 3. Proximity badge
+    const badgeEl = document.getElementById('beacon-proximity-badge');
+    if (badgeEl) {
+      let badgeClass = 'badge';
+      let badgeText = 'Out of Range';
+      switch (ping.proximity) {
+        case 'immediate':
+          badgeClass = 'badge badge-success';
+          badgeText = 'Immediate (<1m)';
+          break;
+        case 'near':
+          badgeClass = 'badge badge-primary';
+          badgeText = 'Near (<5m)';
+          break;
+        case 'far':
+          badgeClass = 'badge badge-warning';
+          badgeText = 'Far (<30m)';
+          break;
+        default:
+          badgeClass = 'badge';
+          badgeText = 'Out of Range';
+      }
+      badgeEl.className = badgeClass;
+      badgeEl.textContent = badgeText;
+    }
+
+    // 4. RSSI meter fill (0% at -100 dBm to 100% at -50 dBm)
+    const meter = document.getElementById('beacon-rssi-meter');
+    if (meter) {
+      meter.dataset.strength = ping.proximity || 'out_of_range';
+      const fill = meter.querySelector('.meter-fill');
+      if (fill) {
+        const clampedRssi = Math.max(-100, Math.min(ping.rssi, -50));
+        const percent = Math.round(((clampedRssi - (-100)) / ((-50) - (-100))) * 100);
+        fill.style.width = `${percent}%`;
+      }
+    }
+
+    // 5. ARIA announcement
+    const announcer = document.getElementById('beacon-aria-announcer');
+    if (announcer) {
+      const dist = typeof ping.distanceMeters === 'number' ? ping.distanceMeters.toFixed(1) : '';
+      announcer.textContent = `Collar beacon detected ${dist} meters away`;
+    }
+
+    // 6. Sighting button unhide when near or immediate (<5m)
+    const btnLog = document.getElementById('btn-log-beacon-sighting');
+    if (btnLog) {
+      if (ping.proximity === 'near' || ping.proximity === 'immediate' || (typeof ping.distanceMeters === 'number' && ping.distanceMeters < 5.0)) {
+        btnLog.hidden = false;
+        btnLog.removeAttribute('hidden');
+      }
+    }
+
+    // 7. Leaflet map rendering
+    renderBeaconPingOnMap(ping);
+
+    // 8. Backend transmission / offline queue
+    await transmitBeaconPing(ping);
+  }
+
+  // Handle scanner status changes
+  function handleBeaconStatusChange(status, detail) {
+    const statusEl = document.getElementById('beacon-scanner-status');
+    const btnScan = document.getElementById('btn-start-beacon-scan');
+
+    if (statusEl && detail) {
+      statusEl.textContent = detail;
+    }
+
+    if (btnScan) {
+      if (status === 'scanning') {
+        btnScan.textContent = '🛑 Stop Beacon Scan';
+      } else if (status === 'stopped' || status === 'unsupported' || status === 'error') {
+        btnScan.textContent = '📡 Start Beacon Scan';
+      }
+    }
+  }
+
+  // Handle Log Sighting button click
+  function handleLogBeaconSightingClick() {
+    const petId = currentPetID || currentParty?.lostPetId || '';
+    const petName = currentParty?.lostPetName || 'Lost Pet';
+
+    let lat = 47.6062;
+    let lng = -122.3321;
+
+    if (latestTriangulation?.estimatedCoordinates &&
+        (latestTriangulation.estimatedCoordinates.latitude !== 0 || latestTriangulation.estimatedCoordinates.longitude !== 0)) {
+      lat = latestTriangulation.estimatedCoordinates.latitude;
+      lng = latestTriangulation.estimatedCoordinates.longitude;
+    } else if (latestBeaconPing?.observerCoords &&
+               (latestBeaconPing.observerCoords.latitude !== 0 || latestBeaconPing.observerCoords.longitude !== 0)) {
+      lat = latestBeaconPing.observerCoords.latitude;
+      lng = latestBeaconPing.observerCoords.longitude;
+    } else if (currentParty?.centerCoordinates &&
+               (currentParty.centerCoordinates.latitude !== 0 || currentParty.centerCoordinates.longitude !== 0)) {
+      lat = currentParty.centerCoordinates.latitude;
+      lng = currentParty.centerCoordinates.longitude;
+    }
+
+    const dist = latestBeaconPing?.distanceMeters != null ? latestBeaconPing.distanceMeters.toFixed(1) : '3.2';
+    const rssi = latestBeaconPing?.rssi != null ? latestBeaconPing.rssi : '-64';
+    const notesText = `Collar beacon detected nearby (~${dist}m, RSSI: ${rssi} dBm)`;
+
+    // If PetSpotRSightingTrajectory helper exists, call it first
+    if (window.PetSpotRSightingTrajectory && typeof window.PetSpotRSightingTrajectory.openSightingModal === 'function') {
+      window.PetSpotRSightingTrajectory.openSightingModal(petId, petName, lat, lng);
+    }
+
+    // Pre-populate sighting modal fields
+    const sightingModal = document.getElementById('modal-report-sighting');
+    if (sightingModal) {
+      sightingModal.classList.remove('hidden');
+
+      const petIdInput = document.getElementById('sighting-pet-id');
+      if (petIdInput) petIdInput.value = petId;
+
+      const latInput = document.getElementById('sighting-lat');
+      if (latInput) latInput.value = lat;
+
+      const lngInput = document.getElementById('sighting-lng');
+      if (lngInput) lngInput.value = lng;
+
+      const locInput = document.getElementById('sighting-location');
+      if (locInput) locInput.value = notesText;
+
+      const notesInput = document.getElementById('sighting-notes');
+      if (notesInput) notesInput.value = notesText;
+
+      const gpsStatus = document.getElementById('sighting-gps-status');
+      if (gpsStatus) gpsStatus.textContent = `📍 Beacon detection (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+
+      if (locInput) {
+        locInput.focus();
+      }
+    }
+  }
+
+  // Wire buttons in Radar HUD (initial text & attributes; click events handled via delegated listener)
+  function setupBeaconHUDControls() {
+    const btnScan = document.getElementById('btn-start-beacon-scan');
+    const btnAudio = document.getElementById('btn-toggle-beacon-audio');
+    const btnLog = document.getElementById('btn-log-beacon-sighting');
+    const statusText = document.getElementById('beacon-scanner-status');
+
+    if (statusText) {
+      statusText.textContent = 'Scanner Ready';
+    }
+
+    if (btnScan) {
+      btnScan.textContent = '📡 Start Beacon Scan';
+    }
+
+    if (btnAudio && beaconScannerInstance) {
+      const isMuted = beaconScannerInstance.isAudioMuted;
+      btnAudio.textContent = isMuted ? '🔇 Audio Ping: Muted' : '🔊 Audio Ping: Active';
+      btnAudio.setAttribute('aria-pressed', isMuted ? 'false' : 'true');
+    }
+
+    if (btnLog) {
+      btnLog.hidden = true;
+      btnLog.setAttribute('hidden', '');
+    }
+  }
+
+  // Initialize or teardown beacon scanner based on collarBeaconConfig presence
+  function initBeaconScanner(party) {
+    const container = document.getElementById('beacon-scanner-container');
+    if (!container) return;
+
+    const beaconConfig = party?.collarBeacon || party?.collarBeaconConfig || party?.lostPet?.collarBeaconConfig || null;
+
+    if (beaconScannerInstance) {
+      beaconScannerInstance.destroy?.();
+      beaconScannerInstance = null;
+    }
+    latestBeaconPing = null;
+    latestTriangulation = null;
+    clearBeaconMapLayers();
+    resetBeaconHUD();
+
+    if (!beaconConfig) {
+      container.hidden = true;
+      return;
+    }
+
+    container.hidden = false;
+
+    const petId = party?.lostPetId || currentPetID;
+    const volunteerAlias = getVolunteerAlias() || 'Volunteer Alpha';
+
+    if (typeof PetBeaconScanner === 'undefined') {
+      console.warn('PetBeaconScanner is not defined.');
+      return;
+    }
+
+    beaconScannerInstance = new PetBeaconScanner({
+      petId: petId,
+      beaconConfig: beaconConfig,
+      volunteerAlias: volunteerAlias,
+      onPing: handleBeaconPing,
+      onTriangulationUpdate: handleTriangulationUpdate,
+      onStatusChange: handleBeaconStatusChange,
+      getObserverCoords: getBeaconObserverCoords,
+    });
+
+    setupBeaconHUDControls();
+  }
+
   // Open Search Party Modal
   function openSearchPartyModal(petId, petName) {
     const modal = document.getElementById('pet-search-party-container');
     if (!modal) return;
 
     currentPetID = petId || '';
+    latestBeaconPing = null;
+    latestTriangulation = null;
+    clearBeaconMapLayers();
+    resetBeaconHUD();
+
     const titleEl = document.getElementById('search-party-modal-title');
     const badgeEl = document.getElementById('search-party-pet-badge');
 
@@ -397,6 +859,10 @@
   // Close Search Party Modal
   function closeSearchPartyModal() {
     stopRecordingTrail();
+    if (beaconScannerInstance) {
+      beaconScannerInstance.stopScan();
+    }
+    clearBeaconMapLayers();
     const modal = document.getElementById('pet-search-party-container');
     if (modal) {
       modal.classList.add('hidden');
@@ -409,6 +875,11 @@
 
   // Fetch or initialize active search party
   async function loadAndRenderSearchParty(petId, petName) {
+    latestBeaconPing = null;
+    latestTriangulation = null;
+    clearBeaconMapLayers();
+    resetBeaconHUD();
+
     const statusOverlay = document.getElementById('search-party-map-status');
     if (statusOverlay) {
       statusOverlay.textContent = 'Loading search party sectors...';
@@ -448,6 +919,7 @@
       updateSummaryUI(party);
       renderSearchPartyMap(party);
       renderSectorCards(party);
+      initBeaconScanner(party);
       void loadAllSectorTrails(party);
       void updateOfflineBadge();
     } catch (err) {
@@ -507,6 +979,8 @@
       delete trailLayers[key];
     }
     activeVolunteerMarker = null;
+    beaconPingMarker = null;
+    beaconAccuracyCircle = null;
 
     searchPartyMapInstance = L.map(mapElement, {
       scrollWheelZoom: false,
@@ -567,6 +1041,14 @@
       searchPartyMapInstance.fitBounds(L.latLngBounds(allPoints), { padding: [30, 30] });
     } else if (party.centerCoordinates) {
       searchPartyMapInstance.setView([party.centerCoordinates.latitude, party.centerCoordinates.longitude], 14);
+    }
+
+    // Re-render beacon ping or triangulation on newly initialized map
+    if (latestBeaconPing) {
+      renderBeaconPingOnMap(latestBeaconPing);
+    }
+    if (latestTriangulation) {
+      handleTriangulationUpdate(latestTriangulation);
     }
 
     // Refresh size on modal display
@@ -1024,7 +1506,7 @@
     }
     const aliasInput = document.getElementById('claim-volunteer-alias');
     if (aliasInput && aliasInput.value.trim()) return aliasInput.value.trim();
-    return 'Volunteer Scout';
+    return 'Volunteer Alpha';
   }
 
   // Start recording volunteer GPS breadcrumbs
@@ -1242,6 +1724,10 @@
         try {
           const payload = JSON.parse(e.data);
           if (!payload) return;
+          if (payload.type === 'beacon_ping') {
+            onBeaconPing(e);
+            return;
+          }
           if (payload.type === 'search_party_updated' || payload.sectorId) {
             applySectorUpdate(
               payload.sectorId,
@@ -1255,6 +1741,33 @@
           }
         } catch (err) {
           console.warn('Failed to parse search party SSE message:', err);
+        }
+      };
+
+      const onBeaconPing = (e) => {
+        try {
+          const payload = JSON.parse(e.data);
+          if (!payload) return;
+          if (payload.petId && currentPetID && payload.petId !== currentPetID) {
+            return;
+          }
+          const ping = payload.ping || (payload.type === 'beacon_ping' ? payload : null);
+          if (ping && (ping.observerCoords || ping.distanceMeters != null)) {
+            const distEl = document.getElementById('beacon-distance-display');
+            if (distEl && typeof ping.distanceMeters === 'number') {
+              distEl.textContent = `~${ping.distanceMeters.toFixed(1)}m (${ping.proximity || 'remote'})`;
+            }
+            const rssiEl = document.getElementById('beacon-rssi-display');
+            if (rssiEl && typeof ping.rssi === 'number') {
+              rssiEl.textContent = `${ping.rssi} dBm`;
+            }
+            renderBeaconPingOnMap(ping);
+          }
+          if (payload.triangulation) {
+            handleTriangulationUpdate(payload.triangulation);
+          }
+        } catch (err) {
+          console.warn('Failed to parse beacon_ping SSE message:', err);
         }
       };
 
@@ -1286,6 +1799,7 @@
 
       evtSource.addEventListener('search_party_updated', onUpdate);
       evtSource.addEventListener('breadcrumb_updated', onBreadcrumb);
+      evtSource.addEventListener('beacon_ping', onBeaconPing);
       evtSource.addEventListener('message', onUpdate);
       evtSource.addEventListener('error', () => {
         // EventSource will automatically retry in modern browsers
@@ -1316,6 +1830,41 @@
       if (recordBtn) {
         e.preventDefault();
         toggleRecordingTrail();
+        return;
+      }
+
+      // 0b. Beacon Radar Action Buttons
+      const beaconScanBtn = e.target.closest('#btn-start-beacon-scan');
+      if (beaconScanBtn) {
+        e.preventDefault();
+        if (beaconScannerInstance) {
+          if (beaconScannerInstance.isScanning) {
+            beaconScannerInstance.stopScan();
+            beaconScanBtn.textContent = '📡 Start Beacon Scan';
+          } else {
+            beaconScannerInstance.startScan().then(() => {
+              beaconScanBtn.textContent = '🛑 Stop Beacon Scan';
+            }).catch(() => {});
+          }
+        }
+        return;
+      }
+
+      const beaconAudioBtn = e.target.closest('#btn-toggle-beacon-audio');
+      if (beaconAudioBtn) {
+        e.preventDefault();
+        if (beaconScannerInstance) {
+          const muted = beaconScannerInstance.toggleAudio();
+          beaconAudioBtn.textContent = muted ? '🔇 Audio Ping: Muted' : '🔊 Audio Ping: Active';
+          beaconAudioBtn.setAttribute('aria-pressed', muted ? 'false' : 'true');
+        }
+        return;
+      }
+
+      const beaconLogBtn = e.target.closest('#btn-log-beacon-sighting');
+      if (beaconLogBtn) {
+        e.preventDefault();
+        handleLogBeaconSightingClick();
         return;
       }
 
@@ -1418,5 +1967,23 @@
     updateActiveVolunteerMarker,
     onPositionUpdate,
     sendBreadcrumbBatch,
+    // Beacon methods
+    openSearchParty: openSearchPartyModal,
+    openSearchPartyModal,
+    initBeaconScanner,
+    handleBeaconPing,
+    handleTriangulationUpdate,
+    renderBeaconPingOnMap,
+    handleLogBeaconSightingClick,
+    getScanner: () => beaconScannerInstance,
+    getLatestPing: () => latestBeaconPing,
+    getLatestTriangulation: () => latestTriangulation,
   };
+
+  // Window-level helper aliases
+  if (typeof window !== 'undefined') {
+    window.openSearchParty = openSearchPartyModal;
+    window.openSearchPartyModal = openSearchPartyModal;
+    window.initSearchParty = openSearchPartyModal;
+  }
 })();

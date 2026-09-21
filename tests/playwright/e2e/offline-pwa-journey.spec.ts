@@ -114,7 +114,7 @@ test.describe.serial('Offline PWA & Background Sync User Journeys', () => {
     // Inspect IndexedDB to verify record is stored in outbox_reports with photo Blob
     const idbRecord = await page.evaluate(async () => {
       return new Promise<any>((resolve, reject) => {
-        const req = indexedDB.open('petspotr_offline_db', 1);
+        const req = indexedDB.open('petspotr_offline_db');
         req.onerror = () => reject(req.error);
         req.onsuccess = () => {
           const db = req.result;

@@ -6,8 +6,9 @@
   'use strict';
 
   const DB_NAME = 'petspotr_offline_db';
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const STORE_NAME = 'outbox_reports';
+  const BEACON_STORE_NAME = 'petspotr_beacon_outbox';
 
   let dbInstance = null;
   let openPromise = null;
@@ -134,6 +135,11 @@
           const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
           store.createIndex('by_status', 'status', { unique: false });
           store.createIndex('by_created', 'createdAt', { unique: false });
+        }
+        if (!db.objectStoreNames.contains(BEACON_STORE_NAME)) {
+          const beaconStore = db.createObjectStore(BEACON_STORE_NAME, { keyPath: 'id' });
+          beaconStore.createIndex('by_pet', 'petId', { unique: false });
+          beaconStore.createIndex('by_created', 'createdAt', { unique: false });
         }
       };
 
@@ -679,6 +685,161 @@
     }
   }
 
+  let isFlushingBeaconPings = false;
+
+  /**
+   * Enqueues a collar beacon ping into IndexedDB petspotr_beacon_outbox.
+   *
+   * @param {string} petId
+   * @param {Object} pingData
+   * @returns {Promise<string>} The generated ping record ID.
+   */
+  async function queueBeaconPing(petId, pingData = {}) {
+    const id = generateUUID();
+    const record = {
+      id,
+      petId,
+      payload: pingData,
+      status: 'pending',
+      attempts: 0,
+      createdAt: new Date().toISOString()
+    };
+
+    const db = await openDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(BEACON_STORE_NAME, 'readwrite');
+      const store = tx.objectStore(BEACON_STORE_NAME);
+      const req = store.add(record);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('petspotr:beacon-ping-queued', {
+          detail: { id, petId, record }
+        })
+      );
+    }
+    return id;
+  }
+
+  /**
+   * Returns all queued beacon pings from petspotr_beacon_outbox.
+   * @returns {Promise<Array<Object>>}
+   */
+  async function getQueuedBeaconPings() {
+    const db = await openDB();
+    if (!db.objectStoreNames.contains(BEACON_STORE_NAME)) {
+      return [];
+    }
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(BEACON_STORE_NAME, 'readonly');
+      const store = tx.objectStore(BEACON_STORE_NAME);
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  /**
+   * Deletes a beacon ping record from petspotr_beacon_outbox by ID.
+   * @param {string} id
+   * @returns {Promise<void>}
+   */
+  async function deleteBeaconPing(id) {
+    const db = await openDB();
+    if (!db.objectStoreNames.contains(BEACON_STORE_NAME)) {
+      return;
+    }
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(BEACON_STORE_NAME, 'readwrite');
+      const store = tx.objectStore(BEACON_STORE_NAME);
+      const req = store.delete(id);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  /**
+   * Flushes all queued beacon pings to POST /api/v1/search-parties/{petId}/beacon-pings.
+   * @returns {Promise<{synced: number, failed: number}>}
+   */
+  async function flushBeaconPings() {
+    if (isFlushingBeaconPings) {
+      return { synced: 0, failed: 0 };
+    }
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return { synced: 0, failed: 0 };
+    }
+
+    isFlushingBeaconPings = true;
+    let synced = 0;
+    let failed = 0;
+
+    try {
+      const pings = await getQueuedBeaconPings();
+      if (!pings || pings.length === 0) {
+        return { synced: 0, failed: 0 };
+      }
+
+      const csrfToken = getCsrfToken();
+
+      for (const record of pings) {
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          if (csrfToken) {
+            headers['X-CSRF-Token'] = csrfToken;
+          }
+
+          const endpoint = `/api/v1/search-parties/${encodeURIComponent(record.petId)}/beacon-pings`;
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(record.payload)
+          });
+
+          if (res.ok) {
+            await deleteBeaconPing(record.id);
+            synced++;
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(
+                new CustomEvent('petspotr:beacon-ping-synced', {
+                  detail: { id: record.id, petId: record.petId }
+                })
+              );
+            }
+          } else if (res.status >= 400 && res.status < 500) {
+            // Drop client rejection to prevent queue clog
+            await deleteBeaconPing(record.id);
+          } else {
+            failed++;
+            break; // Stop on 5xx or server/network error
+          }
+        } catch (err) {
+          failed++;
+          console.warn('Failed to flush beacon ping:', err);
+          break;
+        }
+      }
+
+      if (synced > 0) {
+        showToast(`Synchronized ${synced} collar beacon ping(s).`, 'success');
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('petspotr:beacon-pings-flushed', {
+              detail: { synced, failed }
+            })
+          );
+        }
+      }
+
+      return { synced, failed };
+    } finally {
+      isFlushingBeaconPings = false;
+    }
+  }
+
   // Define public module API
   const PetSpotROutbox = {
     enqueueReport,
@@ -692,7 +853,12 @@
     showToast,
     updateUI,
     registerSync,
-    openDB
+    openDB,
+    queueBeaconPing,
+    getQueuedBeaconPings,
+    deleteBeaconPing,
+    flushBeaconPings,
+    BEACON_STORE_NAME
   };
 
   // Bind to global scope
@@ -702,6 +868,7 @@
 
     window.addEventListener('online', () => {
       PetSpotROutbox.syncAll();
+      PetSpotROutbox.flushBeaconPings();
     });
 
     window.addEventListener('offline', () => {
@@ -734,6 +901,13 @@
             .then((pending) => {
               if (pending && pending.length > 0) {
                 PetSpotROutbox.syncAll();
+              }
+            })
+            .catch(() => {});
+          PetSpotROutbox.getQueuedBeaconPings()
+            .then((queued) => {
+              if (queued && queued.length > 0) {
+                PetSpotROutbox.flushBeaconPings();
               }
             })
             .catch(() => {});

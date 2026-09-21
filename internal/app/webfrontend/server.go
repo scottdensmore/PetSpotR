@@ -319,6 +319,8 @@ func (s *Server) routes() {
 		nil,
 		s.handleApiSectorBreadcrumbs,
 	))
+	s.mux.HandleFunc("/api/v1/search-parties/{petId}/beacon-pings", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleBeaconPingSubmission))
+	s.mux.HandleFunc("/api/v1/search-parties/{petId}/beacon-triangulation", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleGetBeaconTriangulation))
 	s.mux.HandleFunc("/api/v1/found-pets/extract-features", s.rateLimiter.RequireRateLimitFunc(ratelimit.StrictLimit, s.handleApiExtractFeatures))
 	s.mux.HandleFunc("/api/v1/found-pets", s.rateLimiter.RequireRateLimitByMethodFunc(
 		map[string]ratelimit.Limit{
@@ -422,20 +424,22 @@ func (s *Server) handleMatches(w http.ResponseWriter, r *http.Request) {
 }
 
 type LostPetFormRequest struct {
-	PetID         string                `json:"petId"`
-	PetName       string                `json:"petName"`
-	Species       string                `json:"species"`
-	Breed         string                `json:"breed"`
-	PrimaryColor  string                `json:"primaryColor"`
-	Description   string                `json:"description"`
-	Location      string                `json:"location"`
-	ReporterEmail string                `json:"reporterEmail"`
-	Phone         string                `json:"phone"`
-	MicrochipID   string                `json:"microchipId,omitempty"`
-	Coordinates   *domain.LocationPoint `json:"coordinates,omitempty"`
-	ImageObject   string                `json:"imageObject,omitempty"`
-	Images        []domain.PetImage     `json:"images,omitempty"`
-	ReportedAt    time.Time             `json:"reportedAt"`
+	PetID              string                     `json:"petId"`
+	PetName            string                     `json:"petName"`
+	Species            string                     `json:"species"`
+	Breed              string                     `json:"breed"`
+	PrimaryColor       string                     `json:"primaryColor"`
+	Description        string                     `json:"description"`
+	Location           string                     `json:"location"`
+	ReporterEmail      string                     `json:"reporterEmail"`
+	Phone              string                     `json:"phone"`
+	MicrochipID        string                     `json:"microchipId,omitempty"`
+	Coordinates        *domain.LocationPoint      `json:"coordinates,omitempty"`
+	ImageObject        string                     `json:"imageObject,omitempty"`
+	Images             []domain.PetImage          `json:"images,omitempty"`
+	ReportedAt         time.Time                  `json:"reportedAt"`
+	CollarBeacon       *domain.CollarBeaconConfig `json:"collarBeacon,omitempty"`
+	CollarBeaconConfig *domain.CollarBeaconConfig `json:"collarBeaconConfig,omitempty"`
 }
 
 func newLostPetID(petName string) (string, error) {
@@ -687,6 +691,11 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		geocodingStatus = domain.GeocodingPending
 	}
 
+	collarBeacon := req.CollarBeacon
+	if collarBeacon == nil && req.CollarBeaconConfig != nil {
+		collarBeacon = req.CollarBeaconConfig
+	}
+
 	command := lostpet.ReportCommand{
 		PetID:           petID,
 		PetName:         req.PetName,
@@ -703,6 +712,7 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 		Location:        req.Location,
 		GeocodingStatus: geocodingStatus,
 		Coordinates:     req.Coordinates,
+		CollarBeacon:    collarBeacon,
 		OwnedBy:         ownedBy,
 	}
 
@@ -1760,6 +1770,11 @@ func (s *Server) securityPolicy() string {
 // RateLimiter returns the configured rate limiter.
 func (s *Server) RateLimiter() ratelimit.Limiter {
 	return s.rateLimiter
+}
+
+// ReunionHub returns the active ReunionHub instance.
+func (s *Server) ReunionHub() *ReunionHub {
+	return s.reunionHub
 }
 
 // Close releases server resources including background rate limiting workers.

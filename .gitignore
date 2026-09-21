@@ -41,3 +41,6 @@ petimages
 .DS_Store
 *.swp
 .idea/
+
+# Worktrees
+.worktrees/

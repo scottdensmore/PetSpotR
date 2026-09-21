@@ -18,6 +18,13 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
+// SearchPartyResponse represents the API response for search party operations,
+// augmenting the core search party with lost pet metadata such as collar beacon configuration.
+type SearchPartyResponse struct {
+	searchparty.SearchParty
+	CollarBeacon *domain.CollarBeaconConfig `json:"collarBeacon,omitempty"`
+}
+
 // handleApiLostPetSearchParty routes GET and POST requests for a lost pet's search party.
 func (s *Server) handleApiLostPetSearchParty(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -71,7 +78,10 @@ func (s *Server) handleApiCreateSearchParty(w http.ResponseWriter, r *http.Reque
 	if found {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(existingParty)
+		_ = json.NewEncoder(w).Encode(SearchPartyResponse{
+			SearchParty:  existingParty,
+			CollarBeacon: pet.CollarBeacon,
+		})
 		return
 	}
 
@@ -168,7 +178,10 @@ func (s *Server) handleApiCreateSearchParty(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(party)
+	_ = json.NewEncoder(w).Encode(SearchPartyResponse{
+		SearchParty:  party,
+		CollarBeacon: pet.CollarBeacon,
+	})
 }
 
 // handleApiGetSearchParty returns the search party for the given lost pet.
@@ -185,13 +198,19 @@ func (s *Server) handleApiGetSearchParty(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Validate lost pet exists
-	_, err := s.stateStore.GetState(r.Context(), store.LostPetsCollection, petID)
+	petBytes, err := s.stateStore.GetState(r.Context(), store.LostPetsCollection, petID)
 	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
 		http.NotFound(w, r)
 		return
 	}
 	if err != nil {
 		http.Error(w, "Failed to retrieve lost pet", http.StatusInternalServerError)
+		return
+	}
+
+	var pet domain.LostPetRecord
+	if err := json.Unmarshal(petBytes, &pet); err != nil {
+		http.Error(w, "Failed to decode lost pet", http.StatusInternalServerError)
 		return
 	}
 
@@ -210,7 +229,10 @@ func (s *Server) handleApiGetSearchParty(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(party)
+	_ = json.NewEncoder(w).Encode(SearchPartyResponse{
+		SearchParty:  party,
+		CollarBeacon: pet.CollarBeacon,
+	})
 }
 
 // handleApiClaimSector allows a volunteer to claim a sector.
