@@ -403,20 +403,26 @@ func (s *Server) handleApiEvacuationIntakeBatch(w http.ResponseWriter, r *http.R
 			catsCount++
 		}
 	}
-	targetHub.CurrentOccupancy += summary.IngestedCount
-	targetHub.DogOccupancy += dogsCount
-	targetHub.CatOccupancy += catsCount
-	if targetHub.CurrentOccupancy >= targetHub.TotalCapacity {
-		targetHub.Status = domain.HubStatusFull
-	}
-	targetHub.UpdatedAt = time.Now().UTC()
-	updatedHubBytes, err := json.Marshal(targetHub)
+	// Atomically increment target hub occupancy via UpdateState
+	err = s.stateStore.UpdateState(r.Context(), store.EvacuationHubsCollection, hubID, func(current []byte) ([]byte, error) {
+		if len(current) == 0 {
+			return nil, store.ErrNotFound
+		}
+		var hub domain.EvacuationHub
+		if err := json.Unmarshal(current, &hub); err != nil {
+			return nil, err
+		}
+		hub.CurrentOccupancy += summary.IngestedCount
+		hub.DogOccupancy += dogsCount
+		hub.CatOccupancy += catsCount
+		if hub.CurrentOccupancy >= hub.TotalCapacity {
+			hub.Status = domain.HubStatusFull
+		}
+		hub.UpdatedAt = time.Now().UTC()
+		return json.Marshal(hub)
+	})
 	if err != nil {
-		http.Error(w, "failed to marshal updated hub", http.StatusInternalServerError)
-		return
-	}
-	if err := s.stateStore.SaveState(r.Context(), store.EvacuationHubsCollection, targetHub.HubID, updatedHubBytes); err != nil {
-		http.Error(w, "failed to save updated hub", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("failed to update target hub: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -634,17 +640,6 @@ func (s *Server) handleApiEvacuationTransferStatus(w http.ResponseWriter, r *htt
 			return
 		}
 		manifest.DepartureTime = &now
-		// Decrement origin hub occupancy
-		origBytes, err := s.stateStore.GetState(r.Context(), store.EvacuationHubsCollection, manifest.OriginHubID)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("failed to get origin hub: %v", err), http.StatusInternalServerError)
-			return
-		}
-		var origHub domain.EvacuationHub
-		if err := json.Unmarshal(origBytes, &origHub); err != nil {
-			http.Error(w, "failed to parse origin hub", http.StatusInternalServerError)
-			return
-		}
 		dogCount := 0
 		catCount := 0
 		for _, petID := range manifest.AnimalIDs {
@@ -659,20 +654,26 @@ func (s *Server) handleApiEvacuationTransferStatus(w http.ResponseWriter, r *htt
 				}
 			}
 		}
-		origHub.CurrentOccupancy = max(0, origHub.CurrentOccupancy-manifest.TotalAnimals)
-		origHub.DogOccupancy = max(0, origHub.DogOccupancy-dogCount)
-		origHub.CatOccupancy = max(0, origHub.CatOccupancy-catCount)
-		if origHub.CurrentOccupancy < origHub.TotalCapacity && origHub.Status == domain.HubStatusFull {
-			origHub.Status = domain.HubStatusActive
-		}
-		origHub.UpdatedAt = now
-		updatedOrigBytes, err := json.Marshal(origHub)
+		// Atomically decrement origin hub occupancy via UpdateState closure
+		err = s.stateStore.UpdateState(r.Context(), store.EvacuationHubsCollection, manifest.OriginHubID, func(current []byte) ([]byte, error) {
+			if len(current) == 0 {
+				return nil, store.ErrNotFound
+			}
+			var origHub domain.EvacuationHub
+			if err := json.Unmarshal(current, &origHub); err != nil {
+				return nil, err
+			}
+			origHub.CurrentOccupancy = max(0, origHub.CurrentOccupancy-manifest.TotalAnimals)
+			origHub.DogOccupancy = max(0, origHub.DogOccupancy-dogCount)
+			origHub.CatOccupancy = max(0, origHub.CatOccupancy-catCount)
+			if origHub.CurrentOccupancy < origHub.TotalCapacity && origHub.Status == domain.HubStatusFull {
+				origHub.Status = domain.HubStatusActive
+			}
+			origHub.UpdatedAt = now
+			return json.Marshal(origHub)
+		})
 		if err != nil {
-			http.Error(w, "failed to marshal origin hub", http.StatusInternalServerError)
-			return
-		}
-		if err := s.stateStore.SaveState(r.Context(), store.EvacuationHubsCollection, origHub.HubID, updatedOrigBytes); err != nil {
-			http.Error(w, "failed to save origin hub", http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("failed to update origin hub: %v", err), http.StatusInternalServerError)
 			return
 		}
 
@@ -686,17 +687,15 @@ func (s *Server) handleApiEvacuationTransferStatus(w http.ResponseWriter, r *htt
 			return
 		}
 		manifest.ArrivalTime = &now
-		// Increment destination hub occupancy and update pet records
+		// Inspect destination hub for location/address
 		destBytes, err := s.stateStore.GetState(r.Context(), store.EvacuationHubsCollection, manifest.DestHubID)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to get destination hub: %v", err), http.StatusInternalServerError)
 			return
 		}
 		var destHub domain.EvacuationHub
-		if err := json.Unmarshal(destBytes, &destHub); err != nil {
-			http.Error(w, "failed to parse destination hub", http.StatusInternalServerError)
-			return
-		}
+		_ = json.Unmarshal(destBytes, &destHub)
+
 		dogCount := 0
 		catCount := 0
 		for _, petID := range manifest.AnimalIDs {
@@ -724,20 +723,26 @@ func (s *Server) handleApiEvacuationTransferStatus(w http.ResponseWriter, r *htt
 				}
 			}
 		}
-		destHub.CurrentOccupancy += manifest.TotalAnimals
-		destHub.DogOccupancy += dogCount
-		destHub.CatOccupancy += catCount
-		if destHub.CurrentOccupancy >= destHub.TotalCapacity {
-			destHub.Status = domain.HubStatusFull
-		}
-		destHub.UpdatedAt = now
-		updatedDestBytes, err := json.Marshal(destHub)
+		// Atomically increment destination hub occupancy via UpdateState closure
+		err = s.stateStore.UpdateState(r.Context(), store.EvacuationHubsCollection, manifest.DestHubID, func(current []byte) ([]byte, error) {
+			if len(current) == 0 {
+				return nil, store.ErrNotFound
+			}
+			var hub domain.EvacuationHub
+			if err := json.Unmarshal(current, &hub); err != nil {
+				return nil, err
+			}
+			hub.CurrentOccupancy += manifest.TotalAnimals
+			hub.DogOccupancy += dogCount
+			hub.CatOccupancy += catCount
+			if hub.CurrentOccupancy >= hub.TotalCapacity {
+				hub.Status = domain.HubStatusFull
+			}
+			hub.UpdatedAt = now
+			return json.Marshal(hub)
+		})
 		if err != nil {
-			http.Error(w, "failed to marshal destination hub", http.StatusInternalServerError)
-			return
-		}
-		if err := s.stateStore.SaveState(r.Context(), store.EvacuationHubsCollection, destHub.HubID, updatedDestBytes); err != nil {
-			http.Error(w, "failed to save destination hub", http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("failed to update destination hub: %v", err), http.StatusInternalServerError)
 			return
 		}
 
@@ -762,13 +767,11 @@ func (s *Server) handleApiEvacuationTransferStatus(w http.ResponseWriter, r *htt
 
 	manifest.Status = targetStatus
 	manifest.UpdatedAt = now
-	updatedData, err := json.Marshal(manifest)
+	err = s.stateStore.UpdateState(r.Context(), store.TransferManifestsCollection, manifest.TransferID, func(current []byte) ([]byte, error) {
+		return json.Marshal(manifest)
+	})
 	if err != nil {
-		http.Error(w, "failed to marshal transfer manifest", http.StatusInternalServerError)
-		return
-	}
-	if err := s.stateStore.SaveState(r.Context(), store.TransferManifestsCollection, manifest.TransferID, updatedData); err != nil {
-		http.Error(w, "failed to update transfer manifest", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("failed to update transfer manifest: %v", err), http.StatusInternalServerError)
 		return
 	}
 

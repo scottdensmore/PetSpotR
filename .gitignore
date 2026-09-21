@@ -22,7 +22,7 @@ gha-creds-*.json
 crash.log
 
 # Node / Playwright
-node_modules/
+node_modules
 tests/playwright/playwright-report/
 tests/playwright/test-results/
 tests/playwright/blob-report/
