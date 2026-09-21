@@ -31,6 +31,9 @@ const VoiceMemosCollection = "voice_memos"
 // VoiceMemosAudioCollection is the state store collection for sighting voice memo binary audio.
 const VoiceMemosAudioCollection = "voice_memos_audio"
 
+// BeaconPingsCollection is the state store collection for pet collar beacon pings.
+const BeaconPingsCollection = "beacon_pings"
+
 // Sentinel errors for StateStore operations.
 var (
 	ErrStoreNotFound = errors.New("store: state store not found")

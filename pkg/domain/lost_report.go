@@ -95,6 +95,28 @@ type LostPetReport struct {
 	MicrochipRegistry string          `json:"microchipRegistry,omitempty"`
 }
 
+// BeaconProtocol identifies the BLE advertisement standard emitted by a collar tag.
+type BeaconProtocol string
+
+const (
+	BeaconProtocolIBeacon   BeaconProtocol = "ibeacon"
+	BeaconProtocolEddystone BeaconProtocol = "eddystone"
+	BeaconProtocolAltBeacon BeaconProtocol = "altbeacon"
+	BeaconProtocolCustomBLE BeaconProtocol = "custom_ble"
+)
+
+// CollarBeaconConfig configures Bluetooth Low Energy collar beacon tracking.
+type CollarBeaconConfig struct {
+	Protocol       BeaconProtocol `json:"protocol"`
+	UUID           string         `json:"uuid,omitempty"`           // iBeacon Proximity UUID or Eddystone Namespace
+	Major          *uint16        `json:"major,omitempty"`          // iBeacon Major
+	Minor          *uint16        `json:"minor,omitempty"`          // iBeacon Minor
+	InstanceID     string         `json:"instanceId,omitempty"`     // Eddystone Instance ID
+	DeviceAddress  string         `json:"deviceAddress,omitempty"`  // MAC address / peripheral ID
+	DeviceName     string         `json:"deviceName,omitempty"`     // Human label e.g. "PetSpotR-Tag-042"
+	CalibratedRSSI int            `json:"calibratedRssi,omitempty"` // Measured RSSI at 1m (default: -59 dBm)
+}
+
 // LostPetRecord is the persisted lost-pet aggregate. Private owner contact is
 // stored separately and linked by OwnerIdentityRef. OwnedBy identifies the
 // authenticated resource owner when the producer supplied one.
@@ -119,6 +141,7 @@ type LostPetRecord struct {
 	LifecycleAudit    *LostPetLifecycleAudit `json:"lifecycleAudit,omitempty"`
 	MicrochipID       string                 `json:"microchipId,omitempty"`
 	MicrochipRegistry string                 `json:"microchipRegistry,omitempty"`
+	CollarBeacon      *CollarBeaconConfig    `json:"collarBeacon,omitempty"`
 }
 
 // LostPetReportedV2 is the additive payload-v2 integration event. Its legacy
@@ -592,6 +615,10 @@ func NormalizeLostPetRecord(record LostPetRecord) LostPetRecord {
 	if record.LifecycleAudit != nil {
 		audit := *record.LifecycleAudit
 		normalized.LifecycleAudit = &audit
+	}
+	if record.CollarBeacon != nil {
+		beacon := *record.CollarBeacon
+		normalized.CollarBeacon = &beacon
 	}
 	return normalized
 }
