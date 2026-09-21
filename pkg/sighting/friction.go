@@ -355,11 +355,15 @@ func GeneratePredictiveTrajectory(
 			}
 		}
 		if hasNearPoint {
+			geomCopy := make([]domain.LocationPoint, len(tf.Geometry))
+			copy(geomCopy, tf.Geometry)
+			tfCopy := tf
+			tfCopy.Geometry = geomCopy
 			activeFeatures = append(activeFeatures, cartesianFeature{
-				feature:  tf,
+				feature:  tfCopy,
 				geometry: cartGeom,
 			})
-			barriersEncountered = append(barriersEncountered, tf)
+			barriersEncountered = append(barriersEncountered, tfCopy)
 		}
 	}
 
