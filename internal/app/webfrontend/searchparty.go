@@ -649,7 +649,7 @@ func (s *Server) annotatePartySectorsWithUrgency(ctx context.Context, pet domain
 		}
 	}
 
-	sightings := s.getActiveSightingsForPet(ctx, pet.PetID)
+	sightings, _ := s.getActiveSightingsForPet(ctx, pet.PetID)
 	if originCoords == nil && len(sightings) == 0 {
 		return
 	}

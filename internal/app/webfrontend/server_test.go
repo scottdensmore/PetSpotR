@@ -2173,6 +2173,10 @@ func TestSightingTrajectoryAssets(t *testing.T) {
 		"sighting-location",
 		"sighting-notes",
 		"btn-submit-sighting",
+		"trajectory-layer-toggle",
+		"btn-layer-friction",
+		"btn-layer-standard",
+		"btn-layer-clusters",
 	}
 	for _, snippet := range expectedPetsSnippets {
 		if !strings.Contains(petsBody, snippet) {
@@ -2200,6 +2204,10 @@ func TestSightingTrajectoryAssets(t *testing.T) {
 		"sighting-location",
 		"sighting-notes",
 		"btn-submit-sighting",
+		"trajectory-layer-toggle",
+		"btn-layer-friction",
+		"btn-layer-standard",
+		"btn-layer-clusters",
 	}
 	for _, snippet := range expectedFinderSnippets {
 		if !strings.Contains(finderBody, snippet) {
@@ -2221,6 +2229,13 @@ func TestSightingTrajectoryAssets(t *testing.T) {
 		"sighting-geolocation-btn",
 		"milestone-pin",
 		"milestone-pin-origin",
+		"standardPerimeterGroup",
+		"frictionIsochroneGroup",
+		"hidingClusterGroup",
+		"btn-layer-friction",
+		"btn-layer-standard",
+		"btn-layer-clusters",
+		"switchActiveLayer",
 	}
 	for _, snippet := range expectedJSSnippets {
 		if !strings.Contains(jsContent, snippet) {
@@ -2239,6 +2254,11 @@ func TestSightingTrajectoryAssets(t *testing.T) {
 		".milestone-pin",
 		".milestone-pin-origin",
 		".trajectory-popup",
+		".trajectory-layer-toggle",
+		".layer-pill-btn",
+		".hiding-cluster-pin",
+		".legend-chip",
+		".badge-critical",
 	}
 	for _, class := range expectedCSSClasses {
 		if !strings.Contains(cssContent, class) {

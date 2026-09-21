@@ -65,7 +65,11 @@ func (s *Server) handleGetTrajectory(w http.ResponseWriter, r *http.Request) {
 	}
 	pet = domain.NormalizeLostPetRecord(pet)
 
-	sightings := s.getActiveSightingsForPet(r.Context(), petID)
+	sightings, err := s.getActiveSightingsForPet(r.Context(), petID)
+	if err != nil {
+		http.Error(w, "Failed to retrieve pet sightings", http.StatusInternalServerError)
+		return
+	}
 
 	originCoords := pet.Coordinates
 	if originCoords == nil && pet.Location != "" {
@@ -165,19 +169,39 @@ func (s *Server) handleGetPredictiveTrajectoryScenario(w http.ResponseWriter, r 
 		species = "dog"
 	}
 
-	elapsedHours := 1.0
+	sightings, err := s.getActiveSightingsForPet(r.Context(), petID)
+	if err != nil {
+		http.Error(w, "Failed to retrieve pet sightings", http.StatusInternalServerError)
+		return
+	}
+
+	var elapsedHours float64
 	if qElapsed := r.URL.Query().Get("elapsedHours"); qElapsed != "" {
 		if v, err := strconv.ParseFloat(qElapsed, 64); err == nil && v > 0 {
 			elapsedHours = v
 		}
-	} else if !pet.ReportedAt.IsZero() {
-		diff := time.Since(pet.ReportedAt)
-		if diff > 0 {
-			elapsedHours = diff.Hours()
+	}
+	if elapsedHours <= 0 {
+		var lastTime time.Time
+		if len(sightings) > 0 {
+			for _, sRec := range sightings {
+				if sRec.SightedAt.After(lastTime) {
+					lastTime = sRec.SightedAt
+				}
+			}
+		} else if !pet.ReportedAt.IsZero() {
+			lastTime = pet.ReportedAt
+		}
+		if !lastTime.IsZero() {
+			diff := time.Since(lastTime)
+			if diff > 0 {
+				elapsedHours = diff.Hours()
+			}
 		}
 	}
-
-	sightings := s.getActiveSightingsForPet(r.Context(), petID)
+	if elapsedHours <= 0 {
+		elapsedHours = 1.0
+	}
 
 	originCoords := pet.Coordinates
 	if originCoords == nil && pet.Location != "" {
@@ -194,13 +218,16 @@ func (s *Server) handleGetPredictiveTrajectoryScenario(w http.ResponseWriter, r 
 }
 
 // getActiveSightingsForPet retrieves all active sightings for petID from stateStore.
-func (s *Server) getActiveSightingsForPet(ctx context.Context, petID string) []domain.PetSightingRecord {
+func (s *Server) getActiveSightingsForPet(ctx context.Context, petID string) ([]domain.PetSightingRecord, error) {
 	if s.stateStore == nil {
-		return nil
+		return nil, nil
 	}
 	rawItems, err := s.stateStore.ListState(ctx, store.SightingsCollection)
 	if err != nil {
-		return nil
+		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+			return nil, nil
+		}
+		return nil, err
 	}
 
 	sightings := make([]domain.PetSightingRecord, 0)
@@ -213,5 +240,5 @@ func (s *Server) getActiveSightingsForPet(ctx context.Context, petID string) []d
 			sightings = append(sightings, sRec)
 		}
 	}
-	return sightings
+	return sightings, nil
 }
