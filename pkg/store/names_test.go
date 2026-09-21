@@ -63,4 +63,16 @@ func TestCanonicalCollectionNames(t *testing.T) {
 	if store.TrajectoriesCollection != "trajectories" {
 		t.Fatalf("TrajectoriesCollection = %q, want trajectories", store.TrajectoriesCollection)
 	}
+	if store.EvacuationHubsCollection != "evacuation_hubs" {
+		t.Fatalf("EvacuationHubsCollection = %q, want evacuation_hubs", store.EvacuationHubsCollection)
+	}
+	if store.TransferManifestsCollection != "transfer_manifests" {
+		t.Fatalf("TransferManifestsCollection = %q, want transfer_manifests", store.TransferManifestsCollection)
+	}
+	if store.CrisisIntakesCollection != "crisis_intakes" {
+		t.Fatalf("CrisisIntakesCollection = %q, want crisis_intakes", store.CrisisIntakesCollection)
+	}
+	if store.CrisisReunificationsCollection != "crisis_reunifications" {
+		t.Fatalf("CrisisReunificationsCollection = %q, want crisis_reunifications", store.CrisisReunificationsCollection)
+	}
 }

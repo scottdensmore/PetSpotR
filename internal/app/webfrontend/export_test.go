@@ -6,6 +6,9 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
+// EmbeddedFiles exports embeddedFiles for external test packages.
+var EmbeddedFiles = embeddedFiles
+
 // NewTestServer constructs a test Server with rate limiting disabled.
 func NewTestServer(t testing.TB, st store.StateStore) *Server {
 	if t != nil {

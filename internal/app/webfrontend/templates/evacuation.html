@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Disaster Evacuation Operations Dashboard - Emergency hub capacity, bulk pet intake reconciliation, and mutual aid transfers.">
+  <title>Disaster Evacuation Operations — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link active nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container page-main" id="main-content">
+    <div class="evacuation-dashboard">
+      <!-- Emergency Operations Status Banner -->
+      <div class="emergency-operations-header">
+        <div class="dashboard-heading">
+          <div class="emergency-status-pill">
+            <span class="pulse-beacon" aria-hidden="true"></span>
+            <span>🚨 ACTIVE EMERGENCY DISASTER OPERATIONS</span>
+          </div>
+          <h1>Disaster Evacuation &amp; Mutual Aid Operations</h1>
+          <p class="text-secondary">Federated multi-agency regional pet evacuation coordination, rapid bulk roster reconciliation, and mutual aid custody transfer tracking.</p>
+        </div>
+      </div>
+
+      <!-- Operations Metrics Strip -->
+      <section class="metrics-hud" aria-label="Operational Metrics Strip">
+        <div class="metric-card glass-card">
+          <div class="metric-value" id="metric-evacuated-total">0</div>
+          <div class="metric-label">Total Evacuated Animals</div>
+          <div class="metric-subtext text-muted">Across regional staging facilities</div>
+        </div>
+        <div class="metric-card glass-card">
+          <div class="metric-value" id="metric-active-hubs">0</div>
+          <div class="metric-label">Active Emergency Facilities</div>
+          <div class="metric-subtext text-muted">Pop-up, staging &amp; triage hubs</div>
+        </div>
+        <div class="metric-card glass-card">
+          <div class="metric-value" id="metric-open-capacity">0</div>
+          <div class="metric-label">Regional Open Capacity</div>
+          <div class="metric-subtext text-muted">Available emergency animal spaces</div>
+        </div>
+        <div class="metric-card glass-card">
+          <div class="metric-value" id="metric-reunifications-pending">0</div>
+          <div class="metric-label">Pending Crisis Reunifications</div>
+          <div class="metric-subtext text-muted">Awaiting emergency owner dispatch</div>
+        </div>
+      </section>
+
+      <!-- Tabbed Navigation -->
+      <nav class="evacuation-tabs-wrapper" aria-label="Disaster Operations Navigation">
+        <div class="evacuation-tabs" role="tablist" aria-label="Disaster Operations Navigation">
+          <button class="tab-btn active" role="tab" id="tab-hubs" aria-selected="true" aria-controls="tab-panel-hubs" tabindex="0">
+            <span class="tab-icon" aria-hidden="true">🏢</span>
+            <span>Facilities</span>
+          </button>
+          <button class="tab-btn" role="tab" id="tab-intake" aria-selected="false" aria-controls="tab-panel-intake" tabindex="-1">
+            <span class="tab-icon" aria-hidden="true">📥</span>
+            <span>Bulk Intake</span>
+          </button>
+          <button class="tab-btn" role="tab" id="tab-transfers" aria-selected="false" aria-controls="tab-panel-transfers" tabindex="-1">
+            <span class="tab-icon" aria-hidden="true">🚚</span>
+            <span>Mutual Aid Transfers</span>
+          </button>
+          <button class="tab-btn" role="tab" id="tab-reunifications" aria-selected="false" aria-controls="tab-panel-reunifications" tabindex="-1">
+            <span class="tab-icon" aria-hidden="true">🤝</span>
+            <span>Crisis Reunifications</span>
+          </button>
+        </div>
+      </nav>
+
+      <!-- Tab Panels -->
+
+      <!-- Panel 1: Facilities -->
+      <section id="tab-panel-hubs" class="tab-panel" role="tabpanel" aria-labelledby="tab-hubs">
+        <div class="panel-action-bar">
+          <div>
+            <h2>Evacuation Facilities &amp; Capacity Gauges</h2>
+            <p class="text-secondary">Real-time occupancy tracking across regional pop-up crisis centers, fairgrounds, and mobile triage sites.</p>
+          </div>
+          <button type="button" id="btn-new-hub" class="btn btn-primary" aria-haspopup="dialog">
+            + Register Emergency Hub
+          </button>
+        </div>
+
+        <div id="hubs-card-grid" class="hubs-card-grid" aria-live="polite">
+          <div class="loading-state text-muted">Loading active evacuation facilities...</div>
+        </div>
+      </section>
+
+      <!-- Panel 2: Bulk Intake -->
+      <section id="tab-panel-intake" class="tab-panel" role="tabpanel" aria-labelledby="tab-intake" hidden>
+        <div class="panel-action-bar">
+          <div>
+            <h2>Bulk Roster Intake &amp; Microchip Reconciliation</h2>
+            <p class="text-secondary">Ingest displaced animal rosters via CSV or JSON. Microchips are instantly normalized and reconciled against registered lost pet reports.</p>
+          </div>
+        </div>
+
+        <div class="intake-upload-section glass-card">
+          <div id="intake-dropzone" class="intake-dropzone" tabindex="0" role="button" aria-label="Dropzone for bulk roster file upload">
+            <input type="file" id="intake-file-input" accept=".csv,.json" class="visually-hidden" aria-label="Choose CSV or JSON animal roster file">
+            <div class="dropzone-icon" aria-hidden="true">📂</div>
+            <div class="dropzone-text">
+              <strong>Drag and drop roster file here</strong>, or <span class="dropzone-browse">browse</span>
+            </div>
+            <div class="dropzone-hint text-muted">Supports RFC 4180 CSV or JSON array (microchip_id, name, species, breed, contact details)</div>
+            <div id="intake-file-details" class="intake-file-details" hidden></div>
+          </div>
+
+          <div class="intake-controls-bar">
+            <div class="form-group intake-hub-group">
+              <label for="intake-hub-select">Assign to Emergency Facility:</label>
+              <select id="intake-hub-select" class="form-select" aria-required="true">
+                <option value="">-- Select Destination Facility --</option>
+              </select>
+            </div>
+            <button type="button" id="btn-process-batch" class="btn btn-primary" disabled>
+              ⚡ Process Batch Intake
+            </button>
+          </div>
+
+          <div id="intake-feedback" class="intake-feedback" role="status" aria-live="polite"></div>
+
+          <div id="intake-batch-summary" class="glass-card intake-batch-summary" hidden>
+            <h3>Batch Processing Summary</h3>
+            <div class="batch-summary-stats">
+              <div class="summary-stat"><span>Total Records:</span> <strong id="summary-total-rows">0</strong></div>
+              <div class="summary-stat"><span>Imported:</span> <strong id="summary-imported-rows">0</strong></div>
+              <div class="summary-stat"><span>Crisis Matches:</span> <strong id="summary-matched-rows" class="text-matched">0</strong></div>
+              <div class="summary-stat"><span>Validation Errors:</span> <strong id="summary-error-rows" class="text-error">0</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="results-table-section">
+          <h3>Ingested Roster Results</h3>
+          <div class="table-container" tabindex="0" aria-label="Intake Results Table">
+            <table id="intake-results-table" class="data-table intake-results-table">
+              <thead>
+                <tr>
+                  <th scope="col">Status</th>
+                  <th scope="col">Animal Name</th>
+                  <th scope="col">Species / Breed</th>
+                  <th scope="col">Microchip</th>
+                  <th scope="col">Reconciliation Status</th>
+                  <th scope="col">Details</th>
+                </tr>
+              </thead>
+              <tbody id="intake-results-body">
+                <tr class="empty-row">
+                  <td colspan="6" class="text-center text-muted">No batch processed yet. Drop a CSV or JSON file above to begin.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel 3: Mutual Aid Transfers -->
+      <section id="tab-panel-transfers" class="tab-panel" role="tabpanel" aria-labelledby="tab-transfers" hidden>
+        <div class="panel-action-bar">
+          <div>
+            <h2>Mutual Aid Inter-Facility Transfer Ledger</h2>
+            <p class="text-secondary">Immutable chain-of-custody transfer manifest tracking between emergency evacuation facilities.</p>
+          </div>
+          <div class="transfers-toolbar">
+            <div class="filter-group">
+              <label for="transfers-status-filter" class="visually-hidden">Filter Transfers by Status</label>
+              <select id="transfers-status-filter" class="form-select" aria-label="Filter Transfers by Status">
+                <option value="ALL">All Manifests</option>
+                <option value="STAGED">Staged</option>
+                <option value="IN_TRANSIT">In Transit</option>
+                <option value="RECEIVED">Received</option>
+                <option value="RECONCILED">Reconciled</option>
+              </select>
+            </div>
+            <button type="button" id="btn-stage-transfer" class="btn btn-primary" aria-haspopup="dialog">
+              🚚 Stage Mutual Aid Transfer
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container" tabindex="0" aria-label="Mutual Aid Transfer Ledger Table">
+          <table id="transfers-ledger-table" class="data-table transfers-ledger-table">
+            <thead>
+              <tr>
+                <th scope="col">Transfer ID</th>
+                <th scope="col">Origin Facility</th>
+                <th scope="col">Destination Facility</th>
+                <th scope="col">Animals</th>
+                <th scope="col">Status</th>
+                <th scope="col">Coordinator</th>
+                <th scope="col">Last Updated</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="transfers-ledger-body">
+              <tr class="empty-row">
+                <td colspan="8" class="text-center text-muted">No mutual aid transfers recorded. Click "Stage Mutual Aid Transfer" to create one.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Panel 4: Crisis Reunifications -->
+      <section id="tab-panel-reunifications" class="tab-panel" role="tabpanel" aria-labelledby="tab-reunifications" hidden>
+        <div class="panel-action-bar">
+          <div>
+            <h2>Prioritized Crisis Reunification Queue</h2>
+            <p class="text-secondary">Emergency match candidates identified via microchip reconciliation and AI trait scoring, prioritized for rapid owner notification.</p>
+          </div>
+        </div>
+
+        <div id="reunifications-grid" class="reunifications-grid" aria-live="polite">
+          <div class="glass-card reunification-card crisis-match-card" id="reunification-sample-card">
+            <div class="reunification-header">
+              <span class="badge badge-microchip-exact">🔥 Exact Microchip Match</span>
+              <span class="reunification-time text-muted">Awaiting Dispatch</span>
+            </div>
+            <div class="reunification-comparison">
+              <div class="reunification-entity evacuated-entity">
+                <h4>Evacuated Animal</h4>
+                <div class="entity-details">
+                  <p class="entity-name" id="sample-evac-name">Disaster Shelter Intake</p>
+                  <p class="entity-chip">Chip: <code id="sample-evac-chip">985141000000000</code></p>
+                  <p class="entity-facility text-secondary" id="sample-evac-hub">Regional Hub</p>
+                </div>
+              </div>
+              <div class="reunification-arrow" aria-hidden="true">⇄</div>
+              <div class="reunification-entity lost-entity">
+                <h4>Registered Lost Report</h4>
+                <div class="entity-details">
+                  <p class="entity-name" id="sample-lost-name">Owner Missing Pet</p>
+                  <p class="entity-chip">Chip: <code id="sample-lost-chip">985141000000000</code></p>
+                  <p class="entity-owner text-secondary" id="sample-lost-owner">Owner on File</p>
+                </div>
+              </div>
+            </div>
+            <div class="reunification-actions">
+              <button type="button" id="btn-contact-owner" class="btn btn-primary btn-contact-owner">🚨 Contact Owner &amp; Dispatch Alert</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Modals -->
+
+  <!-- Modal: Register New Evacuation Hub -->
+  <div id="modal-new-hub" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-new-hub-title">
+    <div class="glass-card modal-dialog">
+      <div class="modal-header">
+        <h2 id="modal-new-hub-title">Register Emergency Evacuation Hub</h2>
+        <button type="button" class="btn-icon modal-close-btn" data-close-modal="new-hub" aria-label="Close dialog">✕</button>
+      </div>
+      <form id="form-new-hub" class="modal-form">
+        <div class="form-group">
+          <label for="input-hub-name">Facility Name *</label>
+          <input type="text" id="input-hub-name" name="name" class="form-control" placeholder="e.g. Seattle Center Exhibition Hall" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="input-hub-type">Facility Type *</label>
+            <select id="input-hub-type" name="type" class="form-select" required>
+              <option value="POP_UP_CRISIS_CENTER">Pop-Up Crisis Center</option>
+              <option value="FAIRGROUND_STAGING">Fairground Staging</option>
+              <option value="PERMANENT_SHELTER">Permanent Shelter</option>
+              <option value="MOBILE_TRIAGE">Mobile Triage Unit</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="input-hub-address">Physical Address *</label>
+            <input type="text" id="input-hub-address" name="address" class="form-control" placeholder="Street, City, State ZIP" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="input-hub-lat">Latitude *</label>
+            <input type="number" id="input-hub-lat" name="latitude" step="any" class="form-control" placeholder="e.g. 47.6242" required>
+          </div>
+          <div class="form-group">
+            <label for="input-hub-lng">Longitude *</label>
+            <input type="number" id="input-hub-lng" name="longitude" step="any" class="form-control" placeholder="e.g. -122.3518" required>
+          </div>
+        </div>
+        <div class="form-row form-row-3">
+          <div class="form-group">
+            <label for="input-hub-total-cap">Total Capacity *</label>
+            <input type="number" id="input-hub-total-cap" name="totalCapacity" min="1" class="form-control" placeholder="100" required>
+          </div>
+          <div class="form-group">
+            <label for="input-hub-dog-cap">Dog Capacity *</label>
+            <input type="number" id="input-hub-dog-cap" name="dogCapacity" min="0" class="form-control" placeholder="60" required>
+          </div>
+          <div class="form-group">
+            <label for="input-hub-cat-cap">Cat Capacity *</label>
+            <input type="number" id="input-hub-cat-cap" name="catCapacity" min="0" class="form-control" placeholder="40" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="input-hub-contact-name">Incident Commander / Lead *</label>
+            <input type="text" id="input-hub-contact-name" name="contactName" class="form-control" placeholder="Coordinator Name" required>
+          </div>
+          <div class="form-group">
+            <label for="input-hub-contact-phone">Emergency Phone *</label>
+            <input type="tel" id="input-hub-contact-phone" name="contactPhone" class="form-control" placeholder="206-555-0100" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="input-hub-contact-email">Emergency Email *</label>
+          <input type="email" id="input-hub-contact-email" name="contactEmail" class="form-control" placeholder="evac-lead@emergency.gov" required>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" id="btn-submit-hub" class="btn btn-primary">Register Facility</button>
+          <button type="button" class="btn btn-secondary btn-modal-close" data-close-modal="new-hub">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Stage Mutual Aid Transfer -->
+  <div id="modal-stage-transfer" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-stage-transfer-title">
+    <div class="glass-card modal-dialog">
+      <div class="modal-header">
+        <h2 id="modal-stage-transfer-title">Stage Mutual Aid Transfer Manifest</h2>
+        <button type="button" class="btn-icon modal-close-btn" data-close-modal="stage-transfer" aria-label="Close dialog">✕</button>
+      </div>
+      <form id="form-stage-transfer" class="modal-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="input-transfer-origin">Origin Facility *</label>
+            <select id="input-transfer-origin" name="originHubId" class="form-select" required>
+              <option value="">-- Select Origin Hub --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="input-transfer-destination">Destination Facility *</label>
+            <select id="input-transfer-destination" name="destHubId" class="form-select" required>
+              <option value="">-- Select Destination Hub --</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="input-transfer-pet-ids">Evacuated Animal IDs (comma-separated) *</label>
+          <textarea id="input-transfer-pet-ids" name="animalIds" class="form-control" rows="3" placeholder="e.g. pet-evac-1, pet-evac-2" required></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="input-transfer-coordinator">Transporter / Coordinator *</label>
+            <input type="text" id="input-transfer-coordinator" name="transporterName" class="form-control" placeholder="Driver / Coordinator name" required>
+          </div>
+          <div class="form-group">
+            <label for="input-transfer-phone">Coordinator Phone / Radio *</label>
+            <input type="tel" id="input-transfer-phone" name="transporterPhone" class="form-control" placeholder="Contact number" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="input-transfer-vehicle">Vehicle Identifier &amp; Notes</label>
+          <input type="text" id="input-transfer-vehicle" name="vehicleNotes" class="form-control" placeholder="e.g. Transport Van 4 - Climate Controlled">
+        </div>
+        <div class="modal-actions">
+          <button type="submit" id="btn-submit-transfer" class="btn btn-primary">🚚 Confirm &amp; Stage Transfer</button>
+          <button type="button" class="btn btn-secondary btn-modal-close" data-close-modal="stage-transfer">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer>
+    <div class="container footer-content">
+      <p>&copy; 2026 PetSpotR. Event-driven Go &amp; GCP AI Microservices. Emergency Evacuation Federation.</p>
+    </div>
+  </footer>
+
+  <div id="toast-container" class="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
+  <div id="evacuation-aria-announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="/static/js/theme.js"></script>
+  <script src="/static/js/evacuation.js"></script>
+</body>
+</html>

@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 const WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || process.env.BASE_URL || 'http://localhost:8092';
 
 const renderedPages = ['/', '/report-lost', '/report-found', '/matches', '/pets'];
-const primaryNavigation = ['nav-home', 'nav-directory', 'nav-matches', 'nav-analytics'];
+const primaryNavigation = ['nav-home', 'nav-directory', 'nav-matches', 'nav-analytics', 'nav-evacuation'];
 
 for (const pagePath of renderedPages) {
   test(`keeps primary navigation visible and keyboard ordered on phones at ${pagePath}`, async ({ page }) => {

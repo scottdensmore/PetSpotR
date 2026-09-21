@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/scottdensmore/petspotr/internal/app/foundpet"
@@ -60,6 +61,7 @@ type Server struct {
 	allowLocalhostWebhooks   bool
 	smsProvider              sms.Provider
 	smsWebhookSecret         string
+	evacSeedMu               sync.Mutex
 	handler                  http.Handler
 }
 
@@ -268,6 +270,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/report-found", s.handleReportFound)
 	s.mux.HandleFunc("/matches", s.handleMatches)
 	s.mux.HandleFunc("/shelters/analytics", s.handleShelterAnalytics)
+	s.mux.HandleFunc("/evacuation", s.handleRenderEvacuation)
 	s.mux.HandleFunc("/feeds/lost-pets.atom", s.handleLostPetsFeed)
 	s.mux.HandleFunc("/feeds/sightings.atom", s.handleSightingsFeed)
 	if s.rateLimiter == nil {
@@ -339,6 +342,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/shelters/analytics", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiShelterAnalytics))
 	s.mux.HandleFunc("/api/v1/shelters/analytics/export.csv", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiShelterAnalyticsExportCSV))
 	s.mux.HandleFunc("/api/v1/shelters/analytics/export.geojson", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiShelterAnalyticsExportGeoJSON))
+	s.mux.HandleFunc("/api/v1/evacuations/hubs", s.handleApiEvacuationHubs)
+	s.mux.HandleFunc("/api/v1/evacuations/intake-batch", s.handleApiEvacuationIntakeBatch)
+	s.mux.HandleFunc("/api/v1/evacuations/transfers", s.handleApiEvacuationTransfers)
+	s.mux.HandleFunc("/api/v1/evacuations/transfers/{id}/status", s.handleApiEvacuationTransferStatus)
+	s.mux.HandleFunc("/api/v1/evacuations/reunification-queue", s.handleApiEvacuationReunificationQueue)
+	s.mux.HandleFunc("/api/v1/evacuations/reunification-queue/{matchId}/contact", s.handleApiEvacuationReunificationContact)
 	s.mux.HandleFunc("/api/v1/matches", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleApiMatches))
 	s.mux.HandleFunc("/api/v1/matches/action", s.handleApiMatchAction)
 	s.mux.HandleFunc("/api/v1/reunions/contact", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiReunionContact))
