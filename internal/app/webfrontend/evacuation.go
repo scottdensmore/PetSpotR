@@ -890,3 +890,21 @@ func randomHex(byteLen int) string {
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
 }
+
+// handleRenderEvacuation renders the disaster evacuation operations dashboard HTML page.
+func (s *Server) handleRenderEvacuation(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		respondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	content, err := embeddedFiles.ReadFile("templates/evacuation.html")
+	if err != nil {
+		http.Error(w, "Failed to load evacuation template", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(content)
+}

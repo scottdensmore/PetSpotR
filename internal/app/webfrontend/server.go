@@ -270,6 +270,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/report-found", s.handleReportFound)
 	s.mux.HandleFunc("/matches", s.handleMatches)
 	s.mux.HandleFunc("/shelters/analytics", s.handleShelterAnalytics)
+	s.mux.HandleFunc("/evacuation", s.handleRenderEvacuation)
 	s.mux.HandleFunc("/feeds/lost-pets.atom", s.handleLostPetsFeed)
 	s.mux.HandleFunc("/feeds/sightings.atom", s.handleSightingsFeed)
 	if s.rateLimiter == nil {

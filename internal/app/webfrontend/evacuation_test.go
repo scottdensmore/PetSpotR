@@ -952,3 +952,138 @@ func TestEvacuationTransfers_IdempotencyAndStateTransitions(t *testing.T) {
 		t.Errorf("expected 409 Conflict for RECONCILED -> RECEIVED, got %d", code)
 	}
 }
+
+func TestEvacuationDashboard_RendersOK(t *testing.T) {
+	t.Parallel()
+
+	srv, _ := newTestEvacServer(t)
+
+	// 1. Valid GET /evacuation
+	req := httptest.NewRequest(http.MethodGet, "/evacuation", nil)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK from GET /evacuation, got %d: %s", rec.Code, rec.Body.String())
+	}
+	contentType := rec.Header().Get("Content-Type")
+	if !strings.Contains(contentType, "text/html") {
+		t.Errorf("expected text/html Content-Type, got %q", contentType)
+	}
+
+	body := rec.Body.String()
+
+	// 2. Method Not Allowed check
+	postReq := httptest.NewRequest(http.MethodPost, "/evacuation", nil)
+	postRec := httptest.NewRecorder()
+	srv.ServeHTTP(postRec, postReq)
+	if postRec.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected 405 Method Not Allowed for POST /evacuation, got %d", postRec.Code)
+	}
+
+	// 3. Expected elements & IDs in dashboard
+	expectedSnippets := []string{
+		// Metrics HUD
+		`id="metric-evacuated-total"`,
+		`id="metric-active-hubs"`,
+		`id="metric-open-capacity"`,
+		`id="metric-reunifications-pending"`,
+		// Tab navigation
+		`role="tablist"`,
+		`aria-label="Disaster Operations Navigation"`,
+		`id="tab-hubs"`,
+		`id="tab-intake"`,
+		`id="tab-transfers"`,
+		`id="tab-reunifications"`,
+		// Panel 1: Facilities
+		`id="tab-panel-hubs"`,
+		`id="hubs-card-grid"`,
+		`id="btn-new-hub"`,
+		`id="modal-new-hub"`,
+		// Panel 2: Bulk Intake
+		`id="tab-panel-intake"`,
+		`id="intake-dropzone"`,
+		`id="intake-file-input"`,
+		`accept=".csv,.json"`,
+		`id="intake-file-details"`,
+		`id="intake-hub-select"`,
+		`id="btn-process-batch"`,
+		`id="intake-feedback"`,
+		`id="intake-batch-summary"`,
+		`id="intake-results-table"`,
+		// Panel 3: Transfers
+		`id="tab-panel-transfers"`,
+		`id="transfers-ledger-table"`,
+		`id="transfers-status-filter"`,
+		`id="btn-stage-transfer"`,
+		`id="modal-stage-transfer"`,
+		// Panel 4: Crisis Reunifications
+		`id="tab-panel-reunifications"`,
+		`id="reunifications-grid"`,
+		`id="btn-contact-owner"`,
+		`🔥 Exact Microchip Match`,
+		// Client script
+		`<script src="/static/js/evacuation.js"></script>`,
+	}
+
+	for _, snippet := range expectedSnippets {
+		if !strings.Contains(body, snippet) {
+			t.Errorf("GET /evacuation response missing required snippet: %s", snippet)
+		}
+	}
+}
+
+func TestEvacuationNavigationAndStyles(t *testing.T) {
+	t.Parallel()
+
+	// 1. Verify navigation link in layout.html
+	layoutData, err := webfrontend.EmbeddedFiles.ReadFile("templates/layout.html")
+	if err != nil {
+		t.Fatalf("failed to read templates/layout.html: %v", err)
+	}
+	layoutContent := string(layoutData)
+	if !strings.Contains(layoutContent, `href="/evacuation"`) {
+		t.Error("layout.html missing href=\"/evacuation\"")
+	}
+	if !strings.Contains(layoutContent, `nav-link-emergency`) {
+		t.Error("layout.html missing nav-link-emergency class")
+	}
+	if !strings.Contains(layoutContent, `🚨 Disaster Hub`) {
+		t.Error("layout.html missing '🚨 Disaster Hub' label")
+	}
+
+	// 2. Verify emergency styles in styles.css
+	cssData, err := webfrontend.EmbeddedFiles.ReadFile("static/css/styles.css")
+	if err != nil {
+		t.Fatalf("failed to read static/css/styles.css: %v", err)
+	}
+	cssContent := string(cssData)
+
+	expectedCSSSelectors := []string{
+		".nav-link-emergency",
+		".evacuation-dashboard",
+		".metrics-hud",
+		".metric-card",
+		".metric-value",
+		".metric-label",
+		".evacuation-tabs",
+		".tab-btn",
+		".tab-btn.active",
+		".hub-card",
+		".occupancy-bar-track",
+		".occupancy-bar-fill",
+		".intake-dropzone",
+		".intake-dropzone.dragover",
+		".transfer-status-staged",
+		".transfer-status-intransit",
+		".transfer-status-received",
+		".reunification-card",
+		".badge-microchip-exact",
+	}
+
+	for _, selector := range expectedCSSSelectors {
+		if !strings.Contains(cssContent, selector) {
+			t.Errorf("static/css/styles.css missing required selector: %s", selector)
+		}
+	}
+}
