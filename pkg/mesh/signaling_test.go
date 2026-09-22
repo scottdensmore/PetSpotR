@@ -156,4 +156,3 @@ func TestSignalingHub_ConcurrentUnsubscribeAndRelay(t *testing.T) {
 
 	wg.Wait()
 }
-

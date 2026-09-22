@@ -656,4 +656,3 @@ func TestMeshRoutes_Authentication(t *testing.T) {
 		t.Errorf("invalid token status = %d, want 401", badResp.StatusCode)
 	}
 }
-
