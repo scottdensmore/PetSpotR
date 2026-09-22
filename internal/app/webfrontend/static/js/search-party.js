@@ -24,6 +24,7 @@
   let activeEventSource = null;
   const sectorLayers = {}; // sectorId -> L.polygon
   const trailLayers = {}; // trailId -> L.polyline
+  const pendingMeshBreadcrumbs = [];
   const sectorTrailsCache = {}; // sectorId -> array of VolunteerBreadcrumbTrail
   let activeVolunteerMarker = null;
 
@@ -886,6 +887,8 @@
 
   // Close Search Party Modal
   function closeSearchPartyModal() {
+    isCameraScannerActive = false;
+    pendingMeshBreadcrumbs.length = 0;
     stopRecordingTrail();
     if (beaconScannerInstance) {
       beaconScannerInstance.stopScan();
@@ -1099,6 +1102,13 @@
     }
     if (latestTriangulation) {
       handleTriangulationUpdate(latestTriangulation);
+    }
+
+    // Re-render pending mesh peer breadcrumbs if any arrived while map was initializing
+    if (pendingMeshBreadcrumbs.length > 0) {
+      const pending = [...pendingMeshBreadcrumbs];
+      pendingMeshBreadcrumbs.length = 0;
+      pending.forEach((bc) => handleMeshBreadcrumbReceived(bc));
     }
 
     // Refresh size on modal display
@@ -1976,8 +1986,10 @@
 
   const meshPeersMap = new Map();
   let activeCameraStream = null;
+  let isCameraScannerActive = false;
 
   function stopCameraStream() {
+    isCameraScannerActive = false;
     if (activeCameraStream) {
       try {
         activeCameraStream.getTracks().forEach((track) => track.stop());
@@ -2008,6 +2020,7 @@
   }
 
   function closeMeshModal() {
+    isCameraScannerActive = false;
     stopCameraStream();
     const modal = document.getElementById('mesh-modal');
     const indicator = document.getElementById('mesh-status-indicator');
@@ -2151,7 +2164,11 @@
   }
 
   function handleMeshBreadcrumbReceived(bc) {
-    if (!bc || !bc.latitude || !bc.longitude || !searchPartyMapInstance) return;
+    if (!bc || !bc.latitude || !bc.longitude) return;
+    if (!searchPartyMapInstance) {
+      pendingMeshBreadcrumbs.push(bc);
+      return;
+    }
     const peerTrailId = `mesh-trail-${bc.volunteerId || 'peer'}`;
     let poly = trailLayers[peerTrailId];
     const newPt = [Number(bc.latitude), Number(bc.longitude)];
@@ -2218,6 +2235,7 @@
   }
 
   async function handleShowQROffer() {
+    isCameraScannerActive = false;
     stopCameraStream();
     const qrView = document.getElementById('mesh-qr-view');
     const qrContainer = document.getElementById('mesh-qr-container');
@@ -2258,9 +2276,11 @@
 
   async function handleScanQROffer() {
     stopCameraStream();
+    isCameraScannerActive = true;
     const qrView = document.getElementById('mesh-qr-view');
     const cameraContainer = document.getElementById('mesh-camera-container');
     const statusEl = document.getElementById('mesh-camera-status');
+    const meshModal = document.getElementById('mesh-modal');
     if (!qrView || !cameraContainer) return;
 
     qrView.classList.remove('hidden');
@@ -2274,6 +2294,10 @@
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment' },
         });
+        if (!isCameraScannerActive || !meshModal || meshModal.classList.contains('hidden')) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
         activeCameraStream = stream;
         video.srcObject = stream;
         video.play();
@@ -2620,6 +2644,7 @@
     handleScanQROffer,
     handleBroadcastSOS,
     getMeshPeers: () => Array.from(meshPeersMap.values()),
+    isCameraScannerActive: () => isCameraScannerActive,
   };
 
   // Window-level helper aliases
