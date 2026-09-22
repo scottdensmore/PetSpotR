@@ -114,3 +114,46 @@ func TestSignalingHub_ConcurrentRelay(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestSignalingHub_ConcurrentUnsubscribeAndRelay(t *testing.T) {
+	hub := mesh.NewSignalingHub()
+	partyID := "party-race-unsub"
+
+	const iterations = 50
+	var wg sync.WaitGroup
+
+	for i := 0; i < iterations; i++ {
+		wg.Add(2)
+
+		nodeID := "node-ephemeral"
+		ch, unsub := hub.Subscribe(partyID, nodeID)
+
+		// Goroutine 1: Continuous relay
+		go func() {
+			defer wg.Done()
+			for r := 0; r < 20; r++ {
+				hub.Relay(mesh.SignalingEnvelope{
+					Type:          mesh.SignalICECandidate,
+					SearchPartyID: partyID,
+					SenderNodeID:  "node-other",
+					TargetNodeID:  nodeID,
+				})
+			}
+		}()
+
+		// Goroutine 2: Concurrent drain and unsubscribe
+		go func() {
+			defer wg.Done()
+			// Consume any events if present
+			go func() {
+				for range ch {
+				}
+			}()
+			time.Sleep(1 * time.Millisecond)
+			unsub()
+		}()
+	}
+
+	wg.Wait()
+}
+

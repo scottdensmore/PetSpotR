@@ -269,3 +269,69 @@ func TestReconcileUplinkBatch_BreadcrumbsAndSightings(t *testing.T) {
 		t.Errorf("broadcaster received %d events, want at least 3", broadcaster.count())
 	}
 }
+
+func TestReconcileUplinkBatch_IdempotentReplay(t *testing.T) {
+	st := store.NewMemoryStore()
+	ctx := context.Background()
+	now := time.Date(2026, 9, 22, 10, 0, 0, 0, time.UTC)
+
+	partyID := "party-idempotent-test"
+	petID := "pet-idempotent-test"
+	sectorID := "sec-idempotent-1"
+
+	party := searchparty.SearchParty{
+		PartyID:   partyID,
+		LostPetID: petID,
+		CreatedAt: now.Add(-1 * time.Hour),
+		Sectors: []searchparty.SearchSector{
+			{
+				SectorID: sectorID,
+				Name:     "Test Sector",
+				Status:   searchparty.SectorStatusUnassigned,
+			},
+		},
+	}
+	partyBytes, _ := json.Marshal(party)
+	_ = st.SaveState(ctx, store.SearchPartiesCollection, partyID, partyBytes)
+
+	batch := domain.MeshBatchDelta{
+		SearchPartyID: partyID,
+		Sectors: []domain.MeshSectorDelta{
+			{
+				PetID:                petID,
+				SectorID:             sectorID,
+				State:                domain.SectorStateSearching,
+				Rank:                 domain.SectorRankSearching,
+				ClaimedByVolunteerID: "vol-1",
+				ClaimedByName:        "Volunteer One",
+				NodeID:               "node-1",
+				LamportClock:         5,
+				Timestamp:            now,
+			},
+		},
+	}
+
+	// First sync: applies mutation
+	resp1, err := mesh.ReconcileUplinkBatch(ctx, st, batch)
+	if err != nil {
+		t.Fatalf("first sync failed: %v", err)
+	}
+	if resp1.ReconciledSectors != 1 {
+		t.Errorf("resp1.ReconciledSectors = %d, want 1", resp1.ReconciledSectors)
+	}
+	if resp1.ServerLatestDeltas != nil {
+		t.Errorf("resp1.ServerLatestDeltas should be nil on win")
+	}
+
+	// Second sync: identical replay of exact same batch (same Rank, Clock, NodeID, Timestamp)
+	resp2, err := mesh.ReconcileUplinkBatch(ctx, st, batch)
+	if err != nil {
+		t.Fatalf("second sync failed: %v", err)
+	}
+	if resp2.ReconciledSectors != 0 {
+		t.Errorf("resp2.ReconciledSectors = %d, want 0 (idempotent replay)", resp2.ReconciledSectors)
+	}
+	if resp2.ServerLatestDeltas != nil {
+		t.Errorf("resp2.ServerLatestDeltas should be nil for idempotent replay, got %+v", resp2.ServerLatestDeltas)
+	}
+}

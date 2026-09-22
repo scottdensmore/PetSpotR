@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/identity"
 	"github.com/scottdensmore/petspotr/pkg/searchparty"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
@@ -550,3 +551,109 @@ func TestMeshSignaling_ValidationAndCORS(t *testing.T) {
 		t.Errorf("Access-Control-Allow-Origin = %q, want *", origin)
 	}
 }
+
+type meshMockSessionManager struct {
+	validTokens map[string]identity.Principal
+}
+
+func (m *meshMockSessionManager) CreateSession(_ context.Context, _ string, _ time.Duration) (identity.Session, error) {
+	return identity.Session{}, nil
+}
+
+func (m *meshMockSessionManager) VerifySession(_ context.Context, sessionCookie string) (identity.Principal, error) {
+	p, ok := m.validTokens[sessionCookie]
+	if !ok {
+		return identity.Principal{}, identity.ErrUnauthenticated
+	}
+	return p, nil
+}
+
+func TestMeshRoutes_Authentication(t *testing.T) {
+	memStore := store.NewMemoryStore()
+	validPrincipal := identity.Principal{
+		Issuer:  "https://securetoken.google.com/petspotr-test",
+		Subject: "volunteer-123",
+		Email:   "volunteer@example.com",
+	}
+
+	sessionMgr := &meshMockSessionManager{
+		validTokens: map[string]identity.Principal{
+			"valid-session-cookie": validPrincipal,
+			"valid-bearer-token":   validPrincipal,
+		},
+	}
+
+	server := NewServerWithOptions(memStore, ServerOptions{
+		IdentitySessions: sessionMgr,
+	})
+	ts := httptest.NewServer(server)
+	defer ts.Close()
+	defer server.Close()
+
+	// 1. Unauthenticated requests should receive 401 Unauthorized
+	endpoints := []struct {
+		method string
+		url    string
+	}{
+		{method: http.MethodGet, url: ts.URL + "/api/v1/mesh/signal/events?searchPartyId=party-1&nodeId=node-1"},
+		{method: http.MethodPost, url: ts.URL + "/api/v1/mesh/signal/message"},
+		{method: http.MethodPost, url: ts.URL + "/api/v1/mesh/uplink-sync"},
+		{method: http.MethodGet, url: ts.URL + "/api/v1/mesh/qr-signaling?data=test"},
+	}
+
+	for _, ep := range endpoints {
+		req, _ := http.NewRequest(ep.method, ep.url, strings.NewReader(`{}`))
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := ts.Client().Do(req)
+		if err != nil {
+			t.Fatalf("request %s %s failed: %v", ep.method, ep.url, err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusUnauthorized {
+			t.Errorf("%s %s without credentials: status = %d, want 401", ep.method, ep.url, resp.StatusCode)
+		}
+	}
+
+	// 2. Request with valid session cookie should succeed (not 401)
+	cookieReq, _ := http.NewRequest(http.MethodPost, ts.URL+"/api/v1/mesh/uplink-sync", strings.NewReader(`{}`))
+	cookieReq.Header.Set("Content-Type", "application/json")
+	cookieReq.AddCookie(&http.Cookie{Name: localSessionCookieName, Value: "valid-session-cookie"})
+
+	cookieResp, err := ts.Client().Do(cookieReq)
+	if err != nil {
+		t.Fatalf("cookie request failed: %v", err)
+	}
+	cookieResp.Body.Close()
+	if cookieResp.StatusCode != http.StatusOK {
+		t.Errorf("cookie request status = %d, want 200", cookieResp.StatusCode)
+	}
+
+	// 3. Request with valid Bearer token in Authorization header should succeed
+	bearerReq, _ := http.NewRequest(http.MethodPost, ts.URL+"/api/v1/mesh/uplink-sync", strings.NewReader(`{}`))
+	bearerReq.Header.Set("Content-Type", "application/json")
+	bearerReq.Header.Set("Authorization", "Bearer valid-bearer-token")
+
+	bearerResp, err := ts.Client().Do(bearerReq)
+	if err != nil {
+		t.Fatalf("bearer request failed: %v", err)
+	}
+	bearerResp.Body.Close()
+	if bearerResp.StatusCode != http.StatusOK {
+		t.Errorf("bearer request status = %d, want 200", bearerResp.StatusCode)
+	}
+
+	// 4. Request with invalid credentials receives 401
+	badReq, _ := http.NewRequest(http.MethodPost, ts.URL+"/api/v1/mesh/uplink-sync", strings.NewReader(`{}`))
+	badReq.Header.Set("Content-Type", "application/json")
+	badReq.Header.Set("Authorization", "Bearer invalid-token-xyz")
+
+	badResp, err := ts.Client().Do(badReq)
+	if err != nil {
+		t.Fatalf("bad req failed: %v", err)
+	}
+	badResp.Body.Close()
+	if badResp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("invalid token status = %d, want 401", badResp.StatusCode)
+	}
+}
+

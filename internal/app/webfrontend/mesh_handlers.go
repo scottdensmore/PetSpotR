@@ -32,6 +32,10 @@ func (s *Server) handleApiMeshSignalEvents(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if !s.authorizeMeshRequest(w, r) {
+		return
+	}
+
 	searchPartyID := strings.TrimSpace(r.URL.Query().Get("searchPartyId"))
 	if searchPartyID == "" {
 		searchPartyID = strings.TrimSpace(r.URL.Query().Get("partyId"))
@@ -92,7 +96,9 @@ func (s *Server) handleApiMeshSignalEvents(w http.ResponseWriter, r *http.Reques
 				continue
 			}
 			eventID := fmt.Sprintf("%d", time.Now().UnixNano())
-			_, _ = fmt.Fprintf(w, "id: %s\nevent: %s\ndata: %s\n\n", eventID, envelope.Type, dataBytes)
+			if _, err := fmt.Fprintf(w, "id: %s\nevent: %s\ndata: %s\n\n", eventID, envelope.Type, dataBytes); err != nil {
+				return
+			}
 			flusher.Flush()
 		}
 	}
@@ -109,6 +115,10 @@ func (s *Server) handleApiMeshSignalMessage(w http.ResponseWriter, r *http.Reque
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", "POST, OPTIONS")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if !s.authorizeMeshRequest(w, r) {
 		return
 	}
 
@@ -162,6 +172,10 @@ func (s *Server) handleApiMeshUplinkSync(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if !s.authorizeMeshRequest(w, r) {
+		return
+	}
+
 	if s.stateStore == nil {
 		http.Error(w, "state store uninitialized", http.StatusInternalServerError)
 		return
@@ -204,6 +218,10 @@ func (s *Server) handleApiMeshQRSignaling(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	if !s.authorizeMeshRequest(w, r) {
+		return
+	}
+
 	data := strings.TrimSpace(r.URL.Query().Get("data"))
 	if data == "" {
 		http.Error(w, "data parameter is required", http.StatusBadRequest)
@@ -236,6 +254,29 @@ func (s *Server) handleApiMeshQRSignaling(w http.ResponseWriter, r *http.Request
 	if r.Method != http.MethodHead {
 		_, _ = w.Write(svgBytes)
 	}
+}
+
+func (s *Server) authorizeMeshRequest(w http.ResponseWriter, r *http.Request) bool {
+	if s.identitySessions == nil {
+		return true
+	}
+	// Check session cookie
+	if cookie, err := r.Cookie(s.sessionCookieName()); err == nil && strings.TrimSpace(cookie.Value) != "" {
+		if _, err := s.identitySessions.VerifySession(r.Context(), cookie.Value); err == nil {
+			return true
+		}
+	}
+	// Check Authorization header (Bearer token)
+	if auth := r.Header.Get("Authorization"); strings.HasPrefix(strings.ToLower(auth), "bearer ") {
+		token := strings.TrimSpace(auth[7:])
+		if token != "" {
+			if _, err := s.identitySessions.VerifySession(r.Context(), token); err == nil {
+				return true
+			}
+		}
+	}
+	http.Error(w, "Authentication required", http.StatusUnauthorized)
+	return false
 }
 
 func setMeshCORSHeaders(w http.ResponseWriter) {

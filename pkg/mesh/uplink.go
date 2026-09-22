@@ -203,10 +203,12 @@ func ReconcileUplinkBatch(
 						// Rule 4: Timestamp tie-breaker
 						if incoming.Timestamp.After(storedDelta.Timestamp) {
 							incomingWins = true
-						} else {
+						} else if incoming.Timestamp.Before(storedDelta.Timestamp) {
 							serverDeltas.Sectors = append(serverDeltas.Sectors, storedDelta)
 							hasServerDeltas = true
 						}
+						// If incoming.Timestamp.Equal(storedDelta.Timestamp), it is an idempotent replay;
+						// do not trigger incomingWins or a server conflict.
 					}
 				}
 			}
@@ -355,10 +357,17 @@ func ReconcileUplinkBatch(
 		}
 
 		if cfg.broadcaster != nil {
+			matchID := b.PetID
+			if matchID == "" {
+				matchID = party.LostPetID
+			}
+			if matchID == "" {
+				matchID = partyID
+			}
 			cfg.broadcaster.Broadcast(domain.ReunionStreamEvent{
 				EventID:   fmt.Sprintf("evt_mesh_breadcrumb_%s_%d", trail.TrailID, now.UnixNano()),
 				Type:      domain.ReunionEventBreadcrumbUpdated,
-				MatchID:   party.LostPetID,
+				MatchID:   matchID,
 				Timestamp: now,
 				Payload: map[string]any{
 					"type":           "breadcrumb_updated",
@@ -462,10 +471,14 @@ func ReconcileUplinkBatch(
 
 		if cfg.broadcaster != nil {
 			now := time.Now().UTC()
+			sosMatchID := party.LostPetID
+			if sosMatchID == "" {
+				sosMatchID = partyID
+			}
 			cfg.broadcaster.Broadcast(domain.ReunionStreamEvent{
 				EventID:   fmt.Sprintf("evt_mesh_sos_%s_%d", alert.AlertID, now.UnixNano()),
 				Type:      "mesh_sos_alert",
-				MatchID:   partyID,
+				MatchID:   sosMatchID,
 				Timestamp: now,
 				Payload: map[string]any{
 					"type":      "sos_alert",

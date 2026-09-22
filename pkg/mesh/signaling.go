@@ -89,6 +89,7 @@ func (h *SignalingHub) Subscribe(searchPartyID, nodeID string) (<-chan Signaling
 					delete(h.subscribers, searchPartyID)
 				}
 			}
+			close(ch)
 			h.mu.Unlock()
 
 			if nodeID != "" {
@@ -99,7 +100,6 @@ func (h *SignalingHub) Subscribe(searchPartyID, nodeID string) (<-chan Signaling
 					Timestamp:     time.Now().UTC(),
 				})
 			}
-			close(ch)
 		})
 	}
 
@@ -115,6 +115,8 @@ func (h *SignalingHub) Broadcast(envelope SignalingEnvelope) {
 // Relay routes a signaling envelope to peers in envelope.SearchPartyID.
 // If envelope.TargetNodeID is specified, it delivers only to subscribers matching that nodeID.
 // Otherwise, it delivers to all subscribers in the search party except envelope.SenderNodeID.
+// Channel sends are performed under RLock, and unsubscribe closes channels under Lock,
+// guaranteeing that a send on a closed channel can never occur.
 // Channel sends are non-blocking with buffer capacity 64 to prevent slow consumers from head-of-line blocking peers.
 func (h *SignalingHub) Relay(envelope SignalingEnvelope) {
 	if envelope.SearchPartyID == "" {
@@ -125,27 +127,24 @@ func (h *SignalingHub) Relay(envelope SignalingEnvelope) {
 	}
 
 	h.mu.RLock()
+	defer h.mu.RUnlock()
+
 	partySubs, exists := h.subscribers[envelope.SearchPartyID]
 	if !exists || len(partySubs) == 0 {
-		h.mu.RUnlock()
 		return
 	}
 
-	targets := make([]chan SignalingEnvelope, 0, len(partySubs))
 	for ch, sub := range partySubs {
 		if envelope.TargetNodeID != "" {
-			if sub.nodeID == envelope.TargetNodeID {
-				targets = append(targets, ch)
+			if sub.nodeID != envelope.TargetNodeID {
+				continue
 			}
-			continue
+		} else {
+			if sub.nodeID == envelope.SenderNodeID {
+				continue
+			}
 		}
-		if sub.nodeID != envelope.SenderNodeID {
-			targets = append(targets, ch)
-		}
-	}
-	h.mu.RUnlock()
 
-	for _, ch := range targets {
 		select {
 		case ch <- envelope:
 		default:
