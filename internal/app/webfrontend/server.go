@@ -27,6 +27,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/identity"
+	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/ratelimit"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
@@ -57,6 +58,7 @@ type Server struct {
 	rateLimiter              ratelimit.Limiter
 	reunionHub               *ReunionHub
 	reunionPingInterval      time.Duration
+	signalingHub             *mesh.SignalingHub
 	webhookDispatcher        *webhook.Dispatcher
 	allowLocalhostWebhooks   bool
 	smsProvider              sms.Provider
@@ -103,6 +105,7 @@ type ServerOptions struct {
 	DisableRateLimiting      bool
 	ReunionHub               *ReunionHub
 	ReunionPingInterval      time.Duration
+	SignalingHub             *mesh.SignalingHub
 	WebhookDispatcher        *webhook.Dispatcher
 	AllowLocalhostWebhooks   bool
 	SMSProvider              sms.Provider
@@ -186,6 +189,10 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 	if reunionHub == nil {
 		reunionHub = NewReunionHub()
 	}
+	signalingHub := options.SignalingHub
+	if signalingHub == nil {
+		signalingHub = mesh.NewSignalingHub()
+	}
 	webhookDispatcher := options.WebhookDispatcher
 	if webhookDispatcher == nil && st != nil {
 		var dOpts []webhook.DispatcherOption
@@ -209,6 +216,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		rateLimiter:              rateLimiter,
 		reunionHub:               reunionHub,
 		reunionPingInterval:      options.ReunionPingInterval,
+		signalingHub:             signalingHub,
 		webhookDispatcher:        webhookDispatcher,
 		allowLocalhostWebhooks:   options.AllowLocalhostWebhooks,
 		smsProvider:              options.SMSProvider,
@@ -325,6 +333,22 @@ func (s *Server) routes() {
 	))
 	s.mux.HandleFunc("/api/v1/search-parties/{petId}/beacon-pings", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleBeaconPingSubmission))
 	s.mux.HandleFunc("/api/v1/search-parties/{petId}/beacon-triangulation", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleGetBeaconTriangulation))
+	s.mux.HandleFunc("/api/v1/mesh/signal/events", s.handleApiMeshSignalEvents)
+	s.mux.HandleFunc("/api/v1/mesh/signal/message", s.rateLimiter.RequireRateLimitByMethodFunc(
+		map[string]ratelimit.Limit{
+			http.MethodPost: ratelimit.ModerateLimit,
+		},
+		nil,
+		s.handleApiMeshSignalMessage,
+	))
+	s.mux.HandleFunc("/api/v1/mesh/uplink-sync", s.rateLimiter.RequireRateLimitByMethodFunc(
+		map[string]ratelimit.Limit{
+			http.MethodPost: ratelimit.ModerateLimit,
+		},
+		nil,
+		s.handleApiMeshUplinkSync,
+	))
+	s.mux.HandleFunc("/api/v1/mesh/qr-signaling", s.handleApiMeshQRSignaling)
 	s.mux.HandleFunc("/api/v1/found-pets/extract-features", s.rateLimiter.RequireRateLimitFunc(ratelimit.StrictLimit, s.handleApiExtractFeatures))
 	s.mux.HandleFunc("/api/v1/found-pets", s.rateLimiter.RequireRateLimitByMethodFunc(
 		map[string]ratelimit.Limit{
@@ -1787,6 +1811,11 @@ func (s *Server) ReunionHub() *ReunionHub {
 	return s.reunionHub
 }
 
+// SignalingHub returns the active SignalingHub instance.
+func (s *Server) SignalingHub() *mesh.SignalingHub {
+	return s.signalingHub
+}
+
 // Close releases server resources including background rate limiting workers.
 func (s *Server) Close() {
 	if s.rateLimiter != nil {
@@ -2074,7 +2103,7 @@ func (s *Server) handleFinderLanding(w http.ResponseWriter, r *http.Request) {
 		Locale:              LocaleFromContext(r.Context()),
 	}
 
-	tmpl, err := template.New("finder_landing.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/finder_landing.html")
+	tmpl, err := template.New("finder_landing.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/finder_landing.html", "templates/mesh_modal.html")
 	if err != nil {
 		http.Error(w, "Failed to load finder landing template", http.StatusInternalServerError)
 		return
