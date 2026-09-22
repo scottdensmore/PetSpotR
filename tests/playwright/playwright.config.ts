@@ -22,7 +22,8 @@ if (!process.env.FOUNDPET_SERVICE_URL) {
 }
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: '.',
+  testMatch: ['e2e/**/*.spec.ts', 'unit/**/*.spec.ts'],
   timeout: 30000,
   expect: {
     timeout: 5000,
