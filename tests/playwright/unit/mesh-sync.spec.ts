@@ -389,4 +389,37 @@ test.describe('Client WebRTC Mesh Controller & Offline IndexedDB Engine', () => 
     expect(eventResults['mesh:peer-left']).toBeDefined();
     expect(eventResults['mesh:peer-left'].nodeId).toBe('peer-event-1');
   });
+
+  test('should return active peers via getPeers() and safely persist breadcrumbs without id', async ({ page }) => {
+    const res = await page.evaluate(async () => {
+      const mesh = window.petSpotRMesh;
+      if (!mesh) throw new Error('window.petSpotRMesh is not defined');
+
+      await mesh.init({ dbName: 'petspotr_mesh_db_peers', partyId: 'party-peers' });
+
+      mesh.handlePeerJoined({
+        nodeId: 'node-k9-1',
+        volunteerId: 'vol-k9',
+        volunteerName: 'Sarah K9',
+        role: 'K9_HANDLER',
+        batteryLevel: 88
+      });
+
+      const peers = mesh.getPeers();
+
+      // Test breadcrumb without explicit id
+      const bc = await mesh.recordBreadcrumb('pet-test-bc', 47.123, -122.456, { seq: 1 });
+
+      return {
+        peers,
+        hasBreadcrumbId: Boolean(bc && bc.id)
+      };
+    });
+
+    expect(res.peers).toHaveLength(1);
+    expect(res.peers[0].nodeId).toBe('node-k9-1');
+    expect(res.peers[0].role).toBe('K9_HANDLER');
+    expect(res.hasBreadcrumbId).toBe(true);
+  });
 });
+

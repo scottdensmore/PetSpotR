@@ -529,6 +529,7 @@
         }
         if (Array.isArray(payload.breadcrumbs)) {
           for (const bc of payload.breadcrumbs) {
+            if (!bc.id) bc.id = `${bc.volunteerId || 'anon'}:${bc.seq || generateUUID()}`;
             try {
               await putRecord('mesh_breadcrumbs', bc);
             } catch (e) {}
@@ -669,9 +670,10 @@
     };
 
     const offerPayload = envelope.payload || {};
+    const sdpVal = offerPayload.sdp || envelope.sdp;
     await pc.setRemoteDescription(new RTCSessionDescription({
-      type: offerPayload.type || 'offer',
-      sdp: offerPayload.sdp
+      type: offerPayload.type || envelope.type || 'offer',
+      sdp: sdpVal
     }));
 
     const answer = await pc.createAnswer();
@@ -690,9 +692,10 @@
     const pc = peerConnections.get(envelope.senderNodeId);
     if (!pc) return;
     const answerPayload = envelope.payload || {};
+    const sdpVal = answerPayload.sdp || envelope.sdp;
     await pc.setRemoteDescription(new RTCSessionDescription({
-      type: answerPayload.type || 'answer',
-      sdp: answerPayload.sdp
+      type: answerPayload.type || envelope.type || 'answer',
+      sdp: sdpVal
     }));
   }
 
@@ -700,12 +703,13 @@
     const pc = peerConnections.get(envelope.senderNodeId);
     if (!pc) return;
     const cPayload = envelope.payload || {};
-    if (cPayload.candidate) {
+    const cand = cPayload.candidate || envelope.candidate;
+    if (cand) {
       try {
         await pc.addIceCandidate(new RTCIceCandidate({
-          candidate: cPayload.candidate,
-          sdpMid: cPayload.sdpMid,
-          sdpMLineIndex: cPayload.sdpMLineIndex
+          candidate: cand,
+          sdpMid: cPayload.sdpMid || envelope.sdpMid,
+          sdpMLineIndex: cPayload.sdpMLineIndex ?? envelope.sdpMLineIndex
         }));
       } catch (e) {
         console.warn('Failed to add ICE candidate:', e);
@@ -724,31 +728,37 @@
     const url = `${sseUrl}?searchPartyId=${encodeURIComponent(currentPartyId)}&nodeId=${encodeURIComponent(currentNodeId)}`;
     eventSource = new EventSource(url);
 
-    eventSource.addEventListener('offer', (e) => {
+    const onOffer = (e) => {
       try {
         const envelope = JSON.parse(e.data);
         if (envelope.targetNodeId && envelope.targetNodeId !== currentNodeId) return;
         handleIncomingOffer(envelope).catch(() => {});
       } catch (err) {}
-    });
+    };
+    eventSource.addEventListener('offer', onOffer);
+    eventSource.addEventListener('OFFER', onOffer);
 
-    eventSource.addEventListener('answer', (e) => {
+    const onAnswer = (e) => {
       try {
         const envelope = JSON.parse(e.data);
         if (envelope.targetNodeId && envelope.targetNodeId !== currentNodeId) return;
         handleIncomingAnswer(envelope).catch(() => {});
       } catch (err) {}
-    });
+    };
+    eventSource.addEventListener('answer', onAnswer);
+    eventSource.addEventListener('ANSWER', onAnswer);
 
-    eventSource.addEventListener('ice_candidate', (e) => {
+    const onCandidate = (e) => {
       try {
         const envelope = JSON.parse(e.data);
         if (envelope.targetNodeId && envelope.targetNodeId !== currentNodeId) return;
         handleIncomingCandidate(envelope).catch(() => {});
       } catch (err) {}
-    });
+    };
+    eventSource.addEventListener('ice_candidate', onCandidate);
+    eventSource.addEventListener('ICE_CANDIDATE', onCandidate);
 
-    eventSource.addEventListener('join', (e) => {
+    const onJoin = (e) => {
       try {
         const envelope = JSON.parse(e.data);
         if (envelope.senderNodeId && envelope.senderNodeId !== currentNodeId) {
@@ -757,14 +767,18 @@
           }
         }
       } catch (err) {}
-    });
+    };
+    eventSource.addEventListener('join', onJoin);
+    eventSource.addEventListener('PEER_JOINED', onJoin);
 
-    eventSource.addEventListener('leave', (e) => {
+    const onLeave = (e) => {
       try {
         const envelope = JSON.parse(e.data);
         handlePeerLeft(envelope.senderNodeId);
       } catch (err) {}
-    });
+    };
+    eventSource.addEventListener('leave', onLeave);
+    eventSource.addEventListener('PEER_LEFT', onLeave);
 
     // Announce join
     postSignalingEnvelope({
@@ -846,6 +860,7 @@
           }
           if (Array.isArray(data.serverLatestDeltas.breadcrumbs)) {
             for (const bc of data.serverLatestDeltas.breadcrumbs) {
+              if (!bc.id) bc.id = `${bc.volunteerId || 'anon'}:${bc.seq || generateUUID()}`;
               try {
                 await putRecord('mesh_breadcrumbs', bc);
               } catch (e) {}
@@ -918,7 +933,7 @@
       return this.getState();
     },
 
-    async claimSector(petId, sectorId, state = 'CLAIMED') {
+    async claimSector(petId, sectorId, state = 'CLAIMED', options = {}) {
       const rank = RankFromState(state);
       lamportClock++;
       const delta = {
@@ -926,8 +941,8 @@
         sectorId: sectorId,
         state: state,
         rank: rank,
-        claimedByVolunteerId: currentVolunteer.volunteerId || '',
-        claimedByName: currentVolunteer.volunteerName || '',
+        claimedByVolunteerId: options.volunteerId || currentVolunteer.volunteerId || '',
+        claimedByName: options.claimedByName || options.volunteerName || currentVolunteer.volunteerName || '',
         nodeId: currentNodeId,
         lamportClock: lamportClock,
         timestamp: new Date().toISOString()
@@ -1099,6 +1114,10 @@
 
     handlePeerJoined,
     handlePeerLeft,
+
+    getPeers() {
+      return Array.from(activePeers.values());
+    },
 
     setOnlineStatus(online) {
       isOnline = Boolean(online);

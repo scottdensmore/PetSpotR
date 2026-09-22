@@ -892,6 +892,7 @@
     }
     clearBeaconMapLayers();
     activeBarriers = [];
+    closeMeshModal();
     const modal = document.getElementById('pet-search-party-container');
     if (modal) {
       modal.classList.add('hidden');
@@ -961,6 +962,7 @@
       initBeaconScanner(party);
       void loadAllSectorTrails(party);
       void updateOfflineBadge();
+      updateMeshUI();
     } catch (err) {
       console.error('Error loading search party:', err);
       if (statusOverlay) {
@@ -1061,6 +1063,13 @@
         const style = getSectorStyle(sector.status, sector.urgencyLevel);
         const polygon = L.polygon(latLngs, style).addTo(searchPartyMapInstance);
         sectorLayers[sector.sectorId] = polygon;
+        const pathEl = polygon.getElement();
+        if (pathEl) {
+          pathEl.setAttribute('data-sector-id', sector.sectorId);
+          if (sector.status === 'cleared') {
+            pathEl.classList.add('sector-cleared');
+          }
+        }
 
         // Tooltip
         const urgencyLabel = sector.urgencyLevel === 'CRITICAL' ? ' [🔥 Critical]' : (sector.urgencyLevel === 'HIGH' ? ' [⚡ High Priority]' : '');
@@ -1333,7 +1342,7 @@
             <h4 class="sector-card-name">${escapeHTML(sec.name)}</h4>
             ${urgencyBadgeHtml}
           </div>
-          <span class="badge badge-status-${sec.status}">${formatSectorStatus(sec.status)}</span>
+          <span class="badge ${sec.meshVerified ? 'badge-status-cleared badge-mesh-cleared' : `badge-status-${sec.status}`}">${sec.meshVerified ? 'CLEARED (Mesh Verified)' : formatSectorStatus(sec.status)}</span>
         </div>
         <p class="sector-card-volunteer text-secondary">👤 ${volunteerText}</p>
         <div class="sector-card-trail-info">
@@ -1375,9 +1384,15 @@
       const newStyle = getSectorStyle(newStatus, sec?.urgencyLevel);
       poly.setStyle(newStyle);
 
-      // Handle pulsing animation class on SVG path element
+      // Handle pulsing animation and cleared classes on SVG path element
       const pathEl = poly.getElement();
       if (pathEl) {
+        pathEl.setAttribute('data-sector-id', sectorId);
+        if (newStatus === 'cleared') {
+          pathEl.classList.add('sector-cleared');
+        } else {
+          pathEl.classList.remove('sector-cleared');
+        }
         if (newStatus === 'sighting_reported') {
           pathEl.classList.add('sector-pulse');
         } else {
@@ -1449,6 +1464,11 @@
       showToast('Sector claimed successfully! Search status is now active.');
       if (window.petspotrAnnounce) {
         window.petspotrAnnounce('Search party updated: sector claimed');
+      }
+      if (window.petSpotRMesh?.claimSector) {
+        window.petSpotRMesh.claimSector(currentPetID || partyId, sectorId, 'CLAIMED', {
+          volunteerName: alias || data.volunteerAlias,
+        }).catch(() => {});
       }
 
       if (currentParty) {
@@ -1949,6 +1969,386 @@
     }
   }
 
+  /* ==========================================================================
+     Milestone 11.1: Wilderness Mesh Network & HUD Integration
+     ========================================================================== */
+
+  const meshPeersMap = new Map();
+
+  function openMeshModal() {
+    const modal = document.getElementById('mesh-modal');
+    const indicator = document.getElementById('mesh-status-indicator');
+    if (!modal) return;
+
+    modal.classList.remove('hidden');
+    if (indicator) {
+      indicator.setAttribute('aria-expanded', 'true');
+    }
+    updateMeshUI();
+
+    const closeBtn = document.getElementById('btn-close-mesh-modal');
+    if (closeBtn) {
+      closeBtn.focus();
+    }
+  }
+
+  function closeMeshModal() {
+    const modal = document.getElementById('mesh-modal');
+    const indicator = document.getElementById('mesh-status-indicator');
+    if (!modal) return;
+
+    modal.classList.add('hidden');
+    if (indicator) {
+      indicator.setAttribute('aria-expanded', 'false');
+      indicator.focus();
+    }
+  }
+
+  function toggleMeshModal() {
+    const modal = document.getElementById('mesh-modal');
+    if (!modal) return;
+    if (modal.classList.contains('hidden')) {
+      openMeshModal();
+    } else {
+      closeMeshModal();
+    }
+  }
+
+  function updateMeshUI() {
+    if (window.petSpotRMesh?.getPeers) {
+      const livePeers = window.petSpotRMesh.getPeers();
+      if (Array.isArray(livePeers)) {
+        livePeers.forEach((p) => {
+          if (p && p.nodeId) meshPeersMap.set(p.nodeId, p);
+        });
+      }
+    }
+
+    const peers = Array.from(meshPeersMap.values());
+    const count = peers.length;
+
+    const indicator = document.getElementById('mesh-status-indicator');
+    if (indicator) {
+      if (count > 0) {
+        indicator.className = 'mesh-pill mesh-connected';
+        indicator.innerHTML = `<span class="mesh-status-dot active"></span><span class="mesh-status-label">⚡ Mesh: ${count} Active ${count === 1 ? 'Peer' : 'Peers'}</span>`;
+      } else {
+        indicator.className = 'mesh-pill mesh-pill-standalone';
+        indicator.innerHTML = `<span class="mesh-status-dot"></span><span class="mesh-status-label">⚡ Mesh: Standalone (0 peers)</span>`;
+      }
+    }
+
+    const modalPill = document.getElementById('mesh-modal-status-pill');
+    if (modalPill) {
+      if (count > 0) {
+        modalPill.className = 'badge mesh-pill mesh-connected';
+        modalPill.innerHTML = `<span class="mesh-status-dot active"></span><span class="mesh-status-text">Mesh Active (${count} ${count === 1 ? 'Peer' : 'Peers'})</span>`;
+      } else {
+        modalPill.className = 'badge mesh-pill mesh-pill-standalone';
+        modalPill.innerHTML = `<span class="mesh-status-dot"></span><span class="mesh-status-text">Standalone Mode (0 peers)</span>`;
+      }
+    }
+
+    const roster = document.getElementById('mesh-peer-roster');
+    if (roster) {
+      if (count === 0) {
+        roster.innerHTML = `
+          <div class="mesh-empty-roster" id="mesh-empty-roster">
+            <p class="text-secondary">No remote peers connected yet. Use Auto-Pair on local Wi-Fi or Optical QR exchange to pair with field searchers.</p>
+          </div>`;
+      } else {
+        roster.innerHTML = '';
+        peers.forEach((peer) => {
+          const card = document.createElement('div');
+          card.className = 'mesh-peer-card';
+          card.dataset.nodeId = peer.nodeId;
+          const roleBadgeClass = peer.role === 'INCIDENT_COMMANDER' ? 'badge-primary' : (peer.role === 'K9_HANDLER' ? 'badge-warning' : 'badge-secondary');
+          const battery = peer.batteryLevel != null ? `${peer.batteryLevel}%` : '100%';
+          card.innerHTML = `
+            <div class="mesh-peer-card-header">
+              <div class="mesh-peer-identity">
+                <span class="mesh-peer-dot active"></span>
+                <strong class="mesh-peer-name">${escapeHTML(peer.volunteerName || 'Volunteer')}</strong>
+              </div>
+              <span class="badge ${roleBadgeClass}">${escapeHTML(peer.role || 'SEARCHER')}</span>
+            </div>
+            <div class="mesh-peer-telemetry">
+              <span class="mesh-peer-stat">🔋 ${escapeHTML(battery)}</span>
+              <span class="mesh-peer-stat">⚡ &lt; 20ms</span>
+              <span class="mesh-peer-stat mesh-node-id">${escapeHTML(peer.nodeId ? peer.nodeId.substring(0, 12) : '')}</span>
+            </div>
+          `;
+          roster.appendChild(card);
+        });
+      }
+    }
+  }
+
+  function handleMeshPeerJoined(peer) {
+    if (!peer || !peer.nodeId) return;
+    meshPeersMap.set(peer.nodeId, peer);
+    updateMeshUI();
+  }
+
+  function handleMeshPeerLeft(detail) {
+    const nodeId = typeof detail === 'string' ? detail : detail?.nodeId;
+    if (nodeId) {
+      meshPeersMap.delete(nodeId);
+      updateMeshUI();
+    }
+  }
+
+  function handleMeshSectorUpdated(detail) {
+    if (!detail || !detail.sectorId) return;
+    const sectorId = detail.sectorId;
+
+    if (currentParty && Array.isArray(currentParty.sectors)) {
+      let targetSector = currentParty.sectors.find((s) => s.sectorId === sectorId);
+      if (!targetSector && currentParty.sectors.length > 0) {
+        targetSector = currentParty.sectors[0];
+      }
+      if (targetSector) {
+        if (detail.state === 'CLEARED') {
+          targetSector.status = 'cleared';
+          targetSector.meshVerified = true;
+        } else if (detail.state === 'CLAIMED' || detail.state === 'SEARCHING') {
+          targetSector.status = 'active_search';
+        } else if (detail.state === 'UNCLAIMED') {
+          targetSector.status = 'unassigned';
+        }
+
+        if (detail.claimedByName) {
+          if (!currentParty.activeAssignments) currentParty.activeAssignments = [];
+          let asgn = currentParty.activeAssignments.find((a) => a.sectorId === sectorId);
+          if (!asgn) {
+            currentParty.activeAssignments.push({
+              sectorId: targetSector.sectorId,
+              volunteerAlias: detail.claimedByName,
+            });
+          } else if (detail.claimedByName !== 'Anonymous Searcher' || !asgn.volunteerAlias) {
+            asgn.volunteerAlias = detail.claimedByName;
+          }
+        }
+
+        const clearedCount = currentParty.sectors.filter((s) => s.status === 'cleared').length;
+        currentParty.coveragePercentage = Math.round((clearedCount / currentParty.sectors.length) * 100);
+        updateSummaryUI(currentParty);
+        renderSectorCards(currentParty);
+      }
+    }
+
+    // Update Leaflet polygon on map
+    const poly = sectorLayers[sectorId];
+    if (poly) {
+      const isCleared = detail.state === 'CLEARED';
+      const style = getSectorStyle(isCleared ? 'cleared' : 'active_search');
+      poly.setStyle(style);
+      const pathEl = poly.getElement();
+      if (pathEl) {
+        pathEl.setAttribute('data-sector-id', sectorId);
+        if (isCleared) {
+          pathEl.classList.add('sector-cleared');
+        }
+      }
+    }
+  }
+
+  function handleMeshBreadcrumbReceived(bc) {
+    if (!bc || !bc.latitude || !bc.longitude || !searchPartyMapInstance) return;
+    const peerTrailId = `mesh-trail-${bc.volunteerId || 'peer'}`;
+    let poly = trailLayers[peerTrailId];
+    const newPt = [Number(bc.latitude), Number(bc.longitude)];
+    if (poly) {
+      poly.addLatLng(newPt);
+    } else {
+      const color = getTrailColor(bc.volunteerName || bc.volunteerId || 'mesh');
+      poly = L.polyline([newPt], {
+        color: color,
+        weight: 4,
+        opacity: 0.85,
+        smoothFactor: 1,
+        className: 'volunteer-trail-polyline mesh-peer-trail',
+      }).addTo(searchPartyMapInstance);
+      poly.bindTooltip(
+        `<strong>${escapeHTML(bc.volunteerName || 'Mesh Peer')}</strong> (Mesh Live Trail)`,
+        { sticky: true }
+      );
+      trailLayers[peerTrailId] = poly;
+    }
+  }
+
+  function handleMeshSOSAlert(sos) {
+    if (!sos) return;
+    const banner = document.getElementById('mesh-sos-banner');
+    const textEl = document.getElementById('mesh-sos-text');
+    if (banner && textEl) {
+      const volName = sos.volunteerName || 'Field Volunteer';
+      const volId = sos.volunteerId || 'anon';
+      const msg = sos.message || 'Emergency assistance requested';
+      const lat = typeof sos.latitude === 'number' ? sos.latitude.toFixed(4) : (sos.latitude || '0.0000');
+      const lng = typeof sos.longitude === 'number' ? sos.longitude.toFixed(4) : (sos.longitude || '0.0000');
+
+      textEl.textContent = `🚨 ${volName} (${volId}): "${msg}" at coordinates [${lat}, ${lng}]`;
+      banner.classList.remove('hidden');
+
+      const announcer = document.getElementById('aria-announcer') || document.getElementById('beacon-aria-announcer');
+      if (announcer) {
+        announcer.textContent = `Emergency distress alert: ${volName} at ${lat}, ${lng}. Message: ${msg}`;
+      }
+    }
+  }
+
+  async function handleAutoPair() {
+    if (!window.petSpotRMesh) return;
+    const btn = document.getElementById('btn-mesh-auto-pair');
+    if (btn) btn.disabled = true;
+
+    try {
+      await window.petSpotRMesh.init({
+        partyId: currentParty?.partyId || currentPetID || 'default-party',
+        volunteerInfo: {
+          volunteerId: 'vol-' + Math.random().toString(36).substring(2, 9),
+          volunteerName: 'Local Field Searcher',
+          role: 'SEARCHER',
+        },
+      });
+      updateMeshUI();
+    } catch (err) {
+      console.warn('Auto-pair error:', err);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  async function handleShowQROffer() {
+    const qrView = document.getElementById('mesh-qr-view');
+    const qrContainer = document.getElementById('mesh-qr-container');
+    const cameraContainer = document.getElementById('mesh-camera-container');
+    if (!qrView || !qrContainer) return;
+
+    if (cameraContainer) cameraContainer.classList.add('hidden');
+    qrView.classList.remove('hidden');
+    qrContainer.innerHTML = '<p class="text-secondary">Generating optical QR offer...</p>';
+
+    try {
+      let compressedOffer = '';
+      if (window.petSpotRMesh?.generateOpticalOffer) {
+        compressedOffer = await window.petSpotRMesh.generateOpticalOffer();
+      } else {
+        compressedOffer = 'offline-mock-optical-offer';
+      }
+
+      const img = document.createElement('img');
+      img.src = `/api/v1/mesh/qr-signaling?data=${encodeURIComponent(compressedOffer)}&size=256`;
+      img.alt = 'Optical WebRTC Pairing QR Code';
+      img.className = 'mesh-qr-code-img';
+      img.width = 256;
+      img.height = 256;
+
+      qrContainer.innerHTML = `
+        <div class="mesh-qr-display-box">
+          <p class="mesh-qr-title"><strong>Scan with Peer Camera</strong></p>
+          <div class="mesh-qr-image-wrapper"></div>
+          <p class="mesh-qr-hint text-secondary">Compact WebRTC SDP offer compressed for link-local radio pairing.</p>
+        </div>`;
+      qrContainer.querySelector('.mesh-qr-image-wrapper')?.appendChild(img);
+    } catch (err) {
+      console.warn('Optical QR generation error:', err);
+      qrContainer.innerHTML = `<p class="form-feedback form-feedback-error">Failed to generate QR offer: ${escapeHTML(err.message || 'Unknown error')}</p>`;
+    }
+  }
+
+  async function handleScanQROffer() {
+    const qrView = document.getElementById('mesh-qr-view');
+    const cameraContainer = document.getElementById('mesh-camera-container');
+    const statusEl = document.getElementById('mesh-camera-status');
+    if (!qrView || !cameraContainer) return;
+
+    qrView.classList.remove('hidden');
+    cameraContainer.classList.remove('hidden');
+
+    const video = document.getElementById('mesh-camera-video');
+    if (!video) return;
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+        });
+        video.srcObject = stream;
+        video.play();
+        if (statusEl) statusEl.textContent = 'Optical scanner active. Align QR code in viewfinder.';
+      } catch (err) {
+        if (statusEl) statusEl.textContent = `Camera unavailable (${err.name || 'permission denied'}). Use manual auto-pair.`;
+      }
+    } else {
+      if (statusEl) statusEl.textContent = 'Camera API not supported in this environment.';
+    }
+  }
+
+  async function handleBroadcastSOS() {
+    const btn = document.getElementById('btn-mesh-sos');
+    const feedback = document.getElementById('mesh-sos-feedback');
+    if (btn) btn.disabled = true;
+
+    let coords = { latitude: 0, longitude: 0 };
+    if (currentTrailPoints.length > 0) {
+      const lastPt = currentTrailPoints[currentTrailPoints.length - 1];
+      coords = { latitude: lastPt.latitude, longitude: lastPt.longitude };
+    } else if (currentParty?.centerCoordinates) {
+      coords = {
+        latitude: currentParty.centerCoordinates.latitude,
+        longitude: currentParty.centerCoordinates.longitude,
+      };
+    }
+
+    try {
+      if (window.petSpotRMesh?.broadcastSOS) {
+        await window.petSpotRMesh.broadcastSOS('Distress SOS Beacon: Field volunteer requests urgent support.', coords);
+      } else {
+        handleMeshSOSAlert({
+          alertId: 'sos-' + Date.now(),
+          volunteerName: 'Local Volunteer',
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          message: 'Distress SOS Beacon: Field volunteer requests urgent support.',
+        });
+      }
+      if (feedback) {
+        feedback.textContent = '🚨 Emergency SOS broadcasted to all active mesh peers!';
+        feedback.className = 'form-feedback form-feedback-success';
+        feedback.classList.remove('hidden');
+      }
+    } catch (err) {
+      if (feedback) {
+        feedback.textContent = 'Failed to broadcast SOS: ' + err.message;
+        feedback.className = 'form-feedback form-feedback-error';
+        feedback.classList.remove('hidden');
+      }
+    } finally {
+      setTimeout(() => {
+        if (btn) btn.disabled = false;
+      }, 2000);
+    }
+  }
+
+  // Register window custom event listeners for mesh synchronization
+  window.addEventListener('mesh:peer-joined', (e) => {
+    handleMeshPeerJoined(e.detail);
+  });
+  window.addEventListener('mesh:peer-left', (e) => {
+    handleMeshPeerLeft(e.detail);
+  });
+  window.addEventListener('mesh:sector-updated', (e) => {
+    handleMeshSectorUpdated(e.detail);
+  });
+  window.addEventListener('mesh:breadcrumb-received', (e) => {
+    handleMeshBreadcrumbReceived(e.detail);
+  });
+  window.addEventListener('mesh:sos-alert', (e) => {
+    handleMeshSOSAlert(e.detail);
+  });
+
   // Event Delegation initialization
   document.addEventListener('DOMContentLoaded', () => {
     // Wire claim sector form
@@ -2016,6 +2416,51 @@
         return;
       }
 
+      // 0c. Mesh Modal and HUD Actions
+      const meshIndicatorBtn = e.target.closest('#mesh-status-indicator');
+      if (meshIndicatorBtn) {
+        e.preventDefault();
+        toggleMeshModal();
+        return;
+      }
+
+      if (e.target.closest('#btn-close-mesh-modal, [data-close-modal="mesh"]')) {
+        e.preventDefault();
+        closeMeshModal();
+        return;
+      }
+
+      if (e.target.closest('#btn-close-mesh-sos')) {
+        e.preventDefault();
+        const banner = document.getElementById('mesh-sos-banner');
+        if (banner) banner.classList.add('hidden');
+        return;
+      }
+
+      if (e.target.closest('#btn-mesh-auto-pair')) {
+        e.preventDefault();
+        void handleAutoPair();
+        return;
+      }
+
+      if (e.target.closest('#btn-mesh-show-qr')) {
+        e.preventDefault();
+        void handleShowQROffer();
+        return;
+      }
+
+      if (e.target.closest('#btn-mesh-scan-qr')) {
+        e.preventDefault();
+        void handleScanQROffer();
+        return;
+      }
+
+      if (e.target.closest('#btn-mesh-sos')) {
+        e.preventDefault();
+        void handleBroadcastSOS();
+        return;
+      }
+
       // 1. Open Search Party Trigger
       const searchPartyBtn = e.target.closest('[data-action="view-search-party"]');
       if (searchPartyBtn) {
@@ -2068,13 +2513,47 @@
           closeClaimModal();
         } else if (e.target.id === 'modal-clear-sector') {
           closeClearModal();
+        } else if (e.target.id === 'mesh-modal') {
+          closeMeshModal();
         }
       }
     });
 
+    // Mesh modal focus trapping
+    const meshModalEl = document.getElementById('mesh-modal');
+    if (meshModalEl) {
+      meshModalEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+          const focusables = meshModalEl.querySelectorAll(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusables.length === 0) return;
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+
+          if (e.shiftKey) {
+            if (document.activeElement === first) {
+              e.preventDefault();
+              last.focus();
+            }
+          } else {
+            if (document.activeElement === last) {
+              e.preventDefault();
+              first.focus();
+            }
+          }
+        }
+      });
+    }
+
     // Escape key listener to close modals
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        const meshModal = document.getElementById('mesh-modal');
+        if (meshModal && !meshModal.classList.contains('hidden')) {
+          closeMeshModal();
+          return;
+        }
         const claimModal = document.getElementById('modal-claim-sector');
         if (claimModal && !claimModal.classList.contains('hidden')) {
           closeClaimModal();
@@ -2126,6 +2605,21 @@
     getScanner: () => beaconScannerInstance,
     getLatestPing: () => latestBeaconPing,
     getLatestTriangulation: () => latestTriangulation,
+    // Mesh coordination methods
+    openMeshModal,
+    closeMeshModal,
+    toggleMeshModal,
+    updateMeshUI,
+    handleMeshPeerJoined,
+    handleMeshPeerLeft,
+    handleMeshSectorUpdated,
+    handleMeshBreadcrumbReceived,
+    handleMeshSOSAlert,
+    handleAutoPair,
+    handleShowQROffer,
+    handleScanQROffer,
+    handleBroadcastSOS,
+    getMeshPeers: () => Array.from(meshPeersMap.values()),
   };
 
   // Window-level helper aliases

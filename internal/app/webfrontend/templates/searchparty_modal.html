@@ -5,11 +5,26 @@
       <div class="search-party-header-titles">
         <h2 id="search-party-modal-title">🚩 Search Party Sector Grid</h2>
         <span id="search-party-pet-badge" class="badge badge-primary">Lost Pet</span>
+        <button type="button" id="mesh-status-indicator" class="mesh-pill mesh-pill-standalone" aria-haspopup="dialog" aria-expanded="false" title="Wilderness Mesh Network Status">
+          <span class="mesh-status-dot"></span>
+          <span class="mesh-status-label">⚡ Mesh: Standalone (0 peers)</span>
+        </button>
       </div>
       <button type="button" class="btn-icon" id="btn-close-search-party" data-close-modal="search-party" aria-label="Close search party map">✕</button>
     </div>
 
     <div class="search-party-modal-body">
+      <!-- Emergency SOS Alert Banner -->
+      <div id="mesh-sos-banner" class="mesh-sos-banner hidden" role="alert" aria-live="assertive">
+        <div class="mesh-sos-content">
+          <span class="mesh-sos-icon">🚨</span>
+          <div class="mesh-sos-details">
+            <strong class="mesh-sos-title">TACTICAL DISTRESS SOS DETECTED</strong>
+            <span id="mesh-sos-text" class="mesh-sos-text">Emergency distress signal received</span>
+          </div>
+        </div>
+        <button type="button" class="btn-icon btn-close-sos" id="btn-close-mesh-sos" aria-label="Dismiss SOS alert">✕</button>
+      </div>
       <!-- Summary Stats Strip -->
       <div class="search-party-stats-strip" id="search-party-stats-strip">
         <div class="sp-stat-item">
@@ -208,4 +223,80 @@
   </div>
 </div>
 
+<!-- Wilderness Mesh Network Coordination Modal (Milestone 11.1) -->
+<div id="mesh-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="mesh-modal-title">
+  <div class="glass-card mesh-modal-card">
+    <div class="modal-header">
+      <div class="mesh-header-titles">
+        <h3 id="mesh-modal-title">⚡ Wilderness Mesh Network Coordination</h3>
+        <span id="mesh-modal-status-pill" class="badge mesh-pill mesh-pill-standalone" aria-live="polite">
+          <span class="mesh-status-dot"></span>
+          <span class="mesh-status-text">Standalone Mode</span>
+        </span>
+      </div>
+      <button type="button" class="btn-icon" id="btn-close-mesh-modal" data-close-modal="mesh" aria-label="Close mesh network modal">✕</button>
+    </div>
+
+    <div class="mesh-modal-body">
+      <!-- Peer Roster Section -->
+      <section class="mesh-section" aria-labelledby="mesh-roster-heading">
+        <div class="mesh-section-header">
+          <h4 id="mesh-roster-heading">Connected Searchers &amp; Responders</h4>
+          <span class="text-secondary mesh-roster-caption">Zero-cloud peer-to-peer WebRTC link-local mesh</span>
+        </div>
+        <div id="mesh-peer-roster" class="mesh-peer-roster" role="region" aria-label="Connected peers list">
+          <div class="mesh-empty-roster" id="mesh-empty-roster">
+            <p class="text-secondary">No remote peers connected yet. Use Auto-Pair on local Wi-Fi or Optical QR exchange to pair with field searchers.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Field Pairing Toolbar -->
+      <section class="mesh-section" aria-labelledby="mesh-pairing-heading">
+        <div class="mesh-section-header">
+          <h4 id="mesh-pairing-heading">Field Peer Pairing</h4>
+          <span class="text-secondary">Direct off-grid handshake without cellular WAN</span>
+        </div>
+        <div class="mesh-pairing-toolbar">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-mesh-auto-pair">
+            <span class="mesh-btn-icon">📡</span> Auto-Pair (Local Wi-Fi)
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-mesh-show-qr">
+            <span class="mesh-btn-icon">📷</span> Show Optical QR Offer
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-mesh-scan-qr">
+            <span class="mesh-btn-icon">🔍</span> Scan Optical QR
+          </button>
+        </div>
+
+        <!-- Optical Handshake Container -->
+        <div id="mesh-qr-view" class="mesh-qr-view hidden">
+          <div id="mesh-qr-container" class="mesh-qr-container" role="region" aria-label="Optical QR offer code">
+            <p class="text-secondary mesh-qr-placeholder">Click &quot;Show Optical QR Offer&quot; to generate peer pairing code.</p>
+          </div>
+          <div id="mesh-camera-container" class="mesh-camera-container hidden" role="region" aria-label="Optical QR camera viewfinder">
+            <video id="mesh-camera-video" class="mesh-camera-video" playsinline muted></video>
+            <p id="mesh-camera-status" class="mesh-camera-status text-secondary">Point camera at peer offer QR code...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tactical Emergency Distress Beacon Section -->
+      <section class="mesh-section mesh-distress-section" aria-labelledby="mesh-sos-heading">
+        <div class="mesh-section-header">
+          <h4 id="mesh-sos-heading" class="text-danger">🚨 Tactical Emergency Distress SOS</h4>
+          <span class="text-secondary">Broadcasts immediate emergency distress beacon with GPS coordinates across all connected peers</span>
+        </div>
+        <div class="mesh-sos-action">
+          <button type="button" class="btn btn-danger btn-lg btn-mesh-sos" id="btn-mesh-sos" aria-live="assertive">
+            🚨 Broadcast Tactical SOS Beacon
+          </button>
+          <div id="mesh-sos-feedback" class="form-feedback hidden" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/mesh-sync.js"></script>
 <script src="/static/js/pet-beacon-scanner.js"></script>
