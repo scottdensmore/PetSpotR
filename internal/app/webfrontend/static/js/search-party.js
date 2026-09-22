@@ -892,6 +892,7 @@
     }
     clearBeaconMapLayers();
     activeBarriers = [];
+    stopCameraStream();
     closeMeshModal();
     const modal = document.getElementById('pet-search-party-container');
     if (modal) {
@@ -1974,6 +1975,20 @@
      ========================================================================== */
 
   const meshPeersMap = new Map();
+  let activeCameraStream = null;
+
+  function stopCameraStream() {
+    if (activeCameraStream) {
+      try {
+        activeCameraStream.getTracks().forEach((track) => track.stop());
+      } catch (e) {}
+      activeCameraStream = null;
+    }
+    const video = document.getElementById('mesh-camera-video');
+    if (video) {
+      video.srcObject = null;
+    }
+  }
 
   function openMeshModal() {
     const modal = document.getElementById('mesh-modal');
@@ -1993,6 +2008,7 @@
   }
 
   function closeMeshModal() {
+    stopCameraStream();
     const modal = document.getElementById('mesh-modal');
     const indicator = document.getElementById('mesh-status-indicator');
     if (!modal) return;
@@ -2102,55 +2118,36 @@
     if (!detail || !detail.sectorId) return;
     const sectorId = detail.sectorId;
 
-    if (currentParty && Array.isArray(currentParty.sectors)) {
-      let targetSector = currentParty.sectors.find((s) => s.sectorId === sectorId);
-      if (!targetSector && currentParty.sectors.length > 0) {
-        targetSector = currentParty.sectors[0];
-      }
-      if (targetSector) {
-        if (detail.state === 'CLEARED') {
-          targetSector.status = 'cleared';
-          targetSector.meshVerified = true;
-        } else if (detail.state === 'CLAIMED' || detail.state === 'SEARCHING') {
-          targetSector.status = 'active_search';
-        } else if (detail.state === 'UNCLAIMED') {
-          targetSector.status = 'unassigned';
-        }
+    if (!currentParty || !Array.isArray(currentParty.sectors)) return;
+    const targetSector = currentParty.sectors.find((s) => s.sectorId === sectorId);
+    if (!targetSector) return;
 
-        if (detail.claimedByName) {
-          if (!currentParty.activeAssignments) currentParty.activeAssignments = [];
-          let asgn = currentParty.activeAssignments.find((a) => a.sectorId === sectorId);
-          if (!asgn) {
-            currentParty.activeAssignments.push({
-              sectorId: targetSector.sectorId,
-              volunteerAlias: detail.claimedByName,
-            });
-          } else if (detail.claimedByName !== 'Anonymous Searcher' || !asgn.volunteerAlias) {
-            asgn.volunteerAlias = detail.claimedByName;
-          }
-        }
+    if (detail.state === 'CLEARED') {
+      targetSector.status = 'cleared';
+      targetSector.meshVerified = true;
+    } else if (detail.state === 'CLAIMED' || detail.state === 'SEARCHING') {
+      targetSector.status = 'active_search';
+    } else if (detail.state === 'UNCLAIMED') {
+      targetSector.status = 'unassigned';
+    }
 
-        const clearedCount = currentParty.sectors.filter((s) => s.status === 'cleared').length;
-        currentParty.coveragePercentage = Math.round((clearedCount / currentParty.sectors.length) * 100);
-        updateSummaryUI(currentParty);
-        renderSectorCards(currentParty);
+    if (detail.claimedByName) {
+      if (!currentParty.activeAssignments) currentParty.activeAssignments = [];
+      let asgn = currentParty.activeAssignments.find((a) => a.sectorId === sectorId);
+      if (!asgn) {
+        currentParty.activeAssignments.push({
+          sectorId: targetSector.sectorId,
+          volunteerAlias: detail.claimedByName,
+        });
+      } else if (detail.claimedByName !== 'Anonymous Searcher' || !asgn.volunteerAlias) {
+        asgn.volunteerAlias = detail.claimedByName;
       }
     }
 
-    // Update Leaflet polygon on map
-    const poly = sectorLayers[sectorId];
-    if (poly) {
-      const isCleared = detail.state === 'CLEARED';
-      const style = getSectorStyle(isCleared ? 'cleared' : 'active_search');
-      poly.setStyle(style);
-      const pathEl = poly.getElement();
-      if (pathEl) {
-        pathEl.setAttribute('data-sector-id', sectorId);
-        if (isCleared) {
-          pathEl.classList.add('sector-cleared');
-        }
-      }
-    }
+    const clearedCount = currentParty.sectors.filter((s) => s.status === 'cleared').length;
+    const coveragePercentage = Math.round((clearedCount / currentParty.sectors.length) * 100);
+
+    applySectorUpdate(targetSector.sectorId, targetSector.status, coveragePercentage, currentParty.activeVolunteersCount);
   }
 
   function handleMeshBreadcrumbReceived(bc) {
@@ -2221,6 +2218,7 @@
   }
 
   async function handleShowQROffer() {
+    stopCameraStream();
     const qrView = document.getElementById('mesh-qr-view');
     const qrContainer = document.getElementById('mesh-qr-container');
     const cameraContainer = document.getElementById('mesh-camera-container');
@@ -2259,6 +2257,7 @@
   }
 
   async function handleScanQROffer() {
+    stopCameraStream();
     const qrView = document.getElementById('mesh-qr-view');
     const cameraContainer = document.getElementById('mesh-camera-container');
     const statusEl = document.getElementById('mesh-camera-status');
@@ -2275,6 +2274,7 @@
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment' },
         });
+        activeCameraStream = stream;
         video.srcObject = stream;
         video.play();
         if (statusEl) statusEl.textContent = 'Optical scanner active. Align QR code in viewfinder.';
