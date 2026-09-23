@@ -524,7 +524,7 @@ func (s *Server) handlePets(w http.ResponseWriter, r *http.Request) {
 		Locale:      LocaleFromContext(r.Context()),
 	}
 
-	tmpl, err := template.New("pets.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/pets.html", "templates/mesh_modal.html")
+	tmpl, err := template.New("pets.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/pets.html", "templates/mesh_modal.html", "templates/drone_modal.html")
 	if err != nil {
 		http.Error(w, "Failed to load pets template", http.StatusInternalServerError)
 		return

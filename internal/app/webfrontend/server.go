@@ -2115,7 +2115,7 @@ func (s *Server) handleFinderLanding(w http.ResponseWriter, r *http.Request) {
 		Locale:              LocaleFromContext(r.Context()),
 	}
 
-	tmpl, err := template.New("finder_landing.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/finder_landing.html", "templates/mesh_modal.html")
+	tmpl, err := template.New("finder_landing.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/finder_landing.html", "templates/mesh_modal.html", "templates/drone_modal.html")
 	if err != nil {
 		http.Error(w, "Failed to load finder landing template", http.StatusInternalServerError)
 		return

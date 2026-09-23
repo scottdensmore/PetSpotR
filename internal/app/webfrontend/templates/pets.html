@@ -142,6 +142,9 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
           <span>Map</span>
         </button>
+        <button type="button" class="btn btn-secondary btn-sm btn-open-drone-recon" id="btn-open-drone-recon" title="Launch Aerial Reconnaissance Cockpit">
+          <span class="btn-icon">🚁</span> Aerial Recon
+        </button>
       </div>
     </div>
 
@@ -218,6 +221,7 @@
                 <button type="button" class="btn btn-primary btn-sm btn-report-sighting" data-pet-id="{{ .PetID }}" data-pet-name="{{ .PetName }}" data-action="report-sighting" {{ if .Coordinates }}data-lat="{{ .Coordinates.Latitude }}" data-lng="{{ .Coordinates.Longitude }}"{{ end }}>👁️ Report Sighting</button>
                 <button type="button" class="btn btn-secondary btn-sm btn-view-trajectory" data-pet-id="{{ .PetID }}" data-pet-name="{{ .PetName }}" data-action="view-trajectory">🗺️ Trajectory</button>
                 <button type="button" class="btn btn-secondary btn-sm btn-view-search-party" data-pet-id="{{ .PetID }}" data-pet-name="{{ .PetName }}" data-action="view-search-party">🚩 Search Party</button>
+                <button type="button" class="btn btn-secondary btn-sm btn-open-drone-recon" data-pet-id="{{ .PetID }}" data-pet-name="{{ .PetName }}" data-action="open-drone-recon">🚁 Drone Recon</button>
                 <button type="button" class="btn btn-secondary btn-sm btn-poster-share" data-pet-id="{{ .PetID }}" data-pet-name="{{ .PetName }}" data-action="open-poster">📄 Poster & Share</button>
               </div>
               {{ end }}
@@ -700,6 +704,9 @@
             <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-record-trail" data-action="toggle-record-trail">
               <span class="trail-btn-icon" id="record-trail-icon">⏺</span> <span id="record-trail-btn-label">Record Search Path</span>
             </button>
+            <button type="button" class="btn btn-secondary btn-sm btn-open-drone-recon" data-action="open-drone-recon" title="Launch Aerial Reconnaissance Cockpit">
+              <span class="trail-btn-icon">🚁</span> Aerial Recon
+            </button>
             <span id="recording-active-badge" class="badge badge-recording hidden" aria-live="polite">
               <span class="recording-pulse-dot"></span> Recording Active
             </span>
@@ -872,6 +879,7 @@
   </div>
 
   {{ template "mesh_modal.html" . }}
+  {{ template "drone_modal.html" . }}
 
   <footer>
     <div class="container footer-content">
@@ -894,6 +902,7 @@
   <script src="/static/js/pet-beacon-scanner.js" defer></script>
   <script src="/static/js/mesh-sync.js" defer></script>
   <script src="/static/js/search-party.js" defer></script>
+  <script src="/static/js/drone-recon.js" defer></script>
   <script src="/static/js/outbox-sync.js" defer></script>
   <script src="/static/js/audio-memo.js" defer></script>
 </body>

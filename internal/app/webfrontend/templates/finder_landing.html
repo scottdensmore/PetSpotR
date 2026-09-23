@@ -126,6 +126,9 @@
       <button type="button" id="btn-finder-search-party" class="btn btn-secondary btn-lg finder-btn btn-view-search-party" data-action="view-search-party" data-pet-id="{{.PetID}}" data-pet-name="{{.PetName}}">
         <span class="btn-icon">🚩</span> Join / View Search Party
       </button>
+      <button type="button" id="btn-open-drone-recon" class="btn btn-secondary btn-lg finder-btn btn-open-drone-recon" data-action="open-drone-recon" data-pet-id="{{.PetID}}" data-pet-name="{{.PetName}}">
+        <span class="btn-icon">🚁</span> Aerial Reconnaissance Cockpit
+      </button>
     </section>
 
     <!-- Social Share Section -->
@@ -662,6 +665,7 @@
   </div>
 
   {{ template "mesh_modal.html" . }}
+  {{ template "drone_modal.html" . }}
 
   <div id="aria-announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
   <script src="/static/vendor/leaflet/leaflet.js"></script>
@@ -670,6 +674,7 @@
   <script src="/static/js/pet-beacon-scanner.js" defer></script>
   <script src="/static/js/mesh-sync.js" defer></script>
   <script src="/static/js/search-party.js" defer></script>
+  <script src="/static/js/drone-recon.js" defer></script>
   <script src="/static/js/finder-landing.js" defer></script>
   <script src="/static/js/audio-memo.js" defer></script>
 </body>
