@@ -58,6 +58,15 @@ const ReconMissionsCollection = CollectionReconMissions
 // ReconHotspotsCollection is an alias for CollectionReconHotspots.
 const ReconHotspotsCollection = CollectionReconHotspots
 
+// CollectionAudioProfiles is the state store collection for pet reference and sighting audio profiles.
+const CollectionAudioProfiles = "audio_profiles"
+
+// CollectionAcousticMatches is the state store collection for bilateral acoustic match results.
+const CollectionAcousticMatches = "acoustic_matches"
+
+// CollectionLostPets is an alias for LostPetsCollection.
+const CollectionLostPets = LostPetsCollection
+
 // Sentinel errors for StateStore operations.
 var (
 	ErrStoreNotFound = errors.New("store: state store not found")
