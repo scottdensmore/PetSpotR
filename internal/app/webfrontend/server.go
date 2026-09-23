@@ -385,6 +385,18 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/notifications/mark-read", s.handleApiNotificationsMarkRead)
 	s.mux.HandleFunc("/api/v1/notifications/preferences", s.handleApiNotificationsPreferences)
 	s.mux.HandleFunc("/api/v1/uploads/presigned-url", s.handleApiPresignedURL)
+	s.mux.HandleFunc("/api/v1/recon/missions", s.rateLimiter.RequireRateLimitByMethodFunc(
+		map[string]ratelimit.Limit{
+			http.MethodPost: ratelimit.ModerateLimit,
+			http.MethodGet:  ratelimit.GenerousLimit,
+		},
+		nil,
+		s.handleApiReconMissions,
+	))
+	s.mux.HandleFunc("/api/v1/recon/telemetry/parse", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiReconTelemetryParse))
+	s.mux.HandleFunc("/api/v1/recon/thermal/scan", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiReconThermalScan))
+	s.mux.HandleFunc("/api/v1/recon/hotspots/{id}/status", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiReconHotspotStatus))
+	s.mux.HandleFunc("/api/v1/recon/missions/{id}/export", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleApiReconMissionExport))
 	s.mux.HandleFunc("/api/v1/session/csrf", s.handleApiSessionCSRF)
 	s.mux.HandleFunc("/api/v1/session/client-config", s.handleApiIdentityClientConfig)
 	s.mux.HandleFunc("/api/v1/session", s.handleApiSession)
@@ -2103,7 +2115,7 @@ func (s *Server) handleFinderLanding(w http.ResponseWriter, r *http.Request) {
 		Locale:              LocaleFromContext(r.Context()),
 	}
 
-	tmpl, err := template.New("finder_landing.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/finder_landing.html", "templates/mesh_modal.html")
+	tmpl, err := template.New("finder_landing.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/finder_landing.html", "templates/mesh_modal.html", "templates/drone_modal.html")
 	if err != nil {
 		http.Error(w, "Failed to load finder landing template", http.StatusInternalServerError)
 		return

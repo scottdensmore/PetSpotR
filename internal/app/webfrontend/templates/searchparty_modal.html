@@ -52,6 +52,9 @@
           <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-record-trail" data-action="toggle-record-trail">
             <span class="trail-btn-icon" id="record-trail-icon">⏺</span> <span id="record-trail-btn-label">Record Search Path</span>
           </button>
+          <button type="button" class="btn btn-secondary btn-sm btn-open-drone-recon" data-action="open-drone-recon" title="Launch Aerial Reconnaissance Cockpit">
+            <span class="trail-btn-icon">🚁</span> Aerial Recon
+          </button>
           <span id="recording-active-badge" class="badge badge-recording hidden" aria-live="polite">
             <span class="recording-pulse-dot"></span> Recording Active
           </span>
@@ -224,6 +227,8 @@
 </div>
 
 {{ template "mesh_modal.html" . }}
+{{ template "drone_modal.html" . }}
 
 <script src="/static/js/mesh-sync.js"></script>
 <script src="/static/js/pet-beacon-scanner.js"></script>
+<script src="/static/js/drone-recon.js" defer></script>

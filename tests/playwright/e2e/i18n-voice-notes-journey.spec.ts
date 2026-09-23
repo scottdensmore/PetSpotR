@@ -77,6 +77,7 @@ test.describe('User Journey: Multilingual i18n, Voice Notes & WCAG AAA Accessibi
     await langSelect.selectOption('es');
 
     // Wait for navigation/reload
+    await page.waitForURL(/lang=es/);
     await page.waitForLoadState('networkidle');
 
     // Verify Spanish translations
@@ -86,6 +87,7 @@ test.describe('User Journey: Multilingual i18n, Voice Notes & WCAG AAA Accessibi
 
     // 3. Select Vietnamese (vi)
     await page.locator('#lang-select').selectOption('vi');
+    await page.waitForURL(/lang=vi/);
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('#nav-directory')).toContainText('Danh mục thú cưng');
@@ -94,6 +96,7 @@ test.describe('User Journey: Multilingual i18n, Voice Notes & WCAG AAA Accessibi
 
     // 4. Select Simplified Chinese (zh-CN)
     await page.locator('#lang-select').selectOption('zh-CN');
+    await page.waitForURL(/lang=zh-CN/);
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('#nav-directory')).toContainText('宠物名录');
@@ -102,6 +105,7 @@ test.describe('User Journey: Multilingual i18n, Voice Notes & WCAG AAA Accessibi
 
     // 5. Select Tagalog (tl)
     await page.locator('#lang-select').selectOption('tl');
+    await page.waitForURL(/lang=tl/);
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('#nav-directory')).toContainText('Direktoryo ng Alagang Hayop');
@@ -110,6 +114,7 @@ test.describe('User Journey: Multilingual i18n, Voice Notes & WCAG AAA Accessibi
 
     // Reset back to English
     await page.locator('#lang-select').selectOption('en');
+    await page.waitForURL(/lang=en/);
     await page.waitForLoadState('networkidle');
     await expect(page.locator('#nav-directory')).toContainText('Pet Directory');
   });

@@ -1,0 +1,142 @@
+{{ define "drone_modal.html" }}
+<!-- Drone / UAV Aerial Reconnaissance Cockpit Modal (Milestone 11.2) -->
+<div id="recon-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="recon-modal-title">
+  <div class="glass-card recon-modal-card">
+    <!-- Header -->
+    <div class="modal-header recon-modal-header">
+      <div class="recon-header-titles">
+        <h2 id="recon-modal-title">🚁 Aerial Reconnaissance Cockpit</h2>
+        <span id="recon-status-badge" class="badge badge-recon-active" aria-live="polite">
+          <span class="recon-status-dot"></span>
+          <span id="recon-status-text">Standby</span>
+        </span>
+      </div>
+      <div class="recon-header-actions">
+        <!-- Dual Tabs -->
+        <div class="recon-tab-list" role="tablist" aria-label="Reconnaissance Modes">
+          <button type="button" role="tab" id="tab-recon-cockpit" class="btn-tab active" aria-selected="true" aria-controls="recon-panel-cockpit" tabindex="0">
+            🎮 Cockpit View
+          </button>
+          <button type="button" role="tab" id="tab-recon-batch" class="btn-tab" aria-selected="false" aria-controls="recon-panel-batch" tabindex="-1">
+            📂 Batch Ingestion
+          </button>
+        </div>
+        <button type="button" class="btn-icon" id="btn-close-recon-modal" data-close-modal="recon" aria-label="Close reconnaissance modal">✕</button>
+      </div>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="recon-modal-body">
+      <!-- Cockpit View Panel -->
+      <div id="recon-panel-cockpit" role="tabpanel" aria-labelledby="tab-recon-cockpit" class="recon-tab-panel active">
+        <!-- Telemetry HUD Gauges Strip -->
+        <div class="recon-hud-strip" aria-label="Flight Telemetry HUD">
+          <div class="hud-item hud-attitude-wrapper" id="hud-attitude" title="Attitude Artificial Horizon &amp; Pitch">
+            <span class="hud-label">Attitude</span>
+            <div class="attitude-gauge" aria-hidden="true">
+              <div class="attitude-horizon" id="attitude-horizon"></div>
+              <div class="attitude-reticle"></div>
+            </div>
+            <span class="hud-value" id="hud-pitch-roll-value">0° / 0°</span>
+          </div>
+
+          <div class="hud-item" id="hud-heading" title="Compass Heading">
+            <span class="hud-label">Heading</span>
+            <span class="hud-value" id="hud-heading-val" data-testid="hud-heading-val">000° N</span>
+          </div>
+
+          <div class="hud-item" id="hud-altitude" title="Altitude Above Ground Level">
+            <span class="hud-label">Altitude AGL</span>
+            <span class="hud-value" id="hud-altitude-val" data-testid="hud-altitude-val">0.0 m</span>
+          </div>
+
+          <div class="hud-item" id="hud-speed" title="Ground Speed">
+            <span class="hud-label">Ground Speed</span>
+            <span class="hud-value" id="hud-speed-val" data-testid="hud-speed-val">0.0 m/s</span>
+          </div>
+
+          <div class="hud-item" id="hud-battery" title="UAV Battery Level">
+            <span class="hud-label">Battery</span>
+            <span class="hud-value" id="hud-battery-val" data-testid="hud-battery-val">100%</span>
+          </div>
+        </div>
+
+        <!-- Cockpit Main Split: Video/Reticle Viewport on Left, Tactical Map on Right -->
+        <div class="recon-viewport-grid">
+          <!-- Video & Thermal Reticle Viewport -->
+          <div class="recon-video-container">
+            <div class="video-overlay-wrapper">
+              <video id="recon-video" class="recon-video" playsinline muted preload="metadata">
+                <p>Your browser does not support HTML5 video.</p>
+              </video>
+              <canvas id="recon-reticle-canvas" class="recon-reticle-canvas" aria-label="Thermal hotspot reticle overlay"></canvas>
+              <div class="video-hud-overlay">
+                <span id="recon-live-badge" class="badge badge-danger hidden">LIVE</span>
+                <span id="recon-palette-badge" class="badge badge-secondary">WHITE_HOT</span>
+              </div>
+            </div>
+
+            <!-- Video Timeline & Scrubbing Bar -->
+            <div class="recon-timeline-bar" aria-label="Video Timeline Controls">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-recon-play-pause" aria-label="Play or pause video">
+                <span id="play-pause-icon">▶</span>
+              </button>
+              <input type="range" id="recon-timeline-slider" class="recon-timeline-slider" min="0" max="100" value="0" step="0.1" aria-label="Reconnaissance timeline slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <span id="recon-timecode" class="recon-timecode">00:00.0 / 00:00.0</span>
+            </div>
+          </div>
+
+          <!-- Tactical Aerial Map -->
+          <div class="recon-map-wrapper">
+            <div id="recon-map" class="recon-map" role="region" aria-label="Aerial reconnaissance tactical map"></div>
+            <div id="recon-map-status" class="map-status-overlay" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <!-- Hotspot Review Drawer -->
+        <section class="recon-hotspot-drawer" id="recon-hotspot-drawer" aria-labelledby="hotspot-drawer-heading">
+          <div class="drawer-header">
+            <h3 id="hotspot-drawer-heading">🔥 Detected Thermal Hotspots</h3>
+            <span id="hotspot-count-badge" class="badge badge-secondary">0 detected</span>
+          </div>
+          <div class="hotspots-list" id="recon-hotspots-list" role="region" aria-label="Hotspots review list">
+            <p class="text-secondary empty-hotspots-text" id="recon-empty-hotspots">No thermal anomalies detected in current frame or sortie.</p>
+          </div>
+          <div class="drawer-actions" id="recon-drawer-actions">
+            <button type="button" class="btn btn-success btn-sm" id="btn-confirm-hotspot" disabled>
+              ✓ Confirm Hotspot &amp; Log Sighting
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-dismiss-hotspot" disabled>
+              ✕ Dismiss (False Positive)
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <!-- Batch Photo & Flight Log Ingestion Panel -->
+      <div id="recon-panel-batch" role="tabpanel" aria-labelledby="tab-recon-batch" class="recon-tab-panel hidden">
+        <div class="recon-dropzone" id="recon-dropzone" role="region" aria-label="Dropzone for flight logs and aerial thermal imagery" tabindex="0">
+          <input type="file" id="recon-file-input" class="hidden" accept=".srt,.kml,.geojson,.jpg,.jpeg,.png" multiple aria-label="Choose telemetry files or aerial images">
+          <div class="dropzone-content">
+            <span class="dropzone-icon">📥</span>
+            <h4>Drag &amp; Drop DJI/Autel Telemetry (.srt, .kml) or Aerial Thermal Photos</h4>
+            <p class="text-secondary">or click to browse from device</p>
+            <span class="dropzone-hint">Supported formats: DJI SRT, KML, GeoJSON, Radiometric JPEG/PNG</span>
+          </div>
+        </div>
+
+        <!-- Batch Upload / Ingested Items List -->
+        <div class="recon-batch-list-wrapper">
+          <h4>Ingested Sortie Files</h4>
+          <div class="recon-batch-list" id="recon-batch-list" role="region" aria-label="Ingested files list">
+            <p class="text-secondary empty-batch-text" id="recon-empty-batch">No files ingested yet.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live announcer for accessibility -->
+    <div id="recon-aria-announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+  </div>
+</div>
+{{ end }}

@@ -12,11 +12,12 @@ const signalingBufferCapacity = 64
 type SignalingType string
 
 const (
-	SignalOffer        SignalingType = "OFFER"
-	SignalAnswer       SignalingType = "ANSWER"
-	SignalICECandidate SignalingType = "ICE_CANDIDATE"
-	SignalPeerJoined   SignalingType = "PEER_JOINED"
-	SignalPeerLeft     SignalingType = "PEER_LEFT"
+	SignalOffer          SignalingType = "OFFER"
+	SignalAnswer         SignalingType = "ANSWER"
+	SignalICECandidate   SignalingType = "ICE_CANDIDATE"
+	SignalPeerJoined     SignalingType = "PEER_JOINED"
+	SignalPeerLeft       SignalingType = "PEER_LEFT"
+	SignalThermalHotspot SignalingType = "THERMAL_HOTSPOT"
 )
 
 // SignalingEnvelope is the wire format for WebRTC signaling messages relayed across local LAN / hotspot networks.

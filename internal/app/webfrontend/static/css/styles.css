@@ -7071,3 +7071,672 @@ textarea:focus-visible,
   stroke-dasharray: 6 4;
 }
 
+
+/* ==========================================================================
+   Milestone 11.2: Aerial Reconnaissance Cockpit & Thermal Hotspot UI
+   Strict WCAG AAA compliant (>= 7:1 contrast ratio), Glassmorphic HUD
+   ========================================================================== */
+
+/* Cockpit Modal Card */
+#recon-modal,
+.recon-modal-card {
+  max-width: 1280px;
+  width: 96vw;
+  max-height: 94vh;
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: rgba(11, 15, 25, 0.95);
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.65), 0 0 20px rgba(0, 255, 255, 0.15);
+}
+
+[data-theme="light"] .recon-modal-card {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid #0284c7;
+  box-shadow: 0 12px 40px 0 rgba(15, 23, 42, 0.15);
+}
+
+.recon-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.recon-header-titles {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.recon-header-titles h2 {
+  font-size: 1.35rem;
+  margin: 0;
+  color: #f8fafc;
+}
+
+[data-theme="light"] .recon-header-titles h2 {
+  color: #0f172a;
+}
+
+.badge-recon-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(6, 182, 212, 0.2);
+  color: #22d3ee;
+  border: 1px solid #06b6d4;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+}
+
+[data-theme="light"] .badge-recon-active {
+  background: #e0f2fe;
+  color: #0c4a6e;
+  border-color: #0284c7;
+}
+
+.recon-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00ffff;
+  box-shadow: 0 0 8px #00ffff;
+}
+
+[data-theme="light"] .recon-status-dot {
+  background: #0284c7;
+  box-shadow: 0 0 6px #0284c7;
+}
+
+.recon-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.recon-tab-list {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .recon-tab-list {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.btn-tab {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+[data-theme="light"] .btn-tab {
+  color: #334155;
+}
+
+.btn-tab:hover,
+.btn-tab:focus-visible {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .btn-tab:hover,
+[data-theme="light"] .btn-tab:focus-visible {
+  color: #0f172a;
+  background: #e2e8f0;
+}
+
+.btn-tab.active {
+  background: #075985;
+  color: #ffffff;
+}
+
+/* Modal Body & Tab Panels */
+.recon-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.recon-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Flight Telemetry HUD Strip */
+.recon-hud-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+}
+
+[data-theme="light"] .recon-hud-strip {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+.hud-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.4rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="light"] .hud-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.hud-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #cbd5e1;
+}
+
+[data-theme="light"] .hud-label {
+  color: #475569;
+}
+
+.hud-value {
+  font-family: monospace;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #38bdf8;
+  margin-top: 0.2rem;
+}
+
+[data-theme="light"] .hud-value {
+  color: #075985;
+}
+
+/* Attitude / Artificial Horizon Gauge */
+.attitude-gauge {
+  position: relative;
+  width: 52px;
+  height: 28px;
+  border-radius: 14px;
+  background: #1e293b;
+  overflow: hidden;
+  border: 1.5px solid #00ffff;
+  margin: 0.2rem auto;
+}
+
+[data-theme="light"] .attitude-gauge {
+  background: #e2e8f0;
+  border-color: #0284c7;
+}
+
+.attitude-horizon {
+  position: absolute;
+  left: -10px;
+  right: -10px;
+  top: 50%;
+  height: 2px;
+  background: #38bdf8;
+  transition: transform 100ms ease-out;
+}
+
+[data-theme="light"] .attitude-horizon {
+  background: #0284c7;
+}
+
+.attitude-reticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #0f172a;
+}
+
+/* Cockpit Viewport Split (Video & Reticle / Tactical Map) */
+.recon-cockpit,
+.recon-viewport-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .recon-viewport-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Video & Reticle Container */
+.recon-video-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: #020617;
+  border-radius: var(--radius-md);
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .recon-video-container {
+  background: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.video-overlay-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000000;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.recon-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.recon-reticle-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.video-hud-overlay {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 15;
+}
+
+/* Video Timeline Controls */
+.recon-timeline-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0.6rem;
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: var(--radius-sm);
+}
+
+.recon-timeline-slider {
+  flex-grow: 1;
+  accent-color: #00ffff;
+  cursor: pointer;
+  height: 6px;
+}
+
+.recon-timecode {
+  font-family: monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f8fafc;
+  min-width: 110px;
+  text-align: right;
+}
+
+[data-theme="light"] .recon-timecode {
+  color: #f8fafc;
+}
+
+/* Tactical Aerial Map */
+.recon-map-wrapper {
+  position: relative;
+  min-height: 340px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background: #0f172a;
+}
+
+.recon-map {
+  width: 100%;
+  height: 100%;
+  min-height: 340px;
+}
+
+/* Hotspot Review Drawer */
+.recon-hotspot-drawer {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+[data-theme="light"] .recon-hotspot-drawer {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.drawer-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #f8fafc;
+}
+
+[data-theme="light"] .drawer-header h3 {
+  color: #0f172a;
+}
+
+.hotspots-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.empty-hotspots-text {
+  text-align: center;
+  padding: 1rem;
+  color: #cbd5e1;
+}
+
+[data-theme="light"] .empty-hotspots-text {
+  color: #475569;
+}
+
+.hotspot-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+[data-theme="light"] .hotspot-card {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.hotspot-card:hover,
+.hotspot-card:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #38bdf8;
+}
+
+.hotspot-card.selected {
+  border-color: #00ffff;
+  background: rgba(6, 182, 212, 0.12);
+}
+
+[data-theme="light"] .hotspot-card.selected {
+  border-color: #0284c7;
+  background: #e0f2fe;
+}
+
+.hotspot-thumb {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hotspot-thumb-placeholder {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: rgba(239, 68, 68, 0.2);
+  border-radius: 4px;
+}
+
+.hotspot-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex-grow: 1;
+}
+
+.hotspot-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.hotspot-card-header strong {
+  font-size: 0.9rem;
+  color: #ffffff;
+}
+
+[data-theme="light"] .hotspot-card-header strong {
+  color: #0f172a;
+}
+
+.hotspot-card-metrics {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+}
+
+[data-theme="light"] .hotspot-card-metrics {
+  color: #334155;
+}
+
+.drawer-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Batch Dropzone */
+.recon-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  border: 2px dashed rgba(0, 255, 255, 0.4);
+  border-radius: var(--radius-md);
+  background: rgba(15, 23, 42, 0.5);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+[data-theme="light"] .recon-dropzone {
+  background: #f8fafc;
+  border-color: #0284c7;
+}
+
+.recon-dropzone:hover,
+.recon-dropzone.drag-over,
+.recon-dropzone:focus-visible {
+  border-color: #00ffff;
+  background: rgba(6, 182, 212, 0.1);
+}
+
+.dropzone-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.dropzone-hint {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  margin-top: 0.5rem;
+}
+
+[data-theme="light"] .dropzone-hint {
+  color: #475569;
+}
+
+.recon-batch-list-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.recon-batch-list-wrapper h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.recon-batch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.batch-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .batch-item-row {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.batch-item-icon {
+  font-size: 1.25rem;
+}
+
+.batch-item-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+/* Pulsating Radar Flame Marker Animation */
+.marker-hotspot-pulse-wrapper {
+  background: transparent !important;
+  border: none !important;
+}
+
+.marker-hotspot-pulse {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.95) 0%, rgba(220, 38, 38, 0.5) 60%, transparent 100%);
+}
+
+.marker-hotspot-pulse .flame-icon {
+  font-size: 18px;
+  z-index: 2;
+  filter: drop-shadow(0 0 4px #fbbf24);
+}
+
+.marker-hotspot-pulse .hotspot-pulse-ring {
+  position: absolute;
+  inset: -6px;
+  border: 2px solid #ef4444;
+  border-radius: 50%;
+  animation: hotspot-radar-pulse 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+@keyframes hotspot-radar-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8);
+  }
+  70% {
+    transform: scale(1.6);
+    opacity: 0.15;
+    box-shadow: 0 0 12px 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.drone-icon-wrapper {
+  background: transparent !important;
+  border: none !important;
+}
+
+.drone-marker {
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 4px #00ffff);
+  transition: transform 200ms ease-out;
+}
+
+.hotspot-popup {
+  padding: 0.25rem;
+}
+
+.hotspot-popup h4 {
+  margin: 0 0 0.4rem 0;
+  font-size: 0.95rem;
+}
+
+.hotspot-popup p {
+  margin: 0.2rem 0;
+  font-size: 0.85rem;
+}
