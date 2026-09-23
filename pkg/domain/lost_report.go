@@ -75,26 +75,45 @@ const (
 // LostPetReport is the canonical application-boundary model for a lost-pet
 // report. Persisted separates its private contact into ReportContact.
 type LostPetReport struct {
-	PetID                 string              `json:"petId"`
+	ID                    string              `json:"id,omitempty"`
+	PetID                 string              `json:"petId,omitempty"`
 	PetName               string              `json:"petName,omitempty"`
 	Species               string              `json:"species,omitempty"`
 	Breed                 string              `json:"breed,omitempty"`
 	PrimaryColor          string              `json:"primaryColor,omitempty"`
 	Description           string              `json:"description,omitempty"`
-	ReporterEmail         string              `json:"reporterEmail"`
+	ReporterEmail         string              `json:"reporterEmail,omitempty"`
 	Phone                 string              `json:"phone,omitempty"`
 	ImageObject           string              `json:"imageObject,omitempty"`
 	Images                []PetImage          `json:"images,omitempty"`
-	ReportedAt            time.Time           `json:"reportedAt"`
-	Location              string              `json:"location"`
-	GeocodingStatus       GeocodingStatus     `json:"geocodingStatus"`
+	ReportedAt            time.Time           `json:"reportedAt,omitempty"`
+	CreatedAt             time.Time           `json:"createdAt,omitempty"`
+	Location              string              `json:"location,omitempty"`
+	GeocodingStatus       GeocodingStatus     `json:"geocodingStatus,omitempty"`
 	Coordinates           *LocationPoint      `json:"coordinates,omitempty"`
-	Status                LostPetStatus       `json:"status"`
+	Status                LostPetStatus       `json:"status,omitempty"`
 	OwnedBy               *PrincipalRef       `json:"-"`
 	MicrochipID           string              `json:"microchipId,omitempty"`
 	MicrochipRegistry     string              `json:"microchipRegistry,omitempty"`
 	CollarBeacon          *CollarBeaconConfig `json:"collarBeacon,omitempty"`
 	ReferenceAudioProfile *AudioProfile       `json:"referenceAudioProfile,omitempty"`
+}
+
+// UnmarshalJSON synchronizes legacy and modern ID / timestamp fields.
+func (p *LostPetReport) UnmarshalJSON(data []byte) error {
+	type Alias LostPetReport
+	var aux Alias
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	*p = LostPetReport(aux)
+	if p.PetID == "" && p.ID != "" {
+		p.PetID = p.ID
+	}
+	if p.ReportedAt.IsZero() && !p.CreatedAt.IsZero() {
+		p.ReportedAt = p.CreatedAt
+	}
+	return nil
 }
 
 // BeaconProtocol identifies the BLE advertisement standard emitted by a collar tag.
@@ -123,27 +142,28 @@ type CollarBeaconConfig struct {
 // stored separately and linked by OwnerIdentityRef. OwnedBy identifies the
 // authenticated resource owner when the producer supplied one.
 type LostPetRecord struct {
-	PetID             string                 `json:"petId"`
-	PetName           string                 `json:"petName,omitempty"`
-	Species           string                 `json:"species,omitempty"`
-	Breed             string                 `json:"breed,omitempty"`
-	PrimaryColor      string                 `json:"primaryColor,omitempty"`
-	Description       string                 `json:"description,omitempty"`
-	OwnerIdentityRef  string                 `json:"ownerIdentityRef"`
-	ImageObject       string                 `json:"imageObject,omitempty"`
-	Images            []PetImage             `json:"images,omitempty"`
-	Embedding         []float32              `json:"embedding,omitempty"`
-	ReportedAt        time.Time              `json:"reportedAt"`
-	Location          string                 `json:"location"`
-	GeocodingStatus   GeocodingStatus        `json:"geocodingStatus"`
-	Coordinates       *LocationPoint         `json:"coordinates,omitempty"`
-	Status            LostPetStatus          `json:"status"`
-	ImageAnalysis     *ImageTraitAnalysis    `json:"imageAnalysis,omitempty"`
-	OwnedBy           *PrincipalRef          `json:"ownedBy,omitempty"`
-	LifecycleAudit    *LostPetLifecycleAudit `json:"lifecycleAudit,omitempty"`
-	MicrochipID       string                 `json:"microchipId,omitempty"`
-	MicrochipRegistry string                 `json:"microchipRegistry,omitempty"`
-	CollarBeacon      *CollarBeaconConfig    `json:"collarBeacon,omitempty"`
+	PetID                 string                 `json:"petId"`
+	PetName               string                 `json:"petName,omitempty"`
+	Species               string                 `json:"species,omitempty"`
+	Breed                 string                 `json:"breed,omitempty"`
+	PrimaryColor          string                 `json:"primaryColor,omitempty"`
+	Description           string                 `json:"description,omitempty"`
+	OwnerIdentityRef      string                 `json:"ownerIdentityRef"`
+	ImageObject           string                 `json:"imageObject,omitempty"`
+	Images                []PetImage             `json:"images,omitempty"`
+	Embedding             []float32              `json:"embedding,omitempty"`
+	ReportedAt            time.Time              `json:"reportedAt"`
+	Location              string                 `json:"location"`
+	GeocodingStatus       GeocodingStatus        `json:"geocodingStatus"`
+	Coordinates           *LocationPoint         `json:"coordinates,omitempty"`
+	Status                LostPetStatus          `json:"status"`
+	ImageAnalysis         *ImageTraitAnalysis    `json:"imageAnalysis,omitempty"`
+	OwnedBy               *PrincipalRef          `json:"ownedBy,omitempty"`
+	LifecycleAudit        *LostPetLifecycleAudit `json:"lifecycleAudit,omitempty"`
+	MicrochipID           string                 `json:"microchipId,omitempty"`
+	MicrochipRegistry     string                 `json:"microchipRegistry,omitempty"`
+	CollarBeacon          *CollarBeaconConfig    `json:"collarBeacon,omitempty"`
+	ReferenceAudioProfile *AudioProfile          `json:"referenceAudioProfile,omitempty"`
 }
 
 // LostPetReportedV2 is the additive payload-v2 integration event. Its legacy

@@ -28,6 +28,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/identity"
 	"github.com/scottdensmore/petspotr/pkg/mesh"
+	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/ratelimit"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
@@ -64,6 +65,7 @@ type Server struct {
 	smsProvider              sms.Provider
 	smsWebhookSecret         string
 	evacSeedMu               sync.Mutex
+	ollamaClient             *ollama.Client
 	handler                  http.Handler
 }
 
@@ -110,6 +112,7 @@ type ServerOptions struct {
 	AllowLocalhostWebhooks   bool
 	SMSProvider              sms.Provider
 	SMSWebhookSecret         string
+	OllamaClient             *ollama.Client
 }
 
 // NewServer initializes an empty in-memory Server for tests and local callers.
@@ -221,6 +224,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		allowLocalhostWebhooks:   options.AllowLocalhostWebhooks,
 		smsProvider:              options.SMSProvider,
 		smsWebhookSecret:         strings.TrimSpace(options.SMSWebhookSecret),
+		ollamaClient:             options.OllamaClient,
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -309,7 +313,26 @@ func (s *Server) routes() {
 	))
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/contact", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiLostPetContact))
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/status", s.handleApiLostPetStatus)
+	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/audio-profile", s.rateLimiter.RequireRateLimitByMethodFunc(
+		map[string]ratelimit.Limit{
+			http.MethodPost: ratelimit.ModerateLimit,
+			http.MethodGet:  ratelimit.GenerousLimit,
+		},
+		nil,
+		s.handleLostPetAudioProfile,
+	))
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/sightings", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiSightings))
+	s.mux.HandleFunc("/api/v1/sightings", s.rateLimiter.RequireRateLimitByMethodFunc(
+		map[string]ratelimit.Limit{
+			http.MethodPost: ratelimit.ModerateLimit,
+			http.MethodGet:  ratelimit.GenerousLimit,
+		},
+		nil,
+		s.handleApiSightingsGeneric,
+	))
+	s.mux.HandleFunc("/api/v1/audio/analyze", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleAudioAnalyze))
+	s.mux.HandleFunc("/api/v1/audio/match", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleAudioMatch))
+	s.mux.HandleFunc("/api/v1/audio/{id}/spectrogram", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleAudioSpectrogram))
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/sightings/{sightingID}/voice-memo", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiVoiceMemo))
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/trajectory", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleApiTrajectory))
 	s.mux.HandleFunc("/api/v1/lost-pets/{petID}/predictive-trajectory", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleGetPredictiveTrajectoryScenario))

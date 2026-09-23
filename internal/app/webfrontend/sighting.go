@@ -26,6 +26,7 @@ type reportSightingRequest struct {
 	ImageObject         string                `json:"imageObject,omitempty"`
 	Notes               string                `json:"notes,omitempty"`
 	ReporterContact     any                   `json:"reporterContact,omitempty"`
+	AudioDataURI        string                `json:"audioDataUri,omitempty"`
 }
 
 func generateSightingID() string {
@@ -127,6 +128,27 @@ func (s *Server) handleApiReportSighting(w http.ResponseWriter, r *http.Request)
 		ImageObject:         strings.TrimSpace(req.ImageObject),
 		Notes:               strings.TrimSpace(req.Notes),
 		Status:              domain.SightingStatusActive,
+	}
+
+	if req.AudioDataURI != "" {
+		sighting := domain.Sighting{
+			ID:                  record.SightingID,
+			SightingID:          record.SightingID,
+			PetID:               record.LostPetID,
+			LostPetID:           record.LostPetID,
+			ReportedAt:          record.ReportedAt,
+			SightedAt:           record.SightedAt,
+			LocationDescription: record.LocationDescription,
+			Coordinates:         record.Coordinates,
+			MovementDirection:   record.MovementDirection,
+			ImageURL:            record.ImageURL,
+			ImageObject:         record.ImageObject,
+			Notes:               record.Notes,
+			Status:              record.Status,
+		}
+		s.attachAcousticMatchIfApplicable(r.Context(), &sighting, req.AudioDataURI)
+		record.AudioProfile = sighting.AudioProfile
+		record.AcousticMatch = sighting.AcousticMatch
 	}
 
 	if err := record.Validate(); err != nil {
