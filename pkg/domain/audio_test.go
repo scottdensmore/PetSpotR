@@ -153,3 +153,54 @@ func TestPet_ReferenceAudioProfileIntegration(t *testing.T) {
 		t.Errorf("expected ReferenceAudioProfile attached to Pet, got %+v", decoded.ReferenceAudioProfile)
 	}
 }
+
+func TestNormalizeLostPetReport_ReferenceAudioProfileDeepCopy(t *testing.T) {
+	origFeatures := []float64{0.1, 0.2, 0.3}
+	origBins := [][]float64{{0.4, 0.5}, {0.6, 0.7}}
+
+	orig := domain.LostPetReport{
+		PetID:         "pet-deepcopy-1",
+		ReporterEmail: "owner@example.com",
+		ReferenceAudioProfile: &domain.AudioProfile{
+			AudioID: "audio-prof-1",
+			Voiceprint: domain.AcousticVoiceprint{
+				Features: origFeatures,
+			},
+			SpectrogramBins: origBins,
+		},
+	}
+
+	norm := domain.NormalizeLostPetReport(orig)
+	if norm.ReferenceAudioProfile == nil {
+		t.Fatal("expected non-nil ReferenceAudioProfile on normalized report")
+	}
+
+	// Mutate original slices
+	origFeatures[0] = 999.0
+	origBins[0][0] = 888.0
+
+	if norm.ReferenceAudioProfile.Voiceprint.Features[0] == 999.0 {
+		t.Errorf("Features slice was not deep-copied in NormalizeLostPetReport")
+	}
+	if norm.ReferenceAudioProfile.SpectrogramBins[0][0] == 888.0 {
+		t.Errorf("SpectrogramBins slice was not deep-copied in NormalizeLostPetReport")
+	}
+
+	// Also verify NormalizeLostPetRecord deep copy
+	rec, _ := norm.Persisted()
+	normRec := domain.NormalizeLostPetRecord(rec)
+	if normRec.ReferenceAudioProfile == nil {
+		t.Fatal("expected non-nil ReferenceAudioProfile on normalized record")
+	}
+
+	// Mutate rec slices
+	rec.ReferenceAudioProfile.Voiceprint.Features[0] = 777.0
+	rec.ReferenceAudioProfile.SpectrogramBins[0][0] = 666.0
+
+	if normRec.ReferenceAudioProfile.Voiceprint.Features[0] == 777.0 {
+		t.Errorf("Features slice was not deep-copied in NormalizeLostPetRecord")
+	}
+	if normRec.ReferenceAudioProfile.SpectrogramBins[0][0] == 666.0 {
+		t.Errorf("SpectrogramBins slice was not deep-copied in NormalizeLostPetRecord")
+	}
+}

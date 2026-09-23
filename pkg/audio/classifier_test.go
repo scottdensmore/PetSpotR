@@ -119,3 +119,22 @@ func TestClassifyVocalization_FallbackAmbient(t *testing.T) {
 		t.Errorf("expected confidence 0.70, got %f", conf)
 	}
 }
+
+func TestClassifyVocalization_LowFrequencyTonesRejected(t *testing.T) {
+	for _, freq := range []float64{60.0, 85.0, 90.0, 99.0} {
+		vp := domain.AcousticVoiceprint{
+			DominantPitchHz: freq,
+			HarmonicRatio:   0.95, // pure tone harmonicity
+			DurationSeconds: 1.5,
+		}
+		pcm := make([]float64, 24000)
+
+		category, conf := audio.ClassifyVocalization(vp, pcm, 16000)
+		if category != domain.VocalizationAmbientNoise {
+			t.Errorf("expected %f Hz tone to be AMBIENT_NOISE, got %s", freq, category)
+		}
+		if conf < 0.80 {
+			t.Errorf("expected confidence >= 0.80 for %f Hz ambient noise, got %f", freq, conf)
+		}
+	}
+}

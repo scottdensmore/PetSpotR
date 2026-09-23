@@ -104,13 +104,17 @@ test.describe.serial('Milestone 11.3: Acoustic Biometric Voiceprinting & Vocaliz
     await page.goto(`${WEB_FRONTEND_URL}/pets`);
     await page.waitForLoadState('networkidle');
 
-    // Locate acoustic badge
-    const badge = page.locator('.acoustic-match-badge').first();
+    // Scope to pet card for testPetID
+    const petCard = page.locator(`.pet-card[data-pet-id="${testPetID}"]`);
+    await expect(petCard).toBeVisible();
+
+    // Locate acoustic badge scoped to this pet card
+    const badge = petCard.locator('.acoustic-match-badge');
     await expect(badge).toBeVisible();
     await expect(badge).toContainText(/Acoustic Match/i);
 
-    // Verify canvas rendered
-    const canvas = page.locator('.spectrogram-canvas').first();
+    // Verify canvas rendered within this pet card
+    const canvas = petCard.locator('.spectrogram-canvas');
     await expect(canvas).toBeVisible();
   });
 

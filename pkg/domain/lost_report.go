@@ -443,10 +443,7 @@ func NormalizeLostPetReport(report LostPetReport) LostPetReport {
 		beacon := *report.CollarBeacon
 		report.CollarBeacon = &beacon
 	}
-	if report.ReferenceAudioProfile != nil {
-		prof := *report.ReferenceAudioProfile
-		report.ReferenceAudioProfile = &prof
-	}
+	report.ReferenceAudioProfile = cloneAudioProfile(report.ReferenceAudioProfile)
 	return report
 }
 
@@ -607,7 +604,7 @@ func (r LostPetReport) Persisted() (LostPetRecord, ReportContact) {
 			MicrochipID:           r.MicrochipID,
 			MicrochipRegistry:     r.MicrochipRegistry,
 			CollarBeacon:          r.CollarBeacon,
-			ReferenceAudioProfile: r.ReferenceAudioProfile,
+			ReferenceAudioProfile: cloneAudioProfile(r.ReferenceAudioProfile),
 		}, NormalizeReportContact(ReportContact{
 			IdentityRef: identityRef,
 			Email:       r.ReporterEmail,
@@ -654,10 +651,7 @@ func NormalizeLostPetRecord(record LostPetRecord) LostPetRecord {
 		beacon := *record.CollarBeacon
 		normalized.CollarBeacon = &beacon
 	}
-	if record.ReferenceAudioProfile != nil {
-		prof := *record.ReferenceAudioProfile
-		normalized.ReferenceAudioProfile = &prof
-	}
+	normalized.ReferenceAudioProfile = cloneAudioProfile(record.ReferenceAudioProfile)
 	return normalized
 }
 
@@ -793,5 +787,25 @@ func cloneLocationPoint(point *LocationPoint) *LocationPoint {
 		return nil
 	}
 	cloned := *point
+	return &cloned
+}
+
+func cloneAudioProfile(prof *AudioProfile) *AudioProfile {
+	if prof == nil {
+		return nil
+	}
+	cloned := *prof
+	if len(prof.Voiceprint.Features) > 0 {
+		cloned.Voiceprint.Features = append([]float64(nil), prof.Voiceprint.Features...)
+	}
+	if len(prof.SpectrogramBins) > 0 {
+		clonedBins := make([][]float64, len(prof.SpectrogramBins))
+		for i, row := range prof.SpectrogramBins {
+			if len(row) > 0 {
+				clonedBins[i] = append([]float64(nil), row...)
+			}
+		}
+		cloned.SpectrogramBins = clonedBins
+	}
 	return &cloned
 }
