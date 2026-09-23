@@ -197,28 +197,28 @@
     if (!wp) return;
 
     // 1. Heading
-    const headingVal = document.getElementById('hud-heading-value');
+    const headingVal = document.getElementById('hud-heading-val') || document.getElementById('hud-heading-value');
     if (headingVal) {
       const deg = Math.round(wp.headingDeg || 0);
       headingVal.textContent = `${String(deg).padStart(3, '0')}°`;
     }
 
     // 2. Altitude AGL
-    const altVal = document.getElementById('hud-altitude-value');
+    const altVal = document.getElementById('hud-altitude-val') || document.getElementById('hud-altitude-value');
     if (altVal) {
       const alt = (wp.altitudeMetersAGL !== undefined ? wp.altitudeMetersAGL : (wp.altitudeAGL || 0));
       altVal.textContent = `${alt.toFixed(1)} m`;
     }
 
     // 3. Ground Speed
-    const speedVal = document.getElementById('hud-speed-value');
+    const speedVal = document.getElementById('hud-speed-val') || document.getElementById('hud-speed-value');
     if (speedVal) {
       const spd = wp.groundSpeedMps || 0;
       speedVal.textContent = `${spd.toFixed(1)} m/s`;
     }
 
     // 4. Battery Level
-    const batVal = document.getElementById('hud-battery-value');
+    const batVal = document.getElementById('hud-battery-val') || document.getElementById('hud-battery-value');
     if (batVal) {
       batVal.textContent = `${wp.batteryPercent !== undefined ? wp.batteryPercent : 100}%`;
     }
@@ -658,7 +658,7 @@
 
       formData.append('latitude', String(currentWp.latitude));
       formData.append('longitude', String(currentWp.longitude));
-      formData.append('altitudeMetersAGL', String(currentWp.altitudeMetersAGL || 35.0));
+      formData.append('altitudeMetersAGL', String(currentWp.altitudeMetersAGL !== undefined ? currentWp.altitudeMetersAGL : (currentWp.altitudeAGL || 35.0)));
       formData.append('headingDeg', String(currentWp.headingDeg || 0.0));
       formData.append('gimbalPitchDeg', String(currentWp.gimbalPitchDeg !== undefined ? currentWp.gimbalPitchDeg : -45.0));
 
@@ -832,6 +832,15 @@
     if (!reconModal) return;
 
     previouslyFocusedElement = document.activeElement;
+    if (!petId) {
+      const firstPetCard = document.querySelector('article.pet-card[data-pet-id]');
+      if (firstPetCard) {
+        petId = firstPetCard.getAttribute('data-pet-id') || '';
+      } else if (typeof window !== 'undefined' && window.location) {
+        const params = new URLSearchParams(window.location.search);
+        petId = params.get('petId') || '';
+      }
+    }
     currentPetId = petId || currentPetId || '';
 
     reconModal.classList.remove('hidden');
