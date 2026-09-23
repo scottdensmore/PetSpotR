@@ -344,4 +344,80 @@ func TestAudioErrorCases(t *testing.T) {
 	if petW.Code != http.StatusNotFound {
 		t.Errorf("expected 404 for missing pet, got %d", petW.Code)
 	}
+
+	// 5. Lost pet audio profile with invalid base64
+	badB64Payload, _ := json.Marshal(map[string]interface{}{"audioDataUri": "data:audio/wav;base64,!!!invalid!!!"})
+	badB64Req := httptest.NewRequest(http.MethodPost, "/api/v1/lost-pets/some-pet/audio-profile", bytes.NewReader(badB64Payload))
+	badB64Req.Header.Set("Content-Type", "application/json")
+	badB64W := httptest.NewRecorder()
+	server.ServeHTTP(badB64W, badB64Req)
+	if badB64W.Code != http.StatusNotFound && badB64W.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 or 404 for invalid base64, got %d", badB64W.Code)
+	}
+}
+
+func TestLostPetAudioProfilePreservesExistingRecordFields(t *testing.T) {
+	memStore := store.NewMemoryStore()
+	server := webfrontend.NewTestServer(t, memStore)
+
+	rec := domain.LostPetRecord{
+		PetID:            "pet-with-details-101",
+		PetName:          "Charlie",
+		Species:          "Dog",
+		OwnerIdentityRef: "owner-ref-123",
+		Embedding:        []float32{0.1, 0.2, 0.3},
+		ImageAnalysis: &domain.ImageTraitAnalysis{
+			Status: domain.ImageTraitsVerified,
+			Traits: domain.PetImageTraits{
+				PrimaryColor: "Golden",
+			},
+		},
+		LifecycleAudit: &domain.LostPetLifecycleAudit{
+			OperationID:  "op-audit-101",
+			AuthorizedAs: "owner",
+			Status:       domain.LostPetStatusLost,
+			ChangedAt:    time.Now().UTC(),
+		},
+		Status: domain.LostPetStatusLost,
+	}
+	recBytes, _ := json.Marshal(rec)
+	_ = memStore.SaveState(context.Background(), store.CollectionLostPets, rec.PetID, recBytes)
+
+	refWAV := generateTestWAVBase64(380.0, 0.35)
+	refPayload, _ := json.Marshal(map[string]interface{}{
+		"audioDataUri": refWAV,
+	})
+
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/lost-pets/%s/audio-profile", rec.PetID), bytes.NewReader(refPayload))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 on attach, got %d", w.Code)
+	}
+
+	savedBytes, err := memStore.GetState(context.Background(), store.CollectionLostPets, rec.PetID)
+	if err != nil {
+		t.Fatalf("failed to retrieve saved pet: %v", err)
+	}
+
+	var savedRec domain.LostPetRecord
+	if err := json.Unmarshal(savedBytes, &savedRec); err != nil {
+		t.Fatalf("failed to unmarshal saved record: %v", err)
+	}
+	if savedRec.OwnerIdentityRef != "owner-ref-123" {
+		t.Errorf("expected OwnerIdentityRef preserved, got %s", savedRec.OwnerIdentityRef)
+	}
+	if len(savedRec.Embedding) != 3 || savedRec.Embedding[0] != 0.1 {
+		t.Errorf("expected Embedding preserved, got %+v", savedRec.Embedding)
+	}
+	if savedRec.ImageAnalysis == nil || savedRec.ImageAnalysis.Traits.PrimaryColor != "Golden" {
+		t.Errorf("expected ImageAnalysis preserved, got %+v", savedRec.ImageAnalysis)
+	}
+	if savedRec.LifecycleAudit == nil || savedRec.LifecycleAudit.OperationID != "op-audit-101" {
+		t.Errorf("expected LifecycleAudit preserved, got %+v", savedRec.LifecycleAudit)
+	}
+	if savedRec.ReferenceAudioProfile == nil {
+		t.Error("expected ReferenceAudioProfile to be set")
+	}
 }

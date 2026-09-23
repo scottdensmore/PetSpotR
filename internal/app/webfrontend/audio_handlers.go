@@ -112,7 +112,7 @@ func (s *Server) handleLostPetAudioProfile(w http.ResponseWriter, r *http.Reques
 			http.Error(w, "Pet not found", http.StatusNotFound)
 			return
 		}
-		var pet domain.LostPetReport
+		var pet domain.LostPetRecord
 		_ = json.Unmarshal(petBytes, &pet)
 		if pet.ReferenceAudioProfile == nil {
 			http.Error(w, "No reference audio profile for pet", http.StatusNotFound)
@@ -133,8 +133,6 @@ func (s *Server) handleLostPetAudioProfile(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Pet not found", http.StatusNotFound)
 		return
 	}
-	var pet domain.LostPetReport
-	_ = json.Unmarshal(petBytes, &pet)
 
 	var req struct {
 		AudioDataURI string `json:"audioDataUri"`
@@ -149,7 +147,11 @@ func (s *Server) handleLostPetAudioProfile(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Invalid data URI", http.StatusBadRequest)
 		return
 	}
-	audioBytes, _ := base64.StdEncoding.DecodeString(req.AudioDataURI[idx+1:])
+	audioBytes, err := base64.StdEncoding.DecodeString(req.AudioDataURI[idx+1:])
+	if err != nil {
+		http.Error(w, "Failed to decode base64 audio", http.StatusBadRequest)
+		return
+	}
 	memo, err := audio.ProcessVoiceMemo(audioBytes, "audio/wav", 0)
 	if err != nil {
 		http.Error(w, "Failed to process audio", http.StatusBadRequest)
@@ -157,7 +159,11 @@ func (s *Server) handleLostPetAudioProfile(w http.ResponseWriter, r *http.Reques
 	}
 
 	pcm := extractPCMSamples(memo.Data)
-	vp, spec, _ := audio.ExtractVoiceprint(pcm, audio.StandardSampleRate)
+	vp, spec, err := audio.ExtractVoiceprint(pcm, audio.StandardSampleRate)
+	if err != nil {
+		http.Error(w, "Failed to extract voiceprint", http.StatusInternalServerError)
+		return
+	}
 	vocal, conf := audio.ClassifyVocalization(vp, pcm, audio.StandardSampleRate)
 	vocal, conf, _ = audio.VerifyAcousticWithOllama(r.Context(), s.ollamaClient, vocal, conf, vp)
 
@@ -172,8 +178,17 @@ func (s *Server) handleLostPetAudioProfile(w http.ResponseWriter, r *http.Reques
 		RecordedAt:      time.Now().UTC(),
 	}
 
-	pet.ReferenceAudioProfile = &profile
-	updatedPetBytes, _ := json.Marshal(pet)
+	var petMap map[string]any
+	if err := json.Unmarshal(petBytes, &petMap); err != nil {
+		http.Error(w, "Failed to parse pet state", http.StatusInternalServerError)
+		return
+	}
+	petMap["referenceAudioProfile"] = profile
+	updatedPetBytes, err := json.Marshal(petMap)
+	if err != nil {
+		http.Error(w, "Failed to serialize updated pet state", http.StatusInternalServerError)
+		return
+	}
 	_ = s.stateStore.SaveState(r.Context(), store.CollectionLostPets, petID, updatedPetBytes)
 
 	profBytes, _ := json.Marshal(profile)
