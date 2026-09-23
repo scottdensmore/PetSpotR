@@ -62,8 +62,8 @@ GPS(-122.4194,37.7749,15) [dlatitude: 37.774950] [dlongitude: -122.419400] [alti
 		t.Errorf("expected heading 90.0, got %f", waypoints[0].HeadingDeg)
 	}
 	expectedTime := time.Date(2026, 9, 22, 12, 0, 0, 500*int(time.Millisecond), time.UTC)
-	if !waypoints[0].Timestamp.Equal(expectedTime) && !waypoints[0].Timestamp.IsZero() {
-		t.Logf("parsed timestamp: %v", waypoints[0].Timestamp)
+	if !waypoints[0].Timestamp.Equal(expectedTime) {
+		t.Errorf("expected timestamp %v, got %v", expectedTime, waypoints[0].Timestamp)
 	}
 }
 
@@ -178,5 +178,26 @@ func TestParseFlightLog_EmptyContent(t *testing.T) {
 	_, err := recon.ParseFlightLog([]byte(""), "empty.srt")
 	if err == nil {
 		t.Fatal("expected error on empty flight log, got nil")
+	}
+}
+
+func TestParseFlightLog_BareGeoJSONLineString(t *testing.T) {
+	geoJSONContent := []byte(`{
+  "type": "LineString",
+  "coordinates": [
+    [-122.4194, 37.7749, 50.0],
+    [-122.4194, 37.7759, 52.0]
+  ]
+}`)
+	waypoints, err := recon.ParseFlightLog(geoJSONContent, "bare_linestring.geojson")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(waypoints) != 2 {
+		t.Fatalf("expected 2 waypoints, got %d", len(waypoints))
+	}
+	// From (37.7749, -122.4194) to (37.7759, -122.4194) is due north (0 degrees)
+	if waypoints[0].HeadingDeg < -0.1 || waypoints[0].HeadingDeg > 0.1 {
+		t.Errorf("expected heading ~0.0 deg (North), got %f", waypoints[0].HeadingDeg)
 	}
 }

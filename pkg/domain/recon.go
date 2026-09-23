@@ -59,7 +59,7 @@ type ThermalHotspot struct {
 	Latitude           float64        `json:"latitude"`
 	Longitude          float64        `json:"longitude"`
 	EstimatedTempC     float64        `json:"estimatedTempC"`
-	ConfidenceScore    float64        `json:"confidenceScore"`    // 0.0 to 1.0
+	ConfidenceScore    float64        `json:"confidenceScore"` // 0.0 to 1.0
 	Palette            ThermalPalette `json:"palette"`
 	BoundingBox        NormalizedBox  `json:"boundingBox"`
 	FrameTimeOffsetSec float64        `json:"frameTimeOffsetSec"` // Offset into flight video

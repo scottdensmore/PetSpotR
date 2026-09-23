@@ -20,26 +20,26 @@ var (
 	reTimeRange = regexp.MustCompile(`(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})`)
 	reDate      = regexp.MustCompile(`(\d{4})[./-](\d{2})[./-](\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:[.,](\d{1,6}))?`)
 
-	reDLat      = regexp.MustCompile(`(?i)\bdlatitude\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
-	reLat       = regexp.MustCompile(`(?i)\blatitude\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
-	reShortLat  = regexp.MustCompile(`(?i)\blat\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
+	reDLat     = regexp.MustCompile(`(?i)\bdlatitude\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
+	reLat      = regexp.MustCompile(`(?i)\blatitude\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
+	reShortLat = regexp.MustCompile(`(?i)\blat\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
 
-	reDLon      = regexp.MustCompile(`(?i)\bdlongitude\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
-	reLon       = regexp.MustCompile(`(?i)\blongitude\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
-	reShortLon  = regexp.MustCompile(`(?i)\b(?:long|lng)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
+	reDLon     = regexp.MustCompile(`(?i)\bdlongitude\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
+	reLon      = regexp.MustCompile(`(?i)\blongitude\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
+	reShortLon = regexp.MustCompile(`(?i)\b(?:long|lng)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
 
-	reGPS       = regexp.MustCompile(`(?i)\bGPS\s*\(\s*([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)(?:\s*,\s*([+-]?\d+(?:\.\d+)?))?\s*\)`)
+	reGPS = regexp.MustCompile(`(?i)\bGPS\s*\(\s*([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)(?:\s*,\s*([+-]?\d+(?:\.\d+)?))?\s*\)`)
 
-	reRelAlt    = regexp.MustCompile(`(?i)\b(?:rel_alt|relative_altitude|rel_altitude)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
-	reAlt       = regexp.MustCompile(`(?i)\b(?:altitude|alt|height)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
+	reRelAlt = regexp.MustCompile(`(?i)\b(?:rel_alt|relative_altitude|rel_altitude)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
+	reAlt    = regexp.MustCompile(`(?i)\b(?:altitude|alt|height)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
 
-	reHeading   = regexp.MustCompile(`(?i)\b(?:heading|compass)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
-	rePitch     = regexp.MustCompile(`(?i)\b(?:gimbal_pitch|pitch)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
-	reRoll      = regexp.MustCompile(`(?i)\b(?:gimbal_roll|roll)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
-	reYaw       = regexp.MustCompile(`(?i)\b(?:gimbal_yaw|yaw)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
+	reHeading = regexp.MustCompile(`(?i)\b(?:heading|compass)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
+	rePitch   = regexp.MustCompile(`(?i)\b(?:gimbal_pitch|pitch)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
+	reRoll    = regexp.MustCompile(`(?i)\b(?:gimbal_roll|roll)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
+	reYaw     = regexp.MustCompile(`(?i)\b(?:gimbal_yaw|yaw)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
 
-	reSpeed     = regexp.MustCompile(`(?i)\b(?:ground_speed|groundspeed|hspeed|speed)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
-	reBat       = regexp.MustCompile(`(?i)\b(?:battery|bat)\s*[:=]\s*(\d+)`)
+	reSpeed = regexp.MustCompile(`(?i)\b(?:ground_speed|groundspeed|hspeed|speed)\s*[:=]\s*([+-]?\d+(?:\.\d+)?)`)
+	reBat   = regexp.MustCompile(`(?i)\b(?:battery|bat)\s*[:=]\s*(\d+)`)
 
 	reCoordinates = regexp.MustCompile(`(?s)<coordinates>(.*?)</coordinates>`)
 	reWhen        = regexp.MustCompile(`<when>(.*?)</when>`)
@@ -196,7 +196,7 @@ func parseSRTBlock(lines []string, fallbackBaseDate time.Time) (wp domain.DroneW
 	}
 
 	// GPS(lng, lat[, sats]) fallback
-	if (!hasLat || !hasLon) {
+	if !hasLat || !hasLon {
 		if m := reGPS.FindStringSubmatch(payload); m != nil {
 			if !hasLon {
 				if val, err := strconv.ParseFloat(m[1], 64); err == nil {
@@ -411,10 +411,34 @@ func parseGeoJSON(content []byte) ([]domain.DroneWaypoint, error) {
 			Properties: doc.Properties,
 		}
 		waypoints = append(waypoints, parseFeature(feat)...)
+	} else if strings.EqualFold(doc.Type, "LineString") || strings.EqualFold(doc.Type, "Point") {
+		feat := geoJSONFeature{
+			Type: "Feature",
+			Geometry: geoJSONGeometry{
+				Type:        doc.Type,
+				Coordinates: doc.Coordinates,
+			},
+			Properties: doc.Properties,
+		}
+		waypoints = append(waypoints, parseFeature(feat)...)
 	}
 
 	if len(waypoints) == 0 {
 		return nil, errors.New("no valid coordinates parsed from GeoJSON")
+	}
+
+	// Compute sequential bearing for GeoJSON linestrings if heading is omitted
+	for i := range waypoints {
+		if waypoints[i].HeadingDeg == 0 {
+			if i < len(waypoints)-1 {
+				waypoints[i].HeadingDeg = computeBearing(
+					waypoints[i].Latitude, waypoints[i].Longitude,
+					waypoints[i+1].Latitude, waypoints[i+1].Longitude,
+				)
+			} else if i > 0 {
+				waypoints[i].HeadingDeg = waypoints[i-1].HeadingDeg
+			}
+		}
 	}
 
 	return waypoints, nil
