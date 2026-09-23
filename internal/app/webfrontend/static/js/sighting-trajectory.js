@@ -543,16 +543,43 @@
             const leg = data.legs ? data.legs.find(l => l.toSightingId === s.sightingId) : null;
             const headingPart = s.movementDirection ? ` · Heading ${escapeHTML(s.movementDirection)}` : '';
             const speedPart = leg && leg.speedMph > 0 ? ` (${leg.speedMph.toFixed(1)} mph)` : '';
+            let acousticHtml = '';
+            if (s.acousticMatch && s.acousticMatch.isProbableMatch) {
+              const scorePct = Math.round((s.acousticMatch.similarityScore || 0) * 100);
+              acousticHtml = `
+                <div class="acoustic-match-badge" title="Confidence: ${scorePct}%">
+                  🔊 Acoustic Match: ${scorePct}%
+                </div>
+              `;
+            }
+            if (s.audioProfile) {
+              acousticHtml += `
+                <div class="spectrogram-widget" data-audio="${escapeHTML(s.audioProfile.audioDataUri || '')}" data-audio-id="${escapeHTML(s.audioProfile.audioId || '')}">
+                  <canvas class="spectrogram-canvas" width="320" height="120" role="img" aria-label="Acoustic spectrogram"></canvas>
+                  <div class="spectrogram-controls">
+                    <button type="button" class="btn btn-secondary btn-sm btn-spectrogram-play" aria-label="Play Audio">Play</button>
+                  </div>
+                </div>
+              `;
+            }
             item.innerHTML = `
               <span>
                 <strong class="text-primary">Pin ${idx + 1}:</strong>
                 ${escapeHTML(s.locationDescription || 'Spotted')}
                 <small class="text-secondary">${headingPart}${speedPart}</small>
+                ${acousticHtml}
               </span>
               <span class="text-secondary">${formatTimestamp(s.sightedAt)}</span>
             `;
             timelineList.appendChild(item);
+            if (s.audioProfile && window.initAudioSpectrogram) {
+              const widget = item.querySelector('.spectrogram-widget');
+              if (widget) {
+                window.initAudioSpectrogram(widget, s.audioProfile.spectrogramBins, s.audioProfile.audioDataUri);
+              }
+            }
           });
+
         }
       }
 

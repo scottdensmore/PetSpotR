@@ -7740,3 +7740,75 @@ textarea:focus-visible,
   margin: 0.2rem 0;
   font-size: 0.85rem;
 }
+
+/* Milestone 11.3: Audio Spectrogram & Acoustic Badges */
+.spectrogram-widget {
+  background: var(--surface-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-top: 0.75rem;
+}
+.spectrogram-canvas {
+  width: 100%;
+  height: 120px;
+  background: #0f172a;
+  border-radius: var(--radius-sm);
+  display: block;
+}
+.acoustic-match-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.825rem;
+  font-weight: 700;
+  border-radius: 9999px;
+  color: #a7f3d0;
+  background: #064e3b;
+  border: 1px solid #059669;
+}
+[data-theme="light"] .acoustic-match-badge {
+  color: #064e3b;
+  background: #d1fae5;
+  border-color: #10b981;
+}
+.acoustic-badge-distress {
+  color: #fed7aa;
+  background: #7c2d12;
+  border-color: #ea580c;
+}
+[data-theme="light"] .acoustic-badge-distress {
+  color: #7c2d12;
+  background: #ffedd5;
+  border-color: #f97316;
+}
+.spectrogram-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.spectrogram-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+.spectrogram-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+.audio-upload-wrapper {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+.pet-card-audio {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+

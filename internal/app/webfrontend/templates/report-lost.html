@@ -185,7 +185,29 @@
               </div>
             </div>
           </template>
+
+          <!-- Reference Audio Profile Attachment Section -->
+          <div class="form-field audio-profile-section">
+            <h3 class="subsection-title">Reference Vocalization Voiceprint (Optional)</h3>
+            <p class="form-help">Upload an audio recording of your pet's bark or vocalization to enable AI acoustic matching against community sightings.</p>
+            <div class="audio-upload-wrapper">
+              <input type="file" id="lost-audio-file" name="referenceAudio" accept="audio/*" class="form-control" aria-label="Reference Vocalization Audio File">
+            </div>
+            <div id="lost-spectrogram-container" class="spectrogram-widget hidden" data-audio="" data-bins="">
+              <div class="spectrogram-header">
+                <span class="spectrogram-title">Spectrogram Voiceprint Preview</span>
+                <span id="lost-vocalization-badge" class="acoustic-match-badge hidden">Voiceprint Generated</span>
+              </div>
+              <canvas id="lost-spectrogram-canvas" class="spectrogram-canvas" width="320" height="120" role="img" aria-label="Acoustic spectrogram showing frequency over time"></canvas>
+              <div class="spectrogram-controls">
+                <button type="button" class="btn btn-secondary btn-sm btn-spectrogram-play" aria-label="Play audio">Play</button>
+                <span id="lost-audio-status" class="audio-analysis-status" role="status" aria-live="polite"></span>
+              </div>
+            </div>
+            <input type="hidden" id="lost-audio-data-uri" name="audioDataUri">
+          </div>
         </div>
+
 
         <!-- Step 3: Location Picker -->
         <div class="wizard-step" id="wizard-step-3" hidden>
@@ -265,5 +287,6 @@
   <script src="/static/js/image-enhancer.js" defer></script>
   <script src="/static/js/lost-wizard.js" defer></script>
   <script src="/static/js/outbox-sync.js" defer></script>
+  <script src="/static/js/audio-spectrogram.js" defer></script>
 </body>
 </html>

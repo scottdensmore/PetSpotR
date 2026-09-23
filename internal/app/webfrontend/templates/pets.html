@@ -216,6 +216,19 @@
                 <time class="pet-card-date" datetime="{{ .ReportedAt.Format "2006-01-02T15:04:05Z07:00" }}">Reported {{ .ReportedAt.Format "Jan 02, 2006" }}</time>
               </div>
 
+              {{ if .ReferenceAudioProfile }}
+              <div class="pet-card-audio">
+                <span class="acoustic-match-badge">🔊 Acoustic Match Profile: {{ .ReferenceAudioProfile.Vocalization }}</span>
+                <div class="spectrogram-widget" data-audio="{{ .ReferenceAudioProfile.AudioDataURI }}" data-audio-id="{{ .ReferenceAudioProfile.AudioID }}">
+                  <canvas class="spectrogram-canvas" width="320" height="120" role="img" aria-label="Acoustic spectrogram showing frequency over time"></canvas>
+                  <div class="spectrogram-controls">
+                    <button type="button" class="btn btn-secondary btn-sm btn-spectrogram-play" aria-label="Play audio">Play</button>
+                  </div>
+                </div>
+              </div>
+              {{ end }}
+
+
               {{ if or (eq .Status "LOST") (eq .Status "lost") }}
               <div class="pet-card-actions">
                 <button type="button" class="btn btn-primary btn-sm btn-report-sighting" data-pet-id="{{ .PetID }}" data-pet-name="{{ .PetName }}" data-action="report-sighting" {{ if .Coordinates }}data-lat="{{ .Coordinates.Latitude }}" data-lng="{{ .Coordinates.Longitude }}"{{ end }}>👁️ Report Sighting</button>
@@ -538,6 +551,31 @@
             <input type="hidden" id="sighting-voice-memo-duration" name="voiceMemoDuration">
           </div>
         </div>
+
+        <!-- Acoustic Vocalization & Spectrogram Matching Section -->
+        <div class="form-group sighting-acoustic-group">
+          <label class="form-label" id="label-sighting-audio">🔊 Sighting Audio &amp; Vocalization (Optional)</label>
+          <div class="acoustic-upload-container">
+            <input type="file" id="sighting-audio-input" name="sightingAudio" accept="audio/*" class="form-control" aria-label="Upload Sighting Audio">
+            <div id="sighting-acoustic-match-container" class="acoustic-match-container">
+              <span id="sighting-acoustic-badge" class="acoustic-match-badge hidden" role="status" aria-live="polite">
+                🔊 Acoustic Match: Evaluating...
+              </span>
+            </div>
+            <div id="sighting-spectrogram-container" class="spectrogram-widget hidden" data-audio="" data-bins="">
+              <div class="spectrogram-header">
+                <span class="spectrogram-title">Acoustic Spectrogram</span>
+              </div>
+              <canvas id="sighting-spectrogram-canvas" class="spectrogram-canvas" width="320" height="120" role="img" aria-label="Acoustic spectrogram showing frequency over time"></canvas>
+              <div class="spectrogram-controls">
+                <button type="button" class="btn btn-secondary btn-sm btn-spectrogram-play" aria-label="Play audio">Play</button>
+                <span id="sighting-spectrogram-status" class="spectrogram-status" role="status" aria-live="polite"></span>
+              </div>
+            </div>
+            <input type="hidden" id="sighting-audio-data-uri" name="audioDataUri">
+          </div>
+        </div>
+
 
         <!-- Optional Witness Contact Info -->
         <details class="sighting-contact-details">
@@ -905,5 +943,6 @@
   <script src="/static/js/drone-recon.js" defer></script>
   <script src="/static/js/outbox-sync.js" defer></script>
   <script src="/static/js/audio-memo.js" defer></script>
+  <script src="/static/js/audio-spectrogram.js" defer></script>
 </body>
 </html>

@@ -21,24 +21,25 @@ import (
 
 // PublicPetDirectoryItem is the unified redacted listing item for the public pet directory.
 type PublicPetDirectoryItem struct {
-	PetID               string                 `json:"petId"`
-	ReportType          string                 `json:"reportType"` // "lost" or "found"
-	Status              string                 `json:"status"`     // "lost" or "found"
-	PetName             string                 `json:"petName,omitempty"`
-	Species             string                 `json:"species,omitempty"`
-	Breed               string                 `json:"breed,omitempty"`
-	PrimaryColor        string                 `json:"primaryColor,omitempty"`
-	SecondaryColor      string                 `json:"secondaryColor,omitempty"`
-	DistinctiveMarkings []string               `json:"distinctiveMarkings,omitempty"`
-	Description         string                 `json:"description,omitempty"`
-	ImageURL            string                 `json:"imageUrl,omitempty"`
-	Location            string                 `json:"location"`
-	ReportedAt          time.Time              `json:"reportedAt"`
-	Coordinates         *domain.LocationPoint  `json:"coordinates,omitempty"`
-	GeocodingStatus     domain.GeocodingStatus `json:"geocodingStatus,omitempty"`
-	CustodyStatus       domain.CustodyStatus   `json:"custodyStatus,omitempty"`
-	MicrochipID         string                 `json:"microchipId,omitempty"`
-	MicrochipRegistry   string                 `json:"microchipRegistry,omitempty"`
+	PetID                 string                 `json:"petId"`
+	ReportType            string                 `json:"reportType"` // "lost" or "found"
+	Status                string                 `json:"status"`     // "lost" or "found"
+	PetName               string                 `json:"petName,omitempty"`
+	Species               string                 `json:"species,omitempty"`
+	Breed                 string                 `json:"breed,omitempty"`
+	PrimaryColor          string                 `json:"primaryColor,omitempty"`
+	SecondaryColor        string                 `json:"secondaryColor,omitempty"`
+	DistinctiveMarkings   []string               `json:"distinctiveMarkings,omitempty"`
+	Description           string                 `json:"description,omitempty"`
+	ImageURL              string                 `json:"imageUrl,omitempty"`
+	Location              string                 `json:"location"`
+	ReportedAt            time.Time              `json:"reportedAt"`
+	Coordinates           *domain.LocationPoint  `json:"coordinates,omitempty"`
+	GeocodingStatus       domain.GeocodingStatus `json:"geocodingStatus,omitempty"`
+	CustodyStatus         domain.CustodyStatus   `json:"custodyStatus,omitempty"`
+	MicrochipID           string                 `json:"microchipId,omitempty"`
+	MicrochipRegistry     string                 `json:"microchipRegistry,omitempty"`
+	ReferenceAudioProfile *domain.AudioProfile   `json:"referenceAudioProfile,omitempty"`
 }
 
 // DirectoryQueryParams defines validated filters and pagination options.
@@ -246,20 +247,21 @@ func (s *Server) queryDirectoryPets(
 
 			pub := rec.Public()
 			item := PublicPetDirectoryItem{
-				PetID:             pub.PetID,
-				ReportType:        "lost",
-				Status:            "lost",
-				PetName:           pub.PetName,
-				Species:           pub.Species,
-				Breed:             pub.Breed,
-				PrimaryColor:      pub.PrimaryColor,
-				Description:       pub.Description,
-				Location:          pub.Location,
-				ReportedAt:        pub.ReportedAt.UTC(),
-				Coordinates:       pub.Coordinates,
-				GeocodingStatus:   pub.GeocodingStatus,
-				MicrochipID:       pub.MicrochipID,
-				MicrochipRegistry: pub.MicrochipRegistry,
+				PetID:                 pub.PetID,
+				ReportType:            "lost",
+				Status:                "lost",
+				PetName:               pub.PetName,
+				Species:               pub.Species,
+				Breed:                 pub.Breed,
+				PrimaryColor:          pub.PrimaryColor,
+				Description:           pub.Description,
+				Location:              pub.Location,
+				ReportedAt:            pub.ReportedAt.UTC(),
+				Coordinates:           pub.Coordinates,
+				GeocodingStatus:       pub.GeocodingStatus,
+				MicrochipID:           pub.MicrochipID,
+				MicrochipRegistry:     pub.MicrochipRegistry,
+				ReferenceAudioProfile: rec.ReferenceAudioProfile,
 			}
 			items = append(items, item)
 		}
