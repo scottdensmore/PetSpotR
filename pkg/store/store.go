@@ -46,6 +46,18 @@ const CrisisIntakesCollection = "crisis_intakes"
 // CrisisReunificationsCollection is the state store collection for prioritized disaster reunifications.
 const CrisisReunificationsCollection = "crisis_reunifications"
 
+// CollectionReconMissions is the state store collection for drone aerial reconnaissance missions.
+const CollectionReconMissions = "recon_missions"
+
+// CollectionReconHotspots is the state store collection for thermal hotspots.
+const CollectionReconHotspots = "recon_hotspots"
+
+// ReconMissionsCollection is an alias for CollectionReconMissions.
+const ReconMissionsCollection = CollectionReconMissions
+
+// ReconHotspotsCollection is an alias for CollectionReconHotspots.
+const ReconHotspotsCollection = CollectionReconHotspots
+
 // Sentinel errors for StateStore operations.
 var (
 	ErrStoreNotFound = errors.New("store: state store not found")
