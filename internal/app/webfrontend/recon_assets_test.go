@@ -151,6 +151,9 @@ func TestDroneReconJSIntegrity(t *testing.T) {
 		"DISMISSED",
 		"btn-open-drone-recon",
 		"btn-close-recon-modal",
+		"PetSpotRDroneRecon",
+		"ArrowRight",
+		"tabindex",
 	}
 	for _, snippet := range expectedSnippets {
 		if !strings.Contains(jsContent, snippet) {

@@ -7141,7 +7141,7 @@ textarea:focus-visible,
 
 [data-theme="light"] .badge-recon-active {
   background: #e0f2fe;
-  color: #0369a1;
+  color: #0c4a6e;
   border-color: #0284c7;
 }
 
@@ -7207,7 +7207,7 @@ textarea:focus-visible,
 }
 
 .btn-tab.active {
-  background: #0284c7;
+  background: #075985;
   color: #ffffff;
 }
 
@@ -7277,7 +7277,7 @@ textarea:focus-visible,
 }
 
 [data-theme="light"] .hud-value {
-  color: #0369a1;
+  color: #075985;
 }
 
 /* Attitude / Artificial Horizon Gauge */
@@ -7478,7 +7478,7 @@ textarea:focus-visible,
 .empty-hotspots-text {
   text-align: center;
   padding: 1rem;
-  color: #94a3b8;
+  color: #cbd5e1;
 }
 
 [data-theme="light"] .empty-hotspots-text {
@@ -7613,7 +7613,7 @@ textarea:focus-visible,
 
 .dropzone-hint {
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: #cbd5e1;
   margin-top: 0.5rem;
 }
 

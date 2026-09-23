@@ -788,7 +788,7 @@
     }
   }
 
-  // Tab switching
+  // Tab switching with roving tabindex
   function switchTab(tabId) {
     const tabCockpit = document.getElementById('tab-recon-cockpit');
     const tabBatch = document.getElementById('tab-recon-batch');
@@ -798,8 +798,10 @@
     if (tabId === 'tab-recon-cockpit') {
       tabCockpit?.classList.add('active');
       tabCockpit?.setAttribute('aria-selected', 'true');
+      tabCockpit?.setAttribute('tabindex', '0');
       tabBatch?.classList.remove('active');
       tabBatch?.setAttribute('aria-selected', 'false');
+      tabBatch?.setAttribute('tabindex', '-1');
 
       panelCockpit?.classList.remove('hidden');
       panelCockpit?.classList.add('active');
@@ -812,8 +814,10 @@
     } else {
       tabBatch?.classList.add('active');
       tabBatch?.setAttribute('aria-selected', 'true');
+      tabBatch?.setAttribute('tabindex', '0');
       tabCockpit?.classList.remove('active');
       tabCockpit?.setAttribute('aria-selected', 'false');
+      tabCockpit?.setAttribute('tabindex', '-1');
 
       panelBatch?.classList.remove('hidden');
       panelBatch?.classList.add('active');
@@ -855,7 +859,7 @@
     announce('Aerial Reconnaissance Cockpit closed.');
   }
 
-  // Focus trap on modal
+  // Focus trap on modal (only visible elements, preventing leak into hidden panels)
   function handleKeyDown(e) {
     if (!reconModal || reconModal.classList.contains('hidden')) return;
 
@@ -866,9 +870,18 @@
     }
 
     if (e.key === 'Tab') {
-      const focusables = reconModal.querySelectorAll(
+      const candidates = Array.from(reconModal.querySelectorAll(
         'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      );
+      ));
+      const focusables = candidates.filter(el => {
+        if (el.closest('.hidden') || el.closest('[hidden]')) return false;
+        if (el.offsetParent === null && el.tagName !== 'BODY') return false;
+        if (typeof window.getComputedStyle === 'function') {
+          const style = window.getComputedStyle(el);
+          if (style.display === 'none' || style.visibility === 'hidden') return false;
+        }
+        return true;
+      });
       if (focusables.length === 0) return;
 
       const first = focusables[0];
@@ -920,11 +933,41 @@
       }
     });
 
-    // 3. Dual Tabs
+    // 3. Dual Tabs & WAI-ARIA Arrow-Key Navigation
     const tabCockpit = document.getElementById('tab-recon-cockpit');
     const tabBatch = document.getElementById('tab-recon-batch');
     tabCockpit?.addEventListener('click', () => switchTab('tab-recon-cockpit'));
     tabBatch?.addEventListener('click', () => switchTab('tab-recon-batch'));
+
+    const tabList = document.querySelector('.recon-tab-list');
+    if (tabList) {
+      tabList.addEventListener('keydown', (e) => {
+        const tabs = Array.from(tabList.querySelectorAll('[role="tab"]'));
+        const currentIndex = tabs.indexOf(document.activeElement);
+        if (currentIndex === -1) return;
+
+        let newIndex = currentIndex;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          newIndex = (currentIndex + 1) % tabs.length;
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          newIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          newIndex = 0;
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          newIndex = tabs.length - 1;
+        }
+
+        if (newIndex !== currentIndex) {
+          const targetTab = tabs[newIndex];
+          targetTab.focus();
+          switchTab(targetTab.id);
+        }
+      });
+    }
 
     // 4. Timeline Controls
     const slider = document.getElementById('recon-timeline-slider');
@@ -1027,7 +1070,7 @@
   }
 
   // Public Interface for programmatic inspection / testing
-  window.PetSpotRDronRecon = {
+  window.PetSpotRDroneRecon = {
     open: openReconModal,
     close: closeReconModal,
     getWaypoints: () => [...waypoints],
@@ -1036,6 +1079,7 @@
     confirmHotspot: () => updateHotspotStatus('CONFIRMED'),
     dismissHotspot: () => updateHotspotStatus('DISMISSED')
   };
+  window.PetSpotRDronRecon = window.PetSpotRDroneRecon;
 
   // Run initialization
   if (document.readyState === 'loading') {
