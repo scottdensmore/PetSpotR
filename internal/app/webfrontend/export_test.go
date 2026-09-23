@@ -10,15 +10,23 @@ import (
 var EmbeddedFiles = embeddedFiles
 
 // NewTestServer constructs a test Server with rate limiting disabled.
-func NewTestServer(t testing.TB, st store.StateStore) *Server {
+func NewTestServer(t testing.TB, optStore ...store.StateStore) *Server {
 	if t != nil {
 		t.Helper()
 	}
-	if st == nil {
+	var st store.StateStore
+	if len(optStore) > 0 && optStore[0] != nil {
+		st = optStore[0]
+	} else {
 		st = store.NewMemoryStore()
 	}
 	return NewServerWithOptions(st, ServerOptions{
 		AllowPrivilegedMutations: true,
 		DisableRateLimiting:      true,
 	})
+}
+
+// StateStore returns the internal state store for tests.
+func (s *Server) StateStore() store.StateStore {
+	return s.stateStore
 }
