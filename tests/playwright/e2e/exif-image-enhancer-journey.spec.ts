@@ -326,7 +326,7 @@ test.describe('User Journey: EXIF Auto-Extraction and Image Enhancer', () => {
 
     // Auto-Enhance photo
     await page.locator('#btn-auto-enhance').click();
-    expect(enhanceCalled).toBe(true);
+    await expect.poll(() => enhanceCalled).toBe(true);
 
     const slider = page.locator('#enhance-slider');
     await expect(slider).toBeVisible();
