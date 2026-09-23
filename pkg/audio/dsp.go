@@ -3,6 +3,7 @@ package audio
 import (
 	"errors"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
@@ -21,6 +22,9 @@ const (
 // ComputeFFT computes an in-place Radix-2 Cooley-Tukey FFT on real and imag slices (length must be power of 2).
 func ComputeFFT(real, imag []float64) {
 	n := len(real)
+	if n == 0 || (n&(n-1)) != 0 {
+		return
+	}
 	if n <= 1 || n != len(imag) {
 		return
 	}
@@ -174,6 +178,9 @@ func DetectPitch(pcm []float64, sampleRate int) (float64, float64, float64) {
 
 // ComputeMFCCs computes 13 MFCCs from a 512-point power spectrum.
 func ComputeMFCCs(powerSpectrum []float64, sampleRate int) []float64 {
+	if sampleRate <= 0 {
+		return nil
+	}
 	filters := getMelFilters(sampleRate, FFTSize/2+1, NumMelFilters)
 	energies := make([]float64, NumMelFilters)
 
@@ -199,7 +206,41 @@ func ComputeMFCCs(powerSpectrum []float64, sampleRate int) []float64 {
 	return mfccs
 }
 
+type melFilterKey struct {
+	sampleRate int
+	numBins    int
+	numFilters int
+}
+
+var (
+	melFilterCacheMu sync.RWMutex
+	melFilterCache   = make(map[melFilterKey][][]float64)
+)
+
 func getMelFilters(sampleRate, numBins, numFilters int) [][]float64 {
+	if sampleRate <= 0 || numBins <= 0 || numFilters <= 0 {
+		return nil
+	}
+	key := melFilterKey{sampleRate: sampleRate, numBins: numBins, numFilters: numFilters}
+	melFilterCacheMu.RLock()
+	cached, ok := melFilterCache[key]
+	melFilterCacheMu.RUnlock()
+	if ok {
+		return cached
+	}
+
+	melFilterCacheMu.Lock()
+	defer melFilterCacheMu.Unlock()
+	if cached, ok := melFilterCache[key]; ok {
+		return cached
+	}
+
+	filters := computeMelFilters(sampleRate, numBins, numFilters)
+	melFilterCache[key] = filters
+	return filters
+}
+
+func computeMelFilters(sampleRate, numBins, numFilters int) [][]float64 {
 	minMel := hzToMel(80.0)
 	maxMel := hzToMel(math.Min(float64(sampleRate)/2.0, 8000.0))
 

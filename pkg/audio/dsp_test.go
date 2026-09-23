@@ -100,6 +100,17 @@ func TestDSP_ComputeFFT(t *testing.T) {
 	if singleReal[0] != 5.0 || singleImag[0] != 0.0 {
 		t.Errorf("expected unchanged single-element FFT")
 	}
+
+	// Edge case: n == 0
+	audio.ComputeFFT([]float64{}, []float64{})
+
+	// Edge case: non-power-of-2 length
+	nonPow2Real := []float64{1.0, 2.0, 3.0}
+	nonPow2Imag := []float64{0.0, 0.0, 0.0}
+	audio.ComputeFFT(nonPow2Real, nonPow2Imag)
+	if nonPow2Real[0] != 1.0 || nonPow2Real[1] != 2.0 || nonPow2Real[2] != 3.0 {
+		t.Errorf("expected unchanged non-power-of-2 FFT")
+	}
 }
 
 func TestDSP_ComputeMFCCs(t *testing.T) {
@@ -112,6 +123,25 @@ func TestDSP_ComputeMFCCs(t *testing.T) {
 	mfccs := audio.ComputeMFCCs(powerSpectrum, 16000)
 	if len(mfccs) != audio.NumMFCCs {
 		t.Fatalf("expected %d MFCCs, got %d", audio.NumMFCCs, len(mfccs))
+	}
+
+	// Guard against non-positive sample rate
+	if res := audio.ComputeMFCCs(powerSpectrum, 0); res != nil {
+		t.Errorf("expected nil MFCCs for sampleRate 0, got %v", res)
+	}
+	if res := audio.ComputeMFCCs(powerSpectrum, -16000); res != nil {
+		t.Errorf("expected nil MFCCs for negative sampleRate, got %v", res)
+	}
+
+	// Repeated call to verify mel filterbank caching
+	mfccsCached := audio.ComputeMFCCs(powerSpectrum, 16000)
+	if len(mfccsCached) != audio.NumMFCCs {
+		t.Fatalf("expected %d MFCCs from cached filterbank, got %d", audio.NumMFCCs, len(mfccsCached))
+	}
+	for i := range mfccs {
+		if mfccs[i] != mfccsCached[i] {
+			t.Errorf("mismatch at index %d: %f vs %f", i, mfccs[i], mfccsCached[i])
+		}
 	}
 }
 

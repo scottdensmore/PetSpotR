@@ -107,7 +107,7 @@ func (s *Server) handleLostPetAudioProfile(w http.ResponseWriter, r *http.Reques
 	}
 
 	if r.Method == http.MethodGet {
-		petBytes, err := s.stateStore.GetState(r.Context(), store.CollectionLostPets, petID)
+		petBytes, err := s.stateStore.GetState(r.Context(), store.LostPetsCollection, petID)
 		if err != nil {
 			http.Error(w, "Pet not found", http.StatusNotFound)
 			return
@@ -128,7 +128,7 @@ func (s *Server) handleLostPetAudioProfile(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	petBytes, err := s.stateStore.GetState(r.Context(), store.CollectionLostPets, petID)
+	petBytes, err := s.stateStore.GetState(r.Context(), store.LostPetsCollection, petID)
 	if err != nil {
 		http.Error(w, "Pet not found", http.StatusNotFound)
 		return
@@ -189,7 +189,7 @@ func (s *Server) handleLostPetAudioProfile(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Failed to serialize updated pet state", http.StatusInternalServerError)
 		return
 	}
-	_ = s.stateStore.SaveState(r.Context(), store.CollectionLostPets, petID, updatedPetBytes)
+	_ = s.stateStore.SaveState(r.Context(), store.LostPetsCollection, petID, updatedPetBytes)
 
 	profBytes, _ := json.Marshal(profile)
 	_ = s.stateStore.SaveState(r.Context(), store.CollectionAudioProfiles, profile.AudioID, profBytes)
@@ -222,8 +222,22 @@ func (s *Server) handleAudioMatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var refProf, candProf domain.AudioProfile
-	_ = json.Unmarshal(refBytes, &refProf)
-	_ = json.Unmarshal(candBytes, &candProf)
+	if err := json.Unmarshal(refBytes, &refProf); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": fmt.Sprintf("Failed to deserialize reference audio profile: %v", err),
+		})
+		return
+	}
+	if err := json.Unmarshal(candBytes, &candProf); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": fmt.Sprintf("Failed to deserialize candidate audio profile: %v", err),
+		})
+		return
+	}
 
 	score := audio.ComputeCosineSimilarity(refProf.Voiceprint.Features, candProf.Voiceprint.Features)
 	petID := refProf.PetID
@@ -409,7 +423,7 @@ func (s *Server) attachAcousticMatchIfApplicable(ctx context.Context, sighting *
 		return
 	}
 
-	petBytes, err := s.stateStore.GetState(ctx, store.CollectionLostPets, sighting.PetID)
+	petBytes, err := s.stateStore.GetState(ctx, store.LostPetsCollection, sighting.PetID)
 	if err != nil {
 		return
 	}

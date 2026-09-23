@@ -8,6 +8,9 @@ import (
 
 // ClassifyVocalization analyzes temporal envelope, pitch, and harmonics to determine sound category.
 func ClassifyVocalization(vp domain.AcousticVoiceprint, pcm []float64, sampleRate int) (domain.VocalizationType, float64) {
+	if len(pcm) == 0 {
+		return domain.VocalizationAmbientNoise, 0.0
+	}
 	pitch := vp.DominantPitchHz
 	hnr := vp.HarmonicRatio
 	duration := vp.DurationSeconds

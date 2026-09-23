@@ -204,4 +204,69 @@ test.describe('Audio Spectrogram Component', () => {
     expect(payload.audioDataUri).toBe('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
     expect(payload.locationDescription).toBe('Near park');
   });
+
+  test('should gracefully fallback to default spectrogram viewer when audio analyze fails', async ({ page }) => {
+    await page.setContent(`
+      <div>
+        <input type="file" id="fallback-audio-file" accept="audio/*">
+        <input type="hidden" id="fallback-audio-data-uri">
+        <span id="fallback-vocalization-badge" class="hidden"></span>
+        <div id="fallback-spectrogram-container" class="spectrogram-widget hidden">
+          <canvas class="spectrogram-canvas" width="320" height="120" role="img" aria-label="Acoustic spectrogram"></canvas>
+          <button class="btn-spectrogram-play" aria-label="Play Audio">Play</button>
+        </div>
+      </div>
+      <script src="/static/js/audio-spectrogram.js"></script>
+    `);
+
+    // Route analyze to 500 error
+    await page.route('**/api/v1/audio/analyze', async (route) => {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Internal server error' }),
+      });
+    });
+
+    await page.evaluate(() => {
+      (window as any).setupAudioFileInput(
+        'fallback-audio-file',
+        'fallback-spectrogram-container',
+        'fallback-vocalization-badge',
+        'fallback-audio-data-uri'
+      );
+    });
+
+    // Set file input
+    const fileInput = page.locator('#fallback-audio-file');
+    await fileInput.setInputFiles({
+      name: 'test.wav',
+      mimeType: 'audio/wav',
+      buffer: Buffer.from('RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00\x40\x1f\x00\x00\x40\x1f\x00\x00\x01\x00\x08\x00data\x00\x00\x00\x00'),
+    });
+
+    // Container should become visible and viewer initialized with default canvas
+    const container = page.locator('#fallback-spectrogram-container');
+    await expect(container).toBeVisible();
+
+    const playBtn = container.locator('.btn-spectrogram-play');
+    await expect(playBtn).toBeVisible();
+    await expect(playBtn).toHaveText('Play');
+
+    // Verify canvas has non-zero pixels from default spectrogram renderer
+    const hasPixels = await page.evaluate(() => {
+      const cvs = document.querySelector('#fallback-spectrogram-container .spectrogram-canvas') as HTMLCanvasElement;
+      if (!cvs) return false;
+      const ctx = cvs.getContext('2d');
+      if (!ctx) return false;
+      const imgData = ctx.getImageData(0, 0, cvs.width, cvs.height);
+      for (let i = 0; i < imgData.data.length; i += 4) {
+        if (imgData.data[i + 3] > 0 && (imgData.data[i] > 0 || imgData.data[i + 1] > 0 || imgData.data[i + 2] > 0)) {
+          return true;
+        }
+      }
+      return false;
+    });
+    expect(hasPixels).toBe(true);
+  });
 });

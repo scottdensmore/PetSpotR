@@ -47,6 +47,24 @@ func TestClassifyVocalization_AmbientNoise(t *testing.T) {
 	}
 }
 
+func TestClassifyVocalization_EmptyPCM(t *testing.T) {
+	vp := domain.AcousticVoiceprint{
+		DominantPitchHz: 440.0,
+		HarmonicRatio:   0.8,
+		DurationSeconds: 1.0,
+	}
+
+	category, conf := audio.ClassifyVocalization(vp, nil, 16000)
+	if category != domain.VocalizationAmbientNoise || conf != 0.0 {
+		t.Errorf("expected (AMBIENT_NOISE, 0.0) for nil PCM, got (%s, %f)", category, conf)
+	}
+
+	category, conf = audio.ClassifyVocalization(vp, []float64{}, 16000)
+	if category != domain.VocalizationAmbientNoise || conf != 0.0 {
+		t.Errorf("expected (AMBIENT_NOISE, 0.0) for empty PCM, got (%s, %f)", category, conf)
+	}
+}
+
 func TestClassifyVocalization_FelineMeow(t *testing.T) {
 	vp := domain.AcousticVoiceprint{
 		DominantPitchHz: 450.0,

@@ -135,7 +135,7 @@ func TestLostPetAudioProfileAndSightingMatch(t *testing.T) {
 		CreatedAt: time.Now().UTC(),
 	}
 	pBytes, _ := json.Marshal(pet)
-	_ = memStore.SaveState(context.Background(), store.CollectionLostPets, pet.ID, pBytes)
+	_ = memStore.SaveState(context.Background(), store.LostPetsCollection, pet.ID, pBytes)
 
 	// Subscribe to mesh signaling to verify mesh:audio-match broadcast
 	sigHub := server.SignalingHub()
@@ -381,7 +381,7 @@ func TestLostPetAudioProfilePreservesExistingRecordFields(t *testing.T) {
 		Status: domain.LostPetStatusLost,
 	}
 	recBytes, _ := json.Marshal(rec)
-	_ = memStore.SaveState(context.Background(), store.CollectionLostPets, rec.PetID, recBytes)
+	_ = memStore.SaveState(context.Background(), store.LostPetsCollection, rec.PetID, recBytes)
 
 	refWAV := generateTestWAVBase64(380.0, 0.35)
 	refPayload, _ := json.Marshal(map[string]interface{}{
@@ -396,7 +396,7 @@ func TestLostPetAudioProfilePreservesExistingRecordFields(t *testing.T) {
 		t.Fatalf("expected 200 on attach, got %d", w.Code)
 	}
 
-	savedBytes, err := memStore.GetState(context.Background(), store.CollectionLostPets, rec.PetID)
+	savedBytes, err := memStore.GetState(context.Background(), store.LostPetsCollection, rec.PetID)
 	if err != nil {
 		t.Fatalf("failed to retrieve saved pet: %v", err)
 	}
@@ -419,5 +419,63 @@ func TestLostPetAudioProfilePreservesExistingRecordFields(t *testing.T) {
 	}
 	if savedRec.ReferenceAudioProfile == nil {
 		t.Error("expected ReferenceAudioProfile to be set")
+	}
+}
+
+func TestAudioMatchEndpoint_UnmarshalError(t *testing.T) {
+	memStore := store.NewMemoryStore()
+	server := webfrontend.NewTestServer(t, memStore)
+
+	// Corrupt reference audio profile data
+	_ = memStore.SaveState(context.Background(), store.CollectionAudioProfiles, "corrupt-ref", []byte("{invalid-json"))
+	// Valid candidate audio profile data
+	validCand := domain.AudioProfile{
+		AudioID: "valid-cand",
+	}
+	candBytes, _ := json.Marshal(validCand)
+	_ = memStore.SaveState(context.Background(), store.CollectionAudioProfiles, "valid-cand", candBytes)
+
+	// Test corrupt reference audio profile
+	matchPayload, _ := json.Marshal(map[string]interface{}{
+		"referenceAudioId": "corrupt-ref",
+		"candidateAudioId": "valid-cand",
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/audio/match", bytes.NewReader(matchPayload))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 on corrupt reference profile, got %d", w.Code)
+	}
+	var errResp map[string]string
+	if err := json.Unmarshal(w.Body.Bytes(), &errResp); err != nil {
+		t.Fatalf("expected JSON error response, got %v (body: %s)", err, w.Body.String())
+	}
+	if errResp["error"] == "" {
+		t.Error("expected descriptive error field in JSON response")
+	}
+
+	// Test corrupt candidate audio profile
+	_ = memStore.SaveState(context.Background(), store.CollectionAudioProfiles, "valid-ref", candBytes)
+	_ = memStore.SaveState(context.Background(), store.CollectionAudioProfiles, "corrupt-cand", []byte("{invalid-json"))
+	matchPayload2, _ := json.Marshal(map[string]interface{}{
+		"referenceAudioId": "valid-ref",
+		"candidateAudioId": "corrupt-cand",
+	})
+	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/audio/match", bytes.NewReader(matchPayload2))
+	req2.Header.Set("Content-Type", "application/json")
+	w2 := httptest.NewRecorder()
+	server.ServeHTTP(w2, req2)
+
+	if w2.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 on corrupt candidate profile, got %d", w2.Code)
+	}
+	var errResp2 map[string]string
+	if err := json.Unmarshal(w2.Body.Bytes(), &errResp2); err != nil {
+		t.Fatalf("expected JSON error response, got %v (body: %s)", err, w2.Body.String())
+	}
+	if errResp2["error"] == "" {
+		t.Error("expected descriptive error field in JSON response")
 	}
 }

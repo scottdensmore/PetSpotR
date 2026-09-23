@@ -248,6 +248,8 @@
             if (profile.spectrogramBins) {
               container.setAttribute('data-bins', JSON.stringify(profile.spectrogramBins));
               initSpectrogramViewer(container, profile.spectrogramBins, dataUri);
+            } else {
+              initSpectrogramViewer(container, null, dataUri);
             }
             if (badge && profile.vocalization) {
               badge.classList.remove('hidden');
@@ -259,9 +261,12 @@
                 badge.classList.remove('acoustic-badge-distress');
               }
             }
+          } else {
+            initSpectrogramViewer(container, null, dataUri);
           }
         } catch (err) {
           console.warn('Spectrogram audio analysis error:', err);
+          initSpectrogramViewer(container, null, dataUri);
         }
       };
       reader.readAsDataURL(file);

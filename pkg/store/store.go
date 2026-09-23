@@ -64,9 +64,6 @@ const CollectionAudioProfiles = "audio_profiles"
 // CollectionAcousticMatches is the state store collection for bilateral acoustic match results.
 const CollectionAcousticMatches = "acoustic_matches"
 
-// CollectionLostPets is an alias for LostPetsCollection.
-const CollectionLostPets = LostPetsCollection
-
 // Sentinel errors for StateStore operations.
 var (
 	ErrStoreNotFound = errors.New("store: state store not found")
