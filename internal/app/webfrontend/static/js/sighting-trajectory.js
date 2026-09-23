@@ -364,6 +364,12 @@
       notes: notesVal,
     };
 
+    const audioDataUri = document.getElementById('sighting-audio-data-uri')?.value ||
+      form.elements['audioDataUri']?.value || '';
+    if (audioDataUri) {
+      payload.audioDataUri = audioDataUri;
+    }
+
     if (witnessName || witnessContact) {
       payload.reporterContact = {
         name: witnessName,
@@ -408,6 +414,17 @@
         // Immediate close for responsive UX & test completion
         closeSightingModal();
         form.reset();
+        const sightingAudioUriInput = document.getElementById('sighting-audio-data-uri');
+        if (sightingAudioUriInput) sightingAudioUriInput.value = '';
+        const sightingSpectrogram = document.getElementById('sighting-spectrogram-container');
+        if (sightingSpectrogram) {
+          sightingSpectrogram.classList.add('hidden');
+          sightingSpectrogram.removeAttribute('data-audio');
+          sightingSpectrogram.removeAttribute('data-bins');
+        }
+        const sightingBadge = document.getElementById('sighting-acoustic-badge');
+        if (sightingBadge) sightingBadge.classList.add('hidden');
+
         if (window.petspotrVoiceRecorder) {
           window.petspotrVoiceRecorder.discardRecording();
         }

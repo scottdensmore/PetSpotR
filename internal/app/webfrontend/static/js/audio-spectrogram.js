@@ -2,7 +2,7 @@
   'use strict';
 
   function renderSpectrogram(canvas, bins) {
-    if (!canvas || !bins || bins.length === 0) return;
+    if (!canvas || !bins || !bins.length || !bins[0]?.length) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -69,14 +69,16 @@
     }
 
     if (canvas) {
-      if (bins && bins.length > 0) {
+      if (bins && bins.length > 0 && bins[0]?.length) {
+        container._currentBins = bins;
         renderSpectrogram(canvas, bins);
       } else if (audioId) {
         fetch(`/api/v1/audio/${encodeURIComponent(audioId)}/spectrogram`)
           .then((r) => r.json())
           .then((fetchedBins) => {
-            if (fetchedBins && Array.isArray(fetchedBins)) {
+            if (fetchedBins && Array.isArray(fetchedBins) && fetchedBins.length > 0 && fetchedBins[0]?.length) {
               bins = fetchedBins;
+              container._currentBins = fetchedBins;
               renderSpectrogram(canvas, fetchedBins);
             } else {
               renderDefaultSpectrogram(canvas);
@@ -88,87 +90,131 @@
       }
     }
 
+    if (playBtn && audioData) {
+      if (!container._listenerAttached) {
+        container._listenerAttached = true;
+        const audio = new Audio(audioData);
+        container._audioInstance = audio;
+        container._audioData = audioData;
+        container._isPlaying = false;
+        container._animId = null;
 
-    if (playBtn && audioData && !container._listenerAttached) {
-      container._listenerAttached = true;
-      if (container._audioInstance) {
+        function drawPlayhead() {
+          const currentAudio = container._audioInstance;
+          if (container._isPlaying && currentAudio && !currentAudio.ended && canvas) {
+            const currentBins = container._currentBins || bins;
+            if (currentBins && currentBins.length > 0 && currentBins[0]?.length) {
+              renderSpectrogram(canvas, currentBins);
+            } else {
+              renderDefaultSpectrogram(canvas);
+            }
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              const duration = currentAudio.duration || 1;
+              const progress = (currentAudio.currentTime || 0) / duration;
+              const x = Math.min(canvas.width, Math.max(0, progress * canvas.width));
+              ctx.strokeStyle = '#38bdf8'; // High contrast cyan scrubber
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.moveTo(x, 0);
+              ctx.lineTo(x, canvas.height);
+              ctx.stroke();
+            }
+            container._animId = requestAnimationFrame(drawPlayhead);
+          }
+        }
+
+        playBtn.addEventListener('click', () => {
+          const currentAudio = container._audioInstance;
+          if (!container._isPlaying) {
+            container._isPlaying = true;
+            if (currentAudio) currentAudio.play().catch(() => {});
+            playBtn.textContent = 'Pause';
+            playBtn.setAttribute('aria-label', 'Pause audio');
+            container._animId = requestAnimationFrame(drawPlayhead);
+          } else {
+            container._isPlaying = false;
+            if (currentAudio) currentAudio.pause();
+            playBtn.textContent = 'Play';
+            playBtn.setAttribute('aria-label', 'Play audio');
+            if (container._animId) {
+              cancelAnimationFrame(container._animId);
+              container._animId = null;
+            }
+            const currentBins = container._currentBins || bins;
+            if (canvas) {
+              if (currentBins && currentBins.length > 0 && currentBins[0]?.length) {
+                renderSpectrogram(canvas, currentBins);
+              } else {
+                renderDefaultSpectrogram(canvas);
+              }
+            }
+          }
+        });
+
+        audio.addEventListener('ended', () => {
+          container._isPlaying = false;
+          playBtn.textContent = 'Play';
+          playBtn.setAttribute('aria-label', 'Play audio');
+          if (container._animId) {
+            cancelAnimationFrame(container._animId);
+            container._animId = null;
+          }
+          const currentBins = container._currentBins || bins;
+          if (canvas) {
+            if (currentBins && currentBins.length > 0 && currentBins[0]?.length) {
+              renderSpectrogram(canvas, currentBins);
+            } else {
+              renderDefaultSpectrogram(canvas);
+            }
+          }
+        });
+
+        // Keyboard accessibility (WCAG AAA)
+        container.setAttribute('tabindex', '0');
+        container.addEventListener('keydown', (e) => {
+          const currentAudio = container._audioInstance;
+          if (e.key === ' ' || e.key === 'Spacebar' || e.code === 'Space' || e.key === 'Enter') {
+            e.preventDefault();
+            playBtn.click();
+          } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            if (currentAudio) currentAudio.currentTime = Math.max(0, currentAudio.currentTime - 0.5);
+          } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            if (currentAudio) currentAudio.currentTime = Math.min(currentAudio.duration || 0, currentAudio.currentTime + 0.5);
+          } else if (e.key === 'Home') {
+            e.preventDefault();
+            if (currentAudio) currentAudio.currentTime = 0;
+          } else if (e.key === 'End') {
+            e.preventDefault();
+            if (currentAudio) currentAudio.currentTime = currentAudio.duration || 0;
+          }
+        });
+      } else if (container._audioInstance && container._audioData !== audioData) {
+        container._audioData = audioData;
         try {
           container._audioInstance.pause();
         } catch (e) {}
-      }
-
-      const audio = new Audio(audioData);
-      container._audioInstance = audio;
-      let animId = null;
-      let isPlaying = false;
-
-      function drawPlayhead() {
-        if (isPlaying && !audio.ended && canvas) {
-          if (bins) {
-            renderSpectrogram(canvas, bins);
-          }
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            const duration = audio.duration || 1;
-            const progress = (audio.currentTime || 0) / duration;
-            const x = Math.min(canvas.width, Math.max(0, progress * canvas.width));
-            ctx.strokeStyle = '#38bdf8'; // High contrast cyan scrubber
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, canvas.height);
-            ctx.stroke();
-          }
-          animId = requestAnimationFrame(drawPlayhead);
-        }
-      }
-
-      playBtn.addEventListener('click', () => {
-        if (!isPlaying) {
-          isPlaying = true;
-          audio.play().catch(() => {});
-          playBtn.textContent = 'Pause';
-          playBtn.setAttribute('aria-label', 'Pause audio');
-          animId = requestAnimationFrame(drawPlayhead);
-        } else {
-          isPlaying = false;
-          audio.pause();
-          playBtn.textContent = 'Play';
-          playBtn.setAttribute('aria-label', 'Play audio');
-          if (animId) cancelAnimationFrame(animId);
-          if (canvas && bins) renderSpectrogram(canvas, bins);
-        }
-      });
-
-      audio.addEventListener('ended', () => {
-        isPlaying = false;
+        container._audioInstance.src = audioData;
+        try {
+          container._audioInstance.currentTime = 0;
+        } catch (e) {}
+        container._isPlaying = false;
         playBtn.textContent = 'Play';
         playBtn.setAttribute('aria-label', 'Play audio');
-        if (animId) cancelAnimationFrame(animId);
-        if (canvas && bins) renderSpectrogram(canvas, bins);
-      });
-
-
-      // Keyboard accessibility (WCAG AAA)
-      container.setAttribute('tabindex', '0');
-      container.addEventListener('keydown', (e) => {
-        if (e.key === ' ' || e.key === 'Spacebar' || e.code === 'Space' || e.key === 'Enter') {
-          e.preventDefault();
-          playBtn.click();
-        } else if (e.key === 'ArrowLeft') {
-          e.preventDefault();
-          audio.currentTime = Math.max(0, audio.currentTime - 0.5);
-        } else if (e.key === 'ArrowRight') {
-          e.preventDefault();
-          audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 0.5);
-        } else if (e.key === 'Home') {
-          e.preventDefault();
-          audio.currentTime = 0;
-        } else if (e.key === 'End') {
-          e.preventDefault();
-          audio.currentTime = audio.duration || 0;
+        if (container._animId) {
+          cancelAnimationFrame(container._animId);
+          container._animId = null;
         }
-      });
+        if (canvas) {
+          if (bins && bins.length > 0 && bins[0]?.length) {
+            renderSpectrogram(canvas, bins);
+          } else {
+            renderDefaultSpectrogram(canvas);
+          }
+        }
+      }
     }
   }
 
