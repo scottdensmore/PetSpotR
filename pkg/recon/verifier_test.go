@@ -174,3 +174,29 @@ func TestVerifyHotspotWithOllama_CropFromFullImage(t *testing.T) {
 		t.Errorf("expected classification 'Feline Signature', got %q", verified.Classification)
 	}
 }
+
+func TestVerifyHotspotWithOllama_RejectionClamping(t *testing.T) {
+	// Rejection with excessive confidence > 2.0 would cause negative score without clamping
+	client := ollama.NewDeterministicClient(&ollama.GenerateResponse{
+		Model:    ollama.Gemma4Model,
+		Response: `{"isPet": false, "confidence": 5.0, "category": "Roof Solar Panel"}`,
+		Done:     true,
+	}, nil)
+
+	hotspot := domain.ThermalHotspot{
+		ID:              "hotspot-clamp",
+		ConfidenceScore: 0.60,
+		ThumbnailBase64: "data:image/jpeg;base64,/9j/4AAQSkZJRg==",
+	}
+
+	verified, err := recon.VerifyHotspotWithOllama(context.Background(), client, hotspot, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if verified.ConfidenceScore < 0.0 || verified.ConfidenceScore > 1.0 {
+		t.Errorf("expected confidence score clamped within [0, 1], got %f", verified.ConfidenceScore)
+	}
+	if verified.ConfidenceScore != 0.0 {
+		t.Errorf("expected clamped to 0.0, got %f", verified.ConfidenceScore)
+	}
+}

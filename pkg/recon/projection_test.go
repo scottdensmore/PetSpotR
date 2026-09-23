@@ -410,3 +410,115 @@ func TestComputeCameraFrustumFootprint_WithGimbalRoll(t *testing.T) {
 		t.Errorf("expected area ~5000 m^2 with roll, got %f", area)
 	}
 }
+
+func TestSegmentsIntersect_Collinear(t *testing.T) {
+	tests := []struct {
+		name     string
+		p1, p2   [2]float64
+		q1, q2   [2]float64
+		expected bool
+	}{
+		{
+			name:     "collinear overlapping segments",
+			p1:       [2]float64{0.0, 0.0},
+			p2:       [2]float64{2.0, 0.0},
+			q1:       [2]float64{1.0, 0.0},
+			q2:       [2]float64{3.0, 0.0},
+			expected: true,
+		},
+		{
+			name:     "collinear touching at one endpoint",
+			p1:       [2]float64{0.0, 0.0},
+			p2:       [2]float64{1.0, 0.0},
+			q1:       [2]float64{1.0, 0.0},
+			q2:       [2]float64{2.0, 0.0},
+			expected: true,
+		},
+		{
+			name:     "collinear disjoint segments",
+			p1:       [2]float64{0.0, 0.0},
+			p2:       [2]float64{1.0, 0.0},
+			q1:       [2]float64{2.0, 0.0},
+			q2:       [2]float64{3.0, 0.0},
+			expected: false,
+		},
+		{
+			name:     "collinear segment contained within another",
+			p1:       [2]float64{0.0, 0.0},
+			p2:       [2]float64{4.0, 0.0},
+			q1:       [2]float64{1.0, 0.0},
+			q2:       [2]float64{2.0, 0.0},
+			expected: true,
+		},
+		{
+			name:     "vertical collinear overlapping segments",
+			p1:       [2]float64{0.0, 0.0},
+			p2:       [2]float64{0.0, 2.0},
+			q1:       [2]float64{0.0, 1.0},
+			q2:       [2]float64{0.0, 3.0},
+			expected: true,
+		},
+		{
+			name:     "vertical collinear disjoint segments",
+			p1:       [2]float64{0.0, 0.0},
+			p2:       [2]float64{0.0, 1.0},
+			q1:       [2]float64{0.0, 2.0},
+			q2:       [2]float64{0.0, 3.0},
+			expected: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := recon.SegmentsIntersect(tc.p1, tc.p2, tc.q1, tc.q2)
+			if got != tc.expected {
+				t.Errorf("SegmentsIntersect(%v, %v, %v, %v) = %v; want %v",
+					tc.p1, tc.p2, tc.q1, tc.q2, got, tc.expected)
+			}
+		})
+	}
+}
+
+func TestComputeSweptAreaSqMeters_MalformedCoordinates(t *testing.T) {
+	tests := []struct {
+		name string
+		poly [][]float64
+	}{
+		{"nil slice", nil},
+		{"empty slice", [][]float64{}},
+		{"fewer than 3 points", [][]float64{{0.0, 0.0}, {1.0, 1.0}}},
+		{"inner slices empty", [][]float64{{}, {}, {}}},
+		{"inner slices single element", [][]float64{{1.0}, {2.0}, {3.0}}},
+		{"mixed length inner slices", [][]float64{{0.0, 0.0}, {1.0}, {2.0, 2.0}}},
+		{"closing vertex check with short slices", [][]float64{{0.0}, {1.0, 1.0}, {2.0, 2.0}}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			area := recon.ComputeSweptAreaSqMeters(tc.poly)
+			if area != 0.0 {
+				t.Errorf("expected 0.0 for %s, got %f", tc.name, area)
+			}
+		})
+	}
+}
+
+func TestValidateIntrinsics_NaN(t *testing.T) {
+	wp := domain.DroneWaypoint{
+		Latitude:       37.7749,
+		Longitude:      -122.4194,
+		AltitudeAGL:    50.0,
+		HeadingDeg:     0.0,
+		GimbalPitchDeg: -90.0,
+	}
+
+	camNaN_HFOV := domain.CameraIntrinsics{HFOV: math.NaN(), VFOV: 60.0}
+	if _, err := recon.ComputeCameraFrustumFootprint(wp, camNaN_HFOV); err == nil {
+		t.Errorf("expected error for NaN HFOV, got nil")
+	}
+
+	camNaN_VFOV := domain.CameraIntrinsics{HFOV: 84.0, VFOV: math.NaN()}
+	if _, err := recon.ComputeCameraFrustumFootprint(wp, camNaN_VFOV); err == nil {
+		t.Errorf("expected error for NaN VFOV, got nil")
+	}
+}

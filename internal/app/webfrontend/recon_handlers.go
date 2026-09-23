@@ -530,7 +530,19 @@ func (s *Server) handleScanReconThermal(w http.ResponseWriter, r *http.Request) 
 		if mBytes, err := s.stateStore.GetState(r.Context(), store.CollectionReconMissions, missionID); err == nil {
 			var m domain.DroneMission
 			if json.Unmarshal(mBytes, &m) == nil {
-				m.Hotspots = append(m.Hotspots, hotspots...)
+				for _, h := range hotspots {
+					duplicate := false
+					for _, existing := range m.Hotspots {
+						if math.Abs(h.BoundingBox.X-existing.BoundingBox.X) < 0.05 &&
+							math.Abs(h.BoundingBox.Y-existing.BoundingBox.Y) < 0.05 {
+							duplicate = true
+							break
+						}
+					}
+					if !duplicate {
+						m.Hotspots = append(m.Hotspots, h)
+					}
+				}
 				if updatedBytes, err := json.Marshal(m); err == nil {
 					_ = s.stateStore.SaveState(r.Context(), store.CollectionReconMissions, missionID, updatedBytes)
 				}
@@ -731,7 +743,7 @@ func (s *Server) handleUpdateReconHotspotStatus(w http.ResponseWriter, r *http.R
 				}
 				payloadBytes, _ := json.Marshal(payloadMap)
 				envelope := mesh.SignalingEnvelope{
-					Type:          mesh.SignalingType("THERMAL_HOTSPOT"),
+					Type:          mesh.SignalThermalHotspot,
 					SearchPartyID: party.PartyID,
 					SenderNodeID:  "pilot-station",
 					Payload:       payloadBytes,
@@ -843,19 +855,32 @@ func (s *Server) handleExportReconMission(w http.ResponseWriter, r *http.Request
 
 	// Feature 2: Frustum Footprint (Polygon)
 	if len(mission.FootprintPoly) >= 3 {
-		features = append(features, map[string]interface{}{
-			"type": "Feature",
-			"geometry": map[string]interface{}{
-				"type":        "Polygon",
-				"coordinates": [][][]float64{mission.FootprintPoly},
-			},
-			"properties": map[string]interface{}{
-				"name":              "Camera Frustum Footprint",
-				"missionId":         mission.ID,
-				"sweptAreaSqMeters": mission.SweptAreaSqM,
-				"coveredSectorIds":  mission.CoveredSectorIDs,
-			},
-		})
+		poly := make([][]float64, 0, len(mission.FootprintPoly)+1)
+		for _, pt := range mission.FootprintPoly {
+			if len(pt) >= 2 {
+				poly = append(poly, []float64{pt[0], pt[1]})
+			}
+		}
+		if len(poly) >= 3 {
+			first := poly[0]
+			last := poly[len(poly)-1]
+			if math.Abs(first[0]-last[0]) > 1e-9 || math.Abs(first[1]-last[1]) > 1e-9 {
+				poly = append(poly, []float64{first[0], first[1]})
+			}
+			features = append(features, map[string]interface{}{
+				"type": "Feature",
+				"geometry": map[string]interface{}{
+					"type":        "Polygon",
+					"coordinates": [][][]float64{poly},
+				},
+				"properties": map[string]interface{}{
+					"name":              "Camera Frustum Footprint",
+					"missionId":         mission.ID,
+					"sweptAreaSqMeters": mission.SweptAreaSqM,
+					"coveredSectorIds":  mission.CoveredSectorIDs,
+				},
+			})
+		}
 	}
 
 	// Feature 3...N: Thermal Hotspots (Points)

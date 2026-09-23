@@ -127,7 +127,7 @@ func VerifyHotspotWithOllama(
 			hotspot.Classification = defaultClassification
 		}
 		if res.Confidence > 0 {
-			hotspot.ConfidenceScore = hotspot.ConfidenceScore * (1.0 - res.Confidence*0.5)
+			hotspot.ConfidenceScore = math.Max(0.0, math.Min(1.0, hotspot.ConfidenceScore*(1.0-res.Confidence*0.5)))
 			hotspot.ConfidenceScore = math.Round(hotspot.ConfidenceScore*1000.0) / 1000.0
 		}
 	}

@@ -270,7 +270,7 @@ func AnalyzeThermalImage(
 		}
 	}
 
-	sort.Slice(hotspots, func(i, j int) bool {
+	sort.SliceStable(hotspots, func(i, j int) bool {
 		return hotspots[i].ConfidenceScore > hotspots[j].ConfidenceScore
 	})
 

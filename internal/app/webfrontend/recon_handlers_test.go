@@ -231,8 +231,11 @@ func TestReconThermalScanEndpoint(t *testing.T) {
 	_ = writer.WriteField("palette", "WHITE_HOT")
 	_ = writer.Close()
 
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/recon/thermal/scan", &body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
+	reqBytes := body.Bytes()
+	contentType := writer.FormDataContentType()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/recon/thermal/scan", bytes.NewReader(reqBytes))
+	req.Header.Set("Content-Type", contentType)
 	w := httptest.NewRecorder()
 
 	server.ServeHTTP(w, req)
@@ -268,6 +271,25 @@ func TestReconThermalScanEndpoint(t *testing.T) {
 	_ = json.Unmarshal(savedHotspotBytes, &savedH)
 	if savedH.ID != h.ID {
 		t.Errorf("stored hotspot ID mismatch: %s vs %s", savedH.ID, h.ID)
+	}
+
+	// Verify deduplication on duplicate thermal frame scan
+	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/recon/thermal/scan", bytes.NewReader(reqBytes))
+	req2.Header.Set("Content-Type", contentType)
+	w2 := httptest.NewRecorder()
+	server.ServeHTTP(w2, req2)
+	if w2.Code != http.StatusOK {
+		t.Fatalf("expected 200 on second scan, got %d", w2.Code)
+	}
+
+	savedMissionBytes, err := memStore.GetState(context.Background(), store.CollectionReconMissions, mission.ID)
+	if err != nil {
+		t.Fatalf("expected mission in store: %v", err)
+	}
+	var savedM domain.DroneMission
+	_ = json.Unmarshal(savedMissionBytes, &savedM)
+	if len(savedM.Hotspots) != len(hotspots) {
+		t.Errorf("expected deduplicated hotspots count %d, got %d", len(hotspots), len(savedM.Hotspots))
 	}
 }
 
@@ -387,7 +409,7 @@ func TestReconHotspotStatusEndpoint(t *testing.T) {
 	// 3. Verify mesh broadcast received
 	select {
 	case env := <-msgCh:
-		if env.Type != mesh.SignalingType("THERMAL_HOTSPOT") && env.Type != mesh.SignalingType("mesh:thermal-hotspot") {
+		if env.Type != mesh.SignalThermalHotspot && env.Type != mesh.SignalingType("mesh:thermal-hotspot") {
 			t.Errorf("unexpected signaling type: %s", env.Type)
 		}
 	case <-time.After(1 * time.Second):
@@ -415,7 +437,6 @@ func TestReconMissionExportEndpoint(t *testing.T) {
 			{-122.4188, 37.7748},
 			{-122.4188, 37.7756},
 			{-122.4196, 37.7756},
-			{-122.4196, 37.7748},
 		},
 		Hotspots: []domain.ThermalHotspot{
 			{
@@ -452,6 +473,30 @@ func TestReconMissionExportEndpoint(t *testing.T) {
 	}
 	if len(geoJSON.Features) < 3 {
 		t.Errorf("expected at least 3 features (path, footprint, hotspot), got %d", len(geoJSON.Features))
+	}
+
+	// Verify linear ring closure for Polygon feature
+	var footprintFeature map[string]interface{}
+	for _, f := range geoJSON.Features {
+		geom, ok := f["geometry"].(map[string]interface{})
+		if ok && geom["type"] == "Polygon" {
+			footprintFeature = f
+			break
+		}
+	}
+	if footprintFeature == nil {
+		t.Fatal("expected polygon footprint feature in export")
+	}
+	geom := footprintFeature["geometry"].(map[string]interface{})
+	coordsRaw := geom["coordinates"].([]interface{})
+	ring := coordsRaw[0].([]interface{})
+	if len(ring) != 5 {
+		t.Fatalf("expected 5 coordinates in closed linear ring, got %d", len(ring))
+	}
+	firstCoord := ring[0].([]interface{})
+	lastCoord := ring[4].([]interface{})
+	if firstCoord[0] != lastCoord[0] || firstCoord[1] != lastCoord[1] {
+		t.Errorf("linear ring not closed: first %v != last %v", firstCoord, lastCoord)
 	}
 
 	// Test 404 for unknown mission

@@ -249,6 +249,10 @@ test.describe('User Journey: Drone / UAV Aerial Reconnaissance & Thermal Hotspot
     // Step 5: Scrub timeline slider #recon-timeline-slider forward;
     //         verify drone marker position updates and heading rotates
     // ------------------------------------------------------------------------
+    // Capture initial camera frustum SVG path d attribute before scrubbing
+    const initialFrustumD = await frustumPolygon.getAttribute('d');
+    expect(initialFrustumD).toBeTruthy();
+
     // Scrub to Waypoint index 1 (50% through the 3-waypoint sortie)
     await page.evaluate(() => {
       const el = document.getElementById('recon-timeline-slider') as HTMLInputElement;
@@ -267,6 +271,11 @@ test.describe('User Journey: Drone / UAV Aerial Reconnaissance & Thermal Hotspot
 
     // Verify drone marker rotated to 150deg heading
     await expect(droneMarker).toHaveAttribute('style', /rotate\(150deg\)/);
+
+    // Verify camera frustum SVG path d attribute mutates after scrubbing
+    await expect(frustumPolygon).not.toHaveAttribute('d', initialFrustumD!);
+    const updatedFrustumD = await frustumPolygon.getAttribute('d');
+    expect(updatedFrustumD).not.toEqual(initialFrustumD);
 
     // ------------------------------------------------------------------------
     // Step 6: Click #btn-confirm-hotspot; assert status badge updates to CONFIRMED

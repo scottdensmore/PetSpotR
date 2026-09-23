@@ -183,6 +183,12 @@ func ComputeSweptAreaSqMeters(poly [][]float64) float64 {
 		return 0.0
 	}
 
+	for _, p := range poly {
+		if len(p) < 2 {
+			return 0.0
+		}
+	}
+
 	// Strip closing vertex if repeated
 	pts := poly
 	if n > 1 && pts[0][0] == pts[n-1][0] && pts[0][1] == pts[n-1][1] {
@@ -283,6 +289,9 @@ func normalizeIntrinsics(cam domain.CameraIntrinsics) domain.CameraIntrinsics {
 }
 
 func validateIntrinsics(cam domain.CameraIntrinsics) error {
+	if math.IsNaN(cam.HFOV) || math.IsNaN(cam.VFOV) {
+		return errors.New("recon: camera HFOV and VFOV must not be NaN")
+	}
 	if cam.HFOV <= 0 || cam.HFOV >= 180 {
 		return fmt.Errorf("recon: camera HFOV must be between 0 and 180 degrees, got %f", cam.HFOV)
 	}
