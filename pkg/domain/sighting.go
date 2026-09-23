@@ -24,20 +24,44 @@ type SightingRecord = PetSightingRecord
 
 // PetSightingRecord captures a community witness report of a lost pet.
 type PetSightingRecord struct {
-	SightingID          string         `json:"sightingId"`
-	LostPetID           string         `json:"lostPetId"`
-	ReportedAt          time.Time      `json:"reportedAt"`
-	SightedAt           time.Time      `json:"sightedAt"`
-	LocationDescription string         `json:"locationDescription"`
-	Coordinates         *LocationPoint `json:"coordinates"`
-	MovementDirection   string         `json:"movementDirection,omitempty"` // e.g. "North", "Stationary"
-	ImageURL            string         `json:"imageUrl,omitempty"`
-	ImageObject         string         `json:"imageObject,omitempty"`
-	Notes               string         `json:"notes,omitempty"`
-	Status              SightingStatus `json:"status"`
-	VoiceMemoURL        string         `json:"voiceMemoUrl,omitempty"`
-	VoiceMemoDuration   float64        `json:"voiceMemoDuration,omitempty"`
-	VoiceMemoWaveform   []float64      `json:"voiceMemoWaveform,omitempty"`
+	SightingID          string               `json:"sightingId"`
+	LostPetID           string               `json:"lostPetId"`
+	ReportedAt          time.Time            `json:"reportedAt"`
+	SightedAt           time.Time            `json:"sightedAt"`
+	LocationDescription string               `json:"locationDescription"`
+	Coordinates         *LocationPoint       `json:"coordinates"`
+	MovementDirection   string               `json:"movementDirection,omitempty"` // e.g. "North", "Stationary"
+	ImageURL            string               `json:"imageUrl,omitempty"`
+	ImageObject         string               `json:"imageObject,omitempty"`
+	Notes               string               `json:"notes,omitempty"`
+	Status              SightingStatus       `json:"status"`
+	VoiceMemoURL        string               `json:"voiceMemoUrl,omitempty"`
+	VoiceMemoDuration   float64              `json:"voiceMemoDuration,omitempty"`
+	VoiceMemoWaveform   []float64            `json:"voiceMemoWaveform,omitempty"`
+	AudioProfile        *AudioProfile        `json:"audioProfile,omitempty"`
+	AcousticMatch       *AcousticMatchResult `json:"acousticMatch,omitempty"`
+}
+
+// Sighting represents an observed pet sighting with optional acoustic matching metadata.
+type Sighting struct {
+	ID                  string               `json:"id,omitempty"`
+	PetID               string               `json:"petId,omitempty"`
+	SightingID          string               `json:"sightingId,omitempty"`
+	LostPetID           string               `json:"lostPetId,omitempty"`
+	ReportedAt          time.Time            `json:"reportedAt,omitempty"`
+	SightedAt           time.Time            `json:"sightedAt,omitempty"`
+	LocationDescription string               `json:"locationDescription,omitempty"`
+	Coordinates         *LocationPoint       `json:"coordinates,omitempty"`
+	MovementDirection   string               `json:"movementDirection,omitempty"`
+	ImageURL            string               `json:"imageUrl,omitempty"`
+	ImageObject         string               `json:"imageObject,omitempty"`
+	Notes               string               `json:"notes,omitempty"`
+	Status              SightingStatus       `json:"status,omitempty"`
+	VoiceMemoURL        string               `json:"voiceMemoUrl,omitempty"`
+	VoiceMemoDuration   float64              `json:"voiceMemoDuration,omitempty"`
+	VoiceMemoWaveform   []float64            `json:"voiceMemoWaveform,omitempty"`
+	AudioProfile        *AudioProfile        `json:"audioProfile,omitempty"`
+	AcousticMatch       *AcousticMatchResult `json:"acousticMatch,omitempty"`
 }
 
 // Validate checks that the PetSightingRecord contains required fields and valid coordinates.

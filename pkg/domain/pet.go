@@ -9,14 +9,15 @@ import (
 
 // Pet represents a lost or reported pet in PetSpotR.
 type Pet struct {
-	ID         string    `json:"id"`
-	Name       string    `json:"name"`
-	Type       string    `json:"type"`
-	Breed      string    `json:"breed"`
-	Images     []string  `json:"images"`
-	State      string    `json:"state"`
-	OwnerEmail string    `json:"ownerEmail"`
-	CreatedAt  time.Time `json:"createdAt"`
+	ID                    string        `json:"id"`
+	Name                  string        `json:"name"`
+	Type                  string        `json:"type"`
+	Breed                 string        `json:"breed"`
+	Images                []string      `json:"images"`
+	State                 string        `json:"state"`
+	OwnerEmail            string        `json:"ownerEmail"`
+	CreatedAt             time.Time     `json:"createdAt"`
+	ReferenceAudioProfile *AudioProfile `json:"referenceAudioProfile,omitempty"`
 }
 
 // Validate checks that mandatory pet fields are set.

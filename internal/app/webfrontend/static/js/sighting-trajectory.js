@@ -364,6 +364,12 @@
       notes: notesVal,
     };
 
+    const audioDataUri = document.getElementById('sighting-audio-data-uri')?.value ||
+      form.elements['audioDataUri']?.value || '';
+    if (audioDataUri) {
+      payload.audioDataUri = audioDataUri;
+    }
+
     if (witnessName || witnessContact) {
       payload.reporterContact = {
         name: witnessName,
@@ -408,6 +414,17 @@
         // Immediate close for responsive UX & test completion
         closeSightingModal();
         form.reset();
+        const sightingAudioUriInput = document.getElementById('sighting-audio-data-uri');
+        if (sightingAudioUriInput) sightingAudioUriInput.value = '';
+        const sightingSpectrogram = document.getElementById('sighting-spectrogram-container');
+        if (sightingSpectrogram) {
+          sightingSpectrogram.classList.add('hidden');
+          sightingSpectrogram.removeAttribute('data-audio');
+          sightingSpectrogram.removeAttribute('data-bins');
+        }
+        const sightingBadge = document.getElementById('sighting-acoustic-badge');
+        if (sightingBadge) sightingBadge.classList.add('hidden');
+
         if (window.petspotrVoiceRecorder) {
           window.petspotrVoiceRecorder.discardRecording();
         }
@@ -543,16 +560,43 @@
             const leg = data.legs ? data.legs.find(l => l.toSightingId === s.sightingId) : null;
             const headingPart = s.movementDirection ? ` · Heading ${escapeHTML(s.movementDirection)}` : '';
             const speedPart = leg && leg.speedMph > 0 ? ` (${leg.speedMph.toFixed(1)} mph)` : '';
+            let acousticHtml = '';
+            if (s.acousticMatch && s.acousticMatch.isProbableMatch) {
+              const scorePct = Math.round((s.acousticMatch.similarityScore || 0) * 100);
+              acousticHtml = `
+                <div class="acoustic-match-badge" title="Confidence: ${scorePct}%">
+                  🔊 Acoustic Match: ${scorePct}%
+                </div>
+              `;
+            }
+            if (s.audioProfile) {
+              acousticHtml += `
+                <div class="spectrogram-widget" data-audio="${escapeHTML(s.audioProfile.audioDataUri || '')}" data-audio-id="${escapeHTML(s.audioProfile.audioId || '')}">
+                  <canvas class="spectrogram-canvas" width="320" height="120" role="img" aria-label="Acoustic spectrogram"></canvas>
+                  <div class="spectrogram-controls">
+                    <button type="button" class="btn btn-secondary btn-sm btn-spectrogram-play" aria-label="Play Audio">Play</button>
+                  </div>
+                </div>
+              `;
+            }
             item.innerHTML = `
               <span>
                 <strong class="text-primary">Pin ${idx + 1}:</strong>
                 ${escapeHTML(s.locationDescription || 'Spotted')}
                 <small class="text-secondary">${headingPart}${speedPart}</small>
+                ${acousticHtml}
               </span>
               <span class="text-secondary">${formatTimestamp(s.sightedAt)}</span>
             `;
             timelineList.appendChild(item);
+            if (s.audioProfile && window.initAudioSpectrogram) {
+              const widget = item.querySelector('.spectrogram-widget');
+              if (widget) {
+                window.initAudioSpectrogram(widget, s.audioProfile.spectrogramBins, s.audioProfile.audioDataUri);
+              }
+            }
           });
+
         }
       }
 
