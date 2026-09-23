@@ -157,3 +157,22 @@ func TestDSP_EdgeCases(t *testing.T) {
 		t.Errorf("expected 0.0 for zero vectors, got %f", sim)
 	}
 }
+
+func TestDSP_60HzAmbient(t *testing.T) {
+	sampleRate := 16000
+	sine := generateSineWave(60.0, 2.0, sampleRate)
+	p, v, h := audio.DetectPitch(sine, sampleRate)
+	t.Logf("60Hz detected: pitch=%f, var=%f, hnr=%f", p, v, h)
+
+	vp, _, err := audio.ExtractVoiceprint(sine, sampleRate)
+	if err != nil {
+		t.Fatalf("ExtractVoiceprint err: %v", err)
+	}
+	t.Logf("Voiceprint: pitch=%f, var=%f, hnr=%f, duration=%f", vp.DominantPitchHz, vp.PitchVarianceHz, vp.HarmonicRatio, vp.DurationSeconds)
+
+	cat, conf := audio.ClassifyVocalization(vp, sine, sampleRate)
+	t.Logf("Classify: cat=%s, conf=%f", cat, conf)
+	if cat != "AMBIENT_NOISE" {
+		t.Errorf("expected AMBIENT_NOISE, got %s", cat)
+	}
+}

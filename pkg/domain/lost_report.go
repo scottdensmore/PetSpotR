@@ -443,6 +443,10 @@ func NormalizeLostPetReport(report LostPetReport) LostPetReport {
 		beacon := *report.CollarBeacon
 		report.CollarBeacon = &beacon
 	}
+	if report.ReferenceAudioProfile != nil {
+		prof := *report.ReferenceAudioProfile
+		report.ReferenceAudioProfile = &prof
+	}
 	return report
 }
 
@@ -584,25 +588,26 @@ func (r LostPetReport) Persisted() (LostPetRecord, ReportContact) {
 		emb = append([]float32(nil), primary.Embedding...)
 	}
 	return LostPetRecord{
-			PetID:             r.PetID,
-			PetName:           r.PetName,
-			Species:           r.Species,
-			Breed:             r.Breed,
-			PrimaryColor:      r.PrimaryColor,
-			Description:       r.Description,
-			OwnerIdentityRef:  identityRef,
-			ImageObject:       r.ImageObject,
-			Images:            clonePetImages(r.Images),
-			Embedding:         emb,
-			ReportedAt:        r.ReportedAt,
-			Location:          r.Location,
-			GeocodingStatus:   r.GeocodingStatus,
-			Coordinates:       cloneLocationPoint(r.Coordinates),
-			Status:            r.Status,
-			OwnedBy:           normalizePrincipalRef(r.OwnedBy),
-			MicrochipID:       r.MicrochipID,
-			MicrochipRegistry: r.MicrochipRegistry,
-			CollarBeacon:      r.CollarBeacon,
+			PetID:                 r.PetID,
+			PetName:               r.PetName,
+			Species:               r.Species,
+			Breed:                 r.Breed,
+			PrimaryColor:          r.PrimaryColor,
+			Description:           r.Description,
+			OwnerIdentityRef:      identityRef,
+			ImageObject:           r.ImageObject,
+			Images:                clonePetImages(r.Images),
+			Embedding:             emb,
+			ReportedAt:            r.ReportedAt,
+			Location:              r.Location,
+			GeocodingStatus:       r.GeocodingStatus,
+			Coordinates:           cloneLocationPoint(r.Coordinates),
+			Status:                r.Status,
+			OwnedBy:               normalizePrincipalRef(r.OwnedBy),
+			MicrochipID:           r.MicrochipID,
+			MicrochipRegistry:     r.MicrochipRegistry,
+			CollarBeacon:          r.CollarBeacon,
+			ReferenceAudioProfile: r.ReferenceAudioProfile,
 		}, NormalizeReportContact(ReportContact{
 			IdentityRef: identityRef,
 			Email:       r.ReporterEmail,
@@ -614,22 +619,24 @@ func (r LostPetReport) Persisted() (LostPetRecord, ReportContact) {
 // records that predate explicit identity references.
 func NormalizeLostPetRecord(record LostPetRecord) LostPetRecord {
 	report := NormalizeLostPetReport(LostPetReport{
-		PetID:             record.PetID,
-		PetName:           record.PetName,
-		Species:           record.Species,
-		Breed:             record.Breed,
-		PrimaryColor:      record.PrimaryColor,
-		Description:       record.Description,
-		ImageObject:       record.ImageObject,
-		Images:            record.Images,
-		ReportedAt:        record.ReportedAt,
-		Location:          record.Location,
-		GeocodingStatus:   record.GeocodingStatus,
-		Coordinates:       record.Coordinates,
-		Status:            record.Status,
-		OwnedBy:           record.OwnedBy,
-		MicrochipID:       record.MicrochipID,
-		MicrochipRegistry: record.MicrochipRegistry,
+		PetID:                 record.PetID,
+		PetName:               record.PetName,
+		Species:               record.Species,
+		Breed:                 record.Breed,
+		PrimaryColor:          record.PrimaryColor,
+		Description:           record.Description,
+		ImageObject:           record.ImageObject,
+		Images:                record.Images,
+		ReportedAt:            record.ReportedAt,
+		Location:              record.Location,
+		GeocodingStatus:       record.GeocodingStatus,
+		Coordinates:           record.Coordinates,
+		Status:                record.Status,
+		OwnedBy:               record.OwnedBy,
+		MicrochipID:           record.MicrochipID,
+		MicrochipRegistry:     record.MicrochipRegistry,
+		CollarBeacon:          record.CollarBeacon,
+		ReferenceAudioProfile: record.ReferenceAudioProfile,
 	})
 	normalized, _ := report.Persisted()
 	if identityRef := strings.TrimSpace(record.OwnerIdentityRef); identityRef != "" {
@@ -646,6 +653,10 @@ func NormalizeLostPetRecord(record LostPetRecord) LostPetRecord {
 	if record.CollarBeacon != nil {
 		beacon := *record.CollarBeacon
 		normalized.CollarBeacon = &beacon
+	}
+	if record.ReferenceAudioProfile != nil {
+		prof := *record.ReferenceAudioProfile
+		normalized.ReferenceAudioProfile = &prof
 	}
 	return normalized
 }

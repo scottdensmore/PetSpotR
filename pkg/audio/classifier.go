@@ -12,8 +12,8 @@ func ClassifyVocalization(vp domain.AcousticVoiceprint, pcm []float64, sampleRat
 	hnr := vp.HarmonicRatio
 	duration := vp.DurationSeconds
 
-	// 1. Ambient noise rejection
-	if hnr < 0.20 || pitch <= 0 {
+	// 1. Ambient noise rejection (low harmonicity, unvoiced, or low-frequency sub-vocal rumble/hum <80Hz)
+	if hnr < 0.20 || pitch <= 0 || pitch < 80.0 {
 		return domain.VocalizationAmbientNoise, 0.85
 	}
 

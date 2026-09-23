@@ -494,6 +494,7 @@ func (s *Server) handleMatches(w http.ResponseWriter, r *http.Request) {
 
 type LostPetFormRequest struct {
 	PetID              string                     `json:"petId"`
+	ID                 string                     `json:"id,omitempty"`
 	PetName            string                     `json:"petName"`
 	Species            string                     `json:"species"`
 	Breed              string                     `json:"breed"`
@@ -501,6 +502,7 @@ type LostPetFormRequest struct {
 	Description        string                     `json:"description"`
 	Location           string                     `json:"location"`
 	ReporterEmail      string                     `json:"reporterEmail"`
+	Email              string                     `json:"email,omitempty"`
 	Phone              string                     `json:"phone"`
 	MicrochipID        string                     `json:"microchipId,omitempty"`
 	Coordinates        *domain.LocationPoint      `json:"coordinates,omitempty"`
@@ -733,6 +735,9 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 
 	petID := strings.TrimSpace(req.PetID)
 	if petID == "" {
+		petID = strings.TrimSpace(req.ID)
+	}
+	if petID == "" {
 		var err error
 		petID, err = newLostPetID(req.PetName)
 		if err != nil {
@@ -744,7 +749,10 @@ func (s *Server) handleApiLostPets(w http.ResponseWriter, r *http.Request) {
 	if reportedAt.IsZero() {
 		reportedAt = time.Now().UTC()
 	}
-	reporterEmail := req.ReporterEmail
+	reporterEmail := strings.TrimSpace(req.ReporterEmail)
+	if reporterEmail == "" {
+		reporterEmail = strings.TrimSpace(req.Email)
+	}
 	var ownedBy *domain.PrincipalRef
 	if principal != nil {
 		reporterEmail = principal.Email

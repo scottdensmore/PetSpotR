@@ -79,17 +79,20 @@ func DetectPitch(pcm []float64, sampleRate int) (float64, float64, float64) {
 	if minLag < 1 {
 		minLag = 1
 	}
-	maxLag := sampleRate / 60 // 60 Hz limit (~266 samples at 16k)
+	maxLag := int(float64(sampleRate)/50.0 + 0.5) // 50 Hz limit (~320 samples at 16k)
 	if maxLag >= len(pcm) {
 		maxLag = len(pcm) - 1
 	}
 
-	// Compute autocorrelation for centered segment
-	start := len(pcm)/2 - FrameSizeSamples/2
+	analysisLen := 800
+	if len(pcm) < analysisLen {
+		analysisLen = len(pcm)
+	}
+	start := len(pcm)/2 - analysisLen/2
 	if start < 0 {
 		start = 0
 	}
-	end := start + FrameSizeSamples
+	end := start + analysisLen
 	if end > len(pcm) {
 		end = len(pcm)
 	}
@@ -103,25 +106,66 @@ func DetectPitch(pcm []float64, sampleRate int) (float64, float64, float64) {
 		return 0, 0, 0
 	}
 
-	bestLag := 0
-	maxR := 0.0
-	for lag := minLag; lag <= maxLag && lag < len(segment); lag++ {
-		var r float64
-		for i := 0; i < len(segment)-lag; i++ {
-			r += segment[i] * segment[i+lag]
+	corrs := make([]float64, maxLag+2)
+	for lag := 0; lag <= maxLag+1 && lag < len(segment); lag++ {
+		overlap := len(segment) - lag
+		if overlap <= 0 {
+			break
 		}
-		if r > maxR {
-			maxR = r
-			bestLag = lag
+		var r, e0, eLag float64
+		for i := 0; i < overlap; i++ {
+			r += segment[i] * segment[i+lag]
+			e0 += segment[i] * segment[i]
+			eLag += segment[i+lag] * segment[i+lag]
+		}
+		denom := math.Sqrt(e0 * eLag)
+		if denom > 1e-9 {
+			corrs[lag] = r / denom
 		}
 	}
 
-	if bestLag == 0 || maxR/r0 < 0.25 {
+	type peak struct {
+		lag int
+		val float64
+	}
+	var peaks []peak
+	globalMax := 0.0
+
+	for lag := minLag; lag <= maxLag; lag++ {
+		val := corrs[lag]
+		if val > 0.25 {
+			prev := corrs[lag-1]
+			next := corrs[lag+1]
+			if val >= prev && val >= next {
+				peaks = append(peaks, peak{lag: lag, val: val})
+				if val > globalMax {
+					globalMax = val
+				}
+			}
+		}
+	}
+
+	if len(peaks) == 0 || globalMax <= 0 {
+		return 0, 0, 0.1
+	}
+
+	bestLag := 0
+	bestVal := 0.0
+	thresh := 0.85 * globalMax
+	for _, p := range peaks {
+		if p.val >= thresh {
+			bestLag = p.lag
+			bestVal = p.val
+			break
+		}
+	}
+
+	if bestLag == 0 {
 		return 0, 0, 0.1
 	}
 
 	pitch := float64(sampleRate) / float64(bestLag)
-	hnr := math.Max(0.0, math.Min(1.0, maxR/(r0-maxR+1e-6)))
+	hnr := math.Max(0.0, math.Min(1.0, bestVal))
 
 	// Approximate pitch variance by checking adjacent slice
 	variance := math.Abs(pitch * 0.05)
