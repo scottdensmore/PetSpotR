@@ -423,6 +423,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/session/csrf", s.handleApiSessionCSRF)
 	s.mux.HandleFunc("/api/v1/session/client-config", s.handleApiIdentityClientConfig)
 	s.mux.HandleFunc("/api/v1/session", s.handleApiSession)
+	s.mux.HandleFunc("/api/v1/veterinary/passports", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleCreateVeterinaryPassport))
+	s.mux.HandleFunc("/api/v1/veterinary/passports/verify", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleVerifyVeterinaryPassport))
+	s.mux.HandleFunc("/api/v1/veterinary/passports/{id}", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleGetVeterinaryPassport))
+	s.mux.HandleFunc("/api/v1/veterinary/triage", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleCreateTriageAssessment))
+	s.mux.HandleFunc("/api/v1/veterinary/triage/{petId}", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleGetTriageAssessmentsByPetID))
+	s.mux.HandleFunc("/api/v1/veterinary/triage/{assessmentId}/treatments", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleAppendTriageTreatment))
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
 		"state": func(ctx context.Context) error {
