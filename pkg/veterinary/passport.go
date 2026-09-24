@@ -34,6 +34,9 @@ func GeneratePassportKey() (*ecdsa.PrivateKey, *ecdsa.PublicKey, error) {
 
 // CanonicalBytes formats essential clinical fields for signing.
 func CanonicalBytes(pass *domain.VeterinaryPassport) []byte {
+	if pass == nil {
+		return nil
+	}
 	return []byte(fmt.Sprintf("%s|%s|%s|%s|%s|%.2f|%d|%d",
 		pass.PassportID,
 		pass.PetID,
@@ -80,6 +83,9 @@ func ecddhBytes(pub *ecdh.PublicKey) []byte {
 
 // SignPassport computes an ECDSA P-256 SHA-256 signature for the passport.
 func SignPassport(pass *domain.VeterinaryPassport, priv *ecdsa.PrivateKey) (string, error) {
+	if pass == nil {
+		return "", errors.New("passport is nil")
+	}
 	if priv == nil {
 		return "", errors.New("private key is required")
 	}
@@ -106,6 +112,9 @@ func SignPassport(pass *domain.VeterinaryPassport, priv *ecdsa.PrivateKey) (stri
 
 // VerifyPassport checks the ECDSA signature against the provided public key.
 func VerifyPassport(pass *domain.VeterinaryPassport, pub *ecdsa.PublicKey) (bool, error) {
+	if pass == nil {
+		return false, errors.New("passport is nil")
+	}
 	if pub == nil {
 		if pass.PublicKeyHex == "" {
 			return false, errors.New("public key is required")
@@ -118,8 +127,8 @@ func VerifyPassport(pass *domain.VeterinaryPassport, pub *ecdsa.PublicKey) (bool
 	}
 
 	sigBytes, err := hex.DecodeString(pass.SignatureHex)
-	if err != nil || len(sigBytes) == 0 {
-		return false, errors.New("invalid or empty signature")
+	if err != nil || len(sigBytes) != 64 {
+		return false, errors.New("signature must be exactly 64 bytes (IEEE P1363)")
 	}
 
 	mid := len(sigBytes) / 2
@@ -149,6 +158,9 @@ type CompactPassportPayload struct {
 
 // EncodeOfflinePassportPayload generates an ultra-compact VP1: string.
 func EncodeOfflinePassportPayload(pass *domain.VeterinaryPassport, priv *ecdsa.PrivateKey) (string, error) {
+	if pass == nil {
+		return "", errors.New("passport is nil")
+	}
 	if pass.SignatureHex == "" {
 		if _, err := SignPassport(pass, priv); err != nil {
 			return "", err
@@ -216,9 +228,14 @@ func DecodeOfflinePassportPayload(payload string, pub *ecdsa.PublicKey) (*domain
 		_ = r.Close()
 	}()
 
-	decompressed, err := io.ReadAll(r)
+	const maxDecompressedBytes = 10 * 1024
+	decompressed, err := io.ReadAll(io.LimitReader(r, maxDecompressedBytes))
 	if err != nil {
 		return nil, false, fmt.Errorf("read error: %w", err)
+	}
+	var probe [1]byte
+	if n, _ := r.Read(probe[:]); n > 0 {
+		return nil, false, errors.New("decompressed payload exceeds 10KB limit")
 	}
 
 	var compact CompactPassportPayload
@@ -239,12 +256,12 @@ func DecodeOfflinePassportPayload(payload string, pub *ecdsa.PublicKey) (*domain
 
 	var vaccines []domain.VaccinationRecord
 	for _, vStr := range compact.Vaccines {
-		parts := strings.Split(vStr, ":")
-		if len(parts) == 2 {
+		idx := strings.LastIndex(vStr, ":")
+		if idx != -1 {
 			var exp int64
-			_, _ = fmt.Sscanf(parts[1], "%d", &exp)
+			_, _ = fmt.Sscanf(vStr[idx+1:], "%d", &exp)
 			vaccines = append(vaccines, domain.VaccinationRecord{
-				VaccineName:    parts[0],
+				VaccineName:    vStr[:idx],
 				ExpirationDate: time.Unix(exp, 0).UTC(),
 				Verified:       true,
 			})

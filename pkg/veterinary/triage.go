@@ -57,20 +57,11 @@ func EvaluateTriage(species string, vitals domain.VitalSigns, trauma TraumaIndic
 		reasons = append(reasons, fmt.Sprintf("Severe mentation impairment (GCS %d <= 8)", vitals.GlasgowComaScale))
 	}
 
-	vitalsRecorded := vitals.HeartRateBPM > 0 ||
-		vitals.RespiratoryRateBPM > 0 ||
-		vitals.TemperatureF > 0 ||
-		vitals.CapillaryRefillSec > 0 ||
-		vitals.MucousMembrane != "" ||
-		vitals.GlasgowComaScale > 0
-
-	if vitalsRecorded {
-		if vitals.HeartRateBPM == 0 {
-			reasons = append(reasons, "Absent heart rate / pulseless arrest")
-		}
-		if vitals.RespiratoryRateBPM == 0 {
-			reasons = append(reasons, "Apnea / respiratory arrest")
-		}
+	if vitals.HeartRateBPM == 0 && (vitals.HeartRateAssessed || vitals.RespiratoryRateBPM > 0) {
+		reasons = append(reasons, "Absent heart rate / pulseless arrest")
+	}
+	if vitals.RespiratoryRateBPM == 0 && (vitals.RespRateAssessed || vitals.HeartRateBPM > 0) {
+		reasons = append(reasons, "Apnea / respiratory arrest")
 	}
 
 	// Species-specific vital limits
@@ -119,6 +110,23 @@ func EvaluateTriage(species string, vitals domain.VitalSigns, trauma TraumaIndic
 	}
 	if vitals.TemperatureF > 0 && (vitals.TemperatureF < 99.5 || vitals.TemperatureF > 103.5) {
 		reasons = append(reasons, fmt.Sprintf("Abnormal temperature (%.1f F)", vitals.TemperatureF))
+	}
+
+	// Species-specific moderate distress (Yellow)
+	if isCat {
+		if vitals.HeartRateBPM > 0 && ((vitals.HeartRateBPM >= 100 && vitals.HeartRateBPM < 140) || (vitals.HeartRateBPM > 220 && vitals.HeartRateBPM <= 260)) {
+			reasons = append(reasons, "Feline abnormal heart rate / moderate distress")
+		}
+		if vitals.RespiratoryRateBPM > 0 && ((vitals.RespiratoryRateBPM >= 12 && vitals.RespiratoryRateBPM < 20) || (vitals.RespiratoryRateBPM > 40 && vitals.RespiratoryRateBPM <= 80)) {
+			reasons = append(reasons, "Feline abnormal respiratory rate / tachypnea")
+		}
+	} else {
+		if vitals.HeartRateBPM > 0 && ((vitals.HeartRateBPM >= 50 && vitals.HeartRateBPM < 60) || (vitals.HeartRateBPM > 140 && vitals.HeartRateBPM <= 220)) {
+			reasons = append(reasons, "Canine abnormal heart rate / moderate distress")
+		}
+		if vitals.RespiratoryRateBPM > 0 && ((vitals.RespiratoryRateBPM >= 8 && vitals.RespiratoryRateBPM < 10) || (vitals.RespiratoryRateBPM > 30 && vitals.RespiratoryRateBPM <= 60)) {
+			reasons = append(reasons, "Canine abnormal respiratory rate / tachypnea")
+		}
 	}
 
 	if len(reasons) > 0 {

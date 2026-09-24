@@ -1,6 +1,9 @@
 package veterinary_test
 
 import (
+	"bytes"
+	"compress/zlib"
+	"encoding/base64"
 	"strings"
 	"testing"
 	"time"
@@ -179,5 +182,132 @@ func TestPassport_DecodeOfflineErrors(t *testing.T) {
 	_, _, err = veterinary.DecodeOfflinePassportPayload("VP1:aGVsbG8gd29ybGQ", pub)
 	if err == nil || !strings.Contains(err.Error(), "zlib") {
 		t.Errorf("expected zlib error, got %v", err)
+	}
+}
+
+func TestPassport_NilGuards(t *testing.T) {
+	priv, pub, err := veterinary.GeneratePassportKey()
+	if err != nil {
+		t.Fatalf("GeneratePassportKey failed: %v", err)
+	}
+
+	// SignPassport with nil passport
+	if _, err := veterinary.SignPassport(nil, priv); err == nil || err.Error() != "passport is nil" {
+		t.Errorf("expected 'passport is nil' error, got %v", err)
+	}
+
+	// VerifyPassport with nil passport
+	if valid, err := veterinary.VerifyPassport(nil, pub); valid || err == nil || err.Error() != "passport is nil" {
+		t.Errorf("expected 'passport is nil' error, got valid=%v, err=%v", valid, err)
+	}
+
+	// EncodeOfflinePassportPayload with nil passport
+	if _, err := veterinary.EncodeOfflinePassportPayload(nil, priv); err == nil || err.Error() != "passport is nil" {
+		t.Errorf("expected 'passport is nil' error, got %v", err)
+	}
+
+	// CanonicalBytes with nil passport
+	if b := veterinary.CanonicalBytes(nil); b != nil {
+		t.Errorf("expected nil for CanonicalBytes(nil), got %v", b)
+	}
+}
+
+func TestPassport_StrictSignatureLength(t *testing.T) {
+	_, pub, err := veterinary.GeneratePassportKey()
+	if err != nil {
+		t.Fatalf("GeneratePassportKey failed: %v", err)
+	}
+
+	pass := samplePassport()
+
+	// 0 bytes
+	pass.SignatureHex = ""
+	if _, err := veterinary.VerifyPassport(pass, pub); err == nil || !strings.Contains(err.Error(), "signature must be exactly 64 bytes") {
+		t.Errorf("expected strict signature error for 0 bytes, got %v", err)
+	}
+
+	// 32 bytes (64 hex characters)
+	pass.SignatureHex = strings.Repeat("aa", 32)
+	if _, err := veterinary.VerifyPassport(pass, pub); err == nil || !strings.Contains(err.Error(), "signature must be exactly 64 bytes") {
+		t.Errorf("expected strict signature error for 32 bytes, got %v", err)
+	}
+
+	// 63 bytes (126 hex characters)
+	pass.SignatureHex = strings.Repeat("bb", 63)
+	if _, err := veterinary.VerifyPassport(pass, pub); err == nil || !strings.Contains(err.Error(), "signature must be exactly 64 bytes") {
+		t.Errorf("expected strict signature error for 63 bytes, got %v", err)
+	}
+
+	// 65 bytes (130 hex characters)
+	pass.SignatureHex = strings.Repeat("cc", 65)
+	if _, err := veterinary.VerifyPassport(pass, pub); err == nil || !strings.Contains(err.Error(), "signature must be exactly 64 bytes") {
+		t.Errorf("expected strict signature error for 65 bytes, got %v", err)
+	}
+}
+
+func TestPassport_ZipBombDecompressionLimit(t *testing.T) {
+	_, pub, err := veterinary.GeneratePassportKey()
+	if err != nil {
+		t.Fatalf("GeneratePassportKey failed: %v", err)
+	}
+
+	// Construct an oversized payload (> 10KB uncompressed)
+	largeData := bytes.Repeat([]byte(`{"i":"large-passport","p":"pet-1"}`), 1000) // ~33 KB
+	var b bytes.Buffer
+	w := zlib.NewWriter(&b)
+	if _, err := w.Write(largeData); err != nil {
+		t.Fatalf("failed to write zlib: %v", err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("failed to close zlib: %v", err)
+	}
+
+	oversizedPayload := "VP1:" + base64.RawURLEncoding.EncodeToString(b.Bytes())
+	_, _, err = veterinary.DecodeOfflinePassportPayload(oversizedPayload, pub)
+	if err == nil {
+		t.Fatal("expected error decoding payload exceeding 10KB, got nil")
+	}
+	if !strings.Contains(err.Error(), "10KB limit") && !strings.Contains(err.Error(), "exceeds") {
+		t.Errorf("expected 10KB limit error, got %v", err)
+	}
+}
+
+func TestPassport_VaccineWithColons(t *testing.T) {
+	priv, pub, err := veterinary.GeneratePassportKey()
+	if err != nil {
+		t.Fatalf("GeneratePassportKey failed: %v", err)
+	}
+
+	pass := samplePassport()
+	vaccineNameWithColons := "Rabies: 3-Year: Booster Edition: Batch-01"
+	pass.Vaccinations = []domain.VaccinationRecord{
+		{
+			VaccineName:    vaccineNameWithColons,
+			ExpirationDate: time.Now().UTC().AddDate(3, 0, 0).Truncate(time.Second),
+			Verified:       true,
+		},
+	}
+
+	payload, err := veterinary.EncodeOfflinePassportPayload(pass, priv)
+	if err != nil {
+		t.Fatalf("EncodeOfflinePassportPayload failed: %v", err)
+	}
+
+	decoded, valid, err := veterinary.DecodeOfflinePassportPayload(payload, pub)
+	if err != nil {
+		t.Fatalf("DecodeOfflinePassportPayload failed: %v", err)
+	}
+	if !valid {
+		t.Fatal("expected valid passport signature")
+	}
+
+	if len(decoded.Vaccinations) != 1 {
+		t.Fatalf("expected 1 vaccination, got %d", len(decoded.Vaccinations))
+	}
+	if decoded.Vaccinations[0].VaccineName != vaccineNameWithColons {
+		t.Errorf("expected vaccine name %q, got %q", vaccineNameWithColons, decoded.Vaccinations[0].VaccineName)
+	}
+	if decoded.Vaccinations[0].ExpirationDate.Unix() != pass.Vaccinations[0].ExpirationDate.Unix() {
+		t.Errorf("expiration date mismatch: expected %v, got %v", pass.Vaccinations[0].ExpirationDate, decoded.Vaccinations[0].ExpirationDate)
 	}
 }

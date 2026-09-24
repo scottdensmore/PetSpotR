@@ -140,16 +140,11 @@
     if (vitals.capillaryRefillSec >= 3.0) reasons.push(`Critical hypoperfusion (CRT ${vitals.capillaryRefillSec.toFixed(1)}s >= 3.0s)`);
     if (vitals.glasgowComaScale > 0 && vitals.glasgowComaScale <= 8) reasons.push(`Severe mentation impairment (GCS ${vitals.glasgowComaScale} <= 8)`);
 
-    const vitalsRecorded = vitals.heartRateBpm > 0 ||
-      vitals.respiratoryRateBpm > 0 ||
-      vitals.temperatureF > 0 ||
-      vitals.capillaryRefillSec > 0 ||
-      Boolean(vitals.mucousMembrane) ||
-      vitals.glasgowComaScale > 0;
-
-    if (vitalsRecorded) {
-      if (vitals.heartRateBpm === 0) reasons.push('Absent heart rate / pulseless arrest');
-      if (vitals.respiratoryRateBpm === 0) reasons.push('Apnea / respiratory arrest');
+    if (vitals.heartRateBpm === 0 && (vitals.heartRateAssessed || vitals.respiratoryRateBpm > 0)) {
+      reasons.push('Absent heart rate / pulseless arrest');
+    }
+    if (vitals.respiratoryRateBpm === 0 && (vitals.respRateAssessed || vitals.heartRateBpm > 0)) {
+      reasons.push('Apnea / respiratory arrest');
     }
 
     // Species-specific thresholds
@@ -188,6 +183,23 @@
       reasons.push(`Abnormal temperature (${vitals.temperatureF.toFixed(1)} °F)`);
     }
 
+    // Species-specific moderate distress (Yellow)
+    if (isCat) {
+      if (vitals.heartRateBpm > 0 && ((vitals.heartRateBpm >= 100 && vitals.heartRateBpm < 140) || (vitals.heartRateBpm > 220 && vitals.heartRateBpm <= 260))) {
+        reasons.push('Feline abnormal heart rate / moderate distress');
+      }
+      if (vitals.respiratoryRateBpm > 0 && ((vitals.respiratoryRateBpm >= 12 && vitals.respiratoryRateBpm < 20) || (vitals.respiratoryRateBpm > 40 && vitals.respiratoryRateBpm <= 80))) {
+        reasons.push('Feline abnormal respiratory rate / tachypnea');
+      }
+    } else {
+      if (vitals.heartRateBpm > 0 && ((vitals.heartRateBpm >= 50 && vitals.heartRateBpm < 60) || (vitals.heartRateBpm > 140 && vitals.heartRateBpm <= 220))) {
+        reasons.push('Canine abnormal heart rate / moderate distress');
+      }
+      if (vitals.respiratoryRateBpm > 0 && ((vitals.respiratoryRateBpm >= 8 && vitals.respiratoryRateBpm < 10) || (vitals.respiratoryRateBpm > 30 && vitals.respiratoryRateBpm <= 60))) {
+        reasons.push('Canine abnormal respiratory rate / tachypnea');
+      }
+    }
+
     if (reasons.length > 0) {
       return { category: 'TRIAGE_YELLOW', reasons };
     }
@@ -221,8 +233,12 @@
 
     const species = document.getElementById('triage-species')?.value || 'Dog';
     const weightVal = parseFloat(document.getElementById('triage-weight')?.value) || 10.0;
-    const hrVal = parseInt(document.getElementById('vitals-hr')?.value, 10) || 0;
-    const rrVal = parseInt(document.getElementById('vitals-rr')?.value, 10) || 0;
+    const hrInput = document.getElementById('vitals-hr');
+    const rrInput = document.getElementById('vitals-rr');
+    const hrVal = hrInput && hrInput.value !== '' ? parseInt(hrInput.value, 10) : 0;
+    const rrVal = rrInput && rrInput.value !== '' ? parseInt(rrInput.value, 10) : 0;
+    const hrAssessed = Boolean(hrInput && hrInput.value !== '');
+    const rrAssessed = Boolean(rrInput && rrInput.value !== '');
     const tempVal = parseFloat(document.getElementById('vitals-temp')?.value) || 0;
     const crtVal = parseFloat(document.getElementById('vitals-crt')?.value) || 1.5;
     const mmVal = document.getElementById('vitals-mm')?.value || 'MM_PINK';
@@ -239,7 +255,9 @@
 
     const vitals = {
       heartRateBpm: hrVal,
+      heartRateAssessed: hrAssessed,
       respiratoryRateBpm: rrVal,
+      respRateAssessed: rrAssessed,
       temperatureF: tempVal,
       capillaryRefillSec: crtVal,
       mucousMembrane: mmVal,
@@ -482,8 +500,12 @@
 
     const species = document.getElementById('triage-species')?.value || 'Dog';
     const weightVal = parseFloat(document.getElementById('triage-weight')?.value) || 10.0;
-    const hrVal = parseInt(document.getElementById('vitals-hr')?.value, 10) || 0;
-    const rrVal = parseInt(document.getElementById('vitals-rr')?.value, 10) || 0;
+    const hrInput = document.getElementById('vitals-hr');
+    const rrInput = document.getElementById('vitals-rr');
+    const hrVal = hrInput && hrInput.value !== '' ? parseInt(hrInput.value, 10) : 0;
+    const rrVal = rrInput && rrInput.value !== '' ? parseInt(rrInput.value, 10) : 0;
+    const hrAssessed = Boolean(hrInput && hrInput.value !== '');
+    const rrAssessed = Boolean(rrInput && rrInput.value !== '');
     const tempVal = parseFloat(document.getElementById('vitals-temp')?.value) || 0;
     const crtVal = parseFloat(document.getElementById('vitals-crt')?.value) || 1.5;
     const mmVal = document.getElementById('vitals-mm')?.value || 'MM_PINK';
@@ -504,7 +526,9 @@
 
     const vitals = {
       heartRateBpm: hrVal,
+      heartRateAssessed: hrAssessed,
       respiratoryRateBpm: rrVal,
+      respRateAssessed: rrAssessed,
       temperatureF: tempVal,
       capillaryRefillSec: crtVal,
       mucousMembrane: mmVal,

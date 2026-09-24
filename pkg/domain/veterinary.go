@@ -60,7 +60,9 @@ type ChronicCondition struct {
 // VitalSigns represents quantifiable physiological measurements.
 type VitalSigns struct {
 	HeartRateBPM       int                 `json:"heartRateBpm"`
+	HeartRateAssessed  bool                `json:"heartRateAssessed,omitempty"`
 	RespiratoryRateBPM int                 `json:"respiratoryRateBpm"`
+	RespRateAssessed   bool                `json:"respRateAssessed,omitempty"`
 	TemperatureF       float64             `json:"temperatureF"`
 	CapillaryRefillSec float64             `json:"capillaryRefillSec"`
 	MucousMembrane     MucousMembraneColor `json:"mucousMembrane"`
