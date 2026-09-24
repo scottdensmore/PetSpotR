@@ -20,10 +20,17 @@ type TraumaIndicators struct {
 // EvaluateTriage evaluates vitals and trauma indicators into an acuity tag.
 func EvaluateTriage(species string, vitals domain.VitalSigns, trauma TraumaIndicators) (domain.TriageCategory, []string) {
 	var reasons []string
-	isCat := strings.EqualFold(species, "cat") || strings.EqualFold(species, "feline")
+	cleanSpecies := strings.TrimSpace(species)
+	isCat := strings.EqualFold(cleanSpecies, "cat") || strings.EqualFold(cleanSpecies, "feline")
+
+	hasLivingTrauma := trauma.ArterialHemorrhage ||
+		trauma.PenetratingChest ||
+		trauma.SevereBurns ||
+		trauma.ModerateBurns ||
+		trauma.OpenFracture
 
 	// 1. Check Deceased / Expectant (Black)
-	if trauma.UnresponsiveAsystole || (vitals.HeartRateBPM == 0 && vitals.RespiratoryRateBPM == 0 && vitals.GlasgowComaScale <= 3) {
+	if trauma.UnresponsiveAsystole || (!hasLivingTrauma && vitals.HeartRateBPM == 0 && vitals.RespiratoryRateBPM == 0 && vitals.GlasgowComaScale == 3) {
 		return domain.TriageCategoryBlack, []string{"Absence of heartbeat, respiration, and cortical responsiveness"}
 	}
 
@@ -48,6 +55,22 @@ func EvaluateTriage(species string, vitals domain.VitalSigns, trauma TraumaIndic
 	}
 	if vitals.GlasgowComaScale > 0 && vitals.GlasgowComaScale <= 8 {
 		reasons = append(reasons, fmt.Sprintf("Severe mentation impairment (GCS %d <= 8)", vitals.GlasgowComaScale))
+	}
+
+	vitalsRecorded := vitals.HeartRateBPM > 0 ||
+		vitals.RespiratoryRateBPM > 0 ||
+		vitals.TemperatureF > 0 ||
+		vitals.CapillaryRefillSec > 0 ||
+		vitals.MucousMembrane != "" ||
+		vitals.GlasgowComaScale > 0
+
+	if vitalsRecorded {
+		if vitals.HeartRateBPM == 0 {
+			reasons = append(reasons, "Absent heart rate / pulseless arrest")
+		}
+		if vitals.RespiratoryRateBPM == 0 {
+			reasons = append(reasons, "Apnea / respiratory arrest")
+		}
 	}
 
 	// Species-specific vital limits
@@ -88,6 +111,9 @@ func EvaluateTriage(species string, vitals domain.VitalSigns, trauma TraumaIndic
 	if vitals.MucousMembrane == domain.MMColorPale {
 		reasons = append(reasons, "Pale mucous membranes (early shock / blood loss)")
 	}
+	if vitals.MucousMembrane == domain.MMColorIcteric {
+		reasons = append(reasons, "Icteric mucous membranes (jaundice / hepatic or hemolytic crisis)")
+	}
 	if vitals.GlasgowComaScale >= 9 && vitals.GlasgowComaScale <= 14 {
 		reasons = append(reasons, fmt.Sprintf("Depressed mentation (GCS %d)", vitals.GlasgowComaScale))
 	}
@@ -108,7 +134,8 @@ func CalculateEmergencyDosages(species string, weightKg float64) map[string]stri
 	if weightKg <= 0 {
 		weightKg = 10.0 // Default baseline fallback
 	}
-	isCat := strings.EqualFold(species, "cat") || strings.EqualFold(species, "feline")
+	cleanSpecies := strings.TrimSpace(species)
+	isCat := strings.EqualFold(cleanSpecies, "cat") || strings.EqualFold(cleanSpecies, "feline")
 
 	var fluidMl float64
 	if isCat {

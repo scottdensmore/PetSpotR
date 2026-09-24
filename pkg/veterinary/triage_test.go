@@ -86,10 +86,98 @@ func TestEvaluateTriage_DeceasedExpectantBlack(t *testing.T) {
 		t.Error("expected triage evaluation reasons")
 	}
 
-	// Also without trauma flag, but zero vitals
+	// Also without trauma flag, but zero vitals with GCS 3
 	category2, _ := veterinary.EvaluateTriage("Feline", vitals, veterinary.TraumaIndicators{})
 	if category2 != domain.TriageCategoryBlack {
 		t.Errorf("expected TRIAGE_BLACK for unresuscitated vitals, got %s", category2)
+	}
+}
+
+func TestEvaluateTriage_UnrecordedVitalsWithSevereBurns(t *testing.T) {
+	// Living trauma patient entered before vitals are obtained
+	trauma := veterinary.TraumaIndicators{
+		SevereBurns: true,
+	}
+	vitals := domain.VitalSigns{} // empty / unrecorded
+
+	category, reasons := veterinary.EvaluateTriage("Dog", vitals, trauma)
+	if category != domain.TriageCategoryRed {
+		t.Fatalf("expected TRIAGE_RED, got %s", category)
+	}
+	foundSevereBurns := false
+	for _, r := range reasons {
+		if r == "Extensive burns (> 30% body surface area)" {
+			foundSevereBurns = true
+		}
+	}
+	if !foundSevereBurns {
+		t.Errorf("expected Extensive burns reason, got %v", reasons)
+	}
+}
+
+func TestEvaluateTriage_IsolatedApneaAndAsystole(t *testing.T) {
+	// Isolated apnea with palpable pulse
+	apneaVitals := domain.VitalSigns{
+		HeartRateBPM:       120,
+		RespiratoryRateBPM: 0,
+		GlasgowComaScale:   15,
+	}
+	catApnea, reasonsApnea := veterinary.EvaluateTriage("Dog", apneaVitals, veterinary.TraumaIndicators{})
+	if catApnea != domain.TriageCategoryRed {
+		t.Errorf("expected TRIAGE_RED for isolated apnea, got %s", catApnea)
+	}
+	foundApnea := false
+	for _, r := range reasonsApnea {
+		if r == "Apnea / respiratory arrest" {
+			foundApnea = true
+		}
+	}
+	if !foundApnea {
+		t.Errorf("expected Apnea / respiratory arrest reason, got %v", reasonsApnea)
+	}
+
+	// Isolated pulseless arrest with agonal or active respiration
+	asystoleVitals := domain.VitalSigns{
+		HeartRateBPM:       0,
+		RespiratoryRateBPM: 16,
+		GlasgowComaScale:   14,
+	}
+	catAsystole, reasonsAsystole := veterinary.EvaluateTriage("Dog", asystoleVitals, veterinary.TraumaIndicators{})
+	if catAsystole != domain.TriageCategoryRed {
+		t.Errorf("expected TRIAGE_RED for isolated asystole, got %s", catAsystole)
+	}
+	foundAsystole := false
+	for _, r := range reasonsAsystole {
+		if r == "Absent heart rate / pulseless arrest" {
+			foundAsystole = true
+		}
+	}
+	if !foundAsystole {
+		t.Errorf("expected Absent heart rate / pulseless arrest reason, got %v", reasonsAsystole)
+	}
+}
+
+func TestEvaluateTriage_IctericMucousMembranes(t *testing.T) {
+	vitals := domain.VitalSigns{
+		HeartRateBPM:       100,
+		RespiratoryRateBPM: 24,
+		TemperatureF:       101.0,
+		CapillaryRefillSec: 1.5,
+		MucousMembrane:     domain.MMColorIcteric,
+		GlasgowComaScale:   17,
+	}
+	category, reasons := veterinary.EvaluateTriage("Dog", vitals, veterinary.TraumaIndicators{})
+	if category != domain.TriageCategoryYellow {
+		t.Errorf("expected TRIAGE_YELLOW for icteric membranes, got %s", category)
+	}
+	foundIcteric := false
+	for _, r := range reasons {
+		if r == "Icteric mucous membranes (jaundice / hepatic or hemolytic crisis)" {
+			foundIcteric = true
+		}
+	}
+	if !foundIcteric {
+		t.Errorf("expected icteric reason, got %v", reasons)
 	}
 }
 
@@ -105,12 +193,12 @@ func TestEvaluateTriage_CanineVsFelineThresholds(t *testing.T) {
 	}
 	trauma := veterinary.TraumaIndicators{}
 
-	dogCat, _ := veterinary.EvaluateTriage("Dog", vitals, trauma)
+	dogCat, _ := veterinary.EvaluateTriage("   Dog   ", vitals, trauma)
 	if dogCat != domain.TriageCategoryGreen {
 		t.Errorf("expected Dog with HR 80 to be GREEN, got %s", dogCat)
 	}
 
-	catCat, catReasons := veterinary.EvaluateTriage("Cat", vitals, trauma)
+	catCat, catReasons := veterinary.EvaluateTriage("   Cat   ", vitals, trauma)
 	if catCat != domain.TriageCategoryRed {
 		t.Errorf("expected Cat with HR 80 to be RED (bradycardia), got %s", catCat)
 	}
@@ -120,7 +208,7 @@ func TestEvaluateTriage_CanineVsFelineThresholds(t *testing.T) {
 }
 
 func TestCalculateEmergencyDosages(t *testing.T) {
-	dosages := veterinary.CalculateEmergencyDosages("Dog", 20.0)
+	dosages := veterinary.CalculateEmergencyDosages("  Dog  ", 20.0)
 	if dosages["ShockFluidsBolus"] != "300 mL IV over 15 min" {
 		t.Errorf("unexpected fluid bolus: %s", dosages["ShockFluidsBolus"])
 	}
@@ -132,7 +220,7 @@ func TestCalculateEmergencyDosages(t *testing.T) {
 	}
 
 	// Test Feline fluid calculation (7.5 mL/kg)
-	felineDosages := veterinary.CalculateEmergencyDosages("Cat", 4.0)
+	felineDosages := veterinary.CalculateEmergencyDosages("  feline  ", 4.0)
 	if felineDosages["ShockFluidsBolus"] != "30 mL IV over 15 min" {
 		t.Errorf("unexpected feline fluid bolus: %s", felineDosages["ShockFluidsBolus"])
 	}
