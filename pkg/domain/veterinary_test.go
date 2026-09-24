@@ -19,9 +19,12 @@ func TestVeterinaryPassport_Serialization(t *testing.T) {
 		Breed:            "Labrador",
 		MicrochipID:      "985141000123456",
 		RabiesTagID:      "RAB-2026-99",
+		BloodType:        "DEA 1.1 Positive",
 		WeightKg:         28.5,
 		EmergencyContact: "555-0199",
 		PrimaryClinic:    "Metro Veterinary Trauma",
+		PublicKeyHex:     "04a1b2c3d4e5f6",
+		SignatureHex:     "3045022100abc123",
 		IssuedAt:         now,
 		ExpiresAt:        now.AddDate(1, 0, 0),
 		Vaccinations: []domain.VaccinationRecord{
@@ -63,6 +66,15 @@ func TestVeterinaryPassport_Serialization(t *testing.T) {
 	if decoded.PassportID != passport.PassportID {
 		t.Errorf("expected PassportID %s, got %s", passport.PassportID, decoded.PassportID)
 	}
+	if decoded.BloodType != passport.BloodType {
+		t.Errorf("expected BloodType %s, got %s", passport.BloodType, decoded.BloodType)
+	}
+	if decoded.PublicKeyHex != passport.PublicKeyHex {
+		t.Errorf("expected PublicKeyHex %s, got %s", passport.PublicKeyHex, decoded.PublicKeyHex)
+	}
+	if decoded.SignatureHex != passport.SignatureHex {
+		t.Errorf("expected SignatureHex %s, got %s", passport.SignatureHex, decoded.SignatureHex)
+	}
 	if len(decoded.Allergies) != 1 || decoded.Allergies[0].Severity != domain.AllergySeverityAnaphylactic {
 		t.Errorf("expected 1 anaphylactic allergy, got %+v", decoded.Allergies)
 	}
@@ -70,6 +82,7 @@ func TestVeterinaryPassport_Serialization(t *testing.T) {
 
 func TestTriageAssessment_Serialization(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
+	reassessed := now.Add(15 * time.Minute)
 	assessment := domain.TriageAssessment{
 		AssessmentID: "triage-001",
 		PetID:        "pet-dog-1",
@@ -98,7 +111,8 @@ func TestTriageAssessment_Serialization(t *testing.T) {
 				AdministeredAt: now,
 			},
 		},
-		AssessedAt: now,
+		AssessedAt:   now,
+		ReassessedAt: &reassessed,
 	}
 
 	data, err := json.Marshal(assessment)
@@ -116,6 +130,12 @@ func TestTriageAssessment_Serialization(t *testing.T) {
 	}
 	if decoded.Vitals.MucousMembrane != domain.MMColorCyanotic {
 		t.Errorf("expected cyanotic MM, got %s", decoded.Vitals.MucousMembrane)
+	}
+	if decoded.ReassessedAt == nil {
+		t.Fatalf("expected non-nil ReassessedAt")
+	}
+	if !decoded.ReassessedAt.Equal(*assessment.ReassessedAt) {
+		t.Errorf("expected ReassessedAt %v, got %v", *assessment.ReassessedAt, *decoded.ReassessedAt)
 	}
 }
 

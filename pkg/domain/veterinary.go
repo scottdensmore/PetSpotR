@@ -16,10 +16,10 @@ const (
 type MucousMembraneColor string
 
 const (
-	MMColorPink     MucousMembraneColor = "MM_PINK"     // Normal perfusion
-	MMColorPale     MucousMembraneColor = "MM_PALE"     // Shock, vasoconstriction, anemia
-	MMColorCyanotic MucousMembraneColor = "MM_CYANOTIC" // Severe hypoxia, respiratory distress
-	MMColorIcteric  MucousMembraneColor = "MM_ICTERIC"  // Jaundice, hepatic dysfunction
+	MMColorPink     MucousMembraneColor = "MM_PINK"      // Normal perfusion
+	MMColorPale     MucousMembraneColor = "MM_PALE"      // Shock, vasoconstriction, anemia
+	MMColorCyanotic MucousMembraneColor = "MM_CYANOTIC"  // Severe hypoxia, respiratory distress
+	MMColorIcteric  MucousMembraneColor = "MM_ICTERIC"   // Jaundice, hepatic dysfunction
 	MMColorBrickRed MucousMembraneColor = "MM_BRICK_RED" // Sepsis, hyperthermia, vasodilation
 )
 
