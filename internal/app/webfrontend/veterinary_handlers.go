@@ -20,15 +20,15 @@ import (
 var (
 	masterPrivKey *ecdsa.PrivateKey
 	masterPubKey  *ecdsa.PublicKey
+	masterKeyErr  error
 	keyOnce       sync.Once
 )
 
 func getMasterKeys() (*ecdsa.PrivateKey, *ecdsa.PublicKey, error) {
-	var err error
 	keyOnce.Do(func() {
-		masterPrivKey, masterPubKey, err = veterinary.GeneratePassportKey()
+		masterPrivKey, masterPubKey, masterKeyErr = veterinary.GeneratePassportKey()
 	})
-	return masterPrivKey, masterPubKey, err
+	return masterPrivKey, masterPubKey, masterKeyErr
 }
 
 func (s *Server) handleCreateVeterinaryPassport(w http.ResponseWriter, r *http.Request) {
@@ -403,27 +403,21 @@ func (s *Server) handleAppendTriageTreatment(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	medicationName := strings.TrimSpace(req.MedicationName)
+	if medicationName == "" {
+		http.Error(w, "medicationName is required", http.StatusBadRequest)
+		return
+	}
+
 	if s.stateStore == nil {
 		http.Error(w, "state store uninitialized", http.StatusInternalServerError)
-		return
-	}
-
-	data, err := s.stateStore.GetState(r.Context(), store.CollectionTriageAssessments, assessmentID)
-	if err != nil {
-		http.Error(w, "Assessment not found", http.StatusNotFound)
-		return
-	}
-
-	var assessment domain.TriageAssessment
-	if err := json.Unmarshal(data, &assessment); err != nil {
-		http.Error(w, "Data corrupt", http.StatusInternalServerError)
 		return
 	}
 
 	now := time.Now().UTC()
 	treatment := domain.ClinicalTreatment{
 		TreatmentID:    fmt.Sprintf("treat-%d", now.UnixNano()),
-		MedicationName: req.MedicationName,
+		MedicationName: medicationName,
 		Dosage:         req.Dosage,
 		Route:          req.Route,
 		AdministeredBy: req.AdministeredBy,
@@ -431,35 +425,73 @@ func (s *Server) handleAppendTriageTreatment(w http.ResponseWriter, r *http.Requ
 		Notes:          req.Notes,
 	}
 
-	assessment.AdministeredTreatments = append(assessment.AdministeredTreatments, treatment)
-	assessment.ReassessedAt = &now
-
-	updatedBytes, err := json.Marshal(assessment)
+	var updatedAssessment domain.TriageAssessment
+	err := s.stateStore.UpdateState(r.Context(), store.CollectionTriageAssessments, assessmentID, func(current []byte) ([]byte, error) {
+		var a domain.TriageAssessment
+		if err := json.Unmarshal(current, &a); err != nil {
+			return nil, fmt.Errorf("corrupt triage assessment: %w", err)
+		}
+		a.AdministeredTreatments = append(a.AdministeredTreatments, treatment)
+		a.ReassessedAt = &now
+		updatedAssessment = a
+		return json.Marshal(a)
+	})
 	if err != nil {
-		http.Error(w, "Failed to encode updated assessment", http.StatusInternalServerError)
+		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
+			http.Error(w, "Assessment not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, fmt.Sprintf("Failed to record treatment: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	if err := s.stateStore.SaveState(r.Context(), store.CollectionTriageAssessments, assessmentID, updatedBytes); err != nil {
-		http.Error(w, "Failed to save treatment", http.StatusInternalServerError)
-		return
+	treatmentPayload := map[string]any{
+		"type":         "triage_treatment_administered",
+		"assessmentId": updatedAssessment.AssessmentID,
+		"petId":        updatedAssessment.PetID,
+		"hubId":        updatedAssessment.HubID,
+		"treatment":    treatment,
 	}
 
 	if s.reunionHub != nil {
-		s.reunionHub.Broadcast(domain.ReunionStreamEvent{
+		event := domain.ReunionStreamEvent{
 			EventID:   fmt.Sprintf("evt_treatment_%s_%d", treatment.TreatmentID, now.UnixNano()),
 			Type:      domain.ReunionEventType("triage_treatment_administered"),
-			MatchID:   assessment.PetID,
+			MatchID:   updatedAssessment.PetID,
 			Timestamp: now,
-			Payload: map[string]any{
-				"type":         "triage_treatment_administered",
-				"assessmentId": assessment.AssessmentID,
-				"petId":        assessment.PetID,
-				"treatment":    treatment,
-			},
-		})
+			Payload:   treatmentPayload,
+		}
+		s.reunionHub.Broadcast(event)
+
+		if updatedAssessment.HubID != "" && updatedAssessment.HubID != updatedAssessment.PetID {
+			hubEvent := event
+			hubEvent.MatchID = updatedAssessment.HubID
+			s.reunionHub.Broadcast(hubEvent)
+		}
+	}
+
+	if s.signalingHub != nil {
+		payloadBytes, _ := json.Marshal(treatmentPayload)
+		adminNodeID := treatment.AdministeredBy
+		if adminNodeID == "" {
+			adminNodeID = "medic-node"
+		}
+		envelope := mesh.SignalingEnvelope{
+			Type:          mesh.SignalingType("triage_treatment_administered"),
+			SearchPartyID: updatedAssessment.PetID,
+			SenderNodeID:  adminNodeID,
+			Payload:       payloadBytes,
+			Timestamp:     now,
+		}
+		s.signalingHub.Broadcast(envelope)
+
+		if updatedAssessment.HubID != "" && updatedAssessment.HubID != updatedAssessment.PetID {
+			hubEnv := envelope
+			hubEnv.SearchPartyID = updatedAssessment.HubID
+			s.signalingHub.Broadcast(hubEnv)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(assessment)
+	_ = json.NewEncoder(w).Encode(updatedAssessment)
 }

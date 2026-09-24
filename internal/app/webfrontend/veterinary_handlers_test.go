@@ -3,8 +3,10 @@ package webfrontend_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -249,6 +251,32 @@ func TestVeterinaryEndpoints_Lifecycle(t *testing.T) {
 		t.Errorf("expected ReassessedAt to be set after treatment")
 	}
 
+	// Verify treatment SSE distribution on reunionHub
+	select {
+	case sseEvt := <-reunionCh:
+		if sseEvt.MatchID != petID {
+			t.Errorf("expected SSE treatment event MatchID %q, got %q", petID, sseEvt.MatchID)
+		}
+		if sseEvt.Type != "triage_treatment_administered" {
+			t.Errorf("expected SSE event type triage_treatment_administered, got %s", sseEvt.Type)
+		}
+	case <-time.After(200 * time.Millisecond):
+		t.Errorf("timed out waiting for treatment SSE broadcast on reunionHub")
+	}
+
+	// Verify treatment Mesh distribution on signalingHub
+	select {
+	case meshEnv := <-meshCh:
+		if meshEnv.SearchPartyID != petID {
+			t.Errorf("expected mesh treatment envelope SearchPartyID %q, got %q", petID, meshEnv.SearchPartyID)
+		}
+		if meshEnv.Type != mesh.SignalingType("triage_treatment_administered") {
+			t.Errorf("expected mesh envelope type triage_treatment_administered, got %s", meshEnv.Type)
+		}
+	case <-time.After(200 * time.Millisecond):
+		t.Errorf("timed out waiting for treatment mesh broadcast on signalingHub")
+	}
+
 	// 9. Re-fetch via GET triage by petID to confirm persisted state
 	recGetTriage2 := httptest.NewRecorder()
 	reqGetTriage2 := httptest.NewRequest(http.MethodGet, "/api/v1/veterinary/triage/"+petID, nil)
@@ -369,6 +397,22 @@ func TestVeterinaryEndpoints_ValidationAndErrorHandling(t *testing.T) {
 		}
 	})
 
+	t.Run("Append Treatment Empty Medication Name", func(t *testing.T) {
+		treatBody, _ := json.Marshal(map[string]any{
+			"medicationName": "   ",
+			"dosage":         "100 mL",
+			"route":          "IV",
+		})
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/veterinary/triage/some-assessment/treatments", bytes.NewReader(treatBody))
+		req.Header.Set("Content-Type", "application/json")
+		server.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected 400 Bad Request, got %d", rec.Code)
+		}
+	})
+
 	t.Run("Method Not Allowed Check", func(t *testing.T) {
 		// GET on /api/v1/veterinary/passports
 		rec := httptest.NewRecorder()
@@ -379,4 +423,80 @@ func TestVeterinaryEndpoints_ValidationAndErrorHandling(t *testing.T) {
 			t.Errorf("expected 405 Method Not Allowed, got %d", rec.Code)
 		}
 	})
+}
+
+func TestVeterinaryEndpoints_ConcurrentTreatments(t *testing.T) {
+	memStore := store.NewMemoryStore()
+	server := webfrontend.NewTestServer(t, memStore)
+
+	petID := "pet-concurrent-treat"
+
+	// Create assessment
+	triageBody, _ := json.Marshal(map[string]any{
+		"petId":    petID,
+		"medicId":  "medic-concurrent",
+		"species":  "Dog",
+		"weightKg": 25.0,
+		"vitals": map[string]any{
+			"heartRateBpm": 100,
+		},
+	})
+	recTriage := httptest.NewRecorder()
+	reqTriage := httptest.NewRequest(http.MethodPost, "/api/v1/veterinary/triage", bytes.NewReader(triageBody))
+	reqTriage.Header.Set("Content-Type", "application/json")
+	server.ServeHTTP(recTriage, reqTriage)
+
+	if recTriage.Code != http.StatusOK {
+		t.Fatalf("failed to create triage assessment: %d", recTriage.Code)
+	}
+
+	var assessment domain.TriageAssessment
+	if err := json.Unmarshal(recTriage.Body.Bytes(), &assessment); err != nil {
+		t.Fatalf("failed to parse triage response: %v", err)
+	}
+
+	const numTreatments = 10
+	var wg sync.WaitGroup
+	wg.Add(numTreatments)
+
+	for i := 0; i < numTreatments; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			body, _ := json.Marshal(map[string]any{
+				"medicationName": fmt.Sprintf("Medication-%d", idx),
+				"dosage":         fmt.Sprintf("%d mg", idx+1),
+				"route":          "IV",
+				"administeredBy": fmt.Sprintf("Medic-%d", idx),
+			})
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/veterinary/triage/"+assessment.AssessmentID+"/treatments", bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			server.ServeHTTP(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Errorf("concurrent treatment %d failed with code %d: %s", idx, rec.Code, rec.Body.String())
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	// Verify all treatments are atomically preserved
+	recGet := httptest.NewRecorder()
+	reqGet := httptest.NewRequest(http.MethodGet, "/api/v1/veterinary/triage/"+petID, nil)
+	server.ServeHTTP(recGet, reqGet)
+
+	if recGet.Code != http.StatusOK {
+		t.Fatalf("failed to get triage: %d", recGet.Code)
+	}
+
+	var list []domain.TriageAssessment
+	if err := json.Unmarshal(recGet.Body.Bytes(), &list); err != nil {
+		t.Fatalf("failed to parse triage list: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("expected 1 assessment, got %d", len(list))
+	}
+	if len(list[0].AdministeredTreatments) != numTreatments {
+		t.Fatalf("expected %d administered treatments, got %d (data race / lost update)", numTreatments, len(list[0].AdministeredTreatments))
+	}
 }
