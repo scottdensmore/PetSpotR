@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Emergency Veterinary Passport - Cryptographically signed offline verifiable animal health and immunization record.">
+  <title>Emergency Veterinary Passport — {{ .Passport.PetName }} | PetSpotR</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav no-print">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode"></button>
+        <button type="button" id="btn-print-passport" class="btn btn-primary btn-print">🖨️ Print Passport Card</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="passport-container" id="main-content">
+    <div class="no-print" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+      <a href="/triage" class="btn btn-secondary">← Return to Triage Cockpit</a>
+      <button type="button" id="btn-print-top" class="btn btn-primary">🖨️ Print Card</button>
+    </div>
+
+    <!-- Official Emergency Veterinary Passport Card -->
+    <article class="passport-card" aria-label="Official Veterinary Passport Card">
+      <header class="passport-header">
+        <div>
+          <span class="badge badge-secondary" style="font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase;">Official Field Medical Record</span>
+          <h1 style="margin: 0.25rem 0 0 0; font-size: 1.75rem;">Emergency Veterinary Passport</h1>
+          <p class="text-secondary" style="margin: 0.25rem 0 0 0; font-size: 0.875rem;">PetSpotR Disaster Medical Response &amp; Clinic Intake Registry</p>
+        </div>
+        <div style="text-align: right;">
+          <span style="font-family: monospace; font-size: 0.8125rem; color: var(--text-muted);">{{ .Passport.PassportID }}</span>
+        </div>
+      </header>
+
+      <!-- Critical Allergy Banner (High-contrast alert if anaphylactic/critical allergy present) -->
+      {{ if .HasCriticalAllergy }}
+      <div class="alert-allergy-critical" role="alert">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+          <span style="font-size: 1.25rem;" aria-hidden="true">⚠️</span>
+          <strong>CRITICAL ALLERGY ALERT — DO NOT ADMINISTER:</strong>
+        </div>
+        <ul style="margin: 0.25rem 0 0 1.5rem; padding: 0;">
+          {{ range .CriticalAllergies }}
+          <li>
+            <strong class="allergen-title">{{ .Allergen }}</strong> ({{ .Severity }}): {{ .ReactionDescription }}
+          </li>
+          {{ end }}
+        </ul>
+      </div>
+      {{ end }}
+
+      <!-- Card Main Body -->
+      <div class="passport-body-grid">
+        <!-- Cryptographic QR Code -->
+        <div class="passport-qr-code">
+          {{ if .QRDataURI }}
+          <img src="{{ .QRDataURI }}" alt="Cryptographic Offline Verifiable Veterinary Passport QR Code" width="200" height="200">
+          {{ else }}
+          <div style="width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; background: #eee; color: #333;">
+            <span>QR Generating...</span>
+          </div>
+          {{ end }}
+          <p class="qr-caption">ECDSA P-256 Offline Verifiable Medical Record</p>
+        </div>
+
+        <!-- Pet Demographics & Clinical Profile -->
+        <div class="passport-demographics">
+          <h2 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 1.35rem; color: var(--color-primary, #6366f1);">
+            {{ .Passport.PetName }}
+          </h2>
+          <table class="passport-table">
+            <tbody>
+              <tr>
+                <th style="width: 35%;">Species &amp; Breed</th>
+                <td><strong>{{ .Passport.Species }}</strong> — {{ .Passport.Breed }}</td>
+              </tr>
+              <tr>
+                <th>Body Weight</th>
+                <td>{{ printf "%.1f" .Passport.WeightKg }} kg</td>
+              </tr>
+              <tr>
+                <th>Blood Type</th>
+                <td>{{ if .Passport.BloodType }}{{ .Passport.BloodType }}{{ else }}Unknown{{ end }}</td>
+              </tr>
+              <tr>
+                <th>Microchip ID</th>
+                <td><code>{{ if .Passport.MicrochipID }}{{ .Passport.MicrochipID }}{{ else }}None Recorded{{ end }}</code></td>
+              </tr>
+              <tr>
+                <th>Rabies Tag ID</th>
+                <td><code>{{ if .Passport.RabiesTagID }}{{ .Passport.RabiesTagID }}{{ else }}None Recorded{{ end }}</code></td>
+              </tr>
+              <tr>
+                <th>Primary Clinic</th>
+                <td>{{ if .Passport.PrimaryClinic }}{{ .Passport.PrimaryClinic }}{{ else }}Field Rescue / Disaster Intake{{ end }}</td>
+              </tr>
+              <tr>
+                <th>Emergency Contact</th>
+                <td><strong>{{ if .Passport.EmergencyContact }}{{ .Passport.EmergencyContact }}{{ else }}Emergency Dispatch{{ end }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Immunization History -->
+      <div style="margin-top: 1.5rem;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Verified Vaccinations &amp; Immunizations</h3>
+        {{ if .Passport.Vaccinations }}
+        <table class="passport-table">
+          <thead>
+            <tr>
+              <th>Vaccine Name</th>
+              <th>Administered</th>
+              <th>Expires</th>
+              <th>Clinic</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{ range .Passport.Vaccinations }}
+            <tr>
+              <td><strong>{{ .VaccineName }}</strong></td>
+              <td>{{ if not .AdministeredDate.IsZero }}{{ .AdministeredDate.Format "Jan 02, 2006" }}{{ else }}—{{ end }}</td>
+              <td>{{ if not .ExpirationDate.IsZero }}{{ .ExpirationDate.Format "Jan 02, 2006" }}{{ else }}—{{ end }}</td>
+              <td>{{ if .ClinicName }}{{ .ClinicName }}{{ else }}—{{ end }}</td>
+              <td>
+                <span class="badge {{ if .Verified }}badge-triage-green{{ else }}badge-secondary{{ end }}">
+                  {{ if .Verified }}VERIFIED{{ else }}UNVERIFIED{{ end }}
+                </span>
+              </td>
+            </tr>
+            {{ end }}
+          </tbody>
+        </table>
+        {{ else }}
+        <p class="text-secondary text-sm">No vaccination records documented.</p>
+        {{ end }}
+      </div>
+
+      <!-- Chronic Medical Conditions -->
+      {{ if .Passport.ChronicConditions }}
+      <div style="margin-top: 1.25rem;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Chronic Medical Conditions &amp; Ongoing Regimens</h3>
+        <table class="passport-table">
+          <thead>
+            <tr>
+              <th>Condition</th>
+              <th>Diagnosed</th>
+              <th>Active Medications</th>
+              <th>Flag</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{ range .Passport.ChronicConditions }}
+            <tr>
+              <td><strong>{{ .ConditionName }}</strong></td>
+              <td>{{ if not .DiagnosedDate.IsZero }}{{ .DiagnosedDate.Format "Jan 02, 2006" }}{{ else }}—{{ end }}</td>
+              <td>
+                {{ range .Medications }}
+                <span class="badge badge-secondary" style="margin-right: 0.25rem;">{{ . }}</span>
+                {{ else }}None{{ end }}
+              </td>
+              <td>
+                {{ if .CriticalFlag }}
+                <span class="badge badge-triage-red">CRITICAL</span>
+                {{ else }}
+                <span class="badge badge-secondary">MONITORED</span>
+                {{ end }}
+              </td>
+            </tr>
+            {{ end }}
+          </tbody>
+        </table>
+      </div>
+      {{ end }}
+
+      <!-- Cryptographic Signature Verification Footer -->
+      <footer style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-secondary);">
+        <div>
+          <span>Issued: {{ .FormattedIssuedAt }}</span> • 
+          <span>Expires: {{ .FormattedExpiresAt }}</span>
+        </div>
+        <div>
+          <span style="color: #10b981; font-weight: 700;">✓ ECDSA P-256 Cryptographically Signed</span>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <footer class="no-print">
+    <div class="container footer-content">
+      <p>&copy; 2026 PetSpotR. Event-driven Go &amp; GCP AI Microservices. Official Emergency Veterinary Passport.</p>
+    </div>
+  </footer>
+
+  <script src="/static/js/theme.js"></script>
+  <script src="/static/js/veterinary-triage.js" defer></script>
+</body>
+</html>

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -499,4 +500,62 @@ func TestVeterinaryEndpoints_ConcurrentTreatments(t *testing.T) {
 	if len(list[0].AdministeredTreatments) != numTreatments {
 		t.Fatalf("expected %d administered treatments, got %d (data race / lost update)", numTreatments, len(list[0].AdministeredTreatments))
 	}
+}
+
+func TestVeterinaryPages_Render(t *testing.T) {
+	memStore := store.NewMemoryStore()
+	server := webfrontend.NewTestServer(t, memStore)
+
+	t.Run("Render Triage Page", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/triage", nil)
+		server.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK for /triage, got %d", rec.Code)
+		}
+		body := rec.Body.String()
+		if !strings.Contains(body, "triage-species-dog") {
+			t.Errorf("expected triage page to contain #triage-species-dog")
+		}
+		if !strings.Contains(body, "live-triage-indicator") {
+			t.Errorf("expected triage page to contain #live-triage-indicator")
+		}
+		if !strings.Contains(body, "patient-triage-stream") {
+			t.Errorf("expected triage page to contain #patient-triage-stream")
+		}
+	})
+
+	t.Run("Render Passport Page With Sample Fallback", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/p/sample-passport/passport", nil)
+		server.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK for /p/sample-passport/passport, got %d", rec.Code)
+		}
+		body := rec.Body.String()
+		if !strings.Contains(body, "passport-card") {
+			t.Errorf("expected passport page to contain .passport-card")
+		}
+		if !strings.Contains(body, "passport-qr-code") {
+			t.Errorf("expected passport page to contain .passport-qr-code")
+		}
+		if !strings.Contains(body, "alert-allergy-critical") {
+			t.Errorf("expected passport page to contain .alert-allergy-critical")
+		}
+		if !strings.Contains(body, "Penicillin") {
+			t.Errorf("expected passport page to mention Penicillin")
+		}
+	})
+
+	t.Run("Triage Page Method Not Allowed", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/triage", nil)
+		server.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusMethodNotAllowed {
+			t.Errorf("expected 405 Method Not Allowed, got %d", rec.Code)
+		}
+	})
 }

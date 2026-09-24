@@ -276,6 +276,8 @@ func (s *Server) routes() {
 		_, _ = w.Write(data)
 	})
 	s.mux.HandleFunc("/p/{petID}", s.handleFinderLanding)
+	s.mux.HandleFunc("/p/{petID}/passport", s.handleRenderPassport)
+	s.mux.HandleFunc("/triage", s.handleRenderTriage)
 	s.mux.HandleFunc("/pets", s.handlePets)
 	s.mux.HandleFunc("/pets/{petID}/poster", s.handlePetPoster)
 	s.mux.HandleFunc("/report-lost", s.handleReportLost)
