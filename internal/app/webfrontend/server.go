@@ -429,6 +429,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/veterinary/passports/verify", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleVerifyVeterinaryPassport))
 	s.mux.HandleFunc("/api/v1/veterinary/passports/{id}", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleGetVeterinaryPassport))
 	s.mux.HandleFunc("/api/v1/veterinary/triage", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleCreateTriageAssessment))
+	s.mux.HandleFunc("/api/v1/veterinary/triage/stream", s.handleApiVeterinaryTriageStream)
 	s.mux.HandleFunc("/api/v1/veterinary/triage/{petId}", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleGetTriageAssessmentsByPetID))
 	s.mux.HandleFunc("/api/v1/veterinary/triage/{assessmentId}/treatments", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleAppendTriageTreatment))
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())

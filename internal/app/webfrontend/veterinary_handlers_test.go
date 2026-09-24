@@ -1,8 +1,11 @@
 package webfrontend_test
 
 import (
+	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +18,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/store"
+	"github.com/scottdensmore/petspotr/pkg/veterinary"
 )
 
 func TestVeterinaryEndpoints_Lifecycle(t *testing.T) {
@@ -549,6 +553,16 @@ func TestVeterinaryPages_Render(t *testing.T) {
 		}
 	})
 
+	t.Run("Passport Page Returns 404 For Unknown Pet ID", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/p/unknown-pet-xyz-999/passport", nil)
+		server.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("expected 404 Not Found for non-existent pet ID, got %d", rec.Code)
+		}
+	})
+
 	t.Run("Triage Page Method Not Allowed", func(t *testing.T) {
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPost, "/triage", nil)
@@ -558,4 +572,132 @@ func TestVeterinaryPages_Render(t *testing.T) {
 			t.Errorf("expected 405 Method Not Allowed, got %d", rec.Code)
 		}
 	})
+}
+
+type parsedSSEEvent struct {
+	id    string
+	event string
+	data  string
+}
+
+func readLineWithTimeout(reader *bufio.Reader, timeout time.Duration) (string, error) {
+	type readResult struct {
+		line string
+		err  error
+	}
+	ch := make(chan readResult, 1)
+	go func() {
+		line, err := reader.ReadString('\n')
+		ch <- readResult{line: line, err: err}
+	}()
+	select {
+	case res := <-ch:
+		return res.line, res.err
+	case <-time.After(timeout):
+		return "", errors.New("timed out waiting for line")
+	}
+}
+
+func readSSEEvent(reader *bufio.Reader, timeout time.Duration) (parsedSSEEvent, error) {
+	var result parsedSSEEvent
+	deadline := time.Now().Add(timeout)
+	for {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return result, errors.New("timed out waiting for SSE event")
+		}
+		line, err := readLineWithTimeout(reader, remaining)
+		if err != nil {
+			return result, err
+		}
+		trimmed := strings.TrimRight(line, "\r\n")
+		if trimmed == "" {
+			if result.event != "" || result.data != "" {
+				return result, nil
+			}
+			continue
+		}
+		if strings.HasPrefix(trimmed, ":") {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "event: ") {
+			result.event = strings.TrimPrefix(trimmed, "event: ")
+		} else if strings.HasPrefix(trimmed, "data: ") {
+			result.data = strings.TrimPrefix(trimmed, "data: ")
+		} else if strings.HasPrefix(trimmed, "id: ") {
+			result.id = strings.TrimPrefix(trimmed, "id: ")
+		}
+	}
+}
+
+func TestVeterinaryTriageStream(t *testing.T) {
+	memStore := store.NewMemoryStore()
+	hub := webfrontend.NewReunionHub()
+	server := webfrontend.NewServerWithOptions(memStore, webfrontend.ServerOptions{
+		ReunionHub:               hub,
+		AllowPrivilegedMutations: true,
+	})
+	ts := httptest.NewServer(server)
+	t.Cleanup(func() {
+		ts.Close()
+		server.Close()
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+"/api/v1/veterinary/triage/stream", nil)
+	if err != nil {
+		t.Fatalf("failed to create request: %v", err)
+	}
+
+	resp, err := ts.Client().Do(req)
+	if err != nil {
+		t.Fatalf("failed to connect to stream: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+
+	reader := bufio.NewReader(resp.Body)
+	firstLine, err := readLineWithTimeout(reader, 2*time.Second)
+	if err != nil {
+		t.Fatalf("failed to read initial comment: %v", err)
+	}
+	if strings.TrimRight(firstLine, "\r\n") != ": connected" {
+		t.Errorf("first line = %q, want %q", firstLine, ": connected")
+	}
+
+	// Create assessment to trigger broadcast
+	triageBody, _ := json.Marshal(map[string]any{
+		"petId":    "pet-stream-test",
+		"species":  "Dog",
+		"weightKg": 25.0,
+		"vitals":   domain.VitalSigns{HeartRateBPM: 110, RespiratoryRateBPM: 24},
+		"trauma":   veterinary.TraumaIndicators{},
+	})
+	reqPost, _ := http.NewRequest(http.MethodPost, ts.URL+"/api/v1/veterinary/triage", bytes.NewReader(triageBody))
+	reqPost.Header.Set("Content-Type", "application/json")
+	resPost, err := ts.Client().Do(reqPost)
+	if err != nil {
+		t.Fatalf("failed to post assessment: %v", err)
+	}
+	_ = resPost.Body.Close()
+
+	if resPost.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resPost.StatusCode)
+	}
+
+	evt, err := readSSEEvent(reader, 3*time.Second)
+	if err != nil {
+		t.Fatalf("failed to read triage event: %v", err)
+	}
+	if evt.event != "triage_assessment_created" {
+		t.Errorf("event type = %q, want triage_assessment_created", evt.event)
+	}
+	if !strings.Contains(evt.data, "pet-stream-test") {
+		t.Errorf("expected stream data to contain pet-stream-test, got %s", evt.data)
+	}
 }

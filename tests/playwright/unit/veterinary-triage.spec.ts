@@ -32,6 +32,11 @@ test.describe('Crisis Medical Triage Cockpit & Passport UI', () => {
     await expect(page.locator('.alert-allergy-critical')).toContainText(/Penicillin/i);
   });
 
+  test('Passport page returns 404 for non-existent pet ID', async ({ page }) => {
+    const res = await page.goto(`${WEB_FRONTEND_URL}/p/non-existent-pet-id-12345/passport`);
+    expect(res?.status()).toBe(404);
+  });
+
   test('Calculates live resuscitation dosages and updates upon species / weight change', async ({ page }) => {
     await page.goto(`${WEB_FRONTEND_URL}/triage`);
     await page.waitForLoadState('networkidle');
@@ -48,7 +53,7 @@ test.describe('Crisis Medical Triage Cockpit & Passport UI', () => {
     await expect(page.locator('#dosage-fluids')).toContainText('150 mL');
   });
 
-  test('Submits triage assessment and appends patient card to active triage stream', async ({ page }) => {
+  test('Submits triage assessment and supports keyboard activation on patient card', async ({ page }) => {
     await page.goto(`${WEB_FRONTEND_URL}/triage`);
     await page.waitForLoadState('networkidle');
 
@@ -66,5 +71,10 @@ test.describe('Crisis Medical Triage Cockpit & Passport UI', () => {
     const patientCard = page.locator(`.patient-card[data-pet-id="${testPetId}"]`);
     await expect(patientCard).toBeVisible();
     await expect(patientCard.locator('.badge-triage-red')).toBeVisible();
+
+    // Keyboard activation (Enter / Space)
+    await patientCard.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#patient-treatment-panel')).toBeVisible();
   });
 });

@@ -305,6 +305,10 @@ func (s *Server) handleCreateTriageAssessment(w http.ResponseWriter, r *http.Req
 			hubEvent.MatchID = assessment.HubID
 			s.reunionHub.Broadcast(hubEvent)
 		}
+
+		triageEvent := event
+		triageEvent.MatchID = "triage"
+		s.reunionHub.Broadcast(triageEvent)
 	}
 
 	// Mesh distribution via s.signalingHub
@@ -473,6 +477,10 @@ func (s *Server) handleAppendTriageTreatment(w http.ResponseWriter, r *http.Requ
 			hubEvent.MatchID = updatedAssessment.HubID
 			s.reunionHub.Broadcast(hubEvent)
 		}
+
+		triageEvent := event
+		triageEvent.MatchID = "triage"
+		s.reunionHub.Broadcast(triageEvent)
 	}
 
 	if s.signalingHub != nil {
@@ -519,6 +527,66 @@ func (s *Server) handleListAllTriageAssessments(w http.ResponseWriter, r *http.R
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(assessments)
+}
+
+// handleApiVeterinaryTriageStream serves the real-time SSE stream for veterinary triage assessments and treatments.
+func (s *Server) handleApiVeterinaryTriageStream(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+	w.WriteHeader(http.StatusOK)
+
+	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
+		return
+	}
+	flusher.Flush()
+
+	if s.reunionHub == nil {
+		return
+	}
+
+	subCh, unsubscribe := s.reunionHub.Subscribe("triage")
+	defer unsubscribe()
+
+	pingInterval := s.reunionPingInterval
+	if pingInterval <= 0 {
+		pingInterval = defaultReunionPingInterval
+	}
+	ticker := time.NewTicker(pingInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-ticker.C:
+			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
+				return
+			}
+			flusher.Flush()
+		case event, ok := <-subCh:
+			if !ok {
+				return
+			}
+			if err := formatSSEEvent(w, event); err != nil {
+				return
+			}
+			flusher.Flush()
+		}
+	}
 }
 
 // TriagePageData represents the data passed to templates/triage.html.
@@ -630,6 +698,10 @@ func (s *Server) handleRenderPassport(w http.ResponseWriter, r *http.Request) {
 
 	// 3. Fallback sample passport for testing or demo preview
 	if !found {
+		if petID != "sample-passport" {
+			http.NotFound(w, r)
+			return
+		}
 		now := time.Now().UTC()
 		petName := "Rusty"
 		species := "Dog"

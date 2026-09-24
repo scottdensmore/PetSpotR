@@ -290,6 +290,29 @@
   }
 
   /**
+   * Escape untrusted text for safe HTML interpolation
+   */
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  /**
+   * Escape string for CSS attribute selector
+   */
+  function safeCssEscape(str) {
+    if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+      return CSS.escape(str);
+    }
+    return String(str).replace(/["\\]/g, '\\$&');
+  }
+
+  /**
    * Add a patient card to the stream
    */
   function addOrUpdatePatientCard(assessment) {
@@ -298,35 +321,45 @@
     const emptyMsg = document.getElementById('stream-empty-msg');
     if (emptyMsg) emptyMsg.remove();
 
-    let existingCard = patientStream.querySelector(`.patient-card[data-pet-id="${assessment.petId}"]`);
-    if (!existingCard) {
-      existingCard = patientStream.querySelector(`.patient-card[data-assessment-id="${assessment.assessmentId}"]`);
+    const rawPetId = assessment.petId || '';
+    const rawAssessmentId = assessment.assessmentId || '';
+
+    let existingCard = patientStream.querySelector(`.patient-card[data-pet-id="${safeCssEscape(rawPetId)}"]`);
+    if (!existingCard && rawAssessmentId) {
+      existingCard = patientStream.querySelector(`.patient-card[data-assessment-id="${safeCssEscape(rawAssessmentId)}"]`);
     }
 
-    const badgeClass = `badge-${assessment.category.toLowerCase().replace('_', '-')}`;
+    const safePetId = escapeHtml(rawPetId);
+    const safeSpecies = escapeHtml(assessment.species || 'Unknown');
+    const safeCategoryText = escapeHtml((assessment.category || 'UNKNOWN').replace('_', ' '));
+    const badgeClass = `badge-${escapeHtml((assessment.category || '').toLowerCase().replace('_', '-'))}`;
+    const safeWeight = (Number(assessment.weightKg) || 0).toFixed(1);
+    const safeHr = Number(assessment.vitals?.heartRateBpm) || 0;
+    const safeRr = Number(assessment.vitals?.respiratoryRateBpm) || 0;
+
     const cardHtml = `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-        <span class="badge ${badgeClass}">${assessment.category.replace('_', ' ')}</span>
-        <span style="font-weight: 700; font-size: 0.875rem;">${assessment.petId}</span>
+        <span class="badge ${badgeClass}">${safeCategoryText}</span>
+        <span style="font-weight: 700; font-size: 0.875rem;">${safePetId}</span>
       </div>
       <div style="font-size: 0.8125rem; color: var(--text-secondary);">
-        <span>${assessment.species} (${(assessment.weightKg || 0).toFixed(1)} kg)</span> • 
-        <span>HR: ${assessment.vitals?.heartRateBpm || 0} | RR: ${assessment.vitals?.respiratoryRateBpm || 0}</span>
+        <span>${safeSpecies} (${safeWeight} kg)</span> • 
+        <span>HR: ${safeHr} | RR: ${safeRr}</span>
       </div>
       <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
-        <a href="/p/${assessment.petId}/passport" class="btn btn-xs btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">View Passport</a>
+        <a href="/p/${encodeURIComponent(rawPetId)}/passport" class="btn btn-xs btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">View Passport</a>
       </div>
     `;
 
     if (existingCard) {
-      existingCard.setAttribute('data-pet-id', assessment.petId);
-      existingCard.setAttribute('data-assessment-id', assessment.assessmentId);
+      existingCard.setAttribute('data-pet-id', rawPetId);
+      existingCard.setAttribute('data-assessment-id', rawAssessmentId);
       existingCard.innerHTML = cardHtml;
     } else {
       const newCard = document.createElement('article');
       newCard.className = 'patient-card';
-      newCard.setAttribute('data-pet-id', assessment.petId);
-      newCard.setAttribute('data-assessment-id', assessment.assessmentId);
+      newCard.setAttribute('data-pet-id', rawPetId);
+      newCard.setAttribute('data-assessment-id', rawAssessmentId);
       newCard.setAttribute('tabindex', '0');
       newCard.setAttribute('role', 'article');
       newCard.innerHTML = cardHtml;
@@ -347,13 +380,21 @@
   }
 
   /**
-   * Handle card click to open treatments
+   * Handle card click and keyboard activation to open treatments
    */
   function attachCardClick(card) {
-    card.addEventListener('click', () => {
+    const handleActivate = () => {
       const petId = card.getAttribute('data-pet-id');
       const assessmentId = card.getAttribute('data-assessment-id');
       selectPatient(petId, assessmentId);
+    };
+
+    card.addEventListener('click', handleActivate);
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        handleActivate();
+      }
     });
   }
 
@@ -406,13 +447,20 @@
       const div = document.createElement('div');
       div.className = 'treatment-entry';
       const timeStr = t.administeredAt ? new Date(t.administeredAt).toLocaleTimeString() : '';
+      const safeMed = escapeHtml(t.medicationName);
+      const safeDosage = escapeHtml(t.dosage);
+      const safeRoute = escapeHtml(t.route);
+      const safeAdmin = escapeHtml(t.administeredBy || 'Medic');
+      const safeNotes = t.notes ? `• ${escapeHtml(t.notes)}` : '';
+      const safeTime = escapeHtml(timeStr);
+
       div.innerHTML = `
         <div style="display: flex; justify-content: space-between; font-weight: 700;">
-          <span>${t.medicationName} — ${t.dosage} (${t.route})</span>
-          <span style="font-size: 0.75rem; color: var(--text-muted);">${timeStr}</span>
+          <span>${safeMed} — ${safeDosage} (${safeRoute})</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">${safeTime}</span>
         </div>
         <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-top: 0.25rem;">
-          By: ${t.administeredBy || 'Medic'} ${t.notes ? `• ${t.notes}` : ''}
+          By: ${safeAdmin} ${safeNotes}
         </div>
       `;
       treatmentLog.appendChild(div);
@@ -568,28 +616,55 @@
   function setupSSE() {
     if (typeof EventSource === 'undefined') return;
     try {
-      sseEventSource = new EventSource('/api/v1/reunions/events?matchId=triage');
-      sseEventSource.onmessage = (e) => {
+      sseEventSource = new EventSource('/api/v1/veterinary/triage/stream');
+
+      const handleAssessment = (payload) => {
+        if (!payload) return;
+        addOrUpdatePatientCard({
+          assessmentId: payload.assessmentId,
+          petId: payload.petId,
+          species: payload.species,
+          category: payload.category,
+          weightKg: payload.weightKg || 10,
+          vitals: payload.vitals || {},
+        });
+      };
+
+      const handleTreatment = (payload) => {
+        if (!payload) return;
+        if (activeAssessmentId === payload.assessmentId || activePetId === payload.petId) {
+          loadTreatments(activePetId, activeAssessmentId);
+        }
+      };
+
+      sseEventSource.addEventListener('triage_assessment_created', (e) => {
+        try {
+          handleAssessment(JSON.parse(e.data));
+        } catch (err) {
+          console.warn('Failed to parse triage_assessment_created SSE:', err);
+        }
+      });
+
+      sseEventSource.addEventListener('triage_treatment_administered', (e) => {
+        try {
+          handleTreatment(JSON.parse(e.data));
+        } catch (err) {
+          console.warn('Failed to parse triage_treatment_administered SSE:', err);
+        }
+      });
+
+      sseEventSource.addEventListener('message', (e) => {
         try {
           const event = JSON.parse(e.data);
           if (event.type === 'triage_assessment_created' && event.payload) {
-            addOrUpdatePatientCard({
-              assessmentId: event.payload.assessmentId,
-              petId: event.payload.petId,
-              species: event.payload.species,
-              category: event.payload.category,
-              weightKg: event.payload.weightKg || 10,
-              vitals: event.payload.vitals || {},
-            });
+            handleAssessment(event.payload);
           } else if (event.type === 'triage_treatment_administered' && event.payload) {
-            if (activeAssessmentId === event.payload.assessmentId) {
-              loadTreatments(activePetId, activeAssessmentId);
-            }
+            handleTreatment(event.payload);
           }
         } catch (err) {
-          // ignore heartbeat / unparseable
+          // ignore heartbeat / comments
         }
-      };
+      });
     } catch (err) {
       console.warn('Could not establish triage SSE stream:', err);
     }
