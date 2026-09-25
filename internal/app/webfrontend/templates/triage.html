@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Crisis Medical Triage Cockpit - Species-aware clinical vital signs evaluation, emergency resuscitation dosing, and live patient tracking.">
+  <title>Crisis Medical Triage Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link active nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container page-main" id="main-content">
+    <div class="emergency-operations-header">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🩺 FIELD EMERGENCY VETERINARY TRIAGE COCKPIT</span>
+        </div>
+        <h1>Crisis Medical Triage Cockpit</h1>
+        <p class="text-secondary">Species-aware vital signs evaluation, dynamic acuity classification (Red/Yellow/Green/Black), weight-adjusted emergency resuscitation dosages, and continuous trauma stream.</p>
+      </div>
+    </div>
+
+    <div class="triage-cockpit-grid">
+      <!-- Left Column: Patient Intake & Clinical Evaluation -->
+      <section class="glass-card" aria-labelledby="heading-triage-intake">
+        <h2 id="heading-triage-intake">Rapid Clinical Triage Assessment</h2>
+        
+        <form id="form-triage" novalidate>
+          <!-- Species Selector -->
+          <div class="form-group">
+            <label class="form-label">Patient Species *</label>
+            <div class="species-selector" role="group" aria-label="Patient Species Selection">
+              <button type="button" id="triage-species-dog" class="species-btn active" data-species="Dog" aria-pressed="true">
+                🐕 Canine (Dog)
+              </button>
+              <button type="button" id="triage-species-cat" class="species-btn" data-species="Cat" aria-pressed="false">
+                🐈 Feline (Cat)
+              </button>
+            </div>
+            <input type="hidden" id="triage-species" name="species" value="Dog">
+          </div>
+
+          <!-- Patient & Field Identification -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="triage-pet-id">Pet ID / Microchip *</label>
+              <input type="text" id="triage-pet-id" name="petId" class="form-control" placeholder="e.g. pet-101" required>
+            </div>
+            <div class="form-group">
+              <label for="triage-weight">Patient Weight (kg) *</label>
+              <input type="number" id="triage-weight" name="weightKg" step="0.1" min="0.1" value="10" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="triage-hub-id">Evacuation Hub ID</label>
+              <input type="text" id="triage-hub-id" name="hubId" class="form-control" placeholder="e.g. hub-seattle-center">
+            </div>
+            <div class="form-group">
+              <label for="triage-medic-name">Field Medic Name</label>
+              <input type="text" id="triage-medic-name" name="medicName" class="form-control" value="Dr. Field Medic">
+            </div>
+          </div>
+
+          <!-- Vital Signs HUD -->
+          <div class="form-group">
+            <label class="form-label">Vital Signs Assessment</label>
+            <div class="vitals-hud">
+              <div class="vitals-hud-card">
+                <label for="vitals-hr">Heart Rate (BPM)</label>
+                <input type="number" id="vitals-hr" name="heartRate" class="form-control" placeholder="e.g. 110" min="0" max="400">
+                <span class="text-muted text-xs" id="hr-range-hint">Canine ref: 60-140 BPM</span>
+              </div>
+
+              <div class="vitals-hud-card">
+                <label for="vitals-rr">Respiratory Rate (BPM)</label>
+                <input type="number" id="vitals-rr" name="respiratoryRate" class="form-control" placeholder="e.g. 24" min="0" max="200">
+                <span class="text-muted text-xs" id="rr-range-hint">Canine ref: 10-30 BPM</span>
+              </div>
+
+              <div class="vitals-hud-card">
+                <label for="vitals-temp">Body Temp (°F)</label>
+                <input type="number" id="vitals-temp" name="temperature" step="0.1" class="form-control" placeholder="e.g. 101.5" min="70" max="115">
+                <span class="text-muted text-xs">Normal: 100.0 - 102.5 °F</span>
+              </div>
+
+              <div class="vitals-hud-card">
+                <label for="vitals-gcs">Glasgow Coma Scale</label>
+                <input type="number" id="vitals-gcs" name="glasgowComaScale" min="3" max="18" value="18" class="form-control">
+                <span class="text-muted text-xs">3-8: Severe | 9-14: Depressed | 15-18: Normal</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Capillary Refill Time (Perfusion) -->
+          <div class="form-group">
+            <label class="form-label">Capillary Refill Time (CRT)</label>
+            <div class="choice-group" role="group" aria-label="Capillary Refill Time">
+              <button type="button" id="vitals-crt-normal" class="btn btn-choice active" data-crt="1.5">&lt; 2.0s (Normal)</button>
+              <button type="button" id="vitals-crt-elevated" class="btn btn-choice" data-crt="2.2">2.0 - 2.9s (Elevated)</button>
+              <button type="button" id="vitals-crt-3" class="btn btn-choice" data-crt="3.0">≥ 3.0s (Critical Hypoperfusion)</button>
+            </div>
+            <input type="hidden" id="vitals-crt" name="capillaryRefillSec" value="1.5">
+          </div>
+
+          <!-- Mucous Membrane Color (Oxygenation) -->
+          <div class="form-group">
+            <label class="form-label">Mucous Membrane Color</label>
+            <div class="choice-group" role="group" aria-label="Mucous Membrane Color">
+              <button type="button" id="vitals-mm-pink" class="btn btn-choice active" data-mm="MM_PINK">Pink (Normal)</button>
+              <button type="button" id="vitals-mm-pale" class="btn btn-choice" data-mm="MM_PALE">Pale (Shock/Blood Loss)</button>
+              <button type="button" id="vitals-mm-cyanotic" class="btn btn-choice" data-mm="MM_CYANOTIC">Cyanotic (Hypoxia)</button>
+              <button type="button" id="vitals-mm-icteric" class="btn btn-choice" data-mm="MM_ICTERIC">Icteric (Jaundice)</button>
+              <button type="button" id="vitals-mm-brick-red" class="btn btn-choice" data-mm="MM_BRICK_RED">Brick-Red (Sepsis)</button>
+            </div>
+            <input type="hidden" id="vitals-mm" name="mucousMembrane" value="MM_PINK">
+          </div>
+
+          <!-- Physical Trauma Indicators -->
+          <div class="form-group">
+            <label class="form-label">Physical Trauma Indicators</label>
+            <div class="trauma-grid">
+              <label class="trauma-checkbox">
+                <input type="checkbox" id="trauma-arterial-hemorrhage" name="arterialHemorrhage">
+                <span>Active Arterial Hemorrhage</span>
+              </label>
+              <label class="trauma-checkbox">
+                <input type="checkbox" id="trauma-penetrating-chest" name="penetratingChest">
+                <span>Penetrating Chest Injury</span>
+              </label>
+              <label class="trauma-checkbox">
+                <input type="checkbox" id="trauma-severe-burns" name="severeBurns">
+                <span>Severe Thermal Burns (&gt;30% BSA)</span>
+              </label>
+              <label class="trauma-checkbox">
+                <input type="checkbox" id="trauma-moderate-burns" name="moderateBurns">
+                <span>Moderate Burns (10-30% BSA)</span>
+              </label>
+              <label class="trauma-checkbox">
+                <input type="checkbox" id="trauma-open-fracture" name="openFracture">
+                <span>Open Skeletal Fracture</span>
+              </label>
+              <label class="trauma-checkbox">
+                <input type="checkbox" id="trauma-unresponsive-asystole" name="unresponsiveAsystole">
+                <span>Unresponsive Asystole / Pulseless</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="triage-notes">Trauma &amp; Clinical Notes</label>
+            <textarea id="triage-notes" name="traumaNotes" rows="2" class="form-control" placeholder="Clinical notes, mechanism of injury, observable wounds..."></textarea>
+          </div>
+
+          <!-- Live Dynamic Triage Category HUD -->
+          <div class="triage-live-hud" role="region" aria-live="polite" aria-atomic="true">
+            <span class="text-xs text-uppercase font-bold tracking-wider text-muted">Real-Time Acuity Tag</span>
+            <div id="live-triage-indicator" class="live-triage-indicator badge-triage-green">TRIAGE GREEN</div>
+            <div>
+              <span class="text-xs font-bold text-secondary">Clinical Rationale:</span>
+              <ul id="live-triage-reasons" class="triage-reasons-list">
+                <li>Stable physiological vitals within baseline bounds</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Live Emergency Resuscitation Dosages -->
+          <div class="emergency-dosage-bar">
+            <h3>⚡ Emergency Resuscitation Dosages (Weight-Adjusted)</h3>
+            <div class="dosages-grid">
+              <div class="dosage-item">
+                <span class="dosage-label">Shock Fluids Bolus (IV over 15 min):</span>
+                <span id="dosage-fluids" class="dosage-value">150 mL IV over 15 min</span>
+              </div>
+              <div class="dosage-item">
+                <span class="dosage-label">Epinephrine (1:1000 CPR IV/IO):</span>
+                <span id="dosage-epinephrine" class="dosage-value">0.10 mg (0.10 mL of 1:1000) IV/IO</span>
+              </div>
+              <div class="dosage-item">
+                <span class="dosage-label">Buprenorphine (0.3mg/mL Analgesia):</span>
+                <span id="dosage-buprenorphine" class="dosage-value">0.20 mg (0.67 mL of 0.3mg/mL) IV/IM/SL</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="modal-actions" style="margin-top: 1.5rem;">
+            <button type="submit" id="btn-submit-triage" class="btn btn-primary btn-lg">
+              🚨 Record Triage Assessment
+            </button>
+            <button type="reset" id="btn-reset-triage" class="btn btn-secondary">
+              Clear Vitals
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Right Column: Active Patient Stream & Treatment Administration -->
+      <section class="glass-card" aria-labelledby="heading-patient-stream">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 id="heading-patient-stream" style="margin: 0;">🏥 Active Patient Stream</h2>
+          <span id="patient-count-badge" class="badge badge-secondary">0 Patients</span>
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="choice-group" role="group" aria-label="Filter patients by category" style="margin-bottom: 1rem;">
+          <button type="button" class="btn btn-choice active" data-stream-filter="ALL">All</button>
+          <button type="button" class="btn btn-choice" data-stream-filter="TRIAGE_RED">Red</button>
+          <button type="button" class="btn btn-choice" data-stream-filter="TRIAGE_YELLOW">Yellow</button>
+          <button type="button" class="btn btn-choice" data-stream-filter="TRIAGE_GREEN">Green</button>
+          <button type="button" class="btn btn-choice" data-stream-filter="TRIAGE_BLACK">Black</button>
+        </div>
+
+        <!-- Active Patient Cards List -->
+        <div id="patient-triage-stream" class="patient-stream" role="feed" aria-busy="false">
+          {{ range .Assessments }}
+          <article class="patient-card" data-pet-id="{{ .PetID }}" data-assessment-id="{{ .AssessmentID }}" tabindex="0" role="article">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span class="badge {{ if eq .Category "TRIAGE_RED" }}badge-triage-red{{ else if eq .Category "TRIAGE_YELLOW" }}badge-triage-yellow{{ else if eq .Category "TRIAGE_GREEN" }}badge-triage-green{{ else }}badge-triage-black{{ end }}">
+                {{ .Category }}
+              </span>
+              <span style="font-weight: 700; font-size: 0.875rem;">{{ .PetID }}</span>
+            </div>
+            <div style="font-size: 0.8125rem; color: var(--text-secondary);">
+              <span>{{ .Species }} ({{ printf "%.1f" .WeightKg }} kg)</span> • 
+              <span>HR: {{ .Vitals.HeartRateBPM }} | RR: {{ .Vitals.RespiratoryRateBPM }}</span>
+            </div>
+            <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
+              <a href="/p/{{ .PetID }}/passport" class="btn btn-xs btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">View Passport</a>
+            </div>
+          </article>
+          {{ else }}
+          <p id="stream-empty-msg" class="text-secondary text-sm" style="text-align: center; padding: 2rem 1rem;">
+            No active emergency patients in stream. Record an assessment on the left to begin triage tracking.
+          </p>
+          {{ end }}
+        </div>
+
+        <!-- Selected Patient Treatment Panel -->
+        <div id="patient-treatment-panel" class="patient-treatment-panel" style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;" hidden>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 id="treatment-patient-title" style="margin: 0;">Patient Treatments</h3>
+            <span id="treatment-patient-badge" class="badge"></span>
+          </div>
+
+          <div class="treatment-log" id="treatment-log">
+            <p class="text-secondary text-xs">No emergency treatments recorded yet.</p>
+          </div>
+
+          <form id="form-administer-treatment" style="margin-top: 1rem; background: rgba(0,0,0,0.15); padding: 1rem; border-radius: var(--radius-sm);">
+            <h4 style="margin: 0 0 0.75rem 0; font-size: 0.9375rem;">Administer Clinical Treatment</h4>
+            <div class="form-row">
+              <div class="form-group" style="flex: 2;">
+                <label for="treatment-medication">Medication / Procedure *</label>
+                <input type="text" id="treatment-medication" class="form-control" placeholder="e.g. Lactated Ringers Solution Bolus" required>
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label for="treatment-dosage">Dosage *</label>
+                <input type="text" id="treatment-dosage" class="form-control" placeholder="e.g. 450 mL" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="treatment-route">Administration Route *</label>
+                <select id="treatment-route" class="form-control" required>
+                  <option value="IV" selected>IV (Intravenous)</option>
+                  <option value="IM">IM (Intramuscular)</option>
+                  <option value="SC">SC (Subcutaneous)</option>
+                  <option value="PO">PO (Oral)</option>
+                  <option value="TOPICAL">Topical</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="treatment-admin-by">Administered By *</label>
+                <input type="text" id="treatment-admin-by" class="form-control" value="Dr. Field Medic" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="treatment-notes">Clinical Notes</label>
+              <input type="text" id="treatment-notes" class="form-control" placeholder="e.g. Administered over 15 min for hypovolemic shock">
+            </div>
+            <button type="submit" id="btn-submit-treatment" class="btn btn-primary" style="width: 100%;">
+              💉 Record Administered Treatment
+            </button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container footer-content">
+      <p>&copy; 2026 PetSpotR. Event-driven Go &amp; GCP AI Microservices. Field Crisis Triage Cockpit.</p>
+    </div>
+  </footer>
+
+  <div id="toast-container" class="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
+  <div id="triage-aria-announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="/static/js/theme.js"></script>
+  <script src="/static/js/veterinary-triage.js" defer></script>
+</body>
+</html>

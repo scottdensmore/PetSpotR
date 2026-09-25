@@ -64,6 +64,11 @@ const CollectionAudioProfiles = "audio_profiles"
 // CollectionAcousticMatches is the state store collection for bilateral acoustic match results.
 const CollectionAcousticMatches = "acoustic_matches"
 
+const (
+	CollectionVeterinaryPassports = "veterinary_passports"
+	CollectionTriageAssessments   = "triage_assessments"
+)
+
 // Sentinel errors for StateStore operations.
 var (
 	ErrStoreNotFound = errors.New("store: state store not found")
