@@ -432,6 +432,17 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/veterinary/triage/stream", s.handleApiVeterinaryTriageStream)
 	s.mux.HandleFunc("/api/v1/veterinary/triage/{petId}", s.rateLimiter.RequireRateLimitFunc(ratelimit.GenerousLimit, s.handleGetTriageAssessmentsByPetID))
 	s.mux.HandleFunc("/api/v1/veterinary/triage/{assessmentId}/treatments", s.rateLimiter.RequireRateLimitFunc(ratelimit.ModerateLimit, s.handleAppendTriageTreatment))
+
+	// Smart Camera Trap & Edge Frame Ingestion routes (Milestone 12.1)
+	s.mux.HandleFunc("GET /cameras", s.handleCamerasPage)
+	s.mux.HandleFunc("POST /api/v1/cameras", s.handleCreateCameraNode)
+	s.mux.HandleFunc("GET /api/v1/cameras", s.handleListCameraNodes)
+	s.mux.HandleFunc("POST /api/v1/cameras/{id}/webhook", s.handleCameraWebhook)
+	s.mux.HandleFunc("GET /api/v1/cameras/captures", s.handleListCameraCaptures)
+	s.mux.HandleFunc("POST /api/v1/cameras/captures/{id}/promote", s.handlePromoteCameraCapture)
+	s.mux.HandleFunc("POST /api/v1/cameras/captures/{id}/dismiss", s.handleDismissCameraCapture)
+	s.mux.HandleFunc("GET /api/v1/cameras/stream", s.handleCamerasStream)
+
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
 		"state": func(ctx context.Context) error {

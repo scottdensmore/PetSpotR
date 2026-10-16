@@ -186,23 +186,23 @@ func confirmedReunionFixture(t *testing.T) (domain.MatchRecord, domain.MatchPart
 		t.Fatal(err)
 	}
 	return domain.MatchRecord{
-			MatchID: matchID, MatchedPetID: "lost-101", FoundPetID: "found-202",
-			Score: 0.91, Status: domain.MatchStatusConfirmed, MatchedAt: decidedAt.Add(-time.Hour),
-			Scores: domain.MatchScoreBreakdown{
-				Visual: 0.95, Color: 1, Spatial: 0.82, DistanceMiles: 2.7, Threshold: 0.7,
-			},
-			LostPet:       domain.MatchPetDetail{PetID: "lost-101", Breed: "Golden Retriever"},
-			FoundPet:      domain.MatchPetDetail{PetID: "found-202", Breed: "Golden Retriever"},
-			SourceEventID: "event-found-202", Model: "gemma4:e2b", ThresholdVersion: "visual-spatial-v1",
-			Explanation: "High visual and geographic similarity",
-		}, domain.MatchParticipantRecord{
-			MatchID: matchID, LostPetID: "lost-101", FoundPetID: "found-202",
-			Reporter: reporter, Finder: finder,
-			ReporterDecision: domain.MatchDecisionConfirm,
-			FinderDecision:   domain.MatchDecisionConfirm,
-			DecisionAudit: []domain.MatchDecisionAudit{
-				{Role: domain.MatchParticipantRoleReporter, Decision: domain.MatchDecisionConfirm, DecidedAt: decidedAt},
-				{Role: domain.MatchParticipantRoleFinder, Decision: domain.MatchDecisionConfirm, DecidedAt: decidedAt},
-			},
-		}
+		MatchID: matchID, MatchedPetID: "lost-101", FoundPetID: "found-202",
+		Score: 0.91, Status: domain.MatchStatusConfirmed, MatchedAt: decidedAt.Add(-time.Hour),
+		Scores: domain.MatchScoreBreakdown{
+			Visual: 0.95, Color: 1, Spatial: 0.82, DistanceMiles: 2.7, Threshold: 0.7,
+		},
+		LostPet:       domain.MatchPetDetail{PetID: "lost-101", Breed: "Golden Retriever"},
+		FoundPet:      domain.MatchPetDetail{PetID: "found-202", Breed: "Golden Retriever"},
+		SourceEventID: "event-found-202", Model: "gemma4:e2b", ThresholdVersion: "visual-spatial-v1",
+		Explanation: "High visual and geographic similarity",
+	}, domain.MatchParticipantRecord{
+		MatchID: matchID, LostPetID: "lost-101", FoundPetID: "found-202",
+		Reporter: reporter, Finder: finder,
+		ReporterDecision: domain.MatchDecisionConfirm,
+		FinderDecision:   domain.MatchDecisionConfirm,
+		DecisionAudit: []domain.MatchDecisionAudit{
+			{Role: domain.MatchParticipantRoleReporter, Decision: domain.MatchDecisionConfirm, DecidedAt: decidedAt},
+			{Role: domain.MatchParticipantRoleFinder, Decision: domain.MatchDecisionConfirm, DecidedAt: decidedAt},
+		},
+	}
 }

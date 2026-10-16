@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Smart Camera Trap &amp; Edge Frame Command Center - Multi-vendor motion webhook ingestion, perceptual dHash deduplication, night-vision IR enhancement, and saliency ROI detection.">
+  <title>Smart Camera Trap &amp; Edge Frame Command Center — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/cameras" class="nav-link active" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container page-main" id="main-content">
+    {{template "content" .}}
+  </main>
+
+  <footer>
+    <div class="container footer-content">
+      <p>&copy; 2026 PetSpotR. Event-driven Go &amp; GCP AI Microservices. Smart Camera Trap Command Center.</p>
+    </div>
+  </footer>
+
+  <div id="toast-container" class="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
+  <div id="camera-aria-announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="/static/js/theme.js"></script>
+  <script src="/static/js/camera-trap.js" defer></script>
+</body>
+</html>
+
+{{define "content"}}
+<div class="camera-command-center" id="camera-command-center">
+  <!-- Header Banner -->
+  <div class="emergency-operations-header camera-header-banner">
+    <div class="dashboard-heading">
+      <div class="emergency-status-pill">
+        <span class="pulse-beacon" aria-hidden="true"></span>
+        <span>📷 EDGE VISION TELEMETRY &amp; MOTION TRAP HUB</span>
+      </div>
+      <h1>Smart Camera Trap &amp; Edge Frame Command Center</h1>
+      <p class="text-secondary">
+        Multi-vendor motion webhook ingestion (<code>RING</code>, <code>NEST</code>, <code>WYZE</code>, <code>FRIGATE_RTSP</code>, <code>TRAIL_CAM</code>), 64-bit perceptual <code>dHash</code> duplicate frame suppression, nocturnal night-vision IR auto-enhancement, and saliency ROI detection.
+      </p>
+    </div>
+    <div class="camera-global-controls" role="group" aria-label="Global Camera Feed Controls">
+      <button type="button" id="toggle-ir-phosphor" class="btn btn-secondary" aria-pressed="false">Night-Vision IR Phosphor: OFF</button>
+      <label class="checkbox-label">
+        <input type="checkbox" id="filter-exclude-duplicates"> Hide Suppressed Duplicates
+      </label>
+    </div>
+  </div>
+
+  <!-- Top Controls Grid: Register Camera Node + Edge Motion Webhook Simulator -->
+  <div class="camera-cockpit-grid">
+    <!-- Left Column / Section 1: Register Camera Node & Active Nodes List -->
+    <section class="glass-card camera-panel" aria-labelledby="heading-register-camera">
+      <h2 id="heading-register-camera">Register Camera Node</h2>
+      <form id="camera-register-form" class="camera-form" novalidate>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="camera-name">Camera Node Name *</label>
+            <input type="text" id="camera-name" name="name" class="form-control" placeholder="North Woods Trail Cam #1" required>
+          </div>
+          <div class="form-group">
+            <label for="camera-vendor">Hardware Vendor *</label>
+            <select id="camera-vendor" name="vendor" class="form-control">
+              <option value="RING">RING</option>
+              <option value="NEST">NEST</option>
+              <option value="WYZE">WYZE</option>
+              <option value="FRIGATE_RTSP">FRIGATE_RTSP</option>
+              <option value="TRAIL_CAM">TRAIL_CAM</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="camera-target-pet">Target Lost Pet ID</label>
+          <input type="text" id="camera-target-pet" name="targetPetId" class="form-control" placeholder="pet-lost-101 (optional)">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="camera-lat">Latitude *</label>
+            <input type="number" id="camera-lat" name="latitude" step="any" value="47.6062" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="camera-lng">Longitude *</label>
+            <input type="number" id="camera-lng" name="longitude" step="any" value="-122.3321" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-row form-row-3">
+          <div class="form-group">
+            <label for="camera-heading">Heading (°)</label>
+            <input type="number" id="camera-heading" name="headingDegrees" value="45" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="camera-fov">FOV (°)</label>
+            <input type="number" id="camera-fov" name="fovDegrees" value="110" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="camera-auto-promote">Auto-Promote Threshold</label>
+            <input type="number" id="camera-auto-promote" name="autoPromoteThreshold" step="0.05" min="0" max="1" value="0" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="camera-night-vision" name="nightVisionIr" checked>
+            Enable Night-Vision IR Auto-Enhancement
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="btn-register-camera" class="btn btn-primary">Register Camera Node</button>
+        </div>
+      </form>
+
+      <!-- Newly issued Webhook Credentials Banner -->
+      <div id="camera-webhook-credentials" class="webhook-credentials-banner" role="region" aria-live="polite" hidden>
+        <div class="credentials-title">🔑 Issued Edge Webhook Credentials</div>
+        <div class="credentials-row">
+          <span class="credentials-label">Endpoint URL:</span>
+          <code id="issued-webhook-url" class="credentials-code"></code>
+        </div>
+        <div class="credentials-row">
+          <span class="credentials-label">Secret Token (X-Camera-Token):</span>
+          <code id="issued-webhook-token" class="credentials-code"></code>
+        </div>
+      </div>
+
+      <!-- Registered Camera Nodes List -->
+      <div class="camera-nodes-section">
+        <h3>Active Camera Nodes</h3>
+        <div id="camera-nodes-list" class="camera-nodes-list" role="list">
+          {{ range .Cameras }}
+          <article class="camera-node-card" data-camera-id="{{ .ID }}" role="listitem">
+            <div class="camera-node-header">
+              <strong class="camera-node-name">{{ .Name }}</strong>
+              <span class="badge camera-vendor-badge">{{ .Vendor }}</span>
+            </div>
+            <div class="camera-node-meta">
+              <span>📍 {{ printf "%.4f" .Latitude }}, {{ printf "%.4f" .Longitude }}</span>
+              <span>📸 Captures: <strong>{{ .TotalCaptures }}</strong></span>
+              <span>🛡️ Suppressed Duplicates: <strong>{{ .SuppressedDuplicates }}</strong></span>
+            </div>
+          </article>
+          {{ else }}
+          <p class="camera-empty-hint" id="camera-nodes-empty">No camera nodes registered yet. Register a perimeter node above to begin receiving motion frames.</p>
+          {{ end }}
+        </div>
+      </div>
+    </section>
+
+    <!-- Middle/Right Column / Section 2: Edge Motion Webhook Simulator -->
+    <section class="glass-card camera-panel" aria-labelledby="heading-webhook-simulator">
+      <h2 id="heading-webhook-simulator">Edge Motion Webhook Simulator</h2>
+      <p class="text-secondary text-sm">
+        Simulate an edge motion trigger from a registered camera trap or smart doorbell using synthetic deterministic frames.
+      </p>
+
+      <form id="webhook-simulator-form" class="camera-form" novalidate>
+        <div class="form-group">
+          <label for="sim-camera-select">Target Camera Node *</label>
+          <select id="sim-camera-select" name="cameraId" class="form-control" required>
+            {{ range .Cameras }}
+            <option value="{{ .ID }}">{{ .Name }} ({{ .Vendor }})</option>
+            {{ else }}
+            <option value="">-- Register a camera node first --</option>
+            {{ end }}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="sim-token-input">Webhook Token (X-Camera-Token) *</label>
+          <input type="text" id="sim-token-input" name="webhookToken" class="form-control" placeholder="cam_tok_..." required>
+        </div>
+
+        <div class="form-group">
+          <label for="sim-scene-preset">Synthetic Scene Preset</label>
+          <select id="sim-scene-preset" name="scenePreset" class="form-control">
+            <option value="night_ir_dog">Night-Vision IR — Stray Dog Subject (High Saliency)</option>
+            <option value="daylight_cat">Daylight — Calico Cat Near Fence</option>
+            <option value="static_repeat">Static Background Repeat (Triggers dHash Duplicate Suppression)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="sim-species-hint">Detected Species Hint</label>
+          <select id="sim-species-hint" name="detectedSpecies" class="form-control">
+            <option value="DOG">DOG</option>
+            <option value="CAT">CAT</option>
+            <option value="WILDLIFE">WILDLIFE</option>
+            <option value="UNKNOWN">UNKNOWN</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="sim-traits-input">Extracted Visual Traits (comma-separated)</label>
+          <input type="text" id="sim-traits-input" name="extractedTraits" class="form-control" value="Reflective collar, medium build, alert ears">
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="btn-send-webhook-frame" class="btn btn-primary">Transmit Edge Motion Frame</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <!-- Main Gallery / Section 3: Live Edge Capture Review Feed -->
+  <section class="glass-card camera-captures-section" aria-labelledby="heading-captures-feed">
+    <div class="captures-section-header">
+      <h2 id="heading-captures-feed">Live Edge Capture Review Feed</h2>
+      <span id="captures-count-badge" class="badge badge-secondary">0 Captures</span>
+    </div>
+
+    <div id="camera-captures-grid" class="camera-captures-grid" role="feed" aria-busy="false">
+      <p class="camera-empty-hint" id="camera-captures-empty">No edge motion captures received yet. Use the simulator above or send a webhook POST to ingest frames.</p>
+    </div>
+  </section>
+</div>
+{{end}}

@@ -69,6 +69,11 @@ const (
 	CollectionTriageAssessments   = "triage_assessments"
 )
 
+const (
+	CollectionCameraNodes    = "camera_nodes"
+	CollectionCameraCaptures = "camera_captures"
+)
+
 // Sentinel errors for StateStore operations.
 var (
 	ErrStoreNotFound = errors.New("store: state store not found")
