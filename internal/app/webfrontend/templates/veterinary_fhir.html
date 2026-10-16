@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Veterinary HL7 FHIR R4 & PIMS Pre-Arrival Handoff Cockpit">
+  <title>Veterinary HL7 FHIR R4 &amp; PIMS Exchange — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/triage" class="nav-link" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link active" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container page-main" id="main-content">
+    <section class="glass-card" id="veterinary-fhir-cockpit">
+      <h1>Veterinary Clinic &amp; Shelter HL7 FHIR R4 / PIMS Exchange</h1>
+      <p class="text-secondary">Pre-arrival emergency handoff bundles and bilateral PIMS webhook synchronization.</p>
+      <div id="fhir-clinics-list" data-count="{{len .Clinics}}"></div>
+      <div id="fhir-handoffs-list" data-count="{{len .Handoffs}}"></div>
+    </section>
+  </main>
+</body>
+</html>

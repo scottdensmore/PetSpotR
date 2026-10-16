@@ -443,6 +443,15 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/v1/cameras/captures/{id}/dismiss", s.handleDismissCameraCapture)
 	s.mux.HandleFunc("GET /api/v1/cameras/stream", s.handleCamerasStream)
 
+	// Veterinary Clinic & Shelter HL7 FHIR / PIMS Exchange routes (Milestone 12.2)
+	s.mux.HandleFunc("GET /veterinary/fhir", s.handleVeterinaryFHIRPage)
+	s.mux.HandleFunc("GET /api/v1/veterinary/clinics", s.handleListVeterinaryClinics)
+	s.mux.HandleFunc("POST /api/v1/veterinary/clinics", s.handleCreateVeterinaryClinic)
+	s.mux.HandleFunc("POST /api/v1/veterinary/handoffs", s.handleCreateClinicalHandoff)
+	s.mux.HandleFunc("GET /api/v1/veterinary/handoffs", s.handleListClinicalHandoffs)
+	s.mux.HandleFunc("GET /api/v1/veterinary/handoffs/{id}/fhir", s.handleExportClinicalHandoffFHIR)
+	s.mux.HandleFunc("POST /api/v1/veterinary/handoffs/{id}/pims-webhook", s.handleInboundPIMSWebhook)
+
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
 		"state": func(ctx context.Context) error {
