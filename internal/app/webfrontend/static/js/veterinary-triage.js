@@ -366,6 +366,7 @@
       </div>
       <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
         <a href="/p/${encodeURIComponent(rawPetId)}/passport" class="btn btn-xs btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">View Passport</a>
+        <a href="/veterinary/fhir?petId=${encodeURIComponent(rawPetId)}&assessmentId=${encodeURIComponent(rawAssessmentId)}" class="btn btn-xs btn-primary">🚑 ER FHIR Handoff</a>
       </div>
     `;
 

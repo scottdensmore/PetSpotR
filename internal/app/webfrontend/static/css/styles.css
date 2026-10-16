@@ -8570,3 +8570,269 @@ textarea:focus-visible,
   color: #334155;
 }
 
+/* ==========================================================================
+   Milestone 12.2: Veterinary Clinic & Shelter HL7 FHIR R4 / PIMS Exchange (WCAG AAA)
+   ========================================================================== */
+
+.fhir-header-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.fhir-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fhir-cockpit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.fhir-bottom-grid {
+  grid-template-columns: 0.95fr 1.05fr;
+}
+
+@media (max-width: 992px) {
+  .fhir-cockpit-grid,
+  .fhir-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fhir-column-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.fhir-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fhir-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.fhir-panel-header h2 {
+  margin: 0;
+}
+
+.fhir-subsection {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #334155);
+}
+
+.fhir-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.clinics-list,
+.handoffs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.clinic-partner-card,
+.handoff-card {
+  background: var(--bg-card, #0f172a);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: var(--radius-md, 8px);
+  padding: 0.95rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+[data-theme="light"] .clinic-partner-card,
+[data-theme="light"] .handoff-card {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.clinic-card-header,
+.handoff-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.clinic-card-badges,
+.handoff-card-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.clinic-card-name,
+.handoff-pet-id {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.clinic-card-meta,
+.handoff-card-meta,
+.handoff-discharge-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #cbd5e1);
+}
+
+[data-theme="light"] .clinic-card-meta,
+[data-theme="light"] .handoff-card-meta,
+[data-theme="light"] .handoff-discharge-meta {
+  color: #334155;
+}
+
+.badge-pims-provider,
+[data-theme="light"] .badge-pims-provider {
+  background-color: #1e1b4b;
+  color: #ffffff;
+  border: 1px solid #6366f1;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+}
+
+.badge-er-24hr,
+[data-theme="light"] .badge-er-24hr {
+  background-color: #991b1b;
+  color: #ffffff;
+  border: 1px solid #ef4444;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+}
+
+/* WCAG AAA Clinical Handoff Status Badges (> 7:1 Contrast Ratio in Dark & Light Modes) */
+.badge-handoff-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.badge-handoff-enroute,
+[data-theme="light"] .badge-handoff-enroute {
+  background-color: #991b1b;
+  color: #ffffff;
+  border: 1px solid #f87171;
+}
+
+.badge-handoff-treatment,
+[data-theme="light"] .badge-handoff-treatment {
+  background-color: #78350f;
+  color: #ffffff;
+  border: 1px solid #fbbf24;
+}
+
+.badge-handoff-stabilized,
+[data-theme="light"] .badge-handoff-stabilized {
+  background-color: #1e3a8a;
+  color: #ffffff;
+  border: 1px solid #60a5fa;
+}
+
+.badge-handoff-cleared,
+[data-theme="light"] .badge-handoff-cleared {
+  background-color: #064e3b;
+  color: #ffffff;
+  border: 1px solid #34d399;
+}
+
+.reunion-clearance-banner,
+[data-theme="light"] .reunion-clearance-banner {
+  background-color: #064e3b;
+  color: #ffffff;
+  border: 2px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.6rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.handoff-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.fhir-digest-badge,
+[data-theme="light"] .fhir-digest-badge {
+  background-color: #0f172a;
+  color: #ffffff;
+  border: 1px solid #475569;
+  font-family: monospace;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+.fhir-resource-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.fhir-json-viewer,
+[data-theme="light"] .fhir-json-viewer {
+  background-color: #090d16;
+  color: #f8fafc;
+  border: 1px solid #334155;
+  border-radius: var(--radius-md, 8px);
+  padding: 1rem;
+  font-family: monospace;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  max-height: 460px;
+  overflow: auto;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.fhir-empty-hint {
+  color: var(--text-secondary, #cbd5e1);
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 1.5rem 1rem;
+  margin: 0;
+}
+
+[data-theme="light"] .fhir-empty-hint {
+  color: #334155;
+}
+
+

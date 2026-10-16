@@ -30,6 +30,7 @@
           <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
           <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
           <li><a href="/triage" class="nav-link active nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
           <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
         </ul>
       </nav>
@@ -47,7 +48,7 @@
   </header>
 
   <main class="container page-main" id="main-content">
-    <div class="emergency-operations-header">
+    <div class="emergency-operations-header fhir-header-banner">
       <div class="dashboard-heading">
         <div class="emergency-status-pill">
           <span class="pulse-beacon" aria-hidden="true"></span>
@@ -55,6 +56,9 @@
         </div>
         <h1>Crisis Medical Triage Cockpit</h1>
         <p class="text-secondary">Species-aware vital signs evaluation, dynamic acuity classification (Red/Yellow/Green/Black), weight-adjusted emergency resuscitation dosages, and continuous trauma stream.</p>
+      </div>
+      <div class="fhir-header-actions">
+        <a href="/veterinary/fhir" class="btn btn-primary" id="btn-open-fhir-portal">🚑 HL7 FHIR R4 &amp; PIMS Handoff Portal</a>
       </div>
     </div>
 
@@ -266,6 +270,7 @@
             </div>
             <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
               <a href="/p/{{ .PetID }}/passport" class="btn btn-xs btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">View Passport</a>
+              <a href="/veterinary/fhir?petId={{ .PetID }}&assessmentId={{ .AssessmentID }}" class="btn btn-xs btn-primary">🚑 ER FHIR Handoff</a>
             </div>
           </article>
           {{ else }}
