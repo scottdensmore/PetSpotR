@@ -1031,25 +1031,25 @@ func identityReunionFixture(
 	}
 	decidedAt := time.Now().UTC().Add(-time.Minute)
 	return domain.MatchRecord{
-			MatchID: matchID, FoundPetID: foundPetID, MatchedPetID: lostPetID,
-			Score: 0.93, Status: domain.MatchStatusConfirmed, MatchedAt: decidedAt.Add(-time.Minute),
-			Scores: domain.MatchScoreBreakdown{
-				Visual: 0.96, Color: 1, Spatial: 0.84, DistanceMiles: 1.2, Threshold: 0.7,
-			},
-			LostPet:       domain.MatchPetDetail{PetID: lostPetID, Breed: "Golden Retriever"},
-			FoundPet:      domain.MatchPetDetail{PetID: foundPetID, Breed: "Golden Retriever"},
-			SourceEventID: sourceEventID, Model: "gemma4:e2b", ThresholdVersion: "visual-spatial-v1",
-			Explanation: "High visual and geographic similarity",
-		}, domain.MatchParticipantRecord{
-			MatchID: matchID, LostPetID: lostPetID, FoundPetID: foundPetID,
-			Reporter: reporter, Finder: finder,
-			ReporterDecision: domain.MatchDecisionConfirm,
-			FinderDecision:   domain.MatchDecisionConfirm,
-			DecisionAudit: []domain.MatchDecisionAudit{
-				{Role: domain.MatchParticipantRoleReporter, Decision: domain.MatchDecisionConfirm, DecidedAt: decidedAt},
-				{Role: domain.MatchParticipantRoleFinder, Decision: domain.MatchDecisionConfirm, DecidedAt: decidedAt},
-			},
-		}
+		MatchID: matchID, FoundPetID: foundPetID, MatchedPetID: lostPetID,
+		Score: 0.93, Status: domain.MatchStatusConfirmed, MatchedAt: decidedAt.Add(-time.Minute),
+		Scores: domain.MatchScoreBreakdown{
+			Visual: 0.96, Color: 1, Spatial: 0.84, DistanceMiles: 1.2, Threshold: 0.7,
+		},
+		LostPet:       domain.MatchPetDetail{PetID: lostPetID, Breed: "Golden Retriever"},
+		FoundPet:      domain.MatchPetDetail{PetID: foundPetID, Breed: "Golden Retriever"},
+		SourceEventID: sourceEventID, Model: "gemma4:e2b", ThresholdVersion: "visual-spatial-v1",
+		Explanation: "High visual and geographic similarity",
+	}, domain.MatchParticipantRecord{
+		MatchID: matchID, LostPetID: lostPetID, FoundPetID: foundPetID,
+		Reporter: reporter, Finder: finder,
+		ReporterDecision: domain.MatchDecisionConfirm,
+		FinderDecision:   domain.MatchDecisionConfirm,
+		DecisionAudit: []domain.MatchDecisionAudit{
+			{Role: domain.MatchParticipantRoleReporter, Decision: domain.MatchDecisionConfirm, DecidedAt: decidedAt},
+			{Role: domain.MatchParticipantRoleFinder, Decision: domain.MatchDecisionConfirm, DecidedAt: decidedAt},
+		},
+	}
 }
 
 func loadIdentityMatch(

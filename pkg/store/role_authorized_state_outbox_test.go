@@ -39,10 +39,10 @@ func TestMemoryRoleAuthorizedStateAndOutboxUpdateFailsClosedAfterRevocation(t *t
 				t.Fatalf("authorization = %#v, want %#v", got, assignment)
 			}
 			return store.StateWrite{
-					StoreName: store.LostPetsCollection, Key: "lost-role-state", Data: []byte(`{"status":"reunited"}`),
-				}, store.StateWrite{
-					StoreName: store.OutboxCollection, Key: "evt-role-state", Data: []byte(`{"id":"evt-role-state"}`),
-				}, nil
+				StoreName: store.LostPetsCollection, Key: "lost-role-state", Data: []byte(`{"status":"reunited"}`),
+			}, store.StateWrite{
+				StoreName: store.OutboxCollection, Key: "evt-role-state", Data: []byte(`{"id":"evt-role-state"}`),
+			}, nil
 		},
 	)
 	if err != nil || updates != 1 {
