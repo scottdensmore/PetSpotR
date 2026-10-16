@@ -346,7 +346,7 @@ func ValidateFHIRVeterinaryBundle(bundle domain.FHIRVeterinaryBundle) error {
 		return fmt.Errorf("first FHIR bundle entry must be Patient, got %q", firstType)
 	}
 	if !hasPatientAnimalExtension(firstResource["extension"]) {
-		return fmt.Errorf("Patient resource missing required %s extension", fhirPatientAnimalExtensionURL)
+		return fmt.Errorf("patient resource missing required %s extension", fhirPatientAnimalExtensionURL)
 	}
 
 	if strings.TrimSpace(bundle.BundleDigestHex) == "" {
