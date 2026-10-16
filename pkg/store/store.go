@@ -74,6 +74,11 @@ const (
 	CollectionCameraCaptures = "camera_captures"
 )
 
+const (
+	CollectionVeterinaryClinics = "veterinary_clinics"
+	CollectionClinicalHandoffs  = "clinical_handoffs"
+)
+
 // Sentinel errors for StateStore operations.
 var (
 	ErrStoreNotFound = errors.New("store: state store not found")
