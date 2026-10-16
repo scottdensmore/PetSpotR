@@ -2043,7 +2043,7 @@ footer {
 }
 
 /* Responsive Viewports */
-@media (min-width: 769px) and (max-width: 1279px) {
+@media (min-width: 769px) and (max-width: 1440px) {
   .home-navbar {
     height: auto;
     min-height: 4.5rem;
