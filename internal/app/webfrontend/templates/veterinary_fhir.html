@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Veterinary Clinic &amp; Shelter HL7 FHIR R4 / PIMS Exchange Portal - Bidirectional Pre-Arrival ER Handoffs, HL7 FHIR R4 Bundle serialization, PIMS CSV intake exports, and inbound stabilization/discharge reconciliation.">
+  <title>Veterinary Clinic &amp; Shelter HL7 FHIR R4 / PIMS Exchange Portal — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link active nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container page-main" id="fhir-portal-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header fhir-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🏥 CLINICAL INTEROPERABILITY &amp; HL7 FHIR R4 GATEWAY</span>
+        </div>
+        <h1>Veterinary Clinic &amp; Shelter HL7 FHIR R4 / PIMS Exchange Portal</h1>
+        <p class="text-secondary">
+          Bidirectional Pre-Arrival ER Handoffs, HL7 FHIR R4 <code>Bundle</code> serialization (<code>patient-animal</code> extension), PIMS CSV intake exports (<code>IDEXX_CORNERSTONE</code>, <code>EZYVET</code>, <code>AVIMARK</code>, <code>SHELTERLUV</code>), and inbound stabilization/discharge reconciliation.
+        </p>
+      </div>
+      <div class="fhir-header-actions">
+        <a href="/triage" class="btn btn-secondary">🩺 Back to Triage Cockpit</a>
+      </div>
+    </div>
+
+    <!-- Top Grid: Section 1 (Receiving Clinics) + Section 2 (Dispatch Outbound Pre-Arrival ER Handoff) -->
+    <div class="fhir-cockpit-grid">
+      <!-- Section 1: Receiving 24/7 ER & Shelter Clinics -->
+      <section class="glass-card fhir-panel" aria-labelledby="heading-receiving-clinics">
+        <div class="fhir-panel-header">
+          <h2 id="heading-receiving-clinics">Receiving 24/7 ER &amp; Shelter Clinics</h2>
+          <span id="clinics-count-badge" class="badge badge-secondary">{{ len .Clinics }} Clinics</span>
+        </div>
+
+        <div id="clinics-list" class="clinics-list" role="list">
+          {{ range .Clinics }}
+          <article class="clinic-partner-card" data-clinic-id="{{ .ClinicID }}" role="listitem">
+            <div class="clinic-card-header">
+              <strong class="clinic-card-name">{{ .Name }}</strong>
+              <div class="clinic-card-badges">
+                <span class="badge badge-pims-provider">{{ .PIMS }}</span>
+                {{ if .Emergency24Hr }}
+                <span class="badge badge-er-24hr">24/7 ER</span>
+                {{ end }}
+              </div>
+            </div>
+            <div class="clinic-card-meta">
+              <span>📞 {{ .Phone }}</span>
+              <span>📍 {{ .Address }}</span>
+            </div>
+          </article>
+          {{ else }}
+          <p class="fhir-empty-hint" id="clinics-empty-msg">No partner clinics registered yet.</p>
+          {{ end }}
+        </div>
+
+        <div class="fhir-subsection">
+          <h3>Register Partner Clinic</h3>
+          <form id="form-register-clinic" class="fhir-form" novalidate>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="clinic-name">Clinic Name *</label>
+                <input type="text" id="clinic-name" name="name" class="form-control" placeholder="Cascade Veterinary Emergency &amp; Referral" required>
+              </div>
+              <div class="form-group">
+                <label for="clinic-pims">PIMS / Interop Standard *</label>
+                <select id="clinic-pims" name="pims" class="form-control">
+                  <option value="IDEXX_CORNERSTONE">IDEXX_CORNERSTONE</option>
+                  <option value="EZYVET">EZYVET</option>
+                  <option value="AVIMARK">AVIMARK</option>
+                  <option value="SHELTERLUV">SHELTERLUV</option>
+                  <option value="HL7_FHIR_R4">HL7_FHIR_R4</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="clinic-phone">24/7 Triage Desk Phone</label>
+                <input type="text" id="clinic-phone" name="phone" class="form-control" value="(206) 555-0199">
+              </div>
+              <div class="form-group">
+                <label for="clinic-address">Street Address</label>
+                <input type="text" id="clinic-address" name="address" class="form-control" value="805 Madison St, Seattle, WA">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="clinic-lat">Latitude</label>
+                <input type="number" id="clinic-lat" name="latitude" step="any" value="47.6092" class="form-control">
+              </div>
+              <div class="form-group">
+                <label for="clinic-lng">Longitude</label>
+                <input type="number" id="clinic-lng" name="longitude" step="any" value="-122.3261" class="form-control">
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" id="btn-register-clinic" class="btn btn-primary">Register Partner Clinic</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Section 2 (Dispatch Outbound Pre-Arrival ER Handoff) + Section 4 (Inbound PIMS Webhook Simulator) -->
+      <div class="fhir-column-stack">
+        <!-- Section 2: Dispatch Outbound Pre-Arrival ER Handoff -->
+        <section class="glass-card fhir-panel" aria-labelledby="heading-dispatch-handoff">
+          <h2 id="heading-dispatch-handoff">Dispatch Outbound Pre-Arrival ER Handoff</h2>
+          <p class="text-secondary text-sm">
+            Package field triage vitals, anaphylactic allergies, vaccinations, and IV resuscitation treatments into an HL7 FHIR R4 collection bundle and PIMS intake record.
+          </p>
+
+          <form id="form-dispatch-handoff" class="fhir-form" novalidate>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="handoff-pet-id">Patient Pet ID *</label>
+                <input type="text" id="handoff-pet-id" name="petId" class="form-control" placeholder="e.g. pet-101" required>
+              </div>
+              <div class="form-group">
+                <label for="handoff-assessment-id">Triage Assessment ID</label>
+                <input type="text" id="handoff-assessment-id" name="assessmentId" class="form-control" placeholder="Optional assessment ID (auto-resolves latest for Pet ID)">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="handoff-clinic-select">Receiving 24/7 ER / Shelter Clinic *</label>
+              <select id="handoff-clinic-select" name="clinicId" class="form-control" required>
+                {{ range .Clinics }}
+                <option value="{{ .ClinicID }}">{{ .Name }} ({{ .PIMS }})</option>
+                {{ end }}
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="handoff-transport-unit">Transport Unit Callsign</label>
+                <input type="text" id="handoff-transport-unit" name="transportUnit" class="form-control" value="SAR MedEvac Unit #1">
+              </div>
+              <div class="form-group">
+                <label for="handoff-eta-minutes">ETA (Minutes)</label>
+                <input type="number" id="handoff-eta-minutes" name="etaMinutes" min="1" max="240" value="12" class="form-control">
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" id="btn-dispatch-handoff" class="btn btn-primary btn-lg">🚑 Dispatch Pre-Arrival ER Handoff</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Section 4: Inbound Clinic PIMS Stabilization & Discharge Webhook Simulator -->
+        <section class="glass-card fhir-panel" aria-labelledby="heading-pims-webhook-sim">
+          <h2 id="heading-pims-webhook-sim">Inbound Clinic PIMS Stabilization &amp; Discharge Webhook Simulator</h2>
+          <p class="text-secondary text-sm">
+            Simulate an inbound PIMS status update from the receiving veterinary hospital to reconcile microchip verification and medical discharge clearance.
+          </p>
+
+          <form id="form-pims-webhook-sim" class="fhir-form" novalidate>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="pims-sim-handoff-id">Target Handoff ID *</label>
+                <input type="text" id="pims-sim-handoff-id" name="handoffId" class="form-control" placeholder="handoff-..." required>
+              </div>
+              <div class="form-group">
+                <label for="pims-sim-status">Clinical Status Transition *</label>
+                <select id="pims-sim-status" name="status" class="form-control">
+                  <option value="IN_CLINIC_TREATMENT">In Clinic Treatment / ER Intake</option>
+                  <option value="STABILIZED">Vital Signs Stabilized</option>
+                  <option value="CLEARED_FOR_REUNIFICATION">Cleared for Owner Reunification (Medical Discharge)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="pims-sim-microchip">Verified ISO Microchip ID</label>
+                <input type="text" id="pims-sim-microchip" name="verifiedMicrochipId" class="form-control" value="985141002394811">
+              </div>
+              <div class="form-group">
+                <label for="pims-sim-vet">Attending Emergency Veterinarian</label>
+                <input type="text" id="pims-sim-vet" name="attendingVet" class="form-control" value="Dr. Sarah Jenkins, DACVECC">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="pims-sim-summary">Clinical Stabilization &amp; Discharge Summary</label>
+              <textarea id="pims-sim-summary" name="dischargeSummary" rows="2" class="form-control">IV fluid resuscitation completed, normal sinus rhythm restored, cleared for owner reunion.</textarea>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" id="btn-send-pims-webhook" class="btn btn-primary">Transmit Inbound PIMS Update</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </div>
+
+    <!-- Section 3: Active Clinical Handoffs & HL7 FHIR R4 Bundle Inspector -->
+    <div class="fhir-cockpit-grid fhir-bottom-grid">
+      <section class="glass-card fhir-panel" aria-labelledby="heading-active-handoffs">
+        <div class="fhir-panel-header">
+          <h2 id="heading-active-handoffs">Active Clinical Handoffs</h2>
+          <span id="handoffs-count-badge" class="badge badge-secondary">{{ len .Handoffs }} Handoffs</span>
+        </div>
+
+        <div id="handoffs-list" class="handoffs-list" role="feed" aria-busy="false">
+          {{ range .Handoffs }}
+          <article class="handoff-card" data-handoff-id="{{ .HandoffID }}" data-handoff-status="{{ .Status }}" role="article">
+            <div class="handoff-card-header">
+              <div class="handoff-card-badges">
+                <span class="badge-handoff-status {{ if eq .Status "EN_ROUTE_PRE_ARRIVAL" }}badge-handoff-enroute{{ else if eq .Status "IN_CLINIC_TREATMENT" }}badge-handoff-treatment{{ else if eq .Status "STABILIZED" }}badge-handoff-stabilized{{ else if eq .Status "CLEARED_FOR_REUNIFICATION" }}badge-handoff-cleared{{ else }}badge-handoff-enroute{{ end }}">
+                  {{ .Status }}
+                </span>
+                <span class="badge {{ if eq .TriageCategory "TRIAGE_RED" }}badge-triage-red{{ else if eq .TriageCategory "TRIAGE_YELLOW" }}badge-triage-yellow{{ else if eq .TriageCategory "TRIAGE_GREEN" }}badge-triage-green{{ else }}badge-triage-black{{ end }}">
+                  {{ .TriageCategory }}
+                </span>
+              </div>
+              <strong class="handoff-pet-id">{{ .PetID }}</strong>
+            </div>
+
+            <div class="handoff-card-meta">
+              <div><strong>Clinic:</strong> {{ .ClinicName }} (<span class="badge badge-pims-provider">{{ .PIMS }}</span>)</div>
+              <div><strong>Transport:</strong> {{ .TransportUnit }} • <strong>ETA:</strong> {{ .ETAMinutes }} min</div>
+              <div class="handoff-digest-preview"><strong>SHA-256 Digest:</strong> <code>{{ .FHIRBundle.BundleDigestHex }}</code></div>
+            </div>
+
+            {{ if .ReadyForReunion }}
+            <div class="reunion-clearance-banner" role="status">
+              ✅ CLEARED FOR OWNER REUNIFICATION — Verified Microchip: {{ .VerifiedMicrochipID }}
+            </div>
+            {{ end }}
+
+            <div class="handoff-card-actions">
+              <button type="button" class="btn btn-xs btn-primary btn-inspect-fhir" data-handoff-id="{{ .HandoffID }}">Inspect FHIR R4 Bundle</button>
+              <a href="/api/v1/veterinary/handoffs/{{ .HandoffID }}/fhir?format=csv" class="btn btn-xs btn-secondary btn-export-pims-csv" download>Download PIMS CSV</a>
+              <button type="button" class="btn btn-xs btn-secondary btn-select-pims-sim" data-handoff-id="{{ .HandoffID }}">Simulate Clinic Update</button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="fhir-empty-hint" id="handoffs-empty-msg">No clinical handoffs dispatched yet. Dispatch a Pre-Arrival ER Handoff above to generate an HL7 FHIR R4 Bundle.</p>
+          {{ end }}
+        </div>
+      </section>
+
+      <section class="glass-card fhir-panel" id="fhir-inspector-panel" aria-labelledby="heading-fhir-inspector">
+        <div class="fhir-panel-header">
+          <h2 id="heading-fhir-inspector">HL7 FHIR R4 Bundle Inspector</h2>
+          <code id="fhir-digest-badge" class="fhir-digest-badge">SHA-256: awaiting bundle selection</code>
+        </div>
+
+        <div id="fhir-resource-summary" class="fhir-resource-summary" aria-live="polite">
+          <span class="badge badge-secondary">Patient: 0</span>
+          <span class="badge badge-secondary">Encounter: 0</span>
+          <span class="badge badge-secondary">Observation: 0</span>
+          <span class="badge badge-secondary">AllergyIntolerance: 0</span>
+          <span class="badge badge-secondary">Immunization: 0</span>
+          <span class="badge badge-secondary">MedicationAdministration: 0</span>
+        </div>
+
+        <pre id="fhir-bundle-json" class="fhir-json-viewer" tabindex="0" aria-label="Formatted HL7 FHIR R4 Bundle JSON">// Select or dispatch a clinical handoff to inspect its HL7 FHIR R4 Bundle (patient-animal extension, LOINC vitals, allergies, and treatments).</pre>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container footer-content">
+      <p>&copy; 2026 PetSpotR. Event-driven Go &amp; GCP AI Microservices. Veterinary HL7 FHIR R4 &amp; PIMS Interoperability Portal.</p>
+    </div>
+  </footer>
+
+  <div id="toast-container" class="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
+  <div id="fhir-aria-announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="/static/js/theme.js"></script>
+  <script src="/static/js/veterinary-fhir.js" defer></script>
+</body>
+</html>
