@@ -452,6 +452,16 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/v1/veterinary/handoffs/{id}/fhir", s.handleExportClinicalHandoffFHIR)
 	s.mux.HandleFunc("POST /api/v1/veterinary/handoffs/{id}/pims-webhook", s.handleInboundPIMSWebhook)
 
+	// Volunteer Credentialing, SAR Gamification & ICS Shift Rosters routes (Milestone 12.3)
+	s.mux.HandleFunc("GET /ics-command", s.handleICSCommandPage)
+	s.mux.HandleFunc("GET /api/v1/ics/volunteers", s.handleListICSVolunteers)
+	s.mux.HandleFunc("POST /api/v1/ics/volunteers", s.handleCreateICSVolunteer)
+	s.mux.HandleFunc("POST /api/v1/ics/volunteers/{id}/credentials", s.handleIssueVolunteerCredential)
+	s.mux.HandleFunc("POST /api/v1/ics/shifts", s.handleCreateICSShift)
+	s.mux.HandleFunc("GET /api/v1/ics/shifts", s.handleListICSShifts)
+	s.mux.HandleFunc("POST /api/v1/ics/shifts/{id}/progress", s.handleUpdateICSShiftProgress)
+	s.mux.HandleFunc("GET /api/v1/ics/stream", s.handleICSStream)
+
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
 		"state": func(ctx context.Context) error {

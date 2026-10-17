@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICS Command &amp; SAR Roster | PetSpotR</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <main class="container page-main" id="ics-command-main">
+        <h1>Incident Command (ICS) Shift Roster, Volunteer Credentialing &amp; SAR Gamification Cockpit</h1>
+        <span id="volunteers-count-badge">{{ len .Volunteers }} Responders</span>
+        <span id="shifts-count-badge">{{ len .Shifts }} Shifts</span>
+    </main>
+</body>
+</html>
