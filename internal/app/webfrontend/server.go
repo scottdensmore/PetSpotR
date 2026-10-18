@@ -495,6 +495,8 @@ func (s *Server) routes() {
 	s.registerWildlifeCorridorRoutes()
 	// Municipal 311 / Animal Control Dispatch CAD Bridge & Roadway Containment Cockpit routes (Milestone 14.2)
 	s.registerMunicipalCADRoutes()
+	// Emergency Foster Network Capacity, Quarantine Biosecurity & Medical Foster Matching Cockpit routes (Milestone 14.3)
+	s.registerFosterNetworkRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

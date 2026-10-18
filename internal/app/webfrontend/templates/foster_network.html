@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Emergency Foster Network Capacity, Quarantine Biosecurity &amp; Medical Foster Matching Cockpit.">
+  <title>Emergency Foster Network Capacity &amp; Quarantine Biosecurity Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/microchip-federation" class="nav-link nav-link-emergency" id="nav-microchip-federation">📡 Microchip Federation</a></li>
+          <li><a href="/reunion-decompression" class="nav-link nav-link-emergency" id="nav-reunion-decompression">🧘 Reunion Decompression</a></li>
+          <li><a href="/foster-network" class="nav-link active nav-link-emergency" id="nav-foster-network">🏡 Foster Biosecurity</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="foster-network-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header foster-network-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🏡 EMERGENCY FOSTER SURGE CAPACITY, CONTAGION ISOLATION &amp; MEDICAL FOSTER MATCHING</span>
+        </div>
+        <h1>Emergency Foster Network Capacity &amp; Quarantine Biosecurity Cockpit</h1>
+        <p class="text-secondary">
+          Pathogen Isolation Tiering (Parvo, Ringworm, URI), HEPA Negative-Pressure Quarantine Verification, Resident Pet Separation Audit &amp; Vet Tech Sub-Q Fluid Dosing Sign-Off.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid foster-network-kpi-grid" aria-label="Emergency Foster Network Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Foster Placement Matches</span>
+        <strong class="kpi-value" id="kpi-foster-total">{{ len .Placements }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">ISO Quarantine Suites Required</span>
+        <strong class="kpi-value" id="kpi-foster-iso">1</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Active Contagion Alerts</span>
+        <strong class="kpi-value" id="kpi-foster-contagion">2</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Active Cleared Foster Homes</span>
+        <strong class="kpi-value" id="kpi-foster-active">1</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="foster-network-live-status" class="humane-traps-live-status foster-network-live-status" role="status" aria-live="polite">
+      Monitoring {{ len .Placements }} emergency foster placement matches &amp; quarantine biosecurity protocols.
+    </div>
+
+    <div class="trust-cockpit-grid foster-network-cockpit-grid">
+      <!-- Section 1: Evaluate Emergency Foster Placement Form + Simulation Presets -->
+      <section class="glass-card trust-panel" id="foster-create-panel" aria-labelledby="heading-create-foster-placement">
+        <div class="trust-panel-header">
+          <h2 id="heading-create-foster-placement">Evaluate Emergency Foster &amp; Quarantine Biosecurity Match</h2>
+          <span class="badge badge-foster-metric">AHP Sterilization + HEPA Airlock</span>
+        </div>
+
+        <form id="form-create-foster-placement" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="foster-pet-id">Displaced / Rescued Pet ID</label>
+              <input type="text" id="foster-pet-id" class="form-control" value="pet-2026-002" required>
+            </div>
+            <div class="form-group">
+              <label for="foster-pet-name">Pet Name</label>
+              <input type="text" id="foster-pet-name" class="form-control" value="Barnaby" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="foster-pet-species">Species</label>
+              <select id="foster-pet-species" class="form-control" required>
+                <option value="DOG" selected>DOG</option>
+                <option value="CAT">CAT</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="foster-host-name">Emergency Foster Host &amp; Credentials</label>
+              <input type="text" id="foster-host-name" class="form-control" value="Elena Vance (RN / Vet Tech)" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="foster-contagion-flag">Suspected Contagion / Pathogen Flag</label>
+              <select id="foster-contagion-flag" class="form-control" required>
+                <option value="PARVO_SUSPECTED" selected>PARVO_SUSPECTED (Canine Parvovirus Isolation)</option>
+                <option value="RINGWORM_DERMATOPHYTE">RINGWORM_DERMATOPHYTE (Fungal Spore Quarantine)</option>
+                <option value="UPPER_RESPIRATORY_URI">UPPER_RESPIRATORY_URI (Aerosol Respiratory Droplet)</option>
+                <option value="NONE_CLEARED">NONE_CLEARED (Pathogen Negative / Standard)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="foster-medical-need">Medical Competency Requirement</label>
+              <select id="foster-medical-need" class="form-control" required>
+                <option value="INJECTABLE_SUBQ_FLUIDS" selected>INJECTABLE_SUBQ_FLUIDS (Sub-Q Bolus &amp; Injectable Meds)</option>
+                <option value="WOUND_DRESSING_BID">WOUND_DRESSING_BID (Twice-Daily Wound / Lime-Sulfur Dip)</option>
+                <option value="STANDARD_DECOMPRESSION">STANDARD_DECOMPRESSION (Oral Meds &amp; Quiet Recovery)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="foster-resident-pets">Resident Household Pets Count</label>
+              <input type="number" id="foster-resident-pets" class="form-control" min="0" max="50" step="1" value="2" required>
+            </div>
+            <div class="form-group foster-checkbox-group">
+              <label class="checkbox-label" for="foster-hepa-ready">
+                <input type="checkbox" id="foster-hepa-ready">
+                <span>HEPA Negative-Pressure Airlock Ready</span>
+              </label>
+              <label class="checkbox-label" for="foster-med-cert">
+                <input type="checkbox" id="foster-med-cert">
+                <span>Vet Tech Sub-Q / Medication Competency Verified</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-create-foster-placement" class="btn btn-primary">Evaluate Foster Biosecurity Match</button>
+        </form>
+
+        <div class="trust-subsection">
+          <h3>Quarantine &amp; Medical Foster Scenario Simulators</h3>
+          <div class="trust-sim-actions">
+            <button type="button" id="btn-sim-parvo-iso" class="btn btn-secondary">🦠 Simulate Parvo Suspected Puppy (Sub-Q Fluids + HEPA Isolation Suite)</button>
+            <button type="button" id="btn-sim-ringworm-cat" class="btn btn-secondary">🍄 Simulate Ringworm Dermatophyte Kitten (Spore Quarantine + Topical Protocol)</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Foster Placements Grid -->
+      <section class="glass-card trust-panel" id="foster-placements-panel" aria-labelledby="heading-foster-placements">
+        <div class="trust-panel-header">
+          <h2 id="heading-foster-placements">Active Emergency Foster &amp; Quarantine Biosecurity Placements</h2>
+          <span id="foster-placements-count-badge" class="badge badge-secondary">{{ len .Placements }} Placements</span>
+        </div>
+
+        <div id="foster-placements-list" class="trust-screenings-list foster-placements-list" role="list">
+          {{ range .Placements }}
+          <article class="trust-screening-card foster-placement-card" data-placement-id="{{ .PlacementID }}" data-placement-status="{{ .PlacementStatus }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ .PetName }} ({{ .Species }} · Host: {{ .FosterHostName }} · {{ .ResidentPetsCount }} resident pets)</strong>
+                <code class="trust-pet-id">{{ .PlacementID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-foster-status {{ if eq (printf "%s" .PlacementStatus) "PENDING_BIOSECURITY_CLEARANCE" }}badge-foster-pending{{ else if eq (printf "%s" .PlacementStatus) "QUARANTINE_VERIFIED_STAGED" }}badge-foster-staged{{ else if eq (printf "%s" .PlacementStatus) "ACTIVE_IN_FOSTER_HOME" }}badge-foster-active{{ else }}badge-foster-pending{{ end }}">{{ .PlacementStatus }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row">
+              <span class="badge badge-bio-tier {{ if eq (printf "%s" .BiosecurityTier) "ISO_QUARANTINE_CONTAGION" }}badge-bio-iso{{ else if eq (printf "%s" .BiosecurityTier) "MEDICAL_RECOVERY_SINGLE_PET" }}badge-bio-medical{{ else }}badge-bio-cleared{{ end }}">{{ .BiosecurityTier }} (Risk: {{ .ContagionRiskScore }}/100)</span>
+              <span class="badge badge-foster-metric">Contagion: {{ .ContagionFlag }} • Med Need: {{ .MedicalNeedLevel }} • Host Readiness: {{ .HostReadinessScore }}/100</span>
+            </div>
+
+            {{ if .IsoQuarantineAlert }}
+            <div class="foster-iso-quarantine-banner">
+              ☣️ BIOSECURITY ISOLATION PROTOCOL REQUIRED: {{ .ContagionFlag }} ({{ .MedicalNeedLevel }}) — Enforce AHP bleach footbath, dedicated gowning airlock &amp; zero shared HVAC/yard with {{ .ResidentPetsCount }} resident pets.
+            </div>
+            {{ end }}
+
+            {{ if .PlacementAuthorizationCode }}
+            <div class="foster-authorization-banner">
+              ✅ FOSTER BIOSECURITY AUTHORIZED: {{ .PlacementAuthorizationCode }}
+            </div>
+            {{ end }}
+
+            <div class="foster-checks-list" aria-label="Quarantine Biosecurity &amp; Medical Competency Checklist">
+              {{ range .BiosecurityChecks }}
+              <div class="foster-check-item">
+                <span class="badge {{ if .Completed }}badge-hop-match{{ else }}badge-hop-miss{{ end }}">{{ if .Completed }}VERIFIED{{ else }}REQUIRED{{ end }}</span>
+                <strong class="foster-check-category">[{{ .Category }}]</strong>
+                <span class="foster-check-title">{{ .Title }}</span>
+              </div>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              {{ if ne (printf "%s" .PlacementStatus) "ACTIVE_IN_FOSTER_HOME" }}
+              <button type="button" class="btn btn-sm btn-secondary btn-verify-foster-bio" data-placement-id="{{ .PlacementID }}">🧪 Verify HEPA Quarantine Rig &amp; Vet Tech Med Cert</button>
+              <button type="button" class="btn btn-sm btn-primary btn-activate-foster-placement" data-placement-id="{{ .PlacementID }}">🏡 Complete Biosecurity Clearance &amp; Authorize Foster Placement</button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="foster-placements-empty-msg">No emergency foster placement matches recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/foster-network.js" defer></script>
+</body>
+</html>
