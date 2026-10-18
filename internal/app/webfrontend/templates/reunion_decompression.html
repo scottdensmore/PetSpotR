@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Post-Reunion Behavioral Reintegration, Cortisol Decompression Tracker &amp; Escape-Recidivism Prevention Cockpit.">
+  <title>Post-Reunion Cortisol Decompression &amp; Escape-Recidivism Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/microchip-federation" class="nav-link nav-link-emergency" id="nav-microchip-federation">📡 Microchip Federation</a></li>
+          <li><a href="/reunion-decompression" class="nav-link active nav-link-emergency" id="nav-reunion-decompression">🧘 Reunion Decompression</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="reunion-decompression-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header reunion-decompression-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🧘 14-DAY CORTISOL WASHOUT, REFEEDING SYNDROME WATCH &amp; ESCAPE-RECIDIVISM PREVENTION</span>
+        </div>
+        <h1>Post-Reunion Cortisol Decompression &amp; Escape-Recidivism Cockpit</h1>
+        <p class="text-secondary">
+          Clinical 72-Hour Sanctuary Protocol, Refeeding Syndrome &amp; Electrolyte Micro-Meal Guard, Home Perimeter Escape-Vector Remediation Audit &amp; LTE GPS Collar Verification.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid reunion-decompression-kpi-grid" aria-label="Post-Reunion Decompression Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Active &amp; Graduated Reunion Plans</span>
+        <strong class="kpi-value" id="kpi-decomp-total">{{ len .Plans }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Flight Risk Cases</span>
+        <strong class="kpi-value" id="kpi-decomp-critical">1</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Refeeding Syndrome Watches</span>
+        <strong class="kpi-value" id="kpi-decomp-refeeding">1</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Graduated Stable Reunions</span>
+        <strong class="kpi-value" id="kpi-decomp-graduated">1</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="reunion-decompression-live-status" class="humane-traps-live-status reunion-decompression-live-status" role="status" aria-live="polite">
+      Monitoring {{ len .Plans }} post-reunion cortisol decompression &amp; escape-recidivism prevention plans.
+    </div>
+
+    <div class="trust-cockpit-grid reunion-decompression-cockpit-grid">
+      <!-- Section 1: Generate Post-Reunion Decompression Plan Form + Simulation Presets -->
+      <section class="glass-card trust-panel" id="decomp-create-panel" aria-labelledby="heading-create-decomp-plan">
+        <div class="trust-panel-header">
+          <h2 id="heading-create-decomp-plan">Generate 14-Day Post-Reunion Decompression Plan</h2>
+          <span class="badge badge-cortisol-metric">72h Sanctuary + Perimeter Audit</span>
+        </div>
+
+        <form id="form-create-decomp-plan" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="rd-pet-id">Reunited Pet ID</label>
+              <input type="text" id="rd-pet-id" class="form-control" value="pet-2026-002" required>
+            </div>
+            <div class="form-group">
+              <label for="rd-pet-name">Reunited Pet Name</label>
+              <input type="text" id="rd-pet-name" class="form-control" value="Luna" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="rd-species">Species</label>
+              <select id="rd-species" class="form-control" required>
+                <option value="CAT" selected>CAT</option>
+                <option value="DOG">DOG</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="rd-escape-vector">Primary Escape Vector</label>
+              <select id="rd-escape-vector" class="form-control" required>
+                <option value="DOOR_DASH_BOLT" selected>DOOR_DASH_BOLT (Front Entryway Threshold Bolt)</option>
+                <option value="UNLATCHED_SIDE_GATE">UNLATCHED_SIDE_GATE (Unsecured Yard Gate Latch)</option>
+                <option value="DIG_UNDER_FENCE">DIG_UNDER_FENCE (Soil Erosion Under Fence Line)</option>
+                <option value="FIREWORKS_PANIC_LEASH_SLIP">FIREWORKS_PANIC_LEASH_SLIP (Single-Buckle Collar Slip)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="rd-days-missing">Days Missing in Field</label>
+              <input type="number" id="rd-days-missing" class="form-control" min="1" max="3650" step="1" value="8" required>
+            </div>
+            <div class="form-group">
+              <label for="rd-weight-loss-pct">Estimated Weight Loss (%)</label>
+              <input type="number" id="rd-weight-loss-pct" class="form-control" min="0" max="50" step="0.5" value="12.5" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col decomp-checkbox-row">
+            <div class="form-group">
+              <label class="checkbox-label" for="rd-gps-collar">
+                <input type="checkbox" id="rd-gps-collar">
+                <span>LTE/Cellular GPS Collar Equipped</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="checkbox-label" for="rd-double-leash">
+                <input type="checkbox" id="rd-double-leash">
+                <span>3-Point Harness &amp; Double-Leash Verified</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-create-decomp-plan" class="btn btn-primary">Generate 14-Day Decompression Plan</button>
+        </form>
+
+        <div class="trust-subsection">
+          <h3>Clinical &amp; Recidivism Scenario Presets</h3>
+          <div class="trust-sim-actions">
+            <button type="button" id="btn-sim-starvation-refeeding" class="btn btn-secondary">🚨 Simulate 11-Day Wilderness Starvation Cat (Refeeding Syndrome Alert)</button>
+            <button type="button" id="btn-sim-fireworks-bolt" class="btn btn-secondary">🎆 Simulate 4-Day Fireworks Panic-Bolted Dog (Single-Buckle Slip Audit)</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Decompression Plans Grid -->
+      <section class="glass-card trust-panel" id="decomp-plans-panel" aria-labelledby="heading-decomp-plans">
+        <div class="trust-panel-header">
+          <h2 id="heading-decomp-plans">Active Post-Reunion Decompression &amp; Perimeter Fortification Plans</h2>
+          <span id="decomp-plans-count-badge" class="badge badge-secondary">{{ len .Plans }} Plans</span>
+        </div>
+
+        <div id="decomp-plans-list" class="trust-screenings-list decomp-plans-list" role="list">
+          {{ range .Plans }}
+          <article class="trust-screening-card decomp-plan-card" data-plan-id="{{ .PlanID }}" data-plan-phase="{{ .Phase }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ .PetName }} ({{ .Species }} · {{ .DaysMissing }}d missing · {{ printf "%.1f" .WeightLossPct }}% weight loss)</strong>
+                <code class="trust-pet-id">{{ .PlanID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-decomp-phase {{ if eq (printf "%s" .Phase) "ACUTE_REFUGE_72H" }}badge-phase-acute{{ else if eq (printf "%s" .Phase) "CORTISOL_TAPER_DAY_4_7" }}badge-phase-taper{{ else if eq (printf "%s" .Phase) "ROUTINE_REINTEGRATION_DAY_8_14" }}badge-phase-reintegration{{ else if eq (printf "%s" .Phase) "GRADUATED_STABLE" }}badge-phase-graduated{{ else }}badge-phase-acute{{ end }}">{{ .Phase }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row">
+              <span class="badge badge-recidivism-risk {{ if eq (printf "%s" .RecidivismRisk) "CRITICAL_FLIGHT_RISK" }}badge-risk-critical{{ else if eq (printf "%s" .RecidivismRisk) "ELEVATED_PERIMETER_RISK" }}badge-risk-elevated{{ else }}badge-risk-fortified{{ end }}">{{ .RecidivismRisk }} ({{ .RecidivismRiskScore }}/100)</span>
+              <span class="badge badge-cortisol-metric">Cortisol: {{ .CortisolStressIndex }}/100 • Collar Readiness: {{ .CollarReadinessScore }}/100</span>
+            </div>
+
+            {{ if .RefeedingSyndromeWarning }}
+            <div class="decomp-refeeding-warning-banner">
+              ⚠️ REFEEDING SYNDROME ALERT: {{ .DaysMissing }}d missing / {{ printf "%.1f" .WeightLossPct }}% weight loss — Enforce 6 micro-meals/day warm electrolyte slurry to prevent hypophosphatemia.
+            </div>
+            {{ end }}
+
+            {{ if .GraduationCertificateID }}
+            <div class="decomp-graduation-banner">
+              🎓 GRADUATED STABLE REINTEGRATION CERTIFICATE: {{ .GraduationCertificateID }}
+            </div>
+            {{ end }}
+
+            <div class="decomp-checklist-list" aria-label="14-Day Clinical &amp; Behavioral Decompression Checklist">
+              {{ range .ChecklistItems }}
+              <div class="decomp-checklist-item">
+                <span class="badge {{ if .Completed }}badge-hop-match{{ else }}badge-hop-miss{{ end }}">{{ if .Completed }}DONE{{ else }}PENDING{{ end }}</span>
+                <strong class="decomp-item-category">[{{ .Category }}]</strong>
+                <span class="decomp-item-title">{{ .Title }}</span>
+              </div>
+              {{ end }}
+            </div>
+
+            <div class="decomp-perimeter-list" aria-label="Home Perimeter Escape-Vector Audit">
+              {{ range .PerimeterFindings }}
+              <div class="decomp-perimeter-item">
+                <span class="badge {{ if .Remediated }}badge-hop-match{{ else }}badge-hop-miss{{ end }}">{{ if .Remediated }}FORTIFIED{{ else }}UNSECURED{{ end }}</span>
+                <strong>{{ .ZoneLabel }} ({{ .VulnerabilityType }}):</strong>
+                <span class="text-secondary">{{ .RemediationAction }}</span>
+              </div>
+              {{ end }}
+            </div>
+
+            <p class="trust-screening-notes">{{ .ClinicalSummary }}</p>
+
+            <div class="trust-moderator-actions">
+              {{ if ne (printf "%s" .Phase) "GRADUATED_STABLE" }}
+              <button type="button" class="btn btn-sm btn-secondary btn-remediate-perimeter" data-plan-id="{{ .PlanID }}">🛡️ Fortify Perimeter &amp; Equip GPS Collar + Double Leash</button>
+              <button type="button" class="btn btn-sm btn-primary btn-graduate-decomp-plan" data-plan-id="{{ .PlanID }}">🎓 Complete 14-Day Decompression &amp; Issue Graduation Certificate</button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="decomp-plans-empty-msg">No post-reunion decompression plans recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/reunion-decompression.js" defer></script>
+</body>
+</html>

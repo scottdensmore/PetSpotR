@@ -488,6 +488,9 @@ func (s *Server) routes() {
 	// Universal Microchip Registry Federation & Ownership Resolution Cockpit routes (Milestone 13.4)
 	s.registerMicrochipFederationRoutes()
 
+	// Post-Reunion Cortisol Decompression, Refeeding & Escape-Recidivism Cockpit routes (Milestone 13.5)
+	s.registerReunionDecompressionRoutes()
+
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
 		"state": func(ctx context.Context) error {

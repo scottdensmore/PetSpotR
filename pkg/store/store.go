@@ -86,10 +86,11 @@ const (
 )
 
 const (
-	CollectionPetCustodyChains       = "pet_custody_chains"
-	CollectionSightingTrustScreening = "sighting_trust_screenings"
-	CollectionHumaneTrapDeployments  = "humane_trap_deployments"
-	CollectionMicrochipScanCases     = "microchip_scan_cases"
+	CollectionPetCustodyChains          = "pet_custody_chains"
+	CollectionSightingTrustScreening    = "sighting_trust_screenings"
+	CollectionHumaneTrapDeployments     = "humane_trap_deployments"
+	CollectionMicrochipScanCases        = "microchip_scan_cases"
+	CollectionReunionDecompressionPlans = "reunion_decompression_plans"
 )
 
 // DefaultCollections returns all canonical state store collections.
@@ -140,6 +141,7 @@ func DefaultCollections() []string {
 		CollectionSightingTrustScreening,
 		CollectionHumaneTrapDeployments,
 		CollectionMicrochipScanCases,
+		CollectionReunionDecompressionPlans,
 	}
 }
 
