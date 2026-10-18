@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PetSpotR — K9 Scent-Trailing Telemetry &amp; Wind Plume Cockpit</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <main class="container page-main" id="k9-ops-main">
+    <h1>Canine (K9) Scent-Trailing Telemetry, Wind Plume Dispersion &amp; Handler Cockpit</h1>
+    <div id="k9-missions-list">
+      {{ range .Missions }}
+      <article class="k9-mission-card" data-mission-id="{{ .MissionID }}">
+        <h2>{{ .CanineName }} ({{ .CanineCallsign }})</h2>
+        <p>{{ .HandlerName }} — {{ .ViabilityRating }}</p>
+      </article>
+      {{ end }}
+    </div>
+  </main>
+</body>
+</html>

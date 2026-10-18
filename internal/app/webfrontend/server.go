@@ -462,6 +462,14 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/v1/ics/shifts/{id}/progress", s.handleUpdateICSShiftProgress)
 	s.mux.HandleFunc("GET /api/v1/ics/stream", s.handleICSStream)
 
+	// Canine (K9) Scent-Trailing Telemetry, Wind Plume Dispersion & Handler Cockpit routes (Milestone 12.4)
+	s.mux.HandleFunc("GET /k9-ops", s.handleK9OpsPage)
+	s.mux.HandleFunc("GET /api/v1/k9/missions", s.handleListK9Missions)
+	s.mux.HandleFunc("POST /api/v1/k9/missions", s.handleCreateK9Mission)
+	s.mux.HandleFunc("POST /api/v1/k9/missions/{id}/waypoints", s.handleAddK9Waypoint)
+	s.mux.HandleFunc("GET /api/v1/k9/missions/{id}/gpx", s.handleExportK9MissionGPX)
+	s.mux.HandleFunc("GET /api/v1/k9/stream", s.handleK9Stream)
+
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
 		"state": func(ctx context.Context) error {
