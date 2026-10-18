@@ -8835,4 +8835,339 @@ textarea:focus-visible,
   color: #334155;
 }
 
+/* ==========================================================================
+   Milestone 12.3: Incident Command (ICS-211 / ICS-204) Volunteer Shift Roster,
+   Cryptographic Role Credentialing, Fatigue Guardrail & SAR Gamification (WCAG AAA)
+   ========================================================================== */
 
+.ics-header-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.ics-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ics-cockpit-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 992px) {
+  .ics-cockpit-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ics-column-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.ics-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ics-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.ics-panel-header h2 {
+  margin: 0;
+}
+
+.ics-subsection {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #334155);
+}
+
+.ics-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.volunteers-leaderboard,
+.ics-shifts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.volunteer-card,
+.ics-shift-card {
+  background: var(--bg-card, #0f172a);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: var(--radius-md, 8px);
+  padding: 0.95rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+[data-theme="light"] .volunteer-card,
+[data-theme="light"] .ics-shift-card {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.volunteer-card-header,
+.shift-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.volunteer-identity,
+.volunteer-rank-group,
+.shift-responder-info,
+.shift-status-badges,
+.volunteer-credentials-list,
+.volunteer-badges-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.volunteer-name,
+.shift-volunteer-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.volunteer-stats-row,
+.shift-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #cbd5e1);
+}
+
+[data-theme="light"] .volunteer-stats-row,
+[data-theme="light"] .shift-card-meta {
+  color: #1e293b;
+}
+
+.shift-fatigue-notes {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary, #e2e8f0);
+}
+
+[data-theme="light"] .shift-fatigue-notes {
+  color: #1e293b;
+}
+
+.shift-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+/* WCAG AAA High-Contrast ICS & SAR Gamification Badges (> 7.1:1 in Dark & Light Modes) */
+.badge-fatigue-normal,
+.badge-fatigue-warning,
+.badge-fatigue-rest,
+.badge-sar-rank,
+.badge-sar-credential,
+.badge-sar-merit,
+.badge-callsign,
+.badge-xp-total,
+.badge-shift-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+/* Dark mode (default) */
+:root .badge-fatigue-normal,
+[data-theme="dark"] .badge-fatigue-normal {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+}
+
+:root .badge-fatigue-warning,
+[data-theme="dark"] .badge-fatigue-warning {
+  background-color: #78350f;
+  color: #fffbeb;
+  border: 1px solid #f59e0b;
+}
+
+:root .badge-fatigue-rest,
+[data-theme="dark"] .badge-fatigue-rest {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid #ef4444;
+}
+
+:root .badge-sar-rank,
+[data-theme="dark"] .badge-sar-rank {
+  background-color: #1e1b4b;
+  color: #e0e7ff;
+  border: 1px solid #6366f1;
+}
+
+:root .badge-sar-credential,
+[data-theme="dark"] .badge-sar-credential {
+  background-color: #0f172a;
+  color: #f8fafc;
+  border: 1px solid #38bdf8;
+}
+
+:root .badge-sar-merit,
+[data-theme="dark"] .badge-sar-merit {
+  background-color: #422006;
+  color: #fefce8;
+  border: 1px solid #eab308;
+}
+
+:root .badge-callsign,
+[data-theme="dark"] .badge-callsign {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #64748b;
+  font-family: monospace;
+}
+
+:root .badge-xp-total,
+[data-theme="dark"] .badge-xp-total {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #34d399;
+}
+
+:root .badge-shift-status,
+[data-theme="dark"] .badge-shift-status {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #94a3b8;
+}
+
+:root .ics-role-gate-alert,
+[data-theme="dark"] .ics-role-gate-alert {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 2px solid #f87171;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+/* Light mode */
+[data-theme="light"] .badge-fatigue-normal {
+  background-color: #ecfdf5;
+  color: #064e3b;
+  border: 1px solid #059669;
+}
+
+[data-theme="light"] .badge-fatigue-warning {
+  background-color: #fffbeb;
+  color: #78350f;
+  border: 1px solid #d97706;
+}
+
+[data-theme="light"] .badge-fatigue-rest {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 1px solid #dc2626;
+}
+
+[data-theme="light"] .badge-sar-rank {
+  background-color: #eef2ff;
+  color: #1e1b4b;
+  border: 1px solid #4f46e5;
+}
+
+[data-theme="light"] .badge-sar-credential {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #0284c7;
+}
+
+[data-theme="light"] .badge-sar-merit {
+  background-color: #fefce8;
+  color: #422006;
+  border: 1px solid #ca8a04;
+}
+
+[data-theme="light"] .badge-callsign {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #475569;
+  font-family: monospace;
+}
+
+[data-theme="light"] .badge-xp-total {
+  background-color: #ecfdf5;
+  color: #064e3b;
+  border: 1px solid #059669;
+}
+
+[data-theme="light"] .badge-shift-status {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #475569;
+}
+
+[data-theme="light"] .ics-role-gate-alert {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 2px solid #dc2626;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.ics-empty-hint {
+  color: var(--text-secondary, #cbd5e1);
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 1.5rem 1rem;
+  margin: 0;
+}
+
+[data-theme="light"] .ics-empty-hint {
+  color: #334155;
+}
+
+.ics-empty-inline {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #94a3b8);
+}
+
+[data-theme="light"] .ics-empty-inline {
+  color: #475569;
+}
