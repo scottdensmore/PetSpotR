@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Avian, Exotic Parrot &amp; Falconry Telemetry Receiver, Flight-Corridor Thermals &amp; Lure-Call Recovery Cockpit.">
+  <title>Avian, Exotic Parrot &amp; Falconry Flight-Corridor Recovery Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/swiftwater-rescue" class="nav-link nav-link-emergency" id="nav-swiftwater-rescue">🌊 Swiftwater &amp; Ice Rescue</a></li>
+          <li><a href="/service-animal" class="nav-link nav-link-emergency" id="nav-service-animal">🦮 Service Animal ADA</a></li>
+          <li><a href="/equine-livestock" class="nav-link nav-link-emergency" id="nav-equine-livestock">🐎 Equine &amp; Livestock</a></li>
+          <li><a href="/confined-space-rescue" class="nav-link nav-link-emergency" id="nav-confined-space-rescue">🕳️ Confined-Space Rescue</a></li>
+          <li><a href="/avian-recovery" class="nav-link active nav-link-emergency" id="nav-avian-recovery">🦜 Avian &amp; Falconry Recovery</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="avian-recovery-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header avian-recovery-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🦜 AVIAN, EXOTIC PARROT &amp; FALCONRY TELEMETRY RECEIVER, FLIGHT-CORRIDOR THERMALS &amp; LURE-CALL RECOVERY</span>
+        </div>
+        <h1>Avian, Exotic Parrot &amp; Falconry Telemetry Receiver, Flight-Corridor Thermals &amp; Lure-Call Recovery Cockpit</h1>
+        <p class="text-secondary">
+          216 MHz VHF / GPS Leg-Band Telemetry Triangulation, Thermal Updraft Drift &amp; 45° Descent Glide-Path Modeling, Conspecific Flock Contact Acoustic Lure, Anti-Raptor Mobbing Overwatch &amp; Zero-Keel-Compression Warmed Carrier Transfer.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid avian-recovery-kpi-grid" aria-label="Avian &amp; Falconry Flight-Corridor Recovery Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Avian Recovery Operations</span>
+        <strong class="kpi-value" id="stat-total-avian-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Thermal Drift &amp; Crop Alerts</span>
+        <strong class="kpi-value" id="stat-critical-thermal-alerts">{{ .CriticalThermalAlerts }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Staged Acoustic Lures &amp; Perches</span>
+        <strong class="kpi-value" id="stat-staged-acoustic-lures">{{ .StagedAcousticLures }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Recovered Aviary Safe</span>
+        <strong class="kpi-value" id="stat-recovered-aviary-count">{{ .RecoveredAviaryCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="avian-recovery-live-status" class="humane-traps-live-status avian-recovery-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} avian, exotic parrot &amp; falconry flight-corridor recovery operations.
+    </div>
+
+    <div class="trust-cockpit-grid avian-recovery-cockpit-grid">
+      <!-- Section 1: Evaluate Avian Recovery Operation Form + Scenario Simulators -->
+      <section class="glass-card trust-panel" id="av-evaluate-panel" aria-labelledby="heading-evaluate-av-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-av-op">Evaluate Avian / Parrot / Falconry Flight-Corridor Recovery</h2>
+          <span class="badge badge-av-class">216 MHz VHF + Acoustic Lure</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Avian Flight-Corridor &amp; Telemetry Scenario Simulators</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary av-scenario-btn" data-scenario="macaw-thermal-ridge" id="btn-sim-macaw-thermal-ridge">
+              ⚠️ Simulate High-Canopy Macaw Ridge Thermal Drift &amp; Cold Crop Depletion (26m Perch · 22.5 kt Updraft · 7.5°C)
+            </button>
+            <button type="button" class="btn btn-secondary av-scenario-btn" data-scenario="falcon-vhf-beacon" id="btn-sim-falcon-vhf-beacon">
+              📡 Simulate Falconry Peregrine 216 MHz VHF Telemetry Triangulation &amp; Garnished Lure Swing (-52 dBm)
+            </button>
+            <button type="button" class="btn btn-secondary av-scenario-btn" data-scenario="cockatiel-courtyard-perch" id="btn-sim-cockatiel-courtyard-perch">
+              🎶 Simulate Small Cockatiel Low-Angle Courtyard Perch &amp; Millet Spray Contact Chirp Lure (4.5m Perch)
+            </button>
+          </div>
+        </div>
+
+        <form id="form-evaluate-av-op" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="av-pet-id">Avian / Banded Pet ID</label>
+              <input type="text" id="av-pet-id" name="petId" class="form-control" value="PET-AV-204" required>
+            </div>
+            <div class="form-group">
+              <label for="av-pet-name">Bird Name</label>
+              <input type="text" id="av-pet-name" name="petName" class="form-control" value="Kona" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="av-species">Species</label>
+              <select id="av-species" name="species" class="form-control" required>
+                <option value="Avian" selected>Avian</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="av-weight-grams">Body Weight (grams)</label>
+              <input type="number" id="av-weight-grams" name="weightGrams" class="form-control" min="15" max="15000" step="5" value="980" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="av-class-type">Avian Taxonomy &amp; Flight Class</label>
+              <select id="av-class-type" name="avianClass" class="form-control" required>
+                <option value="PSITTACINE_PARROT_MACAW" selected>PSITTACINE_PARROT_MACAW (Macaw / Amazon / African Grey / Cockatoo)</option>
+                <option value="COCKATIEL_PARAKEET_SMALL">COCKATIEL_PARAKEET_SMALL (Cockatiel / Budgerigar / Conure / Lovebird)</option>
+                <option value="FALCONRY_RAPTOR_TELEMETRY">FALCONRY_RAPTOR_TELEMETRY (Falcon / Harris's Hawk / Goshawk w/ VHF)</option>
+                <option value="WATERFOWL_DOMESTIC_GOOSE">WATERFOWL_DOMESTIC_GOOSE (Domestic Duck / Goose / Swan)</option>
+                <option value="COLUMBIFORM_HOMING_PIGEON">COLUMBIFORM_HOMING_PIGEON (Banded Racing / Fancy Pigeon / Dove)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="av-perch-altitude">Perch Altitude Above Ground (m)</label>
+              <input type="number" id="av-perch-altitude" name="perchAltitudeMeters" class="form-control" min="0" max="200" step="0.5" value="25.0" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="av-thermal-updraft">Thermal Updraft / Ridge Wind (knots)</label>
+              <input type="number" id="av-thermal-updraft" name="thermalUpdraftKnots" class="form-control" min="0" max="80" step="0.5" value="21.5" required>
+            </div>
+            <div class="form-group">
+              <label for="av-ambient-temp">Ambient Canopy Temperature (°C)</label>
+              <input type="number" id="av-ambient-temp" name="ambientTempCelsius" class="form-control" min="-20" max="50" step="0.5" value="8.0" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="av-hours-aloft">Hours Aloft / Since Last Crop Feeding (h)</label>
+              <input type="number" id="av-hours-aloft" name="hoursAloft" class="form-control" min="0.5" max="240" step="0.5" value="22.0" required>
+            </div>
+            <div class="form-group">
+              <label for="av-telemetry-dbm">216 MHz VHF / BLE Leg-Band Signal (dBm)</label>
+              <input type="number" id="av-telemetry-dbm" name="telemetrySignalDbm" class="form-control" min="-130" max="-10" step="1" value="-79" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="av-corridor-bearing">Flight-Corridor &amp; Ridge Bearing</label>
+              <input type="text" id="av-corridor-bearing" name="flightCorridorBearing" class="form-control" value="CORRIDOR-SSE-162° (Discovery Park Bluff Ridge Thermal)" required>
+            </div>
+            <div class="form-group">
+              <label for="av-tech-callsign">Lead Avian Specialist Callsign</label>
+              <input type="text" id="av-tech-callsign" name="leadAvianTechCallsign" class="form-control" value="AVIAN-TECH-01 (Ortega)" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="av-notes">Telemetry / Acoustic Lure Field Notes</label>
+            <input type="text" id="av-notes" name="notes" class="form-control" value="Macaw reluctant to descend steeper than 45°; staging neighbor roof perch and warm walnut mash.">
+          </div>
+
+          <button type="submit" id="btn-evaluate-av-op" class="btn btn-primary">Evaluate Avian Recovery Operation</button>
+        </form>
+      </section>
+
+      <!-- Section 2: Active Avian Recovery Operations Grid -->
+      <section class="glass-card trust-panel" id="av-ops-panel" aria-labelledby="heading-av-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-av-ops">Active Avian, Parrot &amp; Falconry Flight-Corridor Operations</h2>
+          <span id="av-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="av-ops-list" class="trust-screenings-list av-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card av-op-card" data-operation-id="{{ $op.OperationID }}" data-op-id="{{ $op.OperationID }}" data-status="{{ $op.Status }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.0f" $op.WeightGrams }}g · {{ $op.FlightCorridorBearing }})</strong>
+                <code class="trust-pet-id">{{ $op.OperationID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-av-class">{{ $op.AvianClass }}</span>
+                <span class="badge badge-av-status {{ if eq (printf "%s" $op.Status) "THERMAL_DRIFT_PREDATION_CRITICAL" }}badge-av-critical{{ else if eq (printf "%s" $op.Status) "ACOUSTIC_LURE_PERCH_STAGED" }}badge-av-staged{{ else if eq (printf "%s" $op.Status) "RECOVERED_AVIARY_SAFE" }}badge-av-recovered{{ else }}badge-av-critical{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row av-metrics-row">
+              <span class="badge badge-av-class">Hazard Score: {{ $op.HazardScore }}/100 • Lure Readiness: {{ $op.LureReadinessScore }}% • Perch: {{ printf "%.1f" $op.PerchAltitudeMeters }}m • Updraft: {{ printf "%.1f" $op.ThermalUpdraftKnots }} kt • Temp: {{ printf "%.1f" $op.AmbientTempCelsius }}°C • Aloft: {{ printf "%.1f" $op.HoursAloft }}h • VHF: {{ $op.TelemetrySignalDbm }} dBm</span>
+            </div>
+
+            <div class="av-flags-row">
+              {{ range $flag := $op.RiskFlags }}
+              <span class="badge badge-av-flag">{{ $flag }}</span>
+              {{ end }}
+            </div>
+
+            {{ if or $op.ThermalDriftAlert $op.CropStarvationColdAlert }}
+            <div class="av-thermal-alert-banner">
+              ⚠️ FLIGHT-CORRIDOR THERMAL DRIFT &amp; CROP DEPLETION ALERT: Perch {{ printf "%.1f" $op.PerchAltitudeMeters }}m · Updraft {{ printf "%.1f" $op.ThermalUpdraftKnots }} kt · Temp {{ printf "%.1f" $op.AmbientTempCelsius }}°C · Aloft {{ printf "%.1f" $op.HoursAloft }}h — Stage 45° sightline perch &amp; directional conspecific acoustic lure immediately.
+            </div>
+            {{ end }}
+
+            {{ if $op.ClearanceCertificateHash }}
+            <div class="av-clearance-banner">
+              ✅ AVIAN RECOVERY CLEARANCE VERIFIED: {{ $op.ClearanceCertificateHash }} ({{ $op.LeadAvianTechCallsign }})
+            </div>
+            {{ end }}
+
+            <div class="av-rig-recommendations">
+              <div><strong>Acoustic Lure &amp; VHF Receiver:</strong> {{ $op.RecommendedLureAudio }}</div>
+              <div><strong>Perch &amp; Restraint Rig:</strong> {{ $op.RecommendedCaptureRig }}</div>
+            </div>
+
+            <div class="av-steps-list" aria-label="Avian Telemetry, Acoustic Lure &amp; Zero-Keel-Compression Protocol">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="av-step-item">
+                <input
+                  type="checkbox"
+                  class="av-step-checkbox"
+                  data-op-id="{{ $op.OperationID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "RECOVERED_AVIARY_SAFE" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-av-recovered{{ else }}badge-av-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="av-step-category">[{{ $step.Category }}]</strong>
+                <span class="av-step-label">{{ $step.Label }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              {{ if ne (printf "%s" $op.Status) "RECOVERED_AVIARY_SAFE" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary av-issue-clearance-btn"
+                data-op-id="{{ $op.OperationID }}"
+              >
+                🛡️ Issue Avian Aviary Safe Recovery Certificate
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="av-ops-empty-msg">No avian recovery operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/avian-recovery.js" defer></script>
+</body>
+</html>
