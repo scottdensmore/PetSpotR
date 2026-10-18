@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Canine (K9) Scent-Trailing Telemetry, Atmospheric Wind Plume Dispersion Cone, Environmental Scent Viability &amp; Handler Cockpit.">
+  <title>Canine (K9) Scent-Trailing Telemetry, Wind Plume Dispersion &amp; Handler Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link active nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container page-main" id="k9-ops-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header k9-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🐕‍🦺 ATMOSPHERIC SCENT PLUME &amp; K9 MANTRAILING TELEMETRY</span>
+        </div>
+        <h1>Canine (K9) Scent-Trailing Telemetry, Wind Plume Dispersion &amp; Handler Cockpit</h1>
+        <p class="text-secondary">
+          Gaussian Atmospheric Downwind Scent Dispersion Modeling, Environmental Scent Viability &amp; Thermal Paw Safety Guardrails, Real-Time K9 Behavioral Alert Waypoint Telemetry, Sighting Promotion &amp; GPX 1.1 Export.
+        </p>
+      </div>
+    </div>
+
+    <div class="k9-cockpit-grid">
+      <!-- Section 1: Active K9 Scent Missions & Environmental Viability Registry -->
+      <section class="glass-card k9-panel" id="k9-missions-panel" aria-labelledby="heading-k9-missions">
+        <div class="k9-panel-header">
+          <h2 id="heading-k9-missions">Active K9 Scent Missions &amp; Environmental Viability Registry</h2>
+          <span id="k9-missions-count-badge" class="badge badge-secondary">{{ len .Missions }} Missions</span>
+        </div>
+
+        <div id="k9-missions-list" class="k9-missions-list" role="list">
+          {{ range .Missions }}
+          <article class="k9-mission-card" data-mission-id="{{ .MissionID }}" data-viability-rating="{{ .ViabilityRating }}" role="listitem">
+            <div class="k9-mission-card-header">
+              <div class="k9-mission-identity">
+                <strong class="k9-canine-name">{{ .CanineName }}</strong>
+                <span class="badge badge-k9-callsign">{{ .CanineCallsign }}</span>
+                <span class="badge badge-k9-discipline">{{ .Discipline }}</span>
+              </div>
+              <div class="k9-mission-badges">
+                <span class="badge badge-viability-rating {{ if eq (printf "%s" .ViabilityRating) "HIGH_VIABILITY" }}badge-viability-high{{ else if eq (printf "%s" .ViabilityRating) "MODERATE_VIABILITY" }}badge-viability-moderate{{ else if eq (printf "%s" .ViabilityRating) "DEGRADED_THERMAL_HAZARD" }}badge-viability-degraded{{ else }}badge-viability-expired{{ end }}">{{ .ViabilityRating }}</span>
+                <span class="badge badge-k9-pod">POD: {{ printf "%.1f" .EstimatedPOD }}%</span>
+              </div>
+            </div>
+
+            <div class="k9-mission-meta">
+              <span>🐕‍🦺 Handler: <strong>{{ .HandlerName }}</strong></span>
+              <span>🐾 Target Pet: <code>{{ .PetID }}</code></span>
+              <span>🧪 Scent Article: {{ .ScentArticleDesc }}</span>
+            </div>
+
+            <div class="k9-mission-metrics-row">
+              <span>📊 Viability Score: <strong>{{ .ViabilityScore }}/100</strong></span>
+              <span>🧭 Downwind Azimuth: <strong>{{ printf "%.0f" .PlumeCone.DownwindAzimuthDeg }}°</strong></span>
+              <span>🎯 Plume Intersection: <strong>{{ printf "%.1f" .PlumeIntersectionPct }}%</strong></span>
+              <span>🌡️ {{ printf "%.1f" .Environment.TemperatureC }}°C / {{ printf "%.0f" .Environment.RelativeHumidityPct }}% RH ({{ .Environment.GroundSurface }})</span>
+            </div>
+
+            {{ if .PawThermalHazard }}
+            <div class="k9-paw-hazard-banner" role="alert">
+              🐾 THERMAL PAW HAZARD: {{ .SafetyAdvisory }}
+            </div>
+            {{ end }}
+
+            {{ if .PromotedSightingID }}
+            <div class="k9-promoted-sighting-banner">
+              📍 Promoted to Verified Sighting: {{ .PromotedSightingID }}
+            </div>
+            {{ end }}
+
+            <div class="k9-mission-actions">
+              <button type="button" class="btn btn-sm btn-secondary btn-select-k9-mission" data-mission-id="{{ .MissionID }}">🎯 Inspect Plume &amp; Track</button>
+              <a class="btn btn-sm btn-secondary btn-export-k9-gpx" href="/api/v1/k9/missions/{{ .MissionID }}/gpx" download="k9-mission-{{ .MissionID }}.gpx">📥 Export GPX 1.1</a>
+            </div>
+          </article>
+          {{ else }}
+          <p class="k9-empty-hint" id="k9-missions-empty-msg">No active K9 scent missions dispatched yet.</p>
+          {{ end }}
+        </div>
+
+        <!-- Subsection 1A: Dispatch New K9 Scent Mission Form -->
+        <div class="k9-subsection">
+          <h3>Dispatch New K9 Scent Mission</h3>
+          <form id="form-create-k9-mission" class="k9-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="k9-pet-id">Target Lost Pet ID</label>
+                <input type="text" id="k9-pet-id" class="form-control" value="pet-lost-k9-luna" required>
+              </div>
+              <div class="form-group">
+                <label for="k9-handler-name">SAR Handler Name</label>
+                <input type="text" id="k9-handler-name" class="form-control" value="Sierra Vance" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="k9-canine-name">Canine Name</label>
+                <input type="text" id="k9-canine-name" class="form-control" value="K9 Kodiak" required>
+              </div>
+              <div class="form-group">
+                <label for="k9-canine-callsign">Canine Tactical Callsign</label>
+                <input type="text" id="k9-canine-callsign" class="form-control" value="K9-KODIAK-4" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="k9-discipline">K9 Search Discipline</label>
+                <select id="k9-discipline" class="form-control" required>
+                  <option value="MANTRAILING_SCENT_SPECIFIC">MANTRAILING_SCENT_SPECIFIC — Scent-Specific Trailing</option>
+                  <option value="AIR_SCENT_AREA">AIR_SCENT_AREA — Air-Scent Area Cone Search</option>
+                  <option value="EVIDENCE_ARTICLE_SEARCH">EVIDENCE_ARTICLE_SEARCH — Evidence / Article Search</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="k9-scent-article">Sterile Scent Article Description</label>
+                <input type="text" id="k9-scent-article" class="form-control" value="Unwashed fleece harness in sterile Mason jar" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="k9-lkp-lat">LKP Origin Latitude</label>
+                <input type="number" step="any" id="k9-lkp-lat" class="form-control" value="47.6062" required>
+              </div>
+              <div class="form-group">
+                <label for="k9-lkp-lng">LKP Origin Longitude</label>
+                <input type="number" step="any" id="k9-lkp-lng" class="form-control" value="-122.3321" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="k9-wind-speed">Wind Speed (km/h)</label>
+                <input type="number" step="any" id="k9-wind-speed" class="form-control" value="14" required>
+              </div>
+              <div class="form-group">
+                <label for="k9-wind-from-deg">Wind From Bearing (0–360°)</label>
+                <input type="number" step="any" id="k9-wind-from-deg" class="form-control" value="270" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="k9-temp-c">Ambient Temperature (°C)</label>
+                <input type="number" step="any" id="k9-temp-c" class="form-control" value="15" required>
+              </div>
+              <div class="form-group">
+                <label for="k9-humidity-pct">Relative Humidity (%)</label>
+                <input type="number" step="any" id="k9-humidity-pct" class="form-control" value="74" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="k9-ground-surface">Ground Surface Type</label>
+                <select id="k9-ground-surface" class="form-control" required>
+                  <option value="LUSH_VEGETATION">LUSH_VEGETATION — Lush Vegetation / Damp Fern</option>
+                  <option value="FOREST_FLOOR">FOREST_FLOOR — Shaded Forest Loam</option>
+                  <option value="DRY_GRASS">DRY_GRASS — Open Dry Grass</option>
+                  <option value="URBAN_ASPHALT">URBAN_ASPHALT — Urban Asphalt / Concrete</option>
+                  <option value="SNOW_ICE">SNOW_ICE — Snow / Ice Pack</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="k9-trail-age-hours">Trail Age (Hours Since LKP)</label>
+                <input type="number" step="any" id="k9-trail-age-hours" class="form-control" value="2.5" required>
+              </div>
+            </div>
+
+            <button type="submit" id="btn-create-k9-mission" class="btn btn-primary">🐕‍🦺 Launch K9 Scent Mission</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column Stack: Section 2 (SVG Plume Visualizer) + Section 3 (Waypoint & Alert Logger) -->
+      <div class="k9-column-stack">
+        <!-- Section 2: Interactive SVG Gaussian Wind Plume & K9 Track Visualizer -->
+        <section class="glass-card k9-panel" id="k9-plume-visualizer-panel" aria-labelledby="heading-k9-plume-visualizer">
+          <div class="k9-panel-header">
+            <h2 id="heading-k9-plume-visualizer">Gaussian Wind Plume &amp; K9 GPS Track Visualizer</h2>
+            <div class="k9-visualizer-badges">
+              <span id="plume-active-mission-badge" class="badge badge-secondary">mission-k9-101</span>
+              <span id="plume-azimuth-badge" class="badge badge-k9-pod">Downwind: 90°</span>
+              <span id="mission-pod-badge" class="badge badge-viability-high">POD: 93.7%</span>
+            </div>
+          </div>
+
+          <div id="paw-hazard-banner" class="k9-paw-hazard-banner" role="alert" hidden></div>
+
+          <div class="k9-plume-svg-wrapper">
+            <svg id="k9-plume-svg" viewBox="0 0 420 320" role="img" aria-label="Gaussian Wind Plume Dispersion Cone and K9 GPS Track">
+              <defs>
+                <radialGradient id="plumeConeGrad" cx="50%" cy="50%" r="70%">
+                  <stop offset="0%" stop-color="#10b981" stop-opacity="0.52" />
+                  <stop offset="100%" stop-color="#059669" stop-opacity="0.16" />
+                </radialGradient>
+              </defs>
+
+              <!-- Concentric Radar Range Rings centered at LKP (210, 160) -->
+              <circle cx="210" cy="160" r="45" class="svg-radar-ring" />
+              <circle cx="210" cy="160" r="90" class="svg-radar-ring" />
+              <circle cx="210" cy="160" r="135" class="svg-radar-ring" />
+
+              <!-- Cardinal Crosshairs -->
+              <line x1="210" y1="15" x2="210" y2="305" class="svg-radar-axis" />
+              <line x1="65" y1="160" x2="355" y2="160" class="svg-radar-axis" />
+
+              <!-- Compass Labels -->
+              <text x="210" y="14" text-anchor="middle" class="svg-compass-label">N (0°)</text>
+              <text x="392" y="164" text-anchor="end" class="svg-compass-label">E (90°)</text>
+              <text x="210" y="315" text-anchor="middle" class="svg-compass-label">S (180°)</text>
+              <text x="28" y="164" text-anchor="start" class="svg-compass-label">W (270°)</text>
+
+              <!-- Gaussian Downwind Scent Plume Polygon -->
+              <polygon id="svg-plume-polygon" class="svg-plume-polygon" points="210,160 325,122 335,160 325,198 210,160" />
+
+              <!-- K9 GPS Track Polyline -->
+              <polyline id="svg-k9-track-line" class="svg-k9-track-line" points="210,160 250,160 290,156" />
+
+              <!-- K9 Waypoint Markers Group -->
+              <g id="svg-k9-waypoints-group">
+                <circle class="svg-k9-waypoint" cx="250" cy="160" r="5" data-in-plume="true" />
+                <circle class="svg-k9-waypoint" cx="290" cy="156" r="5" data-in-plume="true" />
+              </g>
+
+              <!-- LKP Origin Marker -->
+              <circle id="svg-lkp-origin" class="svg-lkp-origin" cx="210" cy="160" r="6" />
+            </svg>
+          </div>
+        </section>
+
+        <!-- Section 3: K9 Waypoint & Canine Behavioral Alert Logger -->
+        <section class="glass-card k9-panel" id="k9-waypoint-panel" aria-labelledby="heading-k9-waypoint">
+          <div class="k9-panel-header">
+            <h2 id="heading-k9-waypoint">K9 Waypoint &amp; Canine Behavioral Alert Logger</h2>
+            <span class="badge badge-k9-behavior">Telemetry &amp; Sighting Promotion</span>
+          </div>
+
+          <form id="form-log-k9-waypoint" class="k9-form" novalidate>
+            <div class="form-group">
+              <label for="waypoint-mission-select">Active K9 Scent Mission</label>
+              <select id="waypoint-mission-select" class="form-control" required>
+                {{ range .Missions }}
+                <option value="{{ .MissionID }}">{{ .CanineName }} ({{ .CanineCallsign }}) — {{ .MissionID }}</option>
+                {{ end }}
+              </select>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="wp-lat">Waypoint Latitude</label>
+                <input type="text" id="wp-lat" class="form-control" value="47.6062" required>
+              </div>
+              <div class="form-group">
+                <label for="wp-lng">Waypoint Longitude</label>
+                <input type="text" id="wp-lng" class="form-control" value="-122.3285" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="wp-behavior">Canine Behavioral Alert</label>
+                <select id="wp-behavior" class="form-control" required>
+                  <option value="STRONG_SCENT_PULL">STRONG_SCENT_PULL — Strong Scent Pull on Lead</option>
+                  <option value="HEAD_SNAP_ALERT">HEAD_SNAP_ALERT — Sharp Head-Snap Into Wind Cone</option>
+                  <option value="SCENT_POOLING">SCENT_POOLING — Scent Pooling / Circling Alert</option>
+                  <option value="CASTING_SEARCH">CASTING_SEARCH — Casting / Exploratory Sweep</option>
+                  <option value="TRAIL_LOST">TRAIL_LOST — Negative / Trail Depleted</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="wp-notes">Handler Field Notes</label>
+                <input type="text" id="wp-notes" class="form-control" value="Strong downwind pull along fern ravine" required>
+              </div>
+            </div>
+
+            <div class="form-group k9-checkbox-row">
+              <input type="checkbox" id="wp-promote-sighting">
+              <label for="wp-promote-sighting">Promote K9 Positive Alert to Verified Lost-Pet Sighting</label>
+            </div>
+
+            <div class="k9-waypoint-form-actions">
+              <button type="submit" id="btn-log-k9-waypoint" class="btn btn-primary">📍 Record K9 Waypoint &amp; Alert</button>
+              <button type="button" id="btn-sim-in-plume-alert" class="btn btn-secondary">⚡ Simulate Downwind In-Plume K9 Alert (+Sighting)</button>
+            </div>
+          </form>
+
+          <div class="k9-subsection">
+            <h3>Recorded K9 GPS Track Waypoints</h3>
+            <div id="k9-waypoints-list" class="k9-waypoints-list" role="list">
+              {{ if gt (len .Missions) 0 }}
+                {{ with index .Missions 0 }}
+                  {{ range .Waypoints }}
+                  <div class="k9-waypoint-item" data-waypoint-id="{{ .WaypointID }}" data-in-plume="{{ .InScentPlume }}" role="listitem">
+                    <div class="k9-waypoint-item-header">
+                      <span class="badge badge-k9-behavior">{{ .Behavior }}</span>
+                      <span class="badge {{ if .InScentPlume }}badge-viability-high{{ else }}badge-viability-degraded{{ end }}">
+                        {{ if .InScentPlume }}IN PLUME CORRIDOR{{ else }}OUTSIDE PLUME{{ end }}
+                      </span>
+                      <code class="k9-waypoint-coords">{{ printf "%.4f" .Lat }}, {{ printf "%.4f" .Lng }}</code>
+                    </div>
+                    <p class="k9-waypoint-notes">{{ .Notes }}</p>
+                  </div>
+                  {{ else }}
+                  <p class="k9-empty-hint">No waypoints recorded for this mission yet.</p>
+                  {{ end }}
+                {{ end }}
+              {{ else }}
+              <p class="k9-empty-hint">No mission selected.</p>
+              {{ end }}
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+  <div id="k9-aria-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="/static/js/k9-ops.js" defer></script>
+</body>
+</html>
