@@ -39,6 +39,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/sms"
 	"github.com/scottdensmore/petspotr/pkg/store"
 	"github.com/scottdensmore/petspotr/pkg/telemetry"
+	"github.com/scottdensmore/petspotr/pkg/usarcollapse"
 	"github.com/scottdensmore/petspotr/pkg/verticalrescue"
 	"github.com/scottdensmore/petspotr/pkg/webhook"
 )
@@ -76,6 +77,7 @@ type Server struct {
 	verticalRescueStore      *verticalrescue.Store
 	avianRecoveryStore       *avianrecovery.Store
 	winterRescueStore        *avalanchewinter.Store
+	usarCollapseStore        *usarcollapse.Store
 	handler                  http.Handler
 }
 
@@ -240,6 +242,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		verticalRescueStore:      verticalrescue.NewStore(),
 		avianRecoveryStore:       avianrecovery.NewStore(),
 		winterRescueStore:        avalanchewinter.NewStore(),
+		usarCollapseStore:        usarcollapse.NewStore(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -532,6 +535,8 @@ func (s *Server) routes() {
 	s.registerAvianRecoveryRoutes()
 	// Cold-Weather Avalanche, Deep-Snow Drift & Thermal Hypothermia Rewarming SAR Cockpit routes (Milestone 16.3)
 	s.registerWinterRescueRoutes()
+	// Seismic Rubble, Urban Search & Rescue (USAR) Structural Collapse & Delsar Acoustic Void-Space Extraction Cockpit routes (Milestone 16.5)
+	s.registerUSARCollapseRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

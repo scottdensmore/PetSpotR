@@ -12687,3 +12687,176 @@ textarea:focus-visible,
   margin: 0.5rem 0;
 }
 
+/* ============================================================================
+   Milestone 16.5: Seismic Rubble, Urban Search & Rescue (USAR) Structural
+   Collapse & Delsar Acoustic Void-Space Extraction Cockpit
+   WCAG AAA High-Contrast Badges & Collapse/Crush Alerts (> 7.1:1 in Dark & Light Modes)
+   ============================================================================ */
+
+.badge-usar-status,
+.badge-usar-critical,
+.badge-usar-staged,
+.badge-usar-safe,
+.badge-usar-void,
+.badge-usar-flag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.usar-flags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.45rem 0;
+}
+
+.usar-gear-recommendations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  margin: 0.45rem 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.4);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .usar-gear-recommendations {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.usar-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.6rem 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .usar-steps-list {
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+.usar-step-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+:root .badge-usar-critical,
+[data-theme="dark"] .badge-usar-critical,
+:root .badge-usar-flag,
+[data-theme="dark"] .badge-usar-flag {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid #f87171;
+}
+
+:root .badge-usar-staged,
+[data-theme="dark"] .badge-usar-staged {
+  background-color: #78350f;
+  color: #fffbeb;
+  border: 1px solid #f59e0b;
+}
+
+:root .badge-usar-safe,
+[data-theme="dark"] .badge-usar-safe {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+}
+
+:root .badge-usar-void,
+[data-theme="dark"] .badge-usar-void {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #94a3b8;
+}
+
+:root .usar-collapse-alert-banner,
+[data-theme="dark"] .usar-collapse-alert-banner {
+  background-color: #450a0a;
+  color: #fef2f2;
+  border: 2px solid #f87171;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+:root .usar-clearance-banner,
+[data-theme="dark"] .usar-clearance-banner {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .badge-usar-critical,
+[data-theme="light"] .badge-usar-flag {
+  background-color: #fee2e2;
+  color: #7f1d1d;
+  border: 1px solid #b91c1c;
+}
+
+[data-theme="light"] .badge-usar-staged {
+  background-color: #fef3c7;
+  color: #78350f;
+  border: 1px solid #b45309;
+}
+
+[data-theme="light"] .badge-usar-safe {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+}
+
+[data-theme="light"] .badge-usar-void {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #475569;
+}
+
+[data-theme="light"] .usar-collapse-alert-banner {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 2px solid #b91c1c;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .usar-clearance-banner {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+
