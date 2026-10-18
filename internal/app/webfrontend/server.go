@@ -35,6 +35,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/sms"
 	"github.com/scottdensmore/petspotr/pkg/store"
 	"github.com/scottdensmore/petspotr/pkg/telemetry"
+	"github.com/scottdensmore/petspotr/pkg/verticalrescue"
 	"github.com/scottdensmore/petspotr/pkg/webhook"
 )
 
@@ -66,6 +67,7 @@ type Server struct {
 	smsWebhookSecret         string
 	evacSeedMu               sync.Mutex
 	ollamaClient             *ollama.Client
+	verticalRescueStore      *verticalrescue.Store
 	handler                  http.Handler
 }
 
@@ -225,6 +227,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		smsProvider:              options.SMSProvider,
 		smsWebhookSecret:         strings.TrimSpace(options.SMSWebhookSecret),
 		ollamaClient:             options.OllamaClient,
+		verticalRescueStore:      verticalrescue.NewStore(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -507,6 +510,8 @@ func (s *Server) routes() {
 	s.registerServiceAnimalRoutes()
 	// Livestock, Equine & Exotic Companion Large-Animal Containment & Trailer Dispatch Cockpit routes (Milestone 15.3)
 	s.registerEquineLivestockRoutes()
+	// High-Rise, Cliffside, Tree-Canopy & Technical Rope/Arborist Vertical Rescue Cockpit routes (Milestone 15.5)
+	s.registerVerticalRescueRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
