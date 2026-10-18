@@ -470,6 +470,15 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/v1/k9/missions/{id}/gpx", s.handleExportK9MissionGPX)
 	s.mux.HandleFunc("GET /api/v1/k9/stream", s.handleK9Stream)
 
+	// Pet Custody Chain, Escrow & Cryptographic Reunion Handover Ledger routes (Milestone 13.1)
+	s.mux.HandleFunc("GET /custody-ledger", s.handleCustodyLedgerPage)
+	s.mux.HandleFunc("GET /api/v1/custody/chains", s.handleListCustodyChains)
+	s.mux.HandleFunc("POST /api/v1/custody/chains", s.handleCreateCustodyChain)
+	s.mux.HandleFunc("POST /api/v1/custody/chains/{id}/transfer", s.handleAppendCustodyTransfer)
+	s.mux.HandleFunc("POST /api/v1/custody/chains/{id}/reunite", s.handleCompleteReunionHandover)
+	s.mux.HandleFunc("GET /api/v1/custody/chains/{id}/verify", s.handleVerifyCustodyChain)
+	s.mux.HandleFunc("GET /api/v1/custody/stream", s.handleCustodyStream)
+
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
 		"state": func(ctx context.Context) error {

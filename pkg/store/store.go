@@ -85,6 +85,10 @@ const (
 	CollectionK9ScentMissions   = "k9_scent_missions"
 )
 
+const (
+	CollectionPetCustodyChains = "pet_custody_chains"
+)
+
 // Sentinel errors for StateStore operations.
 var (
 	ErrStoreNotFound = errors.New("store: state store not found")
