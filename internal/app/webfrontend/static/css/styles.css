@@ -9171,3 +9171,446 @@ textarea:focus-visible,
 [data-theme="light"] .ics-empty-inline {
   color: #475569;
 }
+
+/* ==========================================================================
+   Milestone 12.4: Canine (K9) Scent-Trailing Telemetry, Atmospheric Wind Plume
+   Dispersion Cone & Handler Cockpit UI (/k9-ops) — WCAG AAA (> 7.1:1)
+   ========================================================================== */
+
+.k9-header-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.k9-cockpit-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .k9-cockpit-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.k9-column-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.k9-panel {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.k9-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--border-color, #334155);
+  padding-bottom: 0.75rem;
+}
+
+.k9-panel-header h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.k9-visualizer-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.k9-subsection {
+  border-top: 1px solid var(--border-color, #334155);
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.k9-subsection h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.k9-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.k9-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.k9-waypoint-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.k9-missions-list,
+.k9-waypoints-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.k9-mission-card,
+.k9-waypoint-item {
+  background: var(--bg-card, #0f172a);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: var(--radius-md, 8px);
+  padding: 0.95rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.k9-mission-card-active {
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+}
+
+[data-theme="light"] .k9-mission-card,
+[data-theme="light"] .k9-waypoint-item {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.k9-mission-card-header,
+.k9-waypoint-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.k9-mission-identity,
+.k9-mission-badges,
+.k9-mission-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.k9-canine-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.k9-mission-meta,
+.k9-mission-metrics-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #cbd5e1);
+}
+
+[data-theme="light"] .k9-mission-meta,
+[data-theme="light"] .k9-mission-metrics-row {
+  color: #1e293b;
+}
+
+.k9-waypoint-coords {
+  font-size: 0.78rem;
+  font-family: monospace;
+}
+
+.k9-waypoint-notes {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #e2e8f0);
+}
+
+[data-theme="light"] .k9-waypoint-notes {
+  color: #1e293b;
+}
+
+/* SVG Gaussian Plume Radar */
+.k9-plume-svg-wrapper {
+  background: #090d16;
+  border: 1px solid #334155;
+  border-radius: var(--radius-md, 8px);
+  padding: 0.75rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+[data-theme="light"] .k9-plume-svg-wrapper {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+#k9-plume-svg {
+  width: 100%;
+  max-width: 460px;
+  height: auto;
+  display: block;
+}
+
+.svg-radar-ring {
+  fill: none;
+  stroke: #334155;
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+[data-theme="light"] .svg-radar-ring {
+  stroke: #cbd5e1;
+}
+
+.svg-radar-axis {
+  stroke: #475569;
+  stroke-width: 1;
+}
+
+[data-theme="light"] .svg-radar-axis {
+  stroke: #94a3b8;
+}
+
+.svg-compass-label {
+  fill: #e2e8f0;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+[data-theme="light"] .svg-compass-label {
+  fill: #0f172a;
+}
+
+.svg-plume-polygon {
+  fill: url(#plumeConeGrad);
+  stroke: #10b981;
+  stroke-width: 2;
+}
+
+.svg-k9-track-line {
+  fill: none;
+  stroke: #38bdf8;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.svg-k9-waypoint {
+  fill: #facc15;
+  stroke: #0f172a;
+  stroke-width: 1.5;
+}
+
+.svg-lkp-origin {
+  fill: #f43f5e;
+  stroke: #ffffff;
+  stroke-width: 2;
+}
+
+/* WCAG AAA High-Contrast K9 Scent Viability, Behavior & POD Badges (> 7.1:1 in Dark & Light Modes) */
+.badge-viability-high,
+.badge-viability-moderate,
+.badge-viability-degraded,
+.badge-viability-expired,
+.badge-k9-behavior,
+.badge-k9-pod,
+.badge-k9-callsign,
+.badge-k9-discipline {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+/* Dark mode (default) */
+:root .badge-viability-high,
+[data-theme="dark"] .badge-viability-high {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+}
+
+:root .badge-viability-moderate,
+[data-theme="dark"] .badge-viability-moderate {
+  background-color: #1e1b4b;
+  color: #e0e7ff;
+  border: 1px solid #6366f1;
+}
+
+:root .badge-viability-degraded,
+[data-theme="dark"] .badge-viability-degraded {
+  background-color: #78350f;
+  color: #fffbeb;
+  border: 1px solid #f59e0b;
+}
+
+:root .badge-viability-expired,
+[data-theme="dark"] .badge-viability-expired {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid #ef4444;
+}
+
+:root .badge-k9-behavior,
+[data-theme="dark"] .badge-k9-behavior {
+  background-color: #0f172a;
+  color: #f8fafc;
+  border: 1px solid #38bdf8;
+}
+
+:root .badge-k9-pod,
+[data-theme="dark"] .badge-k9-pod {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #34d399;
+}
+
+:root .badge-k9-callsign,
+[data-theme="dark"] .badge-k9-callsign {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #64748b;
+  font-family: monospace;
+}
+
+:root .badge-k9-discipline,
+[data-theme="dark"] .badge-k9-discipline {
+  background-color: #1e1b4b;
+  color: #e0e7ff;
+  border: 1px solid #818cf8;
+}
+
+:root .k9-paw-hazard-banner,
+[data-theme="dark"] .k9-paw-hazard-banner {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 2px solid #f87171;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+:root .k9-promoted-sighting-banner,
+[data-theme="dark"] .k9-promoted-sighting-banner {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+/* Light mode */
+[data-theme="light"] .badge-viability-high {
+  background-color: #ecfdf5;
+  color: #064e3b;
+  border: 1px solid #059669;
+}
+
+[data-theme="light"] .badge-viability-moderate {
+  background-color: #eef2ff;
+  color: #1e1b4b;
+  border: 1px solid #4f46e5;
+}
+
+[data-theme="light"] .badge-viability-degraded {
+  background-color: #fffbeb;
+  color: #78350f;
+  border: 1px solid #d97706;
+}
+
+[data-theme="light"] .badge-viability-expired {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 1px solid #dc2626;
+}
+
+[data-theme="light"] .badge-k9-behavior {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #0284c7;
+}
+
+[data-theme="light"] .badge-k9-pod {
+  background-color: #ecfdf5;
+  color: #064e3b;
+  border: 1px solid #059669;
+}
+
+[data-theme="light"] .badge-k9-callsign {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #475569;
+  font-family: monospace;
+}
+
+[data-theme="light"] .badge-k9-discipline {
+  background-color: #eef2ff;
+  color: #1e1b4b;
+  border: 1px solid #4f46e5;
+}
+
+[data-theme="light"] .k9-paw-hazard-banner {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 2px solid #dc2626;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+[data-theme="light"] .k9-promoted-sighting-banner {
+  background-color: #ecfdf5;
+  color: #064e3b;
+  border: 1px solid #059669;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.k9-empty-hint {
+  color: var(--text-secondary, #cbd5e1);
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 1.25rem 1rem;
+  margin: 0;
+}
+
+[data-theme="light"] .k9-empty-hint {
+  color: #334155;
+}
+
