@@ -479,6 +479,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/v1/custody/chains/{id}/verify", s.handleVerifyCustodyChain)
 	s.mux.HandleFunc("GET /api/v1/custody/stream", s.handleCustodyStream)
 
+	// Multi-Modal False-Positive & Scam/Hoax Sighting Shield routes (Milestone 13.2)
+	s.registerTrustSafetyRoutes()
+
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
 		"state": func(ctx context.Context) error {

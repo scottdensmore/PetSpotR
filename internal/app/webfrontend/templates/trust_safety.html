@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PetSpotR — Trust &amp; Safety Quarantine Cockpit</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <header class="glass-nav" role="banner">
+        <div class="container nav-container">
+            <a href="/" class="brand-logo" aria-label="PetSpotR Home">🐾 PetSpotR</a>
+        </div>
+    </header>
+    <main class="container page-main" id="trust-safety-main">
+        <section class="emergency-operations-header trust-header-banner">
+            <span class="status-pill">🛡️ MULTI-MODAL ANTI-EXTORTION &amp; KINEMATIC HOAX SHIELD</span>
+            <h1>Trust &amp; Safety Quarantine Cockpit</h1>
+        </section>
+        <section id="trust-queue-panel">
+            <span id="trust-screenings-count-badge" class="badge badge-secondary">{{ len .Screenings }} Screenings</span>
+            <div id="trust-screenings-list" class="trust-screenings-list" role="list">
+                {{ range .Screenings }}
+                <article class="trust-screening-card" data-screening-id="{{ .ScreeningID }}" data-verdict="{{ .Verdict }}" role="listitem">
+                    <h2>{{ .PetName }} ({{ .PetID }}) — {{ .ReporterHandle }}</h2>
+                    <span class="badge badge-trust-verdict">{{ .Verdict }}</span>
+                </article>
+                {{ end }}
+            </div>
+        </section>
+    </main>
+</body>
+</html>
