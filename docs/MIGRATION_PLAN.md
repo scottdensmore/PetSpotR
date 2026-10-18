@@ -14,7 +14,7 @@ Service Bus, Azure Blob Storage) and Python/Blazor application code. The modern
 architecture standardizes on:
 
 1. **Go Toolchain**: High-performance, concurrent, and statically typed services
-   targeting Go 1.25+ with the pinned Go 1.26.5 toolchain.
+   targeting Go 1.25+ with the pinned Go 1.27.2 toolchain.
 2. **Canonical Google Cloud Stack**:
    - **Google Cloud Run**: Serverless container execution with automated concurrency
      management, instance scaling caps, and internal ingress security.
@@ -40,7 +40,7 @@ architecture standardizes on:
 
 | Architectural Layer | Legacy Architecture (Python / Azure) | Canonical Architecture (Go / GCP / Gemma 4) |
 | :--- | :--- | :--- |
-| **Language & Runtime** | Python 3.8 & .NET Blazor | Go 1.25+ (Pinned Go 1.26.5) |
+| **Language & Runtime** | Python 3.8 & .NET Blazor | Go 1.25+ (Pinned Go 1.27.2) |
 | **Web Frontend** | .NET Blazor WebAssembly (`src/frontend`) | Native Go Web UI (`cmd/web-frontend`) with WCAG 2.1 AA Accessibility |
 | **Microservices** | Python / Flask monolith (`src/backend`) | 5 Decoupled Go Services (`lostpet-service`, `foundpet-service`, `pet-matcher`, `notification-service`, `web-frontend`) |
 | **AI Vision Inference**| Azure ML Compute | Gemma 4 Vision AI (`gemma4:e2b` via Ollama / GCP Private Inference) |
@@ -161,7 +161,7 @@ All development on the PetSpotR platform must adhere to the following quality st
 
 1. **Test-Driven Development (TDD)**: Unit and contract tests written before implementation.
 2. **Deterministic Verification**: Every change must pass:
-   - `export GOTOOLCHAIN=go1.26.5`
+   - `export GOTOOLCHAIN=go1.27.2`
    - `go vet ./...`
    - `go test -race -cover ./...`
    - `golangci-lint run`

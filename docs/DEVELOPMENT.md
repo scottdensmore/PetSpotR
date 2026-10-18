@@ -7,8 +7,8 @@ outlines how to build, test, run locally, and deploy PetSpotR.
 
 ## 1. Architecture Overview
 
-PetSpotR is an event-driven microservice system targeting **Go 1.25.8** and
-built with the pinned **Go 1.26.5** toolchain:
+PetSpotR is an event-driven microservice system built with the pinned
+**Go 1.27.2** toolchain. The minimum language version is declared in `go.mod`:
 
 - **`web-frontend`** (`cmd/web-frontend`): Modern web application UI at `http://localhost:8082`,
   offering Lost Pet wizards, Found Pet dropzone, AI visual match comparison dashboard, and Web Push.
@@ -32,7 +32,7 @@ built with the pinned **Go 1.26.5** toolchain:
 
 ### Prerequisites
 
-- Go 1.26.5 installed locally, or available through `GOTOOLCHAIN=go1.26.5`.
+- Go 1.27.2 installed locally, or available through `GOTOOLCHAIN=go1.27.2`.
 - Node 24 for the pinned Firebase Authentication emulator and browser tests.
 - Docker & Docker Compose installed.
 - Ollama installed locally or running via Docker Compose.
@@ -67,7 +67,7 @@ Alternatively, commands can be invoked directly:
 
 ```bash
 # Set pinned Go toolchain
-export GOTOOLCHAIN=go1.26.5
+export GOTOOLCHAIN=go1.27.2
 
 # Run static analysis
 go vet ./...
@@ -239,7 +239,7 @@ Run the private role-assignment contract against the same emulator with:
 
 ```bash
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
-GOTOOLCHAIN=go1.26.5 \
+GOTOOLCHAIN=go1.27.2 \
   go test ./pkg/store -count=1 -v \
   -run '^TestFirestore(RoleAssignmentsCrossRuntimeAndFailClosed|RoleAuthorizedMatchUpdateFencesConcurrentRevocation)$'
 ```
@@ -480,7 +480,7 @@ Then run the real ID-token-to-session journey from another terminal:
 
 ```bash
 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
-GOTOOLCHAIN=go1.26.5 \
+GOTOOLCHAIN=go1.27.2 \
   go test ./e2e -count=1 -v \
   -run '^Test((Google)?IdentityPlatformSessionJourney|ExpiredIdentityPlatformSessionRejectsProtectedReport)WithAuthEmulator$'
 ```
@@ -728,7 +728,7 @@ Then run the focused contract with the CI-pinned Go toolchain:
 ```bash
 GO_INTEGRATION_OLLAMA=1 \
 OLLAMA_HOST="${OLLAMA_HOST:-http://localhost:11434}" \
-GOTOOLCHAIN=go1.26.5 \
+GOTOOLCHAIN=go1.27.2 \
   go test ./pkg/scoring \
   -run '^TestScoringPipeline_LiveOllamaIntegration$' -v
 ```
@@ -794,7 +794,7 @@ Run the existing-state plus lifecycle-outbox transaction contract with:
 
 ```bash
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
-  GOTOOLCHAIN=go1.26.5 go test ./pkg/store -count=1 -v \
+  GOTOOLCHAIN=go1.27.2 go test ./pkg/store -count=1 -v \
   -run '^TestFirestoreUpdatesStateAndCreatesOutboxAcrossRuntimes$'
 ```
 
@@ -803,7 +803,7 @@ contract against the same emulator with:
 
 ```bash
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
-  GOTOOLCHAIN=go1.26.5 go test ./e2e -count=1 -v \
+  GOTOOLCHAIN=go1.27.2 go test ./e2e -count=1 -v \
   -run '^TestFirestoreOwnerLostLifecycleIsAtomicAcrossRuntimes$'
 ```
 
@@ -811,7 +811,7 @@ Run the finder-authorized cross-runtime found lifecycle contract with:
 
 ```bash
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
-  GOTOOLCHAIN=go1.26.5 go test ./e2e -count=1 -v \
+  GOTOOLCHAIN=go1.27.2 go test ./e2e -count=1 -v \
   -run '^TestFirestoreFinderFoundLifecycleIsAtomicAcrossRuntimes$'
 ```
 
@@ -820,7 +820,7 @@ against the same emulator with:
 
 ```bash
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 \
-  GOTOOLCHAIN=go1.26.5 go test ./e2e -count=1 -v \
+  GOTOOLCHAIN=go1.27.2 go test ./e2e -count=1 -v \
   -run '^TestFirestoreGlobalOperatorLostLifecycleFencesConcurrentRevocation$'
 ```
 
@@ -870,7 +870,7 @@ Run the redacted managed-publication contract against a Pub/Sub emulator with:
 
 ```bash
 PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
-  GOTOOLCHAIN=go1.26.5 go test ./internal/app/lostpet -count=1 -v \
+  GOTOOLCHAIN=go1.27.2 go test ./internal/app/lostpet -count=1 -v \
   -run '^TestOwnerLostLifecyclePublishesRedactedEventWithPubSubEmulator$'
 ```
 
@@ -878,7 +878,7 @@ Run the equivalent found-report payload-v2 publication contract with:
 
 ```bash
 PUBSUB_EMULATOR_HOST=127.0.0.1:8086 \
-  GOTOOLCHAIN=go1.26.5 go test ./internal/app/foundpet -count=1 -v \
+  GOTOOLCHAIN=go1.27.2 go test ./internal/app/foundpet -count=1 -v \
   -run '^TestFinderFoundLifecyclePublishesRedactedEventWithPubSubEmulator$'
 ```
 
@@ -961,7 +961,7 @@ Run the indexed-query and legacy-migration contract against a Firestore
 emulator with:
 
 ```bash
-GOTOOLCHAIN=go1.26.5 go test ./pkg/store -count=1 -v \
+GOTOOLCHAIN=go1.27.2 go test ./pkg/store -count=1 -v \
   -run '^TestFirestoreQueriesAndBackfillsBoundedLostPetCandidates$'
 ```
 

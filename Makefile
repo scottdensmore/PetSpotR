@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 
 SHELL := /usr/bin/env bash
-GOTOOLCHAIN ?= go1.26.5
+GOTOOLCHAIN ?= go1.27.2
 TOFU ?= $(shell if command -v tofu >/dev/null 2>&1; then echo "tofu"; elif command -v mise >/dev/null 2>&1; then echo "mise exec -- tofu"; else echo "tofu"; fi)
 YAMLLINT ?= $(shell if command -v yamllint >/dev/null 2>&1; then echo "yamllint"; elif command -v mise >/dev/null 2>&1; then echo "mise exec -- yamllint"; else echo "yamllint"; fi)
 
