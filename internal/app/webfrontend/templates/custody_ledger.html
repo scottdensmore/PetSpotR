@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="{{if .Locale}}{{.Locale}}{{else}}en{{end}}">
+<head>
+  <meta charset="UTF-8">
+  <title>Pet Custody Chain &amp; Cryptographic Reunion Ledger — PetSpotR</title>
+</head>
+<body>
+  <main id="custody-ledger-root" data-testid="custody-ledger-dashboard">
+    <h1>Pet Custody Chain &amp; Cryptographic Reunion Handover Ledger</h1>
+    <div id="custody-chain-list" data-testid="custody-chain-list">
+      {{range .Chains}}
+      <article data-chain-id="{{.ChainID}}" data-testid="custody-chain-card">
+        <h2>{{.PetName}} ({{.Species}}) — {{.CurrentStage}}</h2>
+        <p>{{.CurrentCustodian}} @ {{.CurrentLocation}}</p>
+      </article>
+      {{end}}
+    </div>
+  </main>
+</body>
+</html>
