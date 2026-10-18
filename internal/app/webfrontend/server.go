@@ -34,6 +34,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/identity"
 	"github.com/scottdensmore/petspotr/pkg/maritimecoastal"
 	"github.com/scottdensmore/petspotr/pkg/mesh"
+	"github.com/scottdensmore/petspotr/pkg/neonatalincubator"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/ratelimit"
@@ -84,6 +85,7 @@ type Server struct {
 	usarCollapseStore        *usarcollapse.Store
 	heatTriageStore          *hyperthermiaheat.Store
 	maritimeRescueStore      *maritimecoastal.Store
+	neonatalIncubatorStore   *neonatalincubator.Store
 	handler                  http.Handler
 }
 
@@ -252,6 +254,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		usarCollapseStore:        usarcollapse.NewStore(),
 		heatTriageStore:          hyperthermiaheat.NewStore(),
 		maritimeRescueStore:      maritimecoastal.NewStore(),
+		neonatalIncubatorStore:   neonatalincubator.NewStore(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -552,6 +555,8 @@ func (s *Server) routes() {
 	s.registerHyperthermiaHeatRoutes()
 	// Maritime, Coastal & Tidal Mudflat Pet Rescue Operations Cockpit routes (Milestone 17.1)
 	s.registerMaritimeCoastalRoutes()
+	// Neonatal Orphan Litter & Incubator Critical Care Triage Cockpit routes (Milestone 17.3)
+	s.registerNeonatalIncubatorRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
