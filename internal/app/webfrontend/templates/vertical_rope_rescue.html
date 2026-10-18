@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR High-Rise, Cliffside, Tree-Canopy &amp; Technical Rope/Arborist Vertical Rescue Cockpit.">
+  <title>High-Rise, Cliffside, Tree-Canopy &amp; Technical Rope/Arborist Vertical Rescue Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/swiftwater-rescue" class="nav-link nav-link-emergency" id="nav-swiftwater-rescue">🌊 Swiftwater &amp; Ice Rescue</a></li>
+          <li><a href="/service-animal-priority" class="nav-link nav-link-emergency" id="nav-service-animal-priority">🦮 Service Animal Priority</a></li>
+          <li><a href="/equine-livestock" class="nav-link nav-link-emergency" id="nav-equine-livestock">🐎 Equine &amp; Livestock</a></li>
+          <li><a href="/vertical-rope-rescue" class="nav-link active nav-link-emergency" id="nav-vertical-rope-rescue">🧗 Vertical Rope Rescue</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="vertical-rope-rescue-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header vertical-rescue-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🧗 NFPA 2500 / ANSI Z133 ARBORIST CANOPY, CLIFFSIDE &amp; HIGH-RISE ROPE RESCUE</span>
+        </div>
+        <h1>High-Rise, Cliffside, Tree-Canopy &amp; Technical Rope/Arborist Vertical Rescue Cockpit</h1>
+        <p class="text-secondary">
+          Twin-Tension Rope Systems (TTRS), Cambium Friction Savers, Ballistic Drop-Zone Catch Netting, Dark-Mesh Calming Capture Bags &amp; High-Rise Fall-Shock Trauma Prevention.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid vertical-rescue-kpi-grid" aria-label="Vertical Rope &amp; Arborist Rescue Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Active Vertical Rescue Ops</span>
+        <strong class="kpi-value" id="stat-total-vertical-ops">{{ .TotalOps }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Fall-Shock &amp; Canopy Alerts</span>
+        <strong class="kpi-value" id="stat-critical-fall-alerts">{{ .CriticalFallCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Twin-Tension Rigged Ascents</span>
+        <strong class="kpi-value" id="stat-rigged-twin-lines">{{ .RiggedTwinCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Lowered Ground-Safe Verified</span>
+        <strong class="kpi-value" id="stat-lowered-safe-count">{{ .LoweredSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="vertical-rescue-live-status" class="humane-traps-live-status vertical-rescue-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOps }} high-angle arborist canopy, cliffside &amp; high-rise vertical rope rescue operations.
+    </div>
+
+    <div class="trust-cockpit-grid vertical-rescue-cockpit-grid">
+      <!-- Section 1: Evaluate Vertical Rescue Form + Scenario Simulators -->
+      <section class="glass-card trust-panel" id="vr-evaluate-panel" aria-labelledby="heading-evaluate-vr">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-vr">Evaluate Vertical Rope &amp; Arborist Rescue Operation</h2>
+          <span class="badge badge-vr-env">NFPA 2500 + ANSI Z133 TTRS</span>
+        </div>
+
+        <form id="vr-evaluate-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="vr-pet-id">Stranded Pet ID</label>
+              <input type="text" id="vr-pet-id" class="form-control" value="PET-VR-904" required>
+            </div>
+            <div class="form-group">
+              <label for="vr-pet-name">Pet Name</label>
+              <input type="text" id="vr-pet-name" class="form-control" value="Zephyr" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="vr-species">Species</label>
+              <select id="vr-species" class="form-control" required>
+                <option value="Feline" selected>Feline</option>
+                <option value="Canine">Canine</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="vr-weight-kg">Weight (kg)</label>
+              <input type="number" id="vr-weight-kg" class="form-control" min="0.5" max="120" step="0.5" value="4.3" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="vr-environment-type">Vertical Hazard Environment</label>
+              <select id="vr-environment-type" class="form-control" required>
+                <option value="TREE_CANOPY_CROWN" selected>TREE_CANOPY_CROWN (Deadwood Crown / Arborist SRS-MRS)</option>
+                <option value="CLIFFSIDE_ROCK_LEDGE">CLIFFSIDE_ROCK_LEDGE (High-Angle Basalt / Talus Crag)</option>
+                <option value="HIGH_RISE_BALCONY_PARAPET">HIGH_RISE_BALCONY_PARAPET (Exterior Parapet / Window Ledge)</option>
+                <option value="BRIDGE_OVERPASS_GIRDER">BRIDGE_OVERPASS_GIRDER (Highway Viaduct / Steel Box Girder)</option>
+                <option value="UTILITY_TOWER_CROSSARM">UTILITY_TOWER_CROSSARM (De-Energized Transmission Crossarm)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="vr-elevation-meters">Elevation Height (Meters)</label>
+              <input type="number" id="vr-elevation-meters" class="form-control" min="1" max="300" step="0.5" value="24.0" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="vr-slope-angle">Slope / Wall Angle (Degrees)</label>
+              <input type="number" id="vr-slope-angle" class="form-control" min="0" max="90" step="1" value="85" required>
+            </div>
+            <div class="form-group">
+              <label for="vr-wind-gust">Wind Gusts (Knots)</label>
+              <input type="number" id="vr-wind-gust" class="form-control" min="0" max="90" step="1" value="28" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="vr-hours-stranded">Hours Stranded</label>
+              <input type="number" id="vr-hours-stranded" class="form-control" min="0.5" max="240" step="0.5" value="30" required>
+            </div>
+            <div class="form-group">
+              <label for="vr-branch-stability">Branch / Ledge Stability Index (0-100)</label>
+              <input type="number" id="vr-branch-stability" class="form-control" min="0" max="100" step="1" value="22" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="vr-lead-rigger">Lead Rigger / Arborist Callsign</label>
+              <input type="text" id="vr-lead-rigger" class="form-control" value="ARBOR-LEAD-9 (ISA Certified)" required>
+            </div>
+            <div class="form-group">
+              <label for="vr-notes">Tactical Rigging Notes</label>
+              <input type="text" id="vr-notes" class="form-control" value="Deadwood Douglas fir crown in 28kt gusts; deploying 8m catch net.">
+            </div>
+          </div>
+
+          <button type="submit" id="btn-evaluate-vr" class="btn btn-primary">Evaluate Vertical Rescue &amp; Rigging Plan</button>
+        </form>
+
+        <div class="trust-subsection">
+          <h3>High-Angle Canopy, Cliffside &amp; High-Rise Scenario Simulators</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary vr-scenario-btn" data-scenario="canopy-crown-gale">🌲 Simulate 26m Brittle Tree-Canopy Gale Gusts (Feline Fall-Shock &amp; Deadwood Alert)</button>
+            <button type="button" class="btn btn-secondary vr-scenario-btn" data-scenario="cliff-ledge-crag">⛰️ Simulate 16m Sheer Basalt Cliffside Ledge (Canine TTRS Dorsal Harness)</button>
+            <button type="button" class="btn btn-secondary vr-scenario-btn" data-scenario="highrise-balcony-ledge">🏢 Simulate 9th-Floor High-Rise Balcony Parapet (28m Feline Panic-Leap Prevention)</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Active Vertical Rope Rescue Operations Grid -->
+      <section class="glass-card trust-panel" id="vr-ops-panel" aria-labelledby="heading-vr-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-vr-ops">Active Vertical Rope &amp; Arborist Rescue Operations</h2>
+          <span id="vr-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="vr-operations-list" class="trust-screenings-list vr-operations-list" role="list">
+          {{ range .Operations }}
+          <article class="trust-screening-card vr-op-card" data-op-id="{{ .OperationID }}" data-status="{{ .Status }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ .PetName }} ({{ .Species }} · {{ printf "%.1f" .WeightKg }} kg · {{ .LeadRiggerCallsign }})</strong>
+                <code class="trust-pet-id">{{ .OperationID }} · {{ .PetID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-vr-status {{ if eq (printf "%s" .Status) "FALL_SHOCK_HAZARD_CRITICAL" }}badge-vr-critical{{ else if eq (printf "%s" .Status) "TWIN_TENSION_RIGGED_ASCENT" }}badge-vr-rigged{{ else }}badge-vr-lowered{{ end }}">{{ .Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row">
+              <span class="badge badge-vr-env">{{ .EnvironmentType }}</span>
+              <span class="badge badge-vr-env">Elevation: {{ printf "%.1f" .ElevationMeters }}m • Slope: {{ printf "%.0f" .SlopeAngleDeg }}° • Wind: {{ printf "%.0f" .WindGustKnots }} kts • Stability: {{ .BranchStabilityIndex }}/100</span>
+              <span class="badge badge-vr-env">Hazard Score: {{ .HazardScore }}/100 • Rigging Readiness: {{ .RiggingReadinessScore }}%</span>
+            </div>
+
+            <div class="vr-flags-row">
+              {{ range .RiskFlags }}
+              <span class="badge badge-vr-flag">{{ . }}</span>
+              {{ end }}
+            </div>
+
+            {{ if or .HighRiseFallShockAlert .CanopyFailureAlert }}
+            <div class="vr-fall-alert-banner" role="alert">
+              ⚠️ HIGH-RISE FALL-SHOCK &amp; CANOPY SHEAR ALERT: {{ printf "%.1f" .ElevationMeters }}m elevation ({{ printf "%.0f" .WindGustKnots }} kt gusts, Stability {{ .BranchStabilityIndex }}/100) — Deploy {{ .DropZoneGrid }} &amp; {{ .RecommendedCaptureBag }} immediately.
+            </div>
+            {{ end }}
+
+            {{ if .ClearanceCertificateHash }}
+            <div class="vr-clearance-banner">
+              ✅ VERTICAL GROUND-SAFE LOWERING CERTIFIED: <strong>{{ .ClearanceCertificateHash }}</strong>
+            </div>
+            {{ end }}
+
+            <div class="vr-equipment-summary">
+              <div><strong>Rope Rigging:</strong> {{ .RecommendedRopeSystem }}</div>
+              <div><strong>Capture Restraint:</strong> {{ .RecommendedCaptureBag }}</div>
+              <div><strong>Drop-Zone Netting:</strong> {{ .DropZoneGrid }}</div>
+            </div>
+
+            <div class="vr-steps-list" aria-label="NFPA 2500 / ANSI Z133 Vertical Rescue Protocol Checklist">
+              {{ $opID := .OperationID }}
+              {{ range .ProtocolSteps }}
+              <label class="vr-step-item">
+                <input
+                  type="checkbox"
+                  class="vr-step-checkbox"
+                  data-op-id="{{ $opID }}"
+                  data-step-id="{{ .ID }}"
+                  {{ if .Completed }}checked{{ end }}
+                >
+                <span class="badge badge-vr-env">[{{ .Category }}]</span>
+                <span class="vr-step-label">{{ .Label }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-primary vr-issue-clearance-btn"
+                data-op-id="{{ .OperationID }}"
+              >
+                🏅 Issue Ground-Safe Vertical Clearance Certificate
+              </button>
+            </div>
+          </article>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/vertical-rope-rescue.js" defer></script>
+</body>
+</html>
