@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="PetSpotR Humane Live-Trap IoT Telemetry &amp; Rapid Dispatch Cockpit.">
+  <meta name="description" content="PetSpotR Humane Live-Trap IoT Telemetry, Bait Decay &amp; Rapid Dispatch Cockpit.">
   <title>Humane Live-Trap IoT Telemetry &amp; Rapid Dispatch Cockpit — PetSpotR AI</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -11,10 +11,256 @@
   <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link active nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
   <main id="humane-traps-main" class="container page-main">
-    <h1>Humane Live-Trap IoT Telemetry &amp; Rapid Dispatch Cockpit</h1>
-    <div id="humane-traps-live-status" role="status" aria-live="polite"></div>
-    <div id="humane-traps-list"></div>
+    <!-- Header Banner -->
+    <div class="emergency-operations-header humane-traps-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🪤 HUMANE LIVE-TRAP IOT TELEMETRY &amp; 15-MIN ANIMAL WELFARE SLA</span>
+        </div>
+        <h1>Humane Live-Trap IoT Telemetry &amp; Rapid Dispatch Cockpit</h1>
+        <p class="text-secondary">
+          Real-Time Cellular/LoRa Reed-Switch &amp; Accelerometer Door-Trip Telemetry, Olfactory Bait Thermal Decay Tracking, Hyperthermia/Hypothermia Auto-Lockout &amp; Rapid SAR Responder Dispatch.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid" aria-label="Humane Trap Fleet Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Deployed Traps</span>
+        <strong class="kpi-value" id="kpi-traps-total">{{ len .Traps }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Urgent Tripped / Dispatched (15m SLA)</span>
+        <strong class="kpi-value" id="kpi-traps-urgent">1</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Target Pets Captured &amp; Secured</span>
+        <strong class="kpi-value" id="kpi-traps-captured">0</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Thermal Lockouts (Disarmed)</span>
+        <strong class="kpi-value" id="kpi-traps-thermal">1</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="humane-traps-live-status" class="humane-traps-live-status" role="status" aria-live="polite">
+      Monitoring {{ len .Traps }} active humane live-trap IoT nodes across search sectors.
+    </div>
+
+    <div class="trust-cockpit-grid humane-traps-cockpit-grid">
+      <!-- Section 1: Deploy & Arm New Humane Trap Form + IoT Telemetry Simulators -->
+      <section class="glass-card trust-panel" id="humane-trap-deploy-panel" aria-labelledby="heading-deploy-trap">
+        <div class="trust-panel-header">
+          <h2 id="heading-deploy-trap">Deploy &amp; Arm New Humane Trap</h2>
+          <span class="badge badge-trap-status badge-trap-armed">IoT LoRa / Cellular Node</span>
+        </div>
+
+        <form id="form-deploy-humane-trap" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="ht-pet-id">Target Pet ID</label>
+              <input type="text" id="ht-pet-id" class="form-control" value="pet-2026-002" required>
+            </div>
+            <div class="form-group">
+              <label for="ht-pet-name">Target Pet Name</label>
+              <input type="text" id="ht-pet-name" class="form-control" value="Luna" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="ht-target-species">Target Species</label>
+              <select id="ht-target-species" class="form-control" required>
+                <option value="CAT" selected>CAT</option>
+                <option value="DOG">DOG</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ht-target-weight-kg">Target Weight (kg)</label>
+              <input type="number" id="ht-target-weight-kg" class="form-control" value="4.2" step="0.1" min="0.5" max="120" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="ht-trap-label">Trap Hardware Label &amp; Location Landmark</label>
+            <input type="text" id="ht-trap-label" class="form-control" value="Tomahawk Tru-Catch #415 — Magnolia Bluff Ravine" required>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="ht-trap-type">Trap Mechanism Type</label>
+              <select id="ht-trap-type" class="form-control" required>
+                <option value="BOX_TRAP_GRAVITY" selected>BOX_TRAP_GRAVITY</option>
+                <option value="DROP_TRAP_REMOTE">DROP_TRAP_REMOTE</option>
+                <option value="ENCLOSURE_PEN_CELLULAR">ENCLOSURE_PEN_CELLULAR</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ht-bait-type">Olfactory Bait Type</label>
+              <select id="ht-bait-type" class="form-control" required>
+                <option value="SARDINES_IN_OIL" selected>SARDINES_IN_OIL</option>
+                <option value="ROTISSERIE_CHICKEN">ROTISSERIE_CHICKEN</option>
+                <option value="WET_RECOVERY_PATE">WET_RECOVERY_PATE</option>
+                <option value="CATNIP_MACKEREL_BLEND">CATNIP_MACKEREL_BLEND</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="ht-latitude">Deployment Latitude</label>
+              <input type="text" id="ht-latitude" class="form-control" value="47.6632" required>
+            </div>
+            <div class="form-group">
+              <label for="ht-longitude">Deployment Longitude</label>
+              <input type="text" id="ht-longitude" class="form-control" value="-122.4085" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="ht-sector-id">ICS Search Sector ID</label>
+              <input type="text" id="ht-sector-id" class="form-control" value="SEC-W-03" required>
+            </div>
+            <div class="form-group">
+              <label for="ht-internal-temp-c">Initial Internal Temp (°C)</label>
+              <input type="number" id="ht-internal-temp-c" class="form-control" value="17.5" step="0.1" required>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-deploy-humane-trap" class="btn btn-primary">🪤 Deploy &amp; Arm Humane Trap</button>
+        </form>
+
+        <div class="trust-subsection">
+          <h3>IoT Sensor &amp; Telemetry Simulator Presets</h3>
+          <div class="trust-sim-actions">
+            <button type="button" id="btn-sim-door-trip-target" class="btn btn-secondary">🚨 Simulate Target Weight Door-Trip (3.2G Spike)</button>
+            <button type="button" id="btn-sim-bycatch-trip" class="btn btn-secondary">🦝 Simulate Wildlife Bycatch Weight Mismatch (1.1 kg)</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Deployed Humane Traps Grid -->
+      <section class="glass-card trust-panel" id="humane-trap-fleet-panel" aria-labelledby="heading-trap-fleet">
+        <div class="trust-panel-header">
+          <h2 id="heading-trap-fleet">Deployed Humane Traps Fleet &amp; SLA Queue</h2>
+          <span id="humane-traps-count-badge" class="badge badge-secondary">{{ len .Traps }} Traps</span>
+        </div>
+
+        <div id="humane-traps-list" class="trust-screenings-list humane-traps-list" role="list">
+          {{ range .Traps }}
+          <article class="trust-screening-card humane-trap-card" data-trap-id="{{ .TrapID }}" data-trap-status="{{ .Status }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ .PetName }} ({{ .TargetSpecies }} · {{ printf "%.1f" .TargetWeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ .TrapID }}</code>
+                {{ if .SectorID }}<span class="badge badge-reporter-trust">Sector: {{ .SectorID }}</span>{{ end }}
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-trap-status {{ if eq (printf "%s" .Status) "ARMED_ACTIVE" }}badge-trap-armed{{ else if eq (printf "%s" .Status) "DOOR_TRIPPED_URGENT" }}badge-trap-tripped{{ else if eq (printf "%s" .Status) "RESPONDER_DISPATCHED" }}badge-trap-dispatched{{ else if eq (printf "%s" .Status) "TARGET_CAPTURED_SECURED" }}badge-trap-captured{{ else if eq (printf "%s" .Status) "THERMAL_LOCKOUT_DISARMED" }}badge-trap-thermal{{ else }}badge-trap-armed{{ end }}">{{ .Status }}</span>
+              </div>
+            </div>
+
+            <div class="humane-trap-label-row">
+              <strong>{{ .TrapLabel }}</strong>
+              <span class="text-secondary">({{ .TrapType }} · {{ .BaitType }})</span>
+            </div>
+
+            <div class="trust-kinematics-row">
+              <span class="badge badge-bait-state {{ if eq (printf "%s" .BaitState) "FRESH_PEAK_SCENT" }}badge-bait-fresh{{ else if eq (printf "%s" .BaitState) "DEGRADING_REFRESH_SOON" }}badge-bait-degrading{{ else }}badge-bait-spoiled{{ end }}">Bait: {{ .BaitFreshnessPct }}% ({{ .BaitState }})</span>
+              <span class="badge badge-kinematic-velocity">Temp: {{ printf "%.1f" .InternalTempC }}°C</span>
+              <span class="badge badge-risk-score">Battery: {{ .BatteryPct }}% ({{ .RssiDbm }} dBm)</span>
+              <span class="badge badge-image-integrity">Peak Accel: {{ printf "%.2f" .AccelerometerPeakG }}G{{ if gt .EstimatedCaptureWeightKg 0.0 }} · Est. {{ printf "%.1f" .EstimatedCaptureWeightKg }} kg{{ end }}</span>
+            </div>
+
+            <div class="trust-anomaly-flags">
+              {{ range .AlertFlags }}
+              <span class="badge badge-trap-alert" data-flag="{{ . }}">⚠️ {{ . }}</span>
+              {{ end }}
+            </div>
+
+            {{ if or (eq (printf "%s" .Status) "DOOR_TRIPPED_URGENT") (eq (printf "%s" .Status) "RESPONDER_DISPATCHED") }}
+            <div class="trap-sla-urgent-banner">
+              ⏱️ 15-MIN HUMANE CHECK SLA ACTIVE{{ if .AssignedResponderName }} — Dispatched: {{ .AssignedResponderName }} ({{ .AssignedResponderID }}, ETA {{ .ResponderETAMinutes }}m){{ else }} — Immediate field verification required!{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if .PromotedSightingID }}
+            <div class="trap-promoted-sighting-banner trust-promoted-banner">
+              📍 Promoted Sighting: {{ .PromotedSightingID }}
+            </div>
+            {{ end }}
+
+            <p class="trust-screening-notes">{{ .TelemetrySummary }}</p>
+
+            <div class="trust-moderator-actions">
+              {{ if eq (printf "%s" .Status) "DOOR_TRIPPED_URGENT" }}
+              <button type="button" class="btn btn-sm btn-primary btn-dispatch-trap-responder" data-trap-id="{{ .TrapID }}">🚑 Dispatch SAR Responder (Maya Lin · 6m ETA)</button>
+              {{ end }}
+              {{ if or (eq (printf "%s" .Status) "DOOR_TRIPPED_URGENT") (eq (printf "%s" .Status) "RESPONDER_DISPATCHED") }}
+              <button type="button" class="btn btn-sm btn-secondary btn-resolve-target-captured" data-trap-id="{{ .TrapID }}">✅ Confirm Target Pet Captured</button>
+              <button type="button" class="btn btn-sm btn-secondary btn-resolve-bycatch-rearm" data-trap-id="{{ .TrapID }}">🦝 Release Bycatch &amp; Re-Arm</button>
+              {{ end }}
+              {{ if eq (printf "%s" .Status) "THERMAL_LOCKOUT_DISARMED" }}
+              <button type="button" class="btn btn-sm btn-secondary btn-resolve-thermal-rearm" data-trap-id="{{ .TrapID }}">⛺ Install Thermal Shade &amp; Re-Arm</button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="humane-traps-empty-msg">No humane traps deployed yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
   </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/humane-traps.js" defer></script>
 </body>
 </html>
