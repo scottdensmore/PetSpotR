@@ -95,6 +95,7 @@ const (
 	CollectionMunicipalCADIncidents     = "municipal_cad_incidents"
 	CollectionFosterPlacementMatches    = "foster_placement_matches"
 	CollectionTransportRelayMissions    = "transport_relay_missions"
+	CollectionBiometricForensicCases    = "biometric_forensic_cases"
 )
 
 // DefaultCollections returns all canonical state store collections.
@@ -150,6 +151,7 @@ func DefaultCollections() []string {
 		CollectionMunicipalCADIncidents,
 		CollectionFosterPlacementMatches,
 		CollectionTransportRelayMissions,
+		CollectionBiometricForensicCases,
 	}
 }
 

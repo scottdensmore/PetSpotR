@@ -499,6 +499,8 @@ func (s *Server) routes() {
 	s.registerFosterNetworkRoutes()
 	// Aviation & Cross-Jurisdiction Pet Airlift / Ground Relay Transport Logistics Cockpit routes (Milestone 14.4)
 	s.registerTransportRelayRoutes()
+	// Forensic DNA, Coat-Pattern Biometrics & Senior/Blind Pet Cognitive Disorientation Triage Cockpit routes (Milestone 14.5)
+	s.registerBiometricForensicsRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
