@@ -10938,6 +10938,20 @@ textarea:focus-visible,
 .badge-hazard-arterial,
 .badge-hazard-safe,
 .badge-cad-metric {
+   Milestone 14.3: Emergency Foster Network Capacity, Quarantine Biosecurity &
+   Medical Foster Matching Cockpit
+   WCAG AAA High-Contrast Badges & Isolation Banners (> 7.1:1 in Dark & Light Modes)
+   ============================================================================ */
+
+.badge-foster-status,
+.badge-foster-pending,
+.badge-foster-staged,
+.badge-foster-active,
+.badge-bio-tier,
+.badge-bio-iso,
+.badge-bio-medical,
+.badge-bio-cleared,
+.badge-foster-metric {
   display: inline-flex;
   align-items: center;
   padding: 0.25rem 0.65rem;
@@ -10948,6 +10962,7 @@ textarea:focus-visible,
 }
 
 .corridor-mitigation-list {
+.foster-checks-list {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -10959,11 +10974,13 @@ textarea:focus-visible,
 }
 
 [data-theme="light"] .corridor-mitigation-list {
+[data-theme="light"] .foster-checks-list {
   background-color: #f8fafc;
   border: 1px solid #cbd5e1;
 }
 
 .corridor-mitigation-item {
+.foster-check-item {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -11016,6 +11033,26 @@ textarea:focus-visible,
 [data-theme="dark"] .badge-cad-triage,
 :root .badge-hazard-freeway,
 [data-theme="dark"] .badge-hazard-freeway {
+.foster-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.foster-checkbox-group .checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* Dark Theme (:root and [data-theme="dark"]) — WCAG AAA (> 7.1:1) */
+:root .badge-foster-pending,
+[data-theme="dark"] .badge-foster-pending,
+:root .badge-bio-iso,
+[data-theme="dark"] .badge-bio-iso {
   background-color: #7f1d1d;
   color: #fef2f2;
   border: 1px solid #f87171;
@@ -11025,6 +11062,10 @@ textarea:focus-visible,
 [data-theme="dark"] .badge-cad-containment,
 :root .badge-hazard-arterial,
 [data-theme="dark"] .badge-hazard-arterial {
+:root .badge-foster-staged,
+[data-theme="dark"] .badge-foster-staged,
+:root .badge-bio-medical,
+[data-theme="dark"] .badge-bio-medical {
   background-color: #78350f;
   color: #fffbeb;
   border: 1px solid #f59e0b;
@@ -11034,6 +11075,10 @@ textarea:focus-visible,
 [data-theme="dark"] .badge-cad-resolved,
 :root .badge-hazard-safe,
 [data-theme="dark"] .badge-hazard-safe {
+:root .badge-foster-active,
+[data-theme="dark"] .badge-foster-active,
+:root .badge-bio-cleared,
+[data-theme="dark"] .badge-bio-cleared {
   background-color: #064e3b;
   color: #ecfdf5;
   border: 1px solid #10b981;
@@ -11041,6 +11086,8 @@ textarea:focus-visible,
 
 :root .badge-cad-metric,
 [data-theme="dark"] .badge-cad-metric {
+:root .badge-foster-metric,
+[data-theme="dark"] .badge-foster-metric {
   background-color: #1e293b;
   color: #f8fafc;
   border: 1px solid #94a3b8;
@@ -11048,6 +11095,8 @@ textarea:focus-visible,
 
 :root .cad-no-chase-banner,
 [data-theme="dark"] .cad-no-chase-banner {
+:root .foster-iso-quarantine-banner,
+[data-theme="dark"] .foster-iso-quarantine-banner {
   background-color: #450a0a;
   color: #fef2f2;
   border: 2px solid #f87171;
@@ -11064,6 +11113,8 @@ textarea:focus-visible,
   color: #ffffff;
 :root .cad-resolution-banner,
 [data-theme="dark"] .cad-resolution-banner {
+:root .foster-authorization-banner,
+[data-theme="dark"] .foster-authorization-banner {
   background-color: #064e3b;
   color: #ecfdf5;
   border: 1px solid #10b981;
@@ -11080,6 +11131,8 @@ textarea:focus-visible,
   background-color: #fef2f2;
 [data-theme="light"] .badge-cad-triage,
 [data-theme="light"] .badge-hazard-freeway {
+[data-theme="light"] .badge-foster-pending,
+[data-theme="light"] .badge-bio-iso {
   background-color: #fee2e2;
   color: #7f1d1d;
   border: 1px solid #b91c1c;
@@ -11090,6 +11143,8 @@ textarea:focus-visible,
   background-color: #fffbeb;
 [data-theme="light"] .badge-cad-containment,
 [data-theme="light"] .badge-hazard-arterial {
+[data-theme="light"] .badge-foster-staged,
+[data-theme="light"] .badge-bio-medical {
   background-color: #fef3c7;
   color: #78350f;
   border: 1px solid #b45309;
@@ -11100,6 +11155,8 @@ textarea:focus-visible,
   background-color: #ecfdf5;
 [data-theme="light"] .badge-cad-resolved,
 [data-theme="light"] .badge-hazard-safe {
+[data-theme="light"] .badge-foster-active,
+[data-theme="light"] .badge-bio-cleared {
   background-color: #d1fae5;
   color: #064e3b;
   border: 1px solid #047857;
@@ -11113,12 +11170,14 @@ textarea:focus-visible,
 
 [data-theme="light"] .corridor-small-prey-banner {
 [data-theme="light"] .badge-cad-metric {
+[data-theme="light"] .badge-foster-metric {
   background-color: #f1f5f9;
   color: #0f172a;
   border: 1px solid #475569;
 }
 
 [data-theme="light"] .cad-no-chase-banner {
+[data-theme="light"] .foster-iso-quarantine-banner {
   background-color: #fef2f2;
   color: #7f1d1d;
   border: 2px solid #b91c1c;
@@ -11132,6 +11191,7 @@ textarea:focus-visible,
 [data-theme="light"] .corridor-clearance-banner {
   background-color: #ecfdf5;
 [data-theme="light"] .cad-resolution-banner {
+[data-theme="light"] .foster-authorization-banner {
   background-color: #d1fae5;
   color: #064e3b;
   border: 1px solid #047857;
@@ -11141,4 +11201,5 @@ textarea:focus-visible,
   font-weight: 700;
   margin: 0.5rem 0;
 }
+
 

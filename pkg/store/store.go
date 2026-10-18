@@ -93,6 +93,7 @@ const (
 	CollectionReunionDecompressionPlans = "reunion_decompression_plans"
 	CollectionWildlifeCorridorReports   = "wildlife_corridor_reports"
 	CollectionMunicipalCADIncidents     = "municipal_cad_incidents"
+	CollectionFosterPlacementMatches    = "foster_placement_matches"
 )
 
 // DefaultCollections returns all canonical state store collections.
@@ -146,6 +147,7 @@ func DefaultCollections() []string {
 		CollectionReunionDecompressionPlans,
 		CollectionWildlifeCorridorReports,
 		CollectionMunicipalCADIncidents,
+		CollectionFosterPlacementMatches,
 	}
 }
 
