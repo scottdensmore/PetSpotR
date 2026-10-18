@@ -27,6 +27,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/confinedspace"
 	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/hazmatdecon"
 	"github.com/scottdensmore/petspotr/pkg/identity"
 	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
@@ -51,6 +52,7 @@ type Server struct {
 	metrics                  *telemetry.MetricsRegistry
 	stateStore               store.StateStore
 	confinedSpaceStore       *confinedspace.Store
+	hazmatDeconStore         *hazmatdecon.Store
 	foundPetReporter         FoundPetReporter
 	foundPetLifecycle        FoundPetLifecycle
 	lostPetReporter          LostPetReporter
@@ -213,6 +215,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		metrics:                  telemetry.NewMetricsRegistry("web-frontend"),
 		stateStore:               st,
 		confinedSpaceStore:       confinedspace.NewStore(),
+		hazmatDeconStore:         hazmatdecon.NewStore(),
 		foundPetReporter:         foundPetReporter,
 		foundPetLifecycle:        foundPetLifecycle,
 		lostPetReporter:          lostPetReporter,
@@ -517,6 +520,8 @@ func (s *Server) routes() {
 	s.registerConfinedSpaceRoutes()
 	// High-Rise, Cliffside, Tree-Canopy & Technical Rope/Arborist Vertical Rescue Cockpit routes (Milestone 15.5)
 	s.registerVerticalRescueRoutes()
+	// Wildfire Smoke, Ashfall, Hazmat Plume & Respiratory Decontamination Triage Cockpit routes (Milestone 16.1)
+	s.registerHazmatDeconRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
