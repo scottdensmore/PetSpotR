@@ -11358,3 +11358,159 @@ textarea:focus-visible,
   font-weight: 700;
   margin: 0.5rem 0;
 }
+
+
+/* ============================================================================
+   Milestone 15.1: Aquatic, Floodwater & Ice-Rescue Swiftwater Canine/Feline
+   Extraction Cockpit
+   WCAG AAA High-Contrast Badges & Cold-Shock Alerts (> 7.1:1 in Dark & Light Modes)
+   ============================================================================ */
+
+.badge-sw-status,
+.badge-sw-stranded,
+.badge-sw-rigged,
+.badge-sw-extracted,
+.badge-hydro-risk,
+.badge-hydro-extreme,
+.badge-hydro-elevated,
+.badge-hydro-safe,
+.badge-sw-metric {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.sw-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.6rem 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .sw-steps-list {
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+.sw-step-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+:root .badge-sw-stranded,
+[data-theme="dark"] .badge-sw-stranded,
+:root .badge-hydro-extreme,
+[data-theme="dark"] .badge-hydro-extreme {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid #f87171;
+}
+
+:root .badge-sw-rigged,
+[data-theme="dark"] .badge-sw-rigged,
+:root .badge-hydro-elevated,
+[data-theme="dark"] .badge-hydro-elevated {
+  background-color: #78350f;
+  color: #fffbeb;
+  border: 1px solid #f59e0b;
+}
+
+:root .badge-sw-extracted,
+[data-theme="dark"] .badge-sw-extracted,
+:root .badge-hydro-safe,
+[data-theme="dark"] .badge-hydro-safe {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+}
+
+:root .badge-sw-metric,
+[data-theme="dark"] .badge-sw-metric {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #94a3b8;
+}
+
+:root .sw-coldshock-alert-banner,
+[data-theme="dark"] .sw-coldshock-alert-banner {
+  background-color: #450a0a;
+  color: #fef2f2;
+  border: 2px solid #f87171;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+:root .sw-clearance-banner,
+[data-theme="dark"] .sw-clearance-banner {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .badge-sw-stranded,
+[data-theme="light"] .badge-hydro-extreme {
+  background-color: #fee2e2;
+  color: #7f1d1d;
+  border: 1px solid #b91c1c;
+}
+
+[data-theme="light"] .badge-sw-rigged,
+[data-theme="light"] .badge-hydro-elevated {
+  background-color: #fef3c7;
+  color: #78350f;
+  border: 1px solid #b45309;
+}
+
+[data-theme="light"] .badge-sw-extracted,
+[data-theme="light"] .badge-hydro-safe {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+}
+
+[data-theme="light"] .badge-sw-metric {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #475569;
+}
+
+[data-theme="light"] .sw-coldshock-alert-banner {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 2px solid #b91c1c;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .sw-clearance-banner {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
