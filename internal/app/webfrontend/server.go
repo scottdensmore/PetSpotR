@@ -35,6 +35,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/ratelimit"
+	"github.com/scottdensmore/petspotr/pkg/reptileectotherm"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/sms"
 	"github.com/scottdensmore/petspotr/pkg/store"
@@ -77,6 +78,7 @@ type Server struct {
 	verticalRescueStore      *verticalrescue.Store
 	avianRecoveryStore       *avianrecovery.Store
 	winterRescueStore        *avalanchewinter.Store
+	ectothermRescueStore     *reptileectotherm.Store
 	usarCollapseStore        *usarcollapse.Store
 	handler                  http.Handler
 }
@@ -242,6 +244,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		verticalRescueStore:      verticalrescue.NewStore(),
 		avianRecoveryStore:       avianrecovery.NewStore(),
 		winterRescueStore:        avalanchewinter.NewStore(),
+		ectothermRescueStore:     reptileectotherm.NewStore(),
 		usarCollapseStore:        usarcollapse.NewStore(),
 	}
 	if s.smsWebhookSecret == "" {
@@ -535,6 +538,8 @@ func (s *Server) routes() {
 	s.registerAvianRecoveryRoutes()
 	// Cold-Weather Avalanche, Deep-Snow Drift & Thermal Hypothermia Rewarming SAR Cockpit routes (Milestone 16.3)
 	s.registerWinterRescueRoutes()
+	// Ectothermic Reptile, Chelonian & Amphibian Thermal-Dormancy Brisk-Basking & Micro-Habitat Recovery Cockpit routes (Milestone 16.4)
+	s.registerEctothermRescueRoutes()
 	// Seismic Rubble, Urban Search & Rescue (USAR) Structural Collapse & Delsar Acoustic Void-Space Extraction Cockpit routes (Milestone 16.5)
 	s.registerUSARCollapseRoutes()
 

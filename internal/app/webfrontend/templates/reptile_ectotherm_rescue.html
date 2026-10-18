@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Ectothermic Reptile, Chelonian &amp; Amphibian Thermal-Dormancy Brisk-Basking &amp; Micro-Habitat Recovery Cockpit.">
+  <title>Ectothermic Reptile, Chelonian &amp; Amphibian Thermal-Dormancy Brisk-Basking &amp; Micro-Habitat Recovery Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/swiftwater-rescue" class="nav-link nav-link-emergency" id="nav-swiftwater-rescue">🌊 Swiftwater &amp; Ice Rescue</a></li>
+          <li><a href="/service-animal" class="nav-link nav-link-emergency" id="nav-service-animal">🦮 Service Animal ADA</a></li>
+          <li><a href="/equine-livestock" class="nav-link nav-link-emergency" id="nav-equine-livestock">🐎 Equine &amp; Livestock</a></li>
+          <li><a href="/confined-space-rescue" class="nav-link nav-link-emergency" id="nav-confined-space-rescue">🕳️ Confined-Space Rescue</a></li>
+          <li><a href="/avalanche-winter-rescue" class="nav-link nav-link-emergency" id="nav-avalanche-winter-rescue">🏔️ Avalanche &amp; Winter SAR</a></li>
+          <li><a href="/reptile-ectotherm-rescue" class="nav-link active nav-link-emergency" id="nav-reptile-ectotherm-rescue">🦎 Reptile &amp; Ectotherm SAR</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="reptile-ectotherm-rescue-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header reptile-ectotherm-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🦎 ECTOTHERMIC REPTILE, CHELONIAN &amp; AMPHIBIAN THERMAL-DORMANCY RECOVERY</span>
+        </div>
+        <h1>Ectothermic Reptile, Chelonian &amp; Amphibian Thermal-Dormancy Brisk-Basking &amp; Micro-Habitat Recovery Cockpit</h1>
+        <p class="text-secondary">
+          5.5mm Articulating Borescope Crevice Sweeps, Cold-Stun Torpor &amp; Brumation Triage, Thermostat-Regulated Ceramic Infrared Basking Lures, Sphagnum Humidity Hides &amp; Gradual Coelomic Thermal-Gradient Rewarming.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid reptile-ectotherm-kpi-grid" aria-label="Reptile &amp; Ectotherm Rescue Operations Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Ectotherm SAR Operations</span>
+        <strong class="kpi-value" id="stat-total-ectotherm-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Cold-Torpor / Desiccation Alerts</span>
+        <strong class="kpi-value" id="stat-critical-torpor-alerts">{{ .CriticalTorporAlerts }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Staged Ceramic IR Basking Lures</span>
+        <strong class="kpi-value" id="stat-staged-basking-lures">{{ .StagedBaskingLures }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Recovered Thermal-Gradient Safe</span>
+        <strong class="kpi-value" id="stat-thermal-safe-count">{{ .ThermalSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="reptile-ectotherm-live-status" class="humane-traps-live-status reptile-ectotherm-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} ectothermic reptile, chelonian &amp; amphibian thermal-dormancy recovery operations.
+    </div>
+
+    <div class="trust-cockpit-grid reptile-ectotherm-cockpit-grid">
+      <!-- Section 1: Evaluate Ectotherm Rescue Operation Form + Scenario Simulators -->
+      <section class="glass-card trust-panel" id="re-evaluate-panel" aria-labelledby="heading-evaluate-re-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-re-op">Evaluate Ectotherm Thermal-Dormancy, Basking Lure &amp; Coelomic Rewarming</h2>
+          <span class="badge badge-re-taxon">5.5mm Borescope + Ceramic IR Basking Lure</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Chelonian Burrow, Constrictor Wall-Void &amp; Arboreal Crevice Scenario Simulators</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary re-scenario-btn" data-scenario="sulcata-cold-burrow" id="btn-sim-sulcata-cold-burrow">
+              🐢 Simulate Sulcata Tortoise Cold-Stun Foundation Burrow Collapse (10.8°C Substrate · 115cm Depth · 26% RH)
+            </button>
+            <button type="button" class="btn btn-secondary re-scenario-btn" data-scenario="python-appliance-void" id="btn-sim-python-appliance-void">
+              🐍 Simulate Ball Python Hydronic Appliance Wall-Void Entrapment (31°C Ceramic IR Hide + Rodent Lure)
+            </button>
+            <button type="button" class="btn btn-secondary re-scenario-btn" data-scenario="dragon-sunroom-crevice" id="btn-sim-dragon-sunroom-crevice">
+              🦎 Simulate Bearded Dragon Sunroom Rafter Crevice Dormancy (UV-B Basking Perch + Acoustic Feeder Lure)
+            </button>
+          </div>
+        </div>
+
+        <form id="form-evaluate-re-op" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="re-pet-id">Ectotherm Pet ID</label>
+              <input type="text" id="re-pet-id" name="petId" class="form-control" value="PET-RE-204" required>
+            </div>
+            <div class="form-group">
+              <label for="re-pet-name">Pet Name</label>
+              <input type="text" id="re-pet-name" name="petName" class="form-control" value="Goliath" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="re-species">Species / Class</label>
+              <select id="re-species" name="species" class="form-control" required>
+                <option value="Reptile" selected>Reptile</option>
+                <option value="Chelonian">Chelonian</option>
+                <option value="Amphibian">Amphibian</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="re-weight-kg">Estimated Body Mass (kg)</label>
+              <input type="number" id="re-weight-kg" name="weightKg" class="form-control" min="0.05" max="150" step="0.05" value="22.0" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="re-taxon-type">Ectotherm Taxon &amp; Micro-Habitat Profile</label>
+              <select id="re-taxon-type" name="taxonType" class="form-control" required>
+                <option value="CHELONIAN_TORTOISE_BURROW" selected>CHELONIAN_TORTOISE_BURROW (Sulcata / Russian Tortoise Subterranean Burrow)</option>
+                <option value="BOID_PYTHON_CONSTRICTOR">BOID_PYTHON_CONSTRICTOR (Ball Python / Boa Warm Appliance &amp; Wall Void)</option>
+                <option value="AGAMID_IGUANID_ARBOREAL">AGAMID_IGUANID_ARBOREAL (Bearded Dragon / Iguana Rafter &amp; Canopy Crevice)</option>
+                <option value="COLUBRID_CORN_KING_SNAKE">COLUBRID_CORN_KING_SNAKE (Corn / King Snake Baseboard &amp; Duct Conduit)</option>
+                <option value="AMPHIBIAN_SALAMANDER_AXOLOTL">AMPHIBIAN_SALAMANDER_AXOLOTL (Tiger Salamander / Axolotl Damp Drain Refuge)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="re-burrow-depth">Burrow / Crevice Depth (cm)</label>
+              <input type="number" id="re-burrow-depth" name="burrowDepthCm" class="form-control" min="0" max="500" step="5" value="115" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="re-substrate-temp">Ambient Substrate Temperature (°C)</label>
+              <input type="number" id="re-substrate-temp" name="substrateTempCelsius" class="form-control" min="-10" max="45" step="0.1" value="10.8" required>
+            </div>
+            <div class="form-group">
+              <label for="re-optimum-temp">Preferred Optimum Temperature POTZ (°C)</label>
+              <input type="number" id="re-optimum-temp" name="preferredOptimumTempC" class="form-control" min="15" max="42" step="0.5" value="31.5" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="re-humidity-pct">Micro-Habitat Relative Humidity (%)</label>
+              <input type="number" id="re-humidity-pct" name="relativeHumidityPct" class="form-control" min="5" max="100" step="1" value="26" required>
+            </div>
+            <div class="form-group">
+              <label for="re-hours-dormant">Elapsed Cold-Dormancy Duration (hrs)</label>
+              <input type="number" id="re-hours-dormant" name="hoursDormant" class="form-control" min="0" max="720" step="1" value="52" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="re-habitat-grid">Micro-Habitat / Structural Sector Grid</label>
+              <input type="text" id="re-habitat-grid" name="microHabitatGrid" class="form-control" value="BURROW-SOUTH-03A (Collapsed Foundation Crawlspace Embankment)" required>
+            </div>
+            <div class="form-group">
+              <label for="re-herp-callsign">Lead Herpetological Tech Callsign</label>
+              <input type="text" id="re-herp-callsign" name="leadHerpTechCallsign" class="form-control" value="HERP-TECH-01 (Dr. Alvarez)" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="re-notes">Borescope Sweep &amp; Coelomic Thermal Field Notes</label>
+            <input type="text" id="re-notes" name="notes" class="form-control" value="5.5mm borescope confirmed tortoise carapace at 1.15m depth; staging 150W ceramic IR portal lamp.">
+          </div>
+
+          <button type="submit" id="btn-evaluate-re-op" class="btn btn-primary">Evaluate Ectotherm Rescue Operation</button>
+        </form>
+      </section>
+
+      <!-- Section 2: Active Ectotherm SAR Operations Grid -->
+      <section class="glass-card trust-panel" id="re-ops-panel" aria-labelledby="heading-re-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-re-ops">Active Reptile, Chelonian &amp; Amphibian Thermal-Dormancy Operations</h2>
+          <span id="re-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="re-ops-list" class="trust-screenings-list re-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card re-op-card" data-operation-id="{{ $op.OperationID }}" data-op-id="{{ $op.OperationID }}" data-status="{{ $op.Status }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.2f" $op.WeightKg }} kg · {{ $op.MicroHabitatGrid }})</strong>
+                <code class="trust-pet-id">{{ $op.OperationID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-re-taxon">{{ $op.TaxonType }}</span>
+                <span class="badge badge-re-status {{ if eq (printf "%s" $op.Status) "COLD_TORPOR_BRUMATION_CRITICAL" }}badge-re-critical{{ else if eq (printf "%s" $op.Status) "BASKING_LURE_CREVICE_STAGED" }}badge-re-staged{{ else if eq (printf "%s" $op.Status) "RECOVERED_THERMAL_GRADIENT_SAFE" }}badge-re-safe{{ else }}badge-re-critical{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row re-metrics-row">
+              <span class="badge badge-re-taxon">Hazard Score: {{ $op.HazardScore }}/100 • Thermal Readiness: {{ $op.ThermalReadinessScore }}% • Substrate: {{ printf "%.1f" $op.SubstrateTempCelsius }}°C (POTZ {{ printf "%.1f" $op.PreferredOptimumTempC }}°C) • Humidity: {{ printf "%.0f" $op.RelativeHumidityPct }}% RH • Dormant: {{ printf "%.0f" $op.HoursDormant }}h • Depth: {{ printf "%.0f" $op.BurrowDepthCm }}cm</span>
+            </div>
+
+            <div class="re-flags-row">
+              {{ range $flag := $op.RiskFlags }}
+              <span class="badge badge-re-flag">{{ $flag }}</span>
+              {{ end }}
+            </div>
+
+            {{ if or $op.CriticalTorporAlert $op.DesiccationDysecdysisAlert }}
+            <div class="re-torpor-alert-banner">
+              ⚠️ ECTOTHERMIC COLD-STUN TORPOR &amp; DESICCATION ALERT: Substrate {{ printf "%.1f" $op.SubstrateTempCelsius }}°C vs POTZ {{ printf "%.1f" $op.PreferredOptimumTempC }}°C · Humidity {{ printf "%.0f" $op.RelativeHumidityPct }}% RH ({{ printf "%.0f" $op.HoursDormant }}h dormant) — Stage 100W ceramic IR basking lure, sphagnum humidity hide &amp; gradual coelomic rewarming (≤2°C/hr).
+            </div>
+            {{ end }}
+
+            {{ if $op.ClearanceCertificateHash }}
+            <div class="re-clearance-banner">
+              ✅ ECTOTHERM THERMAL-GRADIENT RECOVERY CLEARANCE VERIFIED: {{ $op.ClearanceCertificateHash }} ({{ $op.LeadHerpTechCallsign }})
+            </div>
+            {{ end }}
+
+            <div class="re-gear-recommendations">
+              <div><strong>Recommended Thermal Basking Lure:</strong> {{ $op.RecommendedThermalLure }}</div>
+              <div><strong>Coelomic Containment &amp; Hydration:</strong> {{ $op.RecommendedContainment }}</div>
+            </div>
+
+            <div class="re-steps-list" aria-label="Borescope Crevice Sweep, Ceramic IR Basking Lure &amp; Gradual Coelomic Rewarming Protocol">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="re-step-item">
+                <input
+                  type="checkbox"
+                  class="re-step-checkbox"
+                  data-op-id="{{ $op.OperationID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "RECOVERED_THERMAL_GRADIENT_SAFE" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-re-safe{{ else }}badge-re-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="re-step-category">[{{ $step.Category }}]</strong>
+                <span class="re-step-label">{{ $step.Label }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              {{ if ne (printf "%s" $op.Status) "RECOVERED_THERMAL_GRADIENT_SAFE" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary re-issue-clearance-btn"
+                data-op-id="{{ $op.OperationID }}"
+              >
+                🛡️ Issue Ectotherm Thermal-Gradient Recovery Clearance Certificate
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="re-ops-empty-msg">No ectotherm rescue operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/reptile-ectotherm-rescue.js" defer></script>
+</body>
+</html>
