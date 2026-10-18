@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Incident Command (ICS-211 / ICS-204) Volunteer Shift Roster, Cryptographic Role Credentialing, Responder Fatigue Guardrail Monitor, and SAR Gamification Cockpit.">
+  <title>Incident Command (ICS) Shift Roster, Volunteer Credentialing &amp; SAR Gamification Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link active nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container page-main" id="ics-command-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header ics-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🎖️ NIMS / FEMA ICS-211 &amp; ICS-204 INCIDENT COMMAND</span>
+        </div>
+        <h1>Incident Command (ICS) Shift Roster, Volunteer Credentialing &amp; SAR Gamification Cockpit</h1>
+        <p class="text-secondary">
+          Cryptographic HMAC-SHA256 Role Credentialing (<code>UAV_PART107_PILOT</code>, <code>K9_HANDLER</code>, <code>VET_MEDIC</code>, <code>ICS_COMMANDER</code>), ICS-211 Role-Gated Shift Check-In, 6h/8h Responder Fatigue Safety Guardrails, and SAR Merit Badge Progression.
+        </p>
+      </div>
+      <div class="ics-header-actions">
+        <a id="btn-export-ics204-csv" href="/api/v1/ics/shifts?format=csv" class="btn btn-secondary" download="ics-204-shift-roster.csv">📥 Export ICS-204 Roster CSV</a>
+      </div>
+    </div>
+
+    <div class="ics-cockpit-grid">
+      <!-- Section 1: SAR Responder Registry, Cryptographic Credentials & Gamification Leaderboard -->
+      <section class="glass-card ics-panel" id="volunteers-leaderboard-panel" aria-labelledby="heading-volunteers-leaderboard">
+        <div class="ics-panel-header">
+          <h2 id="heading-volunteers-leaderboard">SAR Responder Registry, Credentials &amp; Gamification Leaderboard</h2>
+          <span id="volunteers-count-badge" class="badge badge-secondary">{{ len .Volunteers }} Responders</span>
+        </div>
+
+        <div id="volunteers-leaderboard" class="volunteers-leaderboard" role="list">
+          {{ range .Volunteers }}
+          <article class="volunteer-card" data-volunteer-id="{{ .VolunteerID }}" role="listitem">
+            <div class="volunteer-card-header">
+              <div class="volunteer-identity">
+                <strong class="volunteer-name">{{ .Name }}</strong>
+                <span class="badge badge-callsign">{{ .Callsign }}</span>
+              </div>
+              <div class="volunteer-rank-group">
+                <span class="badge badge-sar-rank">{{ .RankTitle }}</span>
+                <span class="badge badge-xp-total">{{ .TotalXP }} XP</span>
+              </div>
+            </div>
+
+            <div class="volunteer-credentials-list">
+              {{ range .Credentials }}
+              <span class="badge badge-sar-credential" data-role="{{ .Role }}" title="HMAC-SHA256: {{ .SignatureHex }}">🔐 {{ .Role }} ({{ .LicenseNumber }})</span>
+              {{ else }}
+              <span class="ics-empty-inline">No cryptographic credentials issued</span>
+              {{ end }}
+            </div>
+
+            <div class="volunteer-badges-list">
+              {{ range .EarnedBadges }}
+              <span class="badge badge-sar-merit" data-badge="{{ . }}">🏅 {{ . }}</span>
+              {{ else }}
+              <span class="ics-empty-inline">No merit badges earned yet</span>
+              {{ end }}
+            </div>
+
+            <div class="volunteer-stats-row">
+              <span>📋 {{ .CompletedShifts }} Shifts</span>
+              <span>🥾 {{ printf "%.1f" .TotalDistanceKm }} km</span>
+              <span>⏱️ {{ printf "%.1f" .TotalHoursLogged }}h</span>
+              <span>🔭 {{ .VerifiedSightings }} Sightings</span>
+              <span>🐾 {{ .ReunionsAssisted }} Reunions</span>
+            </div>
+          </article>
+          {{ else }}
+          <p class="ics-empty-hint" id="volunteers-empty-msg">No SAR responders registered yet.</p>
+          {{ end }}
+        </div>
+
+        <!-- Subsection 1A: Register New SAR Volunteer Form -->
+        <div class="ics-subsection">
+          <h3>Register New SAR Responder</h3>
+          <form id="form-register-volunteer" class="ics-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="vol-name">Responder Full Name</label>
+                <input type="text" id="vol-name" class="form-control" required placeholder="e.g. Jordan Vance">
+              </div>
+              <div class="form-group">
+                <label for="vol-callsign">Radio Callsign</label>
+                <input type="text" id="vol-callsign" class="form-control" required placeholder="e.g. EAGLE-7">
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="vol-primary-role">Primary SAR Role</label>
+                <select id="vol-primary-role" class="form-control">
+                  <option value="FIELD_SEARCHER">FIELD_SEARCHER — Ground Grid Searcher</option>
+                  <option value="K9_HANDLER">K9_HANDLER — NASAR Canine Handler</option>
+                  <option value="UAV_PART107_PILOT">UAV_PART107_PILOT — FAA Part 107 Thermal Drone Pilot</option>
+                  <option value="VET_MEDIC">VET_MEDIC — Licensed Veterinary Field Medic</option>
+                  <option value="ICS_COMMANDER">ICS_COMMANDER — Incident Command Officer</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="vol-license">Initial License / Badge ID (Optional)</label>
+                <input type="text" id="vol-license" class="form-control" placeholder="e.g. SAR-101">
+              </div>
+            </div>
+            <button type="submit" id="btn-register-volunteer" class="btn btn-primary">Register SAR Responder</button>
+          </form>
+        </div>
+
+        <!-- Subsection 1B: Issue Cryptographic Role Credential Form -->
+        <div class="ics-subsection">
+          <h3>Issue Signed HMAC-SHA256 Role Credential</h3>
+          <form id="form-issue-credential" class="ics-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="cred-volunteer-select">Target SAR Responder</label>
+                <select id="cred-volunteer-select" class="form-control" required>
+                  {{ range .Volunteers }}
+                  <option value="{{ .VolunteerID }}">{{ .Name }} ({{ .Callsign }})</option>
+                  {{ end }}
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="cred-role-select">Specialist Role Credential</label>
+                <select id="cred-role-select" class="form-control" required>
+                  <option value="UAV_PART107_PILOT">UAV_PART107_PILOT</option>
+                  <option value="K9_HANDLER">K9_HANDLER</option>
+                  <option value="VET_MEDIC">VET_MEDIC</option>
+                  <option value="ICS_COMMANDER">ICS_COMMANDER</option>
+                  <option value="FIELD_SEARCHER">FIELD_SEARCHER</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="cred-issued-by">Issuing Authority</label>
+                <input type="text" id="cred-issued-by" class="form-control" value="FEMA / FAA / NASAR Command" required>
+              </div>
+              <div class="form-group">
+                <label for="cred-license-number">Official License / Certificate Number</label>
+                <input type="text" id="cred-license-number" class="form-control" placeholder="e.g. FAA-107-994812" required>
+              </div>
+            </div>
+            <button type="submit" id="btn-issue-credential" class="btn btn-secondary">🔐 Sign &amp; Issue Role Credential</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column Stack: Section 2 (ICS-211 Check-In) + Section 3 (Active ICS-204 Roster & Fatigue Monitor) -->
+      <div class="ics-column-stack">
+        <!-- Section 2: ICS-211 Shift Check-In & Sector Assignment -->
+        <section class="glass-card ics-panel" id="ics-checkin-panel" aria-labelledby="heading-ics-checkin">
+          <div class="ics-panel-header">
+            <h2 id="heading-ics-checkin">ICS-211 Shift Check-In &amp; Sector Assignment</h2>
+            <span class="badge badge-sar-credential">Role-Gated Check-In</span>
+          </div>
+
+          <div id="role-gate-error-alert" class="ics-role-gate-alert" role="alert" hidden></div>
+
+          <form id="form-checkin-shift" class="ics-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="shift-incident-id">Incident Number (ICS-201)</label>
+                <input type="text" id="shift-incident-id" class="form-control" value="INC-2026-WILDFIRE-01" required>
+              </div>
+              <div class="form-group">
+                <label for="shift-sector-id">Assigned Search Sector (ICS-204)</label>
+                <input type="text" id="shift-sector-id" class="form-control" value="SECTOR-ALPHA-04" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="shift-volunteer-select">SAR Responder</label>
+                <select id="shift-volunteer-select" class="form-control" required>
+                  {{ range .Volunteers }}
+                  <option value="{{ .VolunteerID }}">{{ .Name }} ({{ .Callsign }})</option>
+                  {{ end }}
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="shift-assigned-role">Assigned Tactical Role</label>
+                <select id="shift-assigned-role" class="form-control" required>
+                  <option value="FIELD_SEARCHER">FIELD_SEARCHER</option>
+                  <option value="UAV_PART107_PILOT">UAV_PART107_PILOT</option>
+                  <option value="K9_HANDLER">K9_HANDLER</option>
+                  <option value="VET_MEDIC">VET_MEDIC</option>
+                  <option value="ICS_COMMANDER">ICS_COMMANDER</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" id="btn-checkin-shift" class="btn btn-primary">📋 Check In to ICS-211 Shift</button>
+          </form>
+        </section>
+
+        <!-- Section 3: Active ICS-204 Shift Roster & Responder Fatigue Safety Monitor -->
+        <section class="glass-card ics-panel" id="ics-roster-panel" aria-labelledby="heading-ics-roster">
+          <div class="ics-panel-header">
+            <h2 id="heading-ics-roster">Active ICS-204 Shift Roster &amp; Responder Fatigue Safety Monitor</h2>
+            <span id="shifts-count-badge" class="badge badge-secondary">{{ len .Shifts }} Shifts</span>
+          </div>
+
+          <div id="ics-shifts-list" class="ics-shifts-list" role="list">
+            {{ range .Shifts }}
+            <article class="ics-shift-card" data-shift-id="{{ .ShiftID }}" data-fatigue-level="{{ .FatigueLevel }}" data-shift-status="{{ .Status }}" role="listitem">
+              <div class="shift-card-header">
+                <div class="shift-responder-info">
+                  <strong class="shift-volunteer-name">{{ .VolunteerName }}</strong>
+                  <span class="badge badge-callsign">{{ .Callsign }}</span>
+                  <span class="badge badge-assigned-role badge-sar-credential">{{ .AssignedRole }}</span>
+                </div>
+                <div class="shift-status-badges">
+                  <span class="badge badge-shift-status">{{ .Status }}</span>
+                  <span class="badge badge-fatigue-level {{ if eq (printf "%s" .FatigueLevel) "MANDATORY_REST" }}badge-fatigue-rest{{ else if eq (printf "%s" .FatigueLevel) "FATIGUE_WARNING" }}badge-fatigue-warning{{ else }}badge-fatigue-normal{{ end }}">{{ .FatigueLevel }}</span>
+                </div>
+              </div>
+
+              <div class="shift-card-meta">
+                <span>📍 Sector: <strong>{{ .AssignedSectorID }}</strong></span>
+                <span>🚨 Incident: <code>{{ .IncidentID }}</code></span>
+                <span class="shift-hours">{{ printf "%.1f" .ActiveHours }}h active</span>
+                <span class="shift-distance">{{ printf "%.1f" .DistanceCoveredKm }} km covered</span>
+              </div>
+
+              <p class="shift-fatigue-notes">{{ .FatigueNotes }}</p>
+
+              {{ if ne (printf "%s" .Status) "CHECKED_OUT" }}
+              <div class="shift-card-actions">
+                <button type="button" class="btn btn-sm btn-secondary btn-sim-fatigue-warn" data-shift-id="{{ .ShiftID }}">⚠️ Simulate 6.5h Patrol (Fatigue Warning)</button>
+                <button type="button" class="btn btn-sm btn-secondary btn-sim-mandatory-rest" data-shift-id="{{ .ShiftID }}">🛑 Simulate 8.5h / 52km Patrol (Mandatory Rest)</button>
+                <button type="button" class="btn btn-sm btn-primary btn-checkout-shift" data-shift-id="{{ .ShiftID }}">✅ Check Out &amp; Award XP</button>
+              </div>
+              {{ end }}
+            </article>
+            {{ else }}
+            <p class="ics-empty-hint" id="shifts-empty-msg">No active ICS-211 shifts checked in yet.</p>
+            {{ end }}
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+  <div id="ics-aria-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="/static/js/ics-command.js" defer></script>
+</body>
+</html>

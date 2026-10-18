@@ -79,6 +79,11 @@ const (
 	CollectionClinicalHandoffs  = "clinical_handoffs"
 )
 
+const (
+	CollectionVolunteerProfiles = "volunteer_profiles"
+	CollectionICSShiftEntries   = "ics_shift_entries"
+)
+
 // Sentinel errors for StateStore operations.
 var (
 	ErrStoreNotFound = errors.New("store: state store not found")
