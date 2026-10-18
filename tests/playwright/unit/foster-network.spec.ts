@@ -34,6 +34,7 @@ function contrastRatio(fgStr: string, bgStr: string): number {
 }
 
 test.describe('Emergency Foster Network Capacity & Quarantine Biosecurity Cockpit UI (/foster-network)', () => {
+  test.describe.configure({ mode: 'serial' });
   test('1. /foster-network renders seeded placements (foster-match-101, foster-match-102, foster-match-103), biosecurity checklist items, and quarantine alert banner with zero CSP errors', async ({ page }) => {
     const cspErrors: string[] = [];
     page.on('console', (msg) => {

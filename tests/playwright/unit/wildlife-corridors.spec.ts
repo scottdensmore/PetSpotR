@@ -34,6 +34,7 @@ function contrastRatio(fgStr: string, bgStr: string): number {
 }
 
 test.describe('Predator & Wildlife Conflict Corridor Alerting Cockpit UI (/wildlife-corridors)', () => {
+  test.describe.configure({ mode: 'serial' });
   test('1. /wildlife-corridors renders seeded reports (corridor-rep-101, corridor-rep-102, corridor-rep-103), mitigation steps, small prey alert banner, and clearance certificate with zero CSP errors', async ({ page }) => {
     const cspErrors: string[] = [];
     page.on('console', (msg) => {
