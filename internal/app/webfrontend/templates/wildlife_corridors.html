@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Predator &amp; Wildlife Conflict Corridor Alerting, Nocturnal Vulnerability Index &amp; Coyote/Raptor Sighting Correlation Cockpit.">
+  <title>Predator &amp; Wildlife Conflict Corridor Alerting Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/microchip-federation" class="nav-link nav-link-emergency" id="nav-microchip-federation">📡 Microchip Federation</a></li>
+          <li><a href="/reunion-decompression" class="nav-link nav-link-emergency" id="nav-reunion-decompression">🧘 Reunion Decompression</a></li>
+          <li><a href="/wildlife-corridors" class="nav-link active nav-link-emergency" id="nav-wildlife-corridors">🐺 Wildlife Corridors</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="wildlife-corridors-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header wildlife-corridors-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🐺 PREDATOR CONFLICT CORRIDOR ALERTING, NOCTURNAL VULNERABILITY INDEX &amp; COYOTE/RAPTOR CORRELATION</span>
+        </div>
+        <h1>Predator &amp; Wildlife Conflict Corridor Alerting Cockpit</h1>
+        <p class="text-secondary">
+          Nocturnal &amp; Crepuscular Vulnerability Index Scoring, Small Prey Weight &amp; Raptor Alerting, Ultrasonic/Amber Strobe Hazing Deployment &amp; Safe-Haven Corridor Clearance.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid wildlife-corridors-kpi-grid" aria-label="Wildlife Corridor Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Active &amp; Cleared Corridor Reports</span>
+        <strong class="kpi-value" id="kpi-corridor-total">{{ len .Reports }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Extreme Nocturnal Predation Risks</span>
+        <strong class="kpi-value" id="kpi-corridor-extreme">1</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Small Prey Vulnerability Alerts</span>
+        <strong class="kpi-value" id="kpi-corridor-small-prey">2</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Cleared Safe-Haven Corridors</span>
+        <strong class="kpi-value" id="kpi-corridor-cleared">1</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="wildlife-corridors-live-status" class="humane-traps-live-status wildlife-corridors-live-status" role="status" aria-live="polite">
+      Monitoring {{ len .Reports }} predator &amp; wildlife conflict corridor reports.
+    </div>
+
+    <div class="trust-cockpit-grid wildlife-corridors-cockpit-grid">
+      <!-- Section 1: Create Wildlife Corridor Report Form + Scenario Simulators -->
+      <section class="glass-card trust-panel" id="corridor-create-panel" aria-labelledby="heading-create-corridor-report">
+        <div class="trust-panel-header">
+          <h2 id="heading-create-corridor-report">Evaluate Predator &amp; Wildlife Conflict Corridor</h2>
+          <span class="badge badge-corridor-metric">Nocturnal Vulnerability + Strobe Hazing</span>
+        </div>
+
+        <form id="form-create-corridor-report" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="corridor-pet-id">Missing Pet ID</label>
+              <input type="text" id="corridor-pet-id" class="form-control" value="pet-2026-002" required>
+            </div>
+            <div class="form-group">
+              <label for="corridor-pet-name">Missing Pet Name</label>
+              <input type="text" id="corridor-pet-name" class="form-control" value="Mochi" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="corridor-pet-species">Pet Species</label>
+              <select id="corridor-pet-species" class="form-control" required>
+                <option value="CAT" selected>CAT</option>
+                <option value="DOG">DOG</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="corridor-pet-weight">Pet Weight (kg)</label>
+              <input type="number" id="corridor-pet-weight" class="form-control" min="0.5" max="90" step="0.1" value="4.2" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="corridor-predator-species">Sighted Predator Species</label>
+              <select id="corridor-predator-species" class="form-control" required>
+                <option value="COYOTE_PACK" selected>COYOTE_PACK (Urban/Suburban Coyote Pack)</option>
+                <option value="GREAT_HORNED_OWL">GREAT_HORNED_OWL (Apex Nocturnal Raptor)</option>
+                <option value="BOBCAT">BOBCAT (Crepuscular Brush Stalker)</option>
+                <option value="COUGAR_PUMA">COUGAR_PUMA (Foothill Mountain Lion)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="corridor-pack-count">Predator Pack / Individual Count</label>
+              <input type="number" id="corridor-pack-count" class="form-control" min="1" max="20" step="1" value="3" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="corridor-solar-phase">Solar &amp; Foraging Phase</label>
+              <select id="corridor-solar-phase" class="form-control" required>
+                <option value="NIGHT" selected>NIGHT (Nocturnal Peak Hunting Window)</option>
+                <option value="DAWN_DUSK_CREPUSCULAR">DAWN_DUSK_CREPUSCULAR (Dusk/Dawn Corridor Transit)</option>
+                <option value="DAYLIGHT">DAYLIGHT (Diurnal Low Activity)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="corridor-terrain">Corridor Terrain Classification</label>
+              <select id="corridor-terrain" class="form-control" required>
+                <option value="URBAN_RAVINE_GREENBELT" selected>URBAN_RAVINE_GREENBELT</option>
+                <option value="BRUSH_CANYON_INTERFACE">BRUSH_CANYON_INTERFACE</option>
+                <option value="SUBURBAN_CUL_DE_SAC">SUBURBAN_CUL_DE_SAC</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="corridor-distance">Predator Proximity to Last Sighting (m)</label>
+              <input type="number" id="corridor-distance" class="form-control" min="0" max="5000" step="5" value="85" required>
+            </div>
+            <div class="form-group"></div>
+          </div>
+
+          <div class="form-row-2col decomp-checkbox-row">
+            <div class="form-group">
+              <label class="checkbox-label" for="corridor-strobe-active">
+                <input type="checkbox" id="corridor-strobe-active">
+                <span>Ultrasonic &amp; Amber Strobe Deterrents Active</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="checkbox-label" for="corridor-attractants-cleared">
+                <input type="checkbox" id="corridor-attractants-cleared">
+                <span>Outdoor Food &amp; Compost Attractants Cleared</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-create-corridor-report" class="btn btn-primary">Evaluate Wildlife Corridor Risk</button>
+        </form>
+
+        <div class="trust-subsection">
+          <h3>Predator Sighting Correlation Simulators</h3>
+          <div class="trust-sim-actions">
+            <button type="button" id="btn-sim-coyote-ravine" class="btn btn-secondary">🐺 Simulate Nocturnal Coyote Pack in Urban Ravine (4.0kg Cat)</button>
+            <button type="button" id="btn-sim-raptor-ridge" class="btn btn-secondary">🦉 Simulate Crepuscular Great Horned Owl on Canyon Ridge (3.2kg Toy Dog)</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Wildlife Corridor Reports Grid -->
+      <section class="glass-card trust-panel" id="corridor-reports-panel" aria-labelledby="heading-corridor-reports">
+        <div class="trust-panel-header">
+          <h2 id="heading-corridor-reports">Active Predator &amp; Wildlife Conflict Corridor Reports</h2>
+          <span id="corridor-reports-count-badge" class="badge badge-secondary">{{ len .Reports }} Reports</span>
+        </div>
+
+        <div id="corridor-reports-list" class="trust-screenings-list corridor-reports-list" role="list">
+          {{ range .Reports }}
+          <article class="trust-screening-card corridor-report-card" data-report-id="{{ .ReportID }}" data-report-phase="{{ .Phase }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ .PetName }} ({{ .PetSpecies }} · {{ printf "%.1f" .PetWeightKg }}kg · {{ .PredatorSpecies }} ×{{ .PackCount }} @ {{ printf "%.0f" .DistanceMeters }}m)</strong>
+                <code class="trust-pet-id">{{ .ReportID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-corridor-phase {{ if eq (printf "%s" .Phase) "ACTIVE_PREDATOR_WATCH" }}badge-corridor-watch{{ else if eq (printf "%s" .Phase) "HAZING_DETERRENT_DEPLOYED" }}badge-corridor-hazing{{ else if eq (printf "%s" .Phase) "CORRIDOR_CLEARED" }}badge-corridor-cleared{{ else }}badge-corridor-watch{{ end }}">{{ .Phase }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row">
+              <span class="badge badge-predator-threat {{ if eq (printf "%s" .ThreatLevel) "EXTREME_NOCTURNAL_PREDATION_RISK" }}badge-threat-extreme{{ else if eq (printf "%s" .ThreatLevel) "ELEVATED_CREPUSCULAR_CORRIDOR" }}badge-threat-elevated{{ else }}badge-threat-safe{{ end }}">{{ .ThreatLevel }}</span>
+              <span class="badge badge-corridor-metric">Vulnerability Index: {{ .VulnerabilityIndex }}/100 • Deterrent Readiness: {{ .DeterrentReadinessScore }}/100</span>
+            </div>
+
+            {{ if .SmallPreyAlert }}
+            <div class="corridor-small-prey-banner">
+              ⚠️ SMALL PREY VULNERABILITY ALERT: {{ .PetName }} ({{ printf "%.1f" .PetWeightKg }}kg {{ .PetSpecies }}) vs {{ .PredatorSpecies }} in {{ .CorridorTerrain }} ({{ .SolarPhase }}) — Enforce immediate indoor/garage safe-haven shelter.
+            </div>
+            {{ end }}
+
+            {{ if .ClearanceCertificate }}
+            <div class="corridor-clearance-banner">
+              🛡️ CORRIDOR SAFE-HAVEN VERIFIED: {{ .ClearanceCertificate }}
+            </div>
+            {{ end }}
+
+            <div class="corridor-mitigation-list" aria-label="Predator Hazing &amp; Corridor Mitigation Steps">
+              {{ range .MitigationSteps }}
+              <div class="corridor-mitigation-item">
+                <span class="badge {{ if .Completed }}badge-hop-match{{ else }}badge-hop-miss{{ end }}">{{ if .Completed }}DONE{{ else }}PENDING{{ end }}</span>
+                <strong class="corridor-item-category">[{{ .Category }}]</strong>
+                <span class="corridor-item-title">{{ .Title }}</span>
+              </div>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              {{ if ne (printf "%s" .Phase) "CORRIDOR_CLEARED" }}
+              <button type="button" class="btn btn-sm btn-secondary btn-deploy-deterrents" data-report-id="{{ .ReportID }}">🔦 Deploy Strobe Hazing &amp; Lock Attractants</button>
+              <button type="button" class="btn btn-sm btn-primary btn-clear-corridor" data-report-id="{{ .ReportID }}">🛡️ Complete All Mitigations &amp; Issue Corridor Clearance</button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="corridor-reports-empty-msg">No wildlife corridor reports recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/wildlife-corridors.js" defer></script>
+</body>
+</html>

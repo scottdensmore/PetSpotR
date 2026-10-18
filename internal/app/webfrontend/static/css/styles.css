@@ -10909,3 +10909,160 @@ textarea:focus-visible,
   margin: 0.5rem 0;
 }
 
+/* ============================================================================
+   Milestone 14.1: Predator & Wildlife Conflict Corridor Alerting, Nocturnal
+   Vulnerability Index & Coyote/Raptor Sighting Correlation Cockpit
+   WCAG AAA High-Contrast Badges & Small Prey Alerts (> 7.1:1 in Dark & Light Modes)
+   ============================================================================ */
+
+.badge-corridor-phase,
+.badge-corridor-watch,
+.badge-corridor-hazing,
+.badge-corridor-cleared,
+.badge-predator-threat,
+.badge-threat-extreme,
+.badge-threat-elevated,
+.badge-threat-safe,
+.badge-corridor-metric {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.corridor-mitigation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.6rem 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .corridor-mitigation-list {
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+.corridor-mitigation-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+/* Dark Theme (:root and [data-theme="dark"]) — WCAG AAA (> 7.1:1) */
+:root .badge-corridor-watch,
+[data-theme="dark"] .badge-corridor-watch,
+:root .badge-threat-extreme,
+[data-theme="dark"] .badge-threat-extreme {
+  background-color: #7f1d1d;
+  color: #ffffff;
+  border: 1px solid #f87171;
+}
+
+:root .badge-corridor-hazing,
+[data-theme="dark"] .badge-corridor-hazing,
+:root .badge-threat-elevated,
+[data-theme="dark"] .badge-threat-elevated {
+  background-color: #78350f;
+  color: #ffffff;
+  border: 1px solid #f59e0b;
+}
+
+:root .badge-corridor-cleared,
+[data-theme="dark"] .badge-corridor-cleared,
+:root .badge-threat-safe,
+[data-theme="dark"] .badge-threat-safe {
+  background-color: #064e3b;
+  color: #ffffff;
+  border: 1px solid #10b981;
+}
+
+:root .badge-corridor-metric,
+[data-theme="dark"] .badge-corridor-metric {
+  background-color: #1e3a8a;
+  color: #ffffff;
+  border: 1px solid #60a5fa;
+}
+
+:root .corridor-small-prey-banner,
+[data-theme="dark"] .corridor-small-prey-banner {
+  background-color: #4c1d95;
+  color: #ffffff;
+  border: 2px solid #c084fc;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+:root .corridor-clearance-banner,
+[data-theme="dark"] .corridor-clearance-banner {
+  background-color: #064e3b;
+  color: #ffffff;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+/* Light Theme ([data-theme="light"]) — WCAG AAA (> 7.1:1) */
+[data-theme="light"] .badge-corridor-watch,
+[data-theme="light"] .badge-threat-extreme {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 1px solid #b91c1c;
+}
+
+[data-theme="light"] .badge-corridor-hazing,
+[data-theme="light"] .badge-threat-elevated {
+  background-color: #fffbeb;
+  color: #78350f;
+  border: 1px solid #b45309;
+}
+
+[data-theme="light"] .badge-corridor-cleared,
+[data-theme="light"] .badge-threat-safe {
+  background-color: #ecfdf5;
+  color: #064e3b;
+  border: 1px solid #047857;
+}
+
+[data-theme="light"] .badge-corridor-metric {
+  background-color: #eff6ff;
+  color: #1e3a8a;
+  border: 1px solid #1d4ed8;
+}
+
+[data-theme="light"] .corridor-small-prey-banner {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 2px solid #b91c1c;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .corridor-clearance-banner {
+  background-color: #ecfdf5;
+  color: #064e3b;
+  border: 1px solid #047857;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
