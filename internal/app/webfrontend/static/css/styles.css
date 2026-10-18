@@ -11514,3 +11514,159 @@ textarea:focus-visible,
   font-weight: 700;
   margin: 0.5rem 0;
 }
+
+/* ============================================================================
+   Milestone 15.2: Working Dog & Service Animal ADA / Critical Medical-Alert
+   Handler Priority Recovery Cockpit
+   WCAG AAA High-Contrast Badges & Standby Banners (> 7.1:1 in Dark & Light Modes)
+   ============================================================================ */
+
+.badge-sa-status,
+.badge-sa-escalated,
+.badge-sa-staged,
+.badge-sa-restored,
+.badge-sa-urgency,
+.badge-urgency-critical,
+.badge-urgency-mobility,
+.badge-urgency-stabilized,
+.badge-sa-metric {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.sa-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.6rem 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .sa-steps-list {
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+.sa-step-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+:root .badge-sa-escalated,
+[data-theme="dark"] .badge-sa-escalated,
+:root .badge-urgency-critical,
+[data-theme="dark"] .badge-urgency-critical {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid #f87171;
+}
+
+:root .badge-sa-staged,
+[data-theme="dark"] .badge-sa-staged,
+:root .badge-urgency-mobility,
+[data-theme="dark"] .badge-urgency-mobility {
+  background-color: #78350f;
+  color: #fffbeb;
+  border: 1px solid #f59e0b;
+}
+
+:root .badge-sa-restored,
+[data-theme="dark"] .badge-sa-restored,
+:root .badge-urgency-stabilized,
+[data-theme="dark"] .badge-urgency-stabilized {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+}
+
+:root .badge-sa-metric,
+[data-theme="dark"] .badge-sa-metric {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #94a3b8;
+}
+
+:root .sa-medical-standby-banner,
+[data-theme="dark"] .sa-medical-standby-banner {
+  background-color: #450a0a;
+  color: #fef2f2;
+  border: 2px solid #f87171;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+:root .sa-restoration-banner,
+[data-theme="dark"] .sa-restoration-banner {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .badge-sa-escalated,
+[data-theme="light"] .badge-urgency-critical {
+  background-color: #fee2e2;
+  color: #7f1d1d;
+  border: 1px solid #b91c1c;
+}
+
+[data-theme="light"] .badge-sa-staged,
+[data-theme="light"] .badge-urgency-mobility {
+  background-color: #fef3c7;
+  color: #78350f;
+  border: 1px solid #b45309;
+}
+
+[data-theme="light"] .badge-sa-restored,
+[data-theme="light"] .badge-urgency-stabilized {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+}
+
+[data-theme="light"] .badge-sa-metric {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #475569;
+}
+
+[data-theme="light"] .sa-medical-standby-banner {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 2px solid #b91c1c;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .sa-restoration-banner {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+

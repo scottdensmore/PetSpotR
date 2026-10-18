@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Working Dog &amp; Service Animal ADA / Critical Medical-Alert Handler Priority Recovery Cockpit.">
+  <title>Working Dog &amp; Service Animal ADA Priority Recovery Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/microchip-federation" class="nav-link nav-link-emergency" id="nav-microchip-federation">📡 Microchip Federation</a></li>
+          <li><a href="/reunion-decompression" class="nav-link nav-link-emergency" id="nav-reunion-decompression">🧘 Reunion Decompression</a></li>
+          <li><a href="/foster-network" class="nav-link nav-link-emergency" id="nav-foster-network">🏡 Foster Biosecurity</a></li>
+          <li><a href="/biometric-forensics" class="nav-link nav-link-emergency" id="nav-biometric-forensics">🧬 Biometric Forensics</a></li>
+          <li><a href="/service-animal-priority" class="nav-link active nav-link-emergency" id="nav-service-animal-priority">🦮 Service Animal ADA</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="service-animal-priority-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header service-animal-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🦮 ADA TITLE II/III SERVICE ANIMAL, MEDICAL-ALERT HANDLER STANDBY &amp; TACTICAL VEST INTERCEPT</span>
+        </div>
+        <h1>Working Dog &amp; Service Animal ADA Priority Recovery Cockpit</h1>
+        <p class="text-secondary">
+          Paramedic/CGM Telemetry Handler Standby, Entangled ADA Cape/Guide-Harness Snag Sweep, Conditioned Acoustic Recall &amp; Protected ADA Handler-Animal Team Restoration.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid service-animal-kpi-grid" aria-label="Service Animal ADA Priority Recovery Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Service Animal ADA Cases</span>
+        <strong class="kpi-value" id="kpi-sa-total">{{ len .Cases }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Life-Critical Medical Dependencies</span>
+        <strong class="kpi-value" id="kpi-sa-critical">1</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Active Handler Medical Standby Alerts</span>
+        <strong class="kpi-value" id="kpi-sa-standby">1</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Restored Protected ADA Teams</span>
+        <strong class="kpi-value" id="kpi-sa-restored">1</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="service-animal-live-status" class="humane-traps-live-status service-animal-live-status" role="status" aria-live="polite">
+      Monitoring {{ len .Cases }} working dog &amp; service animal ADA priority recovery cases.
+    </div>
+
+    <div class="trust-cockpit-grid service-animal-cockpit-grid">
+      <!-- Section 1: Evaluate Service Animal Priority Case Form + Simulation Presets -->
+      <section class="glass-card trust-panel" id="sa-create-panel" aria-labelledby="heading-create-sa-case">
+        <div class="trust-panel-header">
+          <h2 id="heading-create-sa-case">Evaluate Service Animal ADA Priority Recovery Case</h2>
+          <span class="badge badge-sa-metric">EMS Standby + Vest Snag Sweep</span>
+        </div>
+
+        <form id="form-create-sa-case" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="sa-pet-id">Service Animal Pet ID</label>
+              <input type="text" id="sa-pet-id" class="form-control" value="pet-2026-001" required>
+            </div>
+            <div class="form-group">
+              <label for="sa-pet-name">Service Animal Name</label>
+              <input type="text" id="sa-pet-name" class="form-control" value="Apollo" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="sa-pet-species">ADA Species</label>
+              <select id="sa-pet-species" class="form-control" required>
+                <option value="DOG" selected>DOG</option>
+                <option value="MINIATURE_HORSE">MINIATURE_HORSE</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sa-handler-name">Protected Handler Name</label>
+              <input type="text" id="sa-handler-name" class="form-control" value="Maya Lin (T1D Handler)" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="sa-task-type">Certified ADA Service Task</label>
+              <select id="sa-task-type" class="form-control" required>
+                <option value="DIABETIC_HYPOGLYCEMIA_ALERT" selected>DIABETIC_HYPOGLYCEMIA_ALERT (T1D Glycemic Alert)</option>
+                <option value="CARDIAC_SYNC_SEIZURE_RESPONSE">CARDIAC_SYNC_SEIZURE_RESPONSE (Cardiac Syncope / Seizure Alert)</option>
+                <option value="BLIND_GUIDE_NAVIGATION">BLIND_GUIDE_NAVIGATION (Blind Guide / Obstacle Navigation)</option>
+                <option value="PTSD_PSYCHIATRIC_DEEP_PRESSURE">PTSD_PSYCHIATRIC_DEEP_PRESSURE (PTSD Deep-Pressure Grounding)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sa-vest-state">Vest &amp; Guide Equipment State</label>
+              <select id="sa-vest-state" class="form-control" required>
+                <option value="ADA_CAPE_ENTANGLED_HAZARD" selected>ADA_CAPE_ENTANGLED_HAZARD (Rigid Guide Handle / ADA Cape Snag)</option>
+                <option value="HIGH_VIS_WORKING_HARNESS">HIGH_VIS_WORKING_HARNESS (High-Vis Working Vest Intact)</option>
+                <option value="COLLAR_ONLY_SEPARATED">COLLAR_ONLY_SEPARATED (Working Vest Detached / Collar Only)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="sa-hours-separated">Hours Separated from Handler</label>
+              <input type="number" id="sa-hours-separated" class="form-control" min="1" max="168" step="1" value="8" required>
+            </div>
+            <div class="form-group foster-checkbox-group">
+              <label class="checkbox-label" for="sa-standby-linked">
+                <input type="checkbox" id="sa-standby-linked">
+                <span>Handler Linked to Paramedic / CGM Standby</span>
+              </label>
+              <label class="checkbox-label" for="sa-recall-broadcasted">
+                <input type="checkbox" id="sa-recall-broadcasted">
+                <span>Conditioned Acoustic Recall Cue Broadcasted</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-create-sa-case" class="btn btn-primary">Evaluate Service Animal Priority Case</button>
+        </form>
+
+        <div class="trust-subsection">
+          <h3>Working Dog &amp; Service Animal ADA Scenario Simulators</h3>
+          <div class="trust-sim-actions">
+            <button type="button" id="btn-sim-diabetic-alert-dog" class="btn btn-secondary">🐕‍🦺 Simulate T1D Diabetic Hypoglycemia Alert Dog with Entangled ADA Cape</button>
+            <button type="button" id="btn-sim-guide-dog-harness" class="btn btn-secondary">🦮 Simulate Blind Guide Dog in High-Vis Working Harness</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Service Animal Priority Cases Grid -->
+      <section class="glass-card trust-panel" id="sa-cases-panel" aria-labelledby="heading-sa-cases">
+        <div class="trust-panel-header">
+          <h2 id="heading-sa-cases">Active Service Animal ADA &amp; Medical-Alert Recovery Cases</h2>
+          <span id="sa-cases-count-badge" class="badge badge-secondary">{{ len .Cases }} Cases</span>
+        </div>
+
+        <div id="sa-cases-list" class="trust-screenings-list sa-cases-list" role="list">
+          {{ range .Cases }}
+          <article class="trust-screening-card sa-case-card" data-case-id="{{ .CaseID }}" data-recovery-status="{{ .RecoveryStatus }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ .PetName }} ({{ .Species }} · {{ .ServiceTaskType }} · Handler: {{ .HandlerName }})</strong>
+                <code class="trust-pet-id">{{ .CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-sa-status {{ if eq (printf "%s" .RecoveryStatus) "HANDLER_MEDICAL_ESCALATED" }}badge-sa-escalated{{ else if eq (printf "%s" .RecoveryStatus) "TACTICAL_VEST_INTERCEPT_STAGED" }}badge-sa-staged{{ else if eq (printf "%s" .RecoveryStatus) "REUNITED_ADA_TEAM_RESTORED" }}badge-sa-restored{{ else }}badge-sa-escalated{{ end }}">{{ .RecoveryStatus }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row">
+              <span class="badge badge-sa-urgency {{ if eq (printf "%s" .DependencyUrgency) "LIFE_CRITICAL_MEDICAL_DEPENDENCY" }}badge-urgency-critical{{ else if eq (printf "%s" .DependencyUrgency) "HIGH_MOBILITY_GUIDE_DEPENDENCY" }}badge-urgency-mobility{{ else }}badge-urgency-stabilized{{ end }}">{{ .DependencyUrgency }}</span>
+              <span class="badge badge-sa-metric">Medical Urgency: {{ .MedicalUrgencyScore }}/100 • Intercept Readiness: {{ .InterceptReadinessScore }}/100 • Equipment: {{ .VestEquipmentState }} • Separated: {{ .HoursSeparated }}h</span>
+            </div>
+
+            {{ if .HandlerMedicalStandbyAlert }}
+            <div class="sa-medical-standby-banner">
+              🚨 ADA MEDICAL-ALERT HANDLER STANDBY &amp; SNAG HAZARD: {{ .ServiceTaskType }} ({{ .HandlerName }}) with {{ .VestEquipmentState }} — Link handler to paramedic standby &amp; sweep brush/fences for cape snags.
+            </div>
+            {{ end }}
+
+            {{ if .ADARestorationCertificate }}
+            <div class="sa-restoration-banner">
+              ✅ ADA SERVICE ANIMAL TEAM RESTORED: {{ .ADARestorationCertificate }}
+            </div>
+            {{ end }}
+
+            <div class="sa-steps-list" aria-label="ADA Handler Standby &amp; Non-Confrontational Vest Intercept Checklist">
+              {{ range .RecoverySteps }}
+              <div class="sa-step-item">
+                <span class="badge {{ if .Completed }}badge-hop-match{{ else }}badge-hop-miss{{ end }}">{{ if .Completed }}VERIFIED{{ else }}PENDING{{ end }}</span>
+                <strong class="sa-step-category">[{{ .Category }}]</strong>
+                <span class="sa-step-title">{{ .Title }}</span>
+              </div>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              {{ if ne (printf "%s" .RecoveryStatus) "REUNITED_ADA_TEAM_RESTORED" }}
+              <button type="button" class="btn btn-sm btn-secondary btn-stage-sa-intercept" data-case-id="{{ .CaseID }}">📡 Stage EMS Handler Standby &amp; Non-Confrontational Vest Intercept</button>
+              <button type="button" class="btn btn-sm btn-primary btn-restore-sa-team" data-case-id="{{ .CaseID }}">🦮 Restore Protected ADA Service Animal Team</button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="sa-cases-empty-msg">No service animal priority cases recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/service-animal-priority.js" defer></script>
+</body>
+</html>
