@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Wildfire Smoke, Ashfall, Hazmat Plume &amp; Respiratory Decontamination Triage Cockpit.">
+  <title>Wildfire Smoke, Ashfall, Hazmat Plume &amp; Respiratory Decontamination Triage Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/swiftwater-rescue" class="nav-link nav-link-emergency" id="nav-swiftwater-rescue">🌊 Swiftwater &amp; Ice Rescue</a></li>
+          <li><a href="/service-animal" class="nav-link nav-link-emergency" id="nav-service-animal">🦮 Service Animal ADA</a></li>
+          <li><a href="/equine-livestock" class="nav-link nav-link-emergency" id="nav-equine-livestock">🐎 Equine &amp; Livestock</a></li>
+          <li><a href="/confined-space-rescue" class="nav-link nav-link-emergency" id="nav-confined-space-rescue">🕳️ Confined-Space Rescue</a></li>
+          <li><a href="/vertical-rescue" class="nav-link nav-link-emergency" id="nav-vertical-rescue">🧗 Vertical Rescue</a></li>
+          <li><a href="/hazmat-decon" class="nav-link active nav-link-emergency" id="nav-hazmat-decon">☣️ Hazmat &amp; Smoke Decon</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="hazmat-decon-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header hazmat-decon-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>☣️ WILDFIRE SMOKE, ASHFALL, HAZMAT PLUME &amp; RESPIRATORY DECONTAMINATION TRIAGE</span>
+        </div>
+        <h1>Wildfire Smoke, Ashfall, Hazmat Plume &amp; Respiratory Decontamination Triage Cockpit</h1>
+        <p class="text-secondary">
+          PM2.5 &amp; AQI Plume Telemetry, Carboxyhemoglobin (COHb) &amp; Cyanide Hypoxia Screening, Ocular Isotonic Saline Irrigation, Warm Lipophilic Surfactant Dermal Wash Corridors, 100% Normobaric O2 Nebulization &amp; Oral Toxin-Binder Protocols.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid hazmat-decon-kpi-grid" aria-label="Wildfire Smoke &amp; Hazmat Decontamination Operations Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Hazmat &amp; Smoke Operations</span>
+        <strong class="kpi-value" id="stat-total-hazmat-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Smoke &amp; Dermal Alerts</span>
+        <strong class="kpi-value" id="stat-critical-smoke-alerts">{{ .CriticalSmokeAlerts }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Staged Decon Washes &amp; Nebulizers</span>
+        <strong class="kpi-value" id="stat-staged-decon-washes">{{ .StagedDeconWashes }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Decontaminated &amp; Cleared Safe</span>
+        <strong class="kpi-value" id="stat-cleared-safe-count">{{ .ClearedSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="hazmat-decon-live-status" class="humane-traps-live-status hazmat-decon-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} wildfire smoke, ashfall, hazmat plume &amp; cyanotoxin decontamination operations.
+    </div>
+
+    <div class="trust-cockpit-grid hazmat-decon-cockpit-grid">
+      <!-- Section 1: Evaluate Hazmat & Smoke Decon Form + Scenario Simulators -->
+      <section class="glass-card trust-panel" id="hz-evaluate-panel" aria-labelledby="heading-evaluate-hz-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-hz-op">Evaluate Wildfire Smoke, Ashfall &amp; Hazmat Decon Triage</h2>
+          <span class="badge badge-hz-exposure">COHb + Warm-Zone Wash + O2 Cage</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Wildfire Smoke, Petrochemical &amp; Cyanotoxin Emergency Scenario Simulators</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary hz-scenario-btn" data-scenario="wildfire-ash-plume" id="btn-sim-wildfire-ash-plume">
+              🔥 Simulate Wildfire Smoke &amp; Alkaline Ashfall Plume (AQI 450 · PM2.5 410 µg/m³ · COHb 17.8%)
+            </button>
+            <button type="button" class="btn btn-secondary hz-scenario-btn" data-scenario="petrochemical-coat-spill" id="btn-sim-petrochemical-coat-spill">
+              🛢️ Simulate Petrochemical Hydrocarbon Coat Spill (Warm Surfactant Wash + E-Collar)
+            </button>
+            <button type="button" class="btn btn-secondary hz-scenario-btn" data-scenario="cyanotoxin-pond-bloom" id="btn-sim-cyanotoxin-pond-bloom">
+              🧪 Simulate Toxic Algae Cyanotoxin Bloom Exposure (Dermal Rinse + Cholestyramine Binder)
+            </button>
+          </div>
+        </div>
+
+        <form id="form-evaluate-hz-op" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="hz-pet-id">Exposed Pet ID</label>
+              <input type="text" id="hz-pet-id" name="petId" class="form-control" value="PET-HZ-204" required>
+            </div>
+            <div class="form-group">
+              <label for="hz-pet-name">Pet Name</label>
+              <input type="text" id="hz-pet-name" name="petName" class="form-control" value="Ash" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="hz-species">Species</label>
+              <select id="hz-species" name="species" class="form-control" required>
+                <option value="Feline" selected>Feline</option>
+                <option value="Canine">Canine</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="hz-weight-kg">Estimated Weight (kg)</label>
+              <input type="number" id="hz-weight-kg" name="weightKg" class="form-control" min="0.5" max="120" step="0.1" value="4.1" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="hz-exposure-type">Hazmat / Plume Exposure Agent</label>
+              <select id="hz-exposure-type" name="exposureType" class="form-control" required>
+                <option value="WILDFIRE_SMOKE_ASHFALL" selected>WILDFIRE_SMOKE_ASHFALL (Wildfire Smoke, Soot &amp; Alkaline Ashfall)</option>
+                <option value="PETROCHEMICAL_SPILL_COAT">PETROCHEMICAL_SPILL_COAT (Crude Oil / Diesel / Hydrocarbon Coat Spill)</option>
+                <option value="TOXIC_ALGAE_CYANOTOXIN">TOXIC_ALGAE_CYANOTOXIN (Blue-Green Algae Microcystin / Anatoxin Bloom)</option>
+                <option value="TEAR_GAS_AEROSOL_PLUME">TEAR_GAS_AEROSOL_PLUME (Lachrymator CS/CN/OC Aerosol Plume)</option>
+                <option value="INDUSTRIAL_SOLVENT_VAPOR">INDUSTRIAL_SOLVENT_VAPOR (Chemical / Chlorine / Solvent Vapor Plume)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="hz-aqi-index">Plume Air Quality Index (AQI 0–1000)</label>
+              <input type="number" id="hz-aqi-index" name="aqiIndex" class="form-control" min="0" max="1000" step="1" value="450" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="hz-pm25">Fine Particulate Matter PM2.5 (µg/m³)</label>
+              <input type="number" id="hz-pm25" name="pm25UgM3" class="form-control" min="0" max="2000" step="1" value="410" required>
+            </div>
+            <div class="form-group">
+              <label for="hz-cohb-pct">Carboxyhemoglobin COHb (%)</label>
+              <input type="number" id="hz-cohb-pct" name="carboxyhemoglobinPct" class="form-control" min="0" max="100" step="0.1" value="17.8" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="hz-coat-pct">Dermal Coat Contamination (%)</label>
+              <input type="number" id="hz-coat-pct" name="coatContaminationPct" class="form-control" min="0" max="100" step="1" value="72" required>
+            </div>
+            <div class="form-group">
+              <label for="hz-resp-rate">Respiratory Rate (breaths/min)</label>
+              <input type="number" id="hz-resp-rate" name="respiratoryRateBpm" class="form-control" min="5" max="200" step="1" value="72" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="hz-corridor-zone">Warm-Zone Decon Corridor</label>
+              <input type="text" id="hz-corridor-zone" name="deconCorridorZone" class="form-control" value="DECON-CORRIDOR-HOT-01 (Cascade Wildfire Perimeter)" required>
+            </div>
+            <div class="form-group">
+              <label for="hz-tox-callsign">Lead Veterinary Toxicology Callsign</label>
+              <input type="text" id="hz-tox-callsign" name="leadToxTechCallsign" class="form-control" value="TOX-VET-01 (Dr. Aris Thorne)" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="hz-notes">Respiratory &amp; Dermal Triage Field Notes</label>
+            <input type="text" id="hz-notes" name="notes" class="form-control" value="Soot-stained nares, corneal ash particulates, and elevated COHb requiring immediate O2 nebulization.">
+          </div>
+
+          <button type="submit" id="btn-evaluate-hz-op" class="btn btn-primary">Evaluate Hazmat &amp; Smoke Decon Operation</button>
+        </form>
+      </section>
+
+      <!-- Section 2: Active Hazmat & Smoke Decontamination Operations Grid -->
+      <section class="glass-card trust-panel" id="hz-ops-panel" aria-labelledby="heading-hz-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-hz-ops">Active Wildfire Smoke, Ashfall &amp; Hazmat Decontamination Operations</h2>
+          <span id="hz-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="hz-ops-list" class="trust-screenings-list hz-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card hz-op-card" data-operation-id="{{ $op.OperationID }}" data-op-id="{{ $op.OperationID }}" data-status="{{ $op.Status }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightKg }} kg · {{ $op.DeconCorridorZone }})</strong>
+                <code class="trust-pet-id">{{ $op.OperationID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-hz-exposure">{{ $op.ExposureType }}</span>
+                <span class="badge badge-hz-status {{ if eq (printf "%s" $op.Status) "RESPIRATORY_DERMAL_CRITICAL" }}badge-hz-critical{{ else if eq (printf "%s" $op.Status) "DECON_WASH_NEBULIZER_STAGED" }}badge-hz-staged{{ else if eq (printf "%s" $op.Status) "DECONTAMINATED_CLEARED_SAFE" }}badge-hz-cleared{{ else }}badge-hz-critical{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row hz-metrics-row">
+              <span class="badge badge-hz-exposure">Hazard Score: {{ $op.HazardScore }}/100 • Decon Readiness: {{ $op.DeconReadinessScore }}% • AQI: {{ $op.AQIIndex }} • PM2.5: {{ printf "%.0f" $op.PM25UgM3 }} µg/m³ • COHb: {{ printf "%.1f" $op.CarboxyhemoglobinPct }}% • Coat: {{ printf "%.0f" $op.CoatContaminationPct }}% • Resp: {{ $op.RespiratoryRateBpm }} bpm</span>
+            </div>
+
+            <div class="hz-flags-row">
+              {{ range $flag := $op.RiskFlags }}
+              <span class="badge badge-hz-flag">{{ $flag }}</span>
+              {{ end }}
+            </div>
+
+            {{ if or $op.SmokeInhalationAlert $op.DermalToxinIngestionAlert }}
+            <div class="hz-smoke-alert-banner">
+              ⚠️ RESPIRATORY &amp; DERMAL TOXIN HAZARD ALERT: AQI {{ $op.AQIIndex }} · PM2.5 {{ printf "%.0f" $op.PM25UgM3 }} µg/m³ · COHb {{ printf "%.1f" $op.CarboxyhemoglobinPct }}% · Coat {{ printf "%.0f" $op.CoatContaminationPct }}% — Fit E-collar immediately, flush corneas with sterile saline &amp; stage 100% O2 nebulizer.
+            </div>
+            {{ end }}
+
+            {{ if $op.ClearanceCertificateHash }}
+            <div class="hz-clearance-banner">
+              ✅ HAZMAT &amp; RESPIRATORY DECON CLEARANCE VERIFIED: {{ $op.ClearanceCertificateHash }} ({{ $op.LeadToxTechCallsign }})
+            </div>
+            {{ end }}
+
+            <div class="hz-decon-recommendations">
+              <div><strong>Ocular &amp; Dermal Wash Agent:</strong> {{ $op.RecommendedWashAgent }}</div>
+              <div><strong>Oxygen &amp; Nebulization Therapy:</strong> {{ $op.RecommendedOxygenTherapy }}</div>
+            </div>
+
+            <div class="hz-steps-list" aria-label="Hazmat Ocular Flush, Surfactant Wash &amp; Oxygen Nebulization Protocol">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="hz-step-item">
+                <input
+                  type="checkbox"
+                  class="hz-step-checkbox"
+                  data-op-id="{{ $op.OperationID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "DECONTAMINATED_CLEARED_SAFE" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-hz-cleared{{ else }}badge-hz-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="hz-step-category">[{{ $step.Category }}]</strong>
+                <span class="hz-step-label">{{ $step.Label }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              {{ if ne (printf "%s" $op.Status) "DECONTAMINATED_CLEARED_SAFE" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary hz-issue-clearance-btn"
+                data-op-id="{{ $op.OperationID }}"
+              >
+                🛡️ Issue Hazmat &amp; Respiratory Decon Clearance Certificate
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="hz-ops-empty-msg">No hazmat or smoke decontamination operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/hazmat-decon.js" defer></script>
+</body>
+</html>
