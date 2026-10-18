@@ -3,6 +3,13 @@ import { test, expect } from '@playwright/test';
 const WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || process.env.BASE_URL || 'http://localhost:8082';
 
 test.describe.serial('User Journey: BLE Collar Beacon Scanning & Proximity Triangulation', () => {
+  test.beforeEach(async ({ page }) => {
+    // This journey injects simulated pings; never open a native device chooser.
+    await page.addInitScript(() => {
+      Object.assign(window, { __mockBluetoothScanner: { mockActive: true } });
+    });
+  });
+
   const petId = `lost-beacon-journey-${Date.now()}`;
   const petName = 'Buster';
   const collarBeacon = {
