@@ -497,6 +497,8 @@ func (s *Server) routes() {
 	s.registerMunicipalCADRoutes()
 	// Emergency Foster Network Capacity, Quarantine Biosecurity & Medical Foster Matching Cockpit routes (Milestone 14.3)
 	s.registerFosterNetworkRoutes()
+	// Aviation & Cross-Jurisdiction Pet Airlift / Ground Relay Transport Logistics Cockpit routes (Milestone 14.4)
+	s.registerTransportRelayRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

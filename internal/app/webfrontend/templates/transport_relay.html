@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Aviation &amp; Cross-Jurisdiction Pet Airlift / Ground Relay Transport Logistics Cockpit.">
+  <title>Aviation &amp; Cross-Jurisdiction Pet Airlift / Ground Relay Transport Logistics Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/microchip-federation" class="nav-link nav-link-emergency" id="nav-microchip-federation">📡 Microchip Federation</a></li>
+          <li><a href="/reunion-decompression" class="nav-link nav-link-emergency" id="nav-reunion-decompression">🧘 Reunion Decompression</a></li>
+          <li><a href="/foster-network" class="nav-link nav-link-emergency" id="nav-foster-network">🏡 Foster Biosecurity</a></li>
+          <li><a href="/transport-relay" class="nav-link active nav-link-emergency" id="nav-transport-relay">✈️ Transport Relay</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="transport-relay-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header transport-relay-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>✈️ AVIATION AIRLIFT, CABIN HYPOXIA SAFETY &amp; INTERSTATE GROUND RELAY LOGISTICS</span>
+        </div>
+        <h1>Aviation &amp; Cross-Jurisdiction Pet Airlift / Ground Relay Transport Logistics Cockpit</h1>
+        <p class="text-secondary">
+          USDA APHIS Form 7001 Interstate CVI Clearance, IATA LAR Rigid Crate Verification, Brachycephalic Cabin Altitude Hypoxia Guard &amp; Multi-Leg FBO Relay Handoff.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid transport-relay-kpi-grid" aria-label="Transport Relay Logistics Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Transport Relay Missions</span>
+        <strong class="kpi-value" id="kpi-relay-total">{{ len .Missions }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Brachycephalic &amp; Hypoxia Alerts</span>
+        <strong class="kpi-value" id="kpi-relay-hypoxia">1</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Active In-Transit Relay Corridors</span>
+        <strong class="kpi-value" id="kpi-relay-intransit">1</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Verified Destination Deliveries</span>
+        <strong class="kpi-value" id="kpi-relay-delivered">1</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="transport-relay-live-status" class="humane-traps-live-status transport-relay-live-status" role="status" aria-live="polite">
+      Monitoring {{ len .Missions }} interstate airlift &amp; ground relay transport missions.
+    </div>
+
+    <div class="trust-cockpit-grid transport-relay-cockpit-grid">
+      <!-- Section 1: Plan Transport Relay Mission Form + Simulation Presets -->
+      <section class="glass-card trust-panel" id="relay-create-panel" aria-labelledby="heading-create-relay-mission">
+        <div class="trust-panel-header">
+          <h2 id="heading-create-relay-mission">Plan Interstate Airlift &amp; Ground Relay Mission</h2>
+          <span class="badge badge-relay-metric">USDA APHIS 7001 + IATA LAR</span>
+        </div>
+
+        <form id="form-create-relay-mission" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="relay-pet-id">Displaced / Evacuated Pet ID</label>
+              <input type="text" id="relay-pet-id" class="form-control" value="pet-2026-001" required>
+            </div>
+            <div class="form-group">
+              <label for="relay-pet-name">Pet Name</label>
+              <input type="text" id="relay-pet-name" class="form-control" value="Winston" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="relay-pet-species">Species</label>
+              <select id="relay-pet-species" class="form-control" required>
+                <option value="DOG" selected>DOG</option>
+                <option value="CAT">CAT</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="relay-transport-mode">Transport Corridor Mode</label>
+              <select id="relay-transport-mode" class="form-control" required>
+                <option value="GENERAL_AVIATION_AIRLIFT" selected>GENERAL_AVIATION_AIRLIFT ( Volunteer Pilot Light Aircraft )</option>
+                <option value="HYBRID_AIR_GROUND_CORRIDOR">HYBRID_AIR_GROUND_CORRIDOR ( Airlift + FBO Ground Van Handoff )</option>
+                <option value="CLIMATE_CONTROLLED_VAN_RELAY">CLIMATE_CONTROLLED_VAN_RELAY ( Multi-Leg Interstate Van Relay )</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="relay-origin-hub">Origin FBO / Staging Hub</label>
+              <input type="text" id="relay-origin-hub" class="form-control" value="KBOI Boise Air Terminal FBO" required>
+            </div>
+            <div class="form-group">
+              <label for="relay-destination-hub">Destination Receiving Hub</label>
+              <input type="text" id="relay-destination-hub" class="form-control" value="KBFI Boeing Field Seattle" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="relay-distance-miles">Total Corridor Distance (Miles)</label>
+              <input type="number" id="relay-distance-miles" class="form-control" min="10" max="3500" step="5" value="410" required>
+            </div>
+            <div class="form-group">
+              <label for="relay-altitude-feet">Planned Cruise / Cabin Altitude (Feet)</label>
+              <input type="number" id="relay-altitude-feet" class="form-control" min="0" max="12500" step="500" value="8500" required>
+            </div>
+          </div>
+
+          <div class="form-group relay-checkbox-group">
+            <label class="checkbox-label" for="relay-brachycephalic">
+              <input type="checkbox" id="relay-brachycephalic" checked>
+              <span>Brachycephalic Breed / Respiratory Vulnerability (Requires &le; 6,500 ft Pressurized Cabin)</span>
+            </label>
+            <label class="checkbox-label" for="relay-usda-cvi">
+              <input type="checkbox" id="relay-usda-cvi">
+              <span>USDA APHIS Form 7001 Interstate CVI &amp; Rabies Titer Certified</span>
+            </label>
+            <label class="checkbox-label" for="relay-iata-crate">
+              <input type="checkbox" id="relay-iata-crate">
+              <span>IATA LAR Rigid Crate Tie-Down &amp; Dual Hydration Troughs Verified</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-create-relay-mission" class="btn btn-primary">Plan Transport Relay Mission</button>
+        </form>
+
+        <div class="trust-subsection">
+          <h3>Airlift &amp; Interstate Relay Scenario Simulators</h3>
+          <div class="trust-sim-actions">
+            <button type="button" id="btn-sim-brachy-airlift" class="btn btn-secondary">🛩️ Simulate Brachycephalic French Bulldog Airlift at 8,500 ft (Hypoxia Cabin Alert)</button>
+            <button type="button" id="btn-sim-ground-relay" class="btn btn-secondary">🚐 Simulate 320-Mile Interstate Climate-Controlled Van Relay</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Active Transport Relay Missions Grid -->
+      <section class="glass-card trust-panel" id="relay-missions-panel" aria-labelledby="heading-relay-missions">
+        <div class="trust-panel-header">
+          <h2 id="heading-relay-missions">Active Aviation &amp; Ground Relay Transport Missions</h2>
+          <span id="relay-missions-count-badge" class="badge badge-secondary">{{ len .Missions }} Missions</span>
+        </div>
+
+        <div id="relay-missions-list" class="trust-screenings-list relay-missions-list" role="list">
+          {{ range .Missions }}
+          <article class="trust-screening-card relay-mission-card" data-mission-id="{{ .MissionID }}" data-relay-status="{{ .RelayStatus }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ .PetName }} ({{ .Species }} · {{ .OriginHub }} &rarr; {{ .DestinationHub }} · {{ .TotalDistanceMiles }} mi @ {{ .CruiseAltitudeFeet }} ft)</strong>
+                <code class="trust-pet-id">{{ .MissionID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-relay-status {{ if eq (printf "%s" .RelayStatus) "PRE_FLIGHT_STAGING" }}badge-relay-staging{{ else if eq (printf "%s" .RelayStatus) "IN_TRANSIT_ACTIVE_RELAY" }}badge-relay-transit{{ else if eq (printf "%s" .RelayStatus) "DELIVERED_DESTINATION_VERIFIED" }}badge-relay-delivered{{ else }}badge-relay-staging{{ end }}">{{ .RelayStatus }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row">
+              <span class="badge badge-thermal-risk {{ if eq (printf "%s" .ThermalRisk) "BRACHYCEPHALIC_CABIN_RISK" }}badge-thermal-hypoxia{{ else if eq (printf "%s" .ThermalRisk) "TARMAC_THERMAL_WATCH" }}badge-thermal-watch{{ else }}badge-thermal-safe{{ end }}">{{ .ThermalRisk }}</span>
+              <span class="badge badge-relay-metric">Mode: {{ .TransportMode }} • Transport Stress: {{ .TransportStressScore }}/100 • Flight Readiness: {{ .FlightReadinessScore }}/100</span>
+            </div>
+
+            {{ if .HypoxiaCabinAlert }}
+            <div class="relay-hypoxia-alert-banner">
+              ⚠️ BRACHYCEPHALIC &amp; ALTITUDE HYPOXIA ALERT: Planned altitude {{ .CruiseAltitudeFeet }} ft (Brachycephalic: {{ .BrachycephalicFlag }}) — Enforce &le; 6,500 ft pressurized cabin ceiling, continuous pulse oximetry &amp; cooling mat telemetry.
+            </div>
+            {{ end }}
+
+            {{ if .ManifestCompletionCode }}
+            <div class="relay-manifest-banner">
+              ✅ INTERSTATE RELAY MANIFEST VERIFIED: {{ .ManifestCompletionCode }}
+            </div>
+            {{ end }}
+
+            <div class="relay-legs-list" aria-label="Interstate CVI, Cabin Pressure &amp; FBO Handoff Checklist">
+              {{ range .RelayLegChecks }}
+              <div class="relay-leg-item">
+                <span class="badge {{ if .Completed }}badge-hop-match{{ else }}badge-hop-miss{{ end }}">{{ if .Completed }}VERIFIED{{ else }}REQUIRED{{ end }}</span>
+                <strong class="relay-leg-category">[{{ .Category }}]</strong>
+                <span class="relay-leg-title">{{ .Title }}</span>
+              </div>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              {{ if ne (printf "%s" .RelayStatus) "DELIVERED_DESTINATION_VERIFIED" }}
+              <button type="button" class="btn btn-sm btn-secondary btn-launch-relay-leg" data-mission-id="{{ .MissionID }}">🛫 Clear USDA CVI &amp; IATA Crate to Launch Relay</button>
+              <button type="button" class="btn btn-sm btn-primary btn-complete-relay-delivery" data-mission-id="{{ .MissionID }}">🏁 Complete Final FBO / Ground Handoff &amp; Verify Manifest</button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="relay-missions-empty-msg">No transport relay missions recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/transport-relay.js" defer></script>
+</body>
+</html>
