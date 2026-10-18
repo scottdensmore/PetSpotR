@@ -10924,6 +10924,20 @@ textarea:focus-visible,
 .badge-threat-elevated,
 .badge-threat-safe,
 .badge-corridor-metric {
+   Milestone 14.2: Municipal 311 / Animal Control Dispatch CAD Bridge,
+   Roadway Hazard Alerts & Good Samaritan Safe-Capture Routing Cockpit
+   WCAG AAA High-Contrast Badges & Roadway Alerts (> 7.1:1 in Dark & Light Modes)
+   ============================================================================ */
+
+.badge-cad-status,
+.badge-cad-triage,
+.badge-cad-containment,
+.badge-cad-resolved,
+.badge-hazard-severity,
+.badge-hazard-freeway,
+.badge-hazard-arterial,
+.badge-hazard-safe,
+.badge-cad-metric {
   display: inline-flex;
   align-items: center;
   padding: 0.25rem 0.65rem;
@@ -10997,6 +11011,46 @@ textarea:focus-visible,
   background-color: #4c1d95;
   color: #ffffff;
   border: 2px solid #c084fc;
+/* Dark Theme (:root and [data-theme="dark"]) — WCAG AAA (> 7.1:1) */
+:root .badge-cad-triage,
+[data-theme="dark"] .badge-cad-triage,
+:root .badge-hazard-freeway,
+[data-theme="dark"] .badge-hazard-freeway {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid #f87171;
+}
+
+:root .badge-cad-containment,
+[data-theme="dark"] .badge-cad-containment,
+:root .badge-hazard-arterial,
+[data-theme="dark"] .badge-hazard-arterial {
+  background-color: #78350f;
+  color: #fffbeb;
+  border: 1px solid #f59e0b;
+}
+
+:root .badge-cad-resolved,
+[data-theme="dark"] .badge-cad-resolved,
+:root .badge-hazard-safe,
+[data-theme="dark"] .badge-hazard-safe {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+}
+
+:root .badge-cad-metric,
+[data-theme="dark"] .badge-cad-metric {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #94a3b8;
+}
+
+:root .cad-no-chase-banner,
+[data-theme="dark"] .cad-no-chase-banner {
+  background-color: #450a0a;
+  color: #fef2f2;
+  border: 2px solid #f87171;
   border-radius: var(--radius-sm, 6px);
   padding: 0.65rem 0.9rem;
   font-size: 0.8125rem;
@@ -11008,6 +11062,10 @@ textarea:focus-visible,
 [data-theme="dark"] .corridor-clearance-banner {
   background-color: #064e3b;
   color: #ffffff;
+:root .cad-resolution-banner,
+[data-theme="dark"] .cad-resolution-banner {
+  background-color: #064e3b;
+  color: #ecfdf5;
   border: 1px solid #10b981;
   border-radius: var(--radius-sm, 6px);
   padding: 0.55rem 0.85rem;
@@ -11020,6 +11078,9 @@ textarea:focus-visible,
 [data-theme="light"] .badge-corridor-watch,
 [data-theme="light"] .badge-threat-extreme {
   background-color: #fef2f2;
+[data-theme="light"] .badge-cad-triage,
+[data-theme="light"] .badge-hazard-freeway {
+  background-color: #fee2e2;
   color: #7f1d1d;
   border: 1px solid #b91c1c;
 }
@@ -11027,6 +11088,9 @@ textarea:focus-visible,
 [data-theme="light"] .badge-corridor-hazing,
 [data-theme="light"] .badge-threat-elevated {
   background-color: #fffbeb;
+[data-theme="light"] .badge-cad-containment,
+[data-theme="light"] .badge-hazard-arterial {
+  background-color: #fef3c7;
   color: #78350f;
   border: 1px solid #b45309;
 }
@@ -11034,6 +11098,9 @@ textarea:focus-visible,
 [data-theme="light"] .badge-corridor-cleared,
 [data-theme="light"] .badge-threat-safe {
   background-color: #ecfdf5;
+[data-theme="light"] .badge-cad-resolved,
+[data-theme="light"] .badge-hazard-safe {
+  background-color: #d1fae5;
   color: #064e3b;
   border: 1px solid #047857;
 }
@@ -11045,6 +11112,13 @@ textarea:focus-visible,
 }
 
 [data-theme="light"] .corridor-small-prey-banner {
+[data-theme="light"] .badge-cad-metric {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #475569;
+}
+
+[data-theme="light"] .cad-no-chase-banner {
   background-color: #fef2f2;
   color: #7f1d1d;
   border: 2px solid #b91c1c;
@@ -11057,6 +11131,8 @@ textarea:focus-visible,
 
 [data-theme="light"] .corridor-clearance-banner {
   background-color: #ecfdf5;
+[data-theme="light"] .cad-resolution-banner {
+  background-color: #d1fae5;
   color: #064e3b;
   border: 1px solid #047857;
   border-radius: var(--radius-sm, 6px);

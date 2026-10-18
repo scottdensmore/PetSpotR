@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Municipal 311 / Animal Control Dispatch CAD Bridge, Roadway Hazard Alerts &amp; Good Samaritan Safe-Capture Routing Cockpit.">
+  <title>Municipal 311 / Animal Control Dispatch CAD Bridge Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/microchip-federation" class="nav-link nav-link-emergency" id="nav-microchip-federation">📡 Microchip Federation</a></li>
+          <li><a href="/reunion-decompression" class="nav-link nav-link-emergency" id="nav-reunion-decompression">🧘 Reunion Decompression</a></li>
+          <li><a href="/municipal-cad" class="nav-link active nav-link-emergency" id="nav-municipal-cad">🚓 Municipal 311 CAD</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="municipal-cad-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header municipal-cad-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🚓 MUNICIPAL 311 / ANIMAL CONTROL DISPATCH CAD BRIDGE &amp; ROADWAY HAZARD CONTAINMENT</span>
+        </div>
+        <h1>Municipal 311 / Animal Control Dispatch CAD Bridge Cockpit</h1>
+        <p class="text-secondary">
+          Real-Time 311/911 Roadway Animal Hazard Ingestion, DOT Variable Message Sign (VMS) Speed Advisories, Good Samaritan DO-NOT-CHASE Calming Broadcasts &amp; ACO L-Barrier Safe-Capture Routing.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid municipal-cad-kpi-grid" aria-label="Municipal CAD Dispatch Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Active &amp; Resolved 311 CAD Calls</span>
+        <strong class="kpi-value" id="kpi-cad-total">{{ len .Incidents }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Freeway Median Critical Hazards</span>
+        <strong class="kpi-value" id="kpi-cad-critical">1</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Active DO-NOT-CHASE Broadcasts</span>
+        <strong class="kpi-value" id="kpi-cad-no-chase">2</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Safe Custody Intercepts</span>
+        <strong class="kpi-value" id="kpi-cad-resolved">1</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="municipal-cad-live-status" class="humane-traps-live-status municipal-cad-live-status" role="status" aria-live="polite">
+      Monitoring {{ len .Incidents }} municipal 311 &amp; Animal Control highway containment CAD dispatches.
+    </div>
+
+    <div class="trust-cockpit-grid municipal-cad-cockpit-grid">
+      <!-- Section 1: Ingest Municipal 311 / CAD Call Form + Simulation Presets -->
+      <section class="glass-card trust-panel" id="cad-create-panel" aria-labelledby="heading-create-cad-incident">
+        <div class="trust-panel-header">
+          <h2 id="heading-create-cad-incident">Ingest Municipal 311 / Animal Control CAD Call</h2>
+          <span class="badge badge-cad-metric">DOT VMS + ACO L-Barrier</span>
+        </div>
+
+        <form id="form-create-cad-incident" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="cad-call-number">311 / CAD Call Number</label>
+              <input type="text" id="cad-call-number" class="form-control" value="311-SEA-8902" required>
+            </div>
+            <div class="form-group">
+              <label for="cad-pet-id">Linked Pet ID</label>
+              <input type="text" id="cad-pet-id" class="form-control" value="pet-2026-001" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="cad-pet-name">Pet Name / Description</label>
+              <input type="text" id="cad-pet-name" class="form-control" value="Cooper" required>
+            </div>
+            <div class="form-group">
+              <label for="cad-pet-species">Species</label>
+              <select id="cad-pet-species" class="form-control" required>
+                <option value="DOG" selected>DOG</option>
+                <option value="CAT">CAT</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="cad-roadway-name">Roadway / Highway Corridor &amp; Milepost</label>
+            <input type="text" id="cad-roadway-name" class="form-control" value="I-5 Northbound Milepost 168 Median" required>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="cad-speed-limit">Posted Speed Limit (MPH)</label>
+              <input type="number" id="cad-speed-limit" class="form-control" min="15" max="85" step="5" value="60" required>
+            </div>
+            <div class="form-group">
+              <label for="cad-lane-count">Active Traffic Lanes</label>
+              <input type="number" id="cad-lane-count" class="form-control" min="1" max="12" step="1" value="4" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="cad-behavior-state">Observed Roadway Behavior</label>
+              <select id="cad-behavior-state" class="form-control" required>
+                <option value="BOLTING_INTO_TRAFFIC" selected>BOLTING_INTO_TRAFFIC (High-Velocity Panic Flight)</option>
+                <option value="HUDDLED_IN_MEDIAN">HUDDLED_IN_MEDIAN (Jersey Barrier / Center Median Refuge)</option>
+                <option value="TROTTING_SHOULDER">TROTTING_SHOULDER (Pacing Right Breakdown Shoulder)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="cad-aco-unit">Assigned ACO Field Unit</label>
+              <input type="text" id="cad-aco-unit" class="form-control" placeholder="e.g. ACO-UNIT-14" value="">
+            </div>
+          </div>
+
+          <div class="form-row-2col decomp-checkbox-row">
+            <div class="form-group">
+              <label class="checkbox-label" for="cad-dot-sign-active">
+                <input type="checkbox" id="cad-dot-sign-active">
+                <span>Activate DOT Variable Message Sign (VMS) Speed Advisory</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-create-cad-incident" class="btn btn-primary">Ingest 311 CAD Roadway Dispatch</button>
+        </form>
+
+        <div class="trust-subsection">
+          <h3>Roadway Hazard &amp; Good Samaritan Scenario Presets</h3>
+          <div class="trust-sim-actions">
+            <button type="button" id="btn-sim-freeway-median" class="btn btn-secondary">🚨 Simulate 65 MPH Freeway Median Panicked Dog (DO-NOT-CHASE Alert)</button>
+            <button type="button" id="btn-sim-arterial-bridge" class="btn btn-secondary">🌉 Simulate 45 MPH Arterial Bridge Sighting (ACO L-Barrier Funnel)</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Active Municipal CAD Incidents Grid -->
+      <section class="glass-card trust-panel" id="cad-incidents-panel" aria-labelledby="heading-cad-incidents">
+        <div class="trust-panel-header">
+          <h2 id="heading-cad-incidents">Active Municipal 311 &amp; Highway Containment CAD Queue</h2>
+          <span id="cad-incidents-count-badge" class="badge badge-secondary">{{ len .Incidents }} Calls</span>
+        </div>
+
+        <div id="cad-incidents-list" class="trust-screenings-list cad-incidents-list" role="list">
+          {{ range .Incidents }}
+          <article class="trust-screening-card cad-incident-card" data-incident-id="{{ .IncidentID }}" data-dispatch-status="{{ .DispatchStatus }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ .PetName }} ({{ .Species }} · {{ .RoadwayName }} · {{ .SpeedLimitMPH }} MPH / {{ .LaneCount }} lanes)</strong>
+                <code class="trust-pet-id">{{ .IncidentID }} · {{ .CADCallNumber }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-cad-status {{ if eq (printf "%s" .DispatchStatus) "INBOUND_311_TRIAGE" }}badge-cad-triage{{ else if eq (printf "%s" .DispatchStatus) "HIGHWAY_CONTAINMENT_DISPATCHED" }}badge-cad-containment{{ else if eq (printf "%s" .DispatchStatus) "RESOLVED_SAFE_CUSTODY" }}badge-cad-resolved{{ else }}badge-cad-triage{{ end }}">{{ .DispatchStatus }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row">
+              <span class="badge badge-hazard-severity {{ if eq (printf "%s" .HazardSeverity) "FREEWAY_MEDIAN_CRITICAL" }}badge-hazard-freeway{{ else if eq (printf "%s" .HazardSeverity) "ARTERIAL_TRAFFIC_HIGH" }}badge-hazard-arterial{{ else }}badge-hazard-safe{{ end }}">{{ .HazardSeverity }} (Strike Risk: {{ .TrafficStrikeRiskScore }}/100)</span>
+              <span class="badge badge-cad-metric">Containment Readiness: {{ .ContainmentReadinessScore }}/100 • Behavior: {{ .PetBehaviorState }}{{ if .ACOUnitAssigned }} • Unit: {{ .ACOUnitAssigned }}{{ end }}</span>
+            </div>
+
+            {{ if .DoNotChaseAlert }}
+            <div class="cad-no-chase-banner">
+              🛑 DO NOT CHASE — GOOD SAMARITAN CALMING PROTOCOL: High-velocity roadway ({{ .SpeedLimitMPH }} MPH, {{ .PetBehaviorState }}). Chasing drives panicked pets into active traffic lanes. Sit sideways, avert gaze &amp; toss high-odor lures while awaiting ACO L-barrier.
+            </div>
+            {{ end }}
+
+            {{ if .CustodyResolutionCode }}
+            <div class="cad-resolution-banner">
+              ✅ SAFE CUSTODY INTERCEPT VERIFIED: {{ .CustodyResolutionCode }} (ACO Unit {{ .ACOUnitAssigned }} · DOT VMS Cleared)
+            </div>
+            {{ end }}
+
+            <div class="decomp-checklist-list cad-protocol-list" aria-label="Highway &amp; Good Samaritan Containment Protocol">
+              {{ range .ProtocolSteps }}
+              <div class="decomp-checklist-item cad-protocol-step">
+                <span class="badge {{ if .Completed }}badge-hop-match{{ else }}badge-hop-miss{{ end }}">{{ if .Completed }}DONE{{ else }}PENDING{{ end }}</span>
+                <strong class="decomp-item-category">[{{ .Role }}]</strong>
+                <span class="decomp-item-title">{{ .Instruction }}</span>
+              </div>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              {{ if ne (printf "%s" .DispatchStatus) "RESOLVED_SAFE_CUSTODY" }}
+              <button type="button" class="btn btn-sm btn-secondary btn-deploy-cad-containment" data-incident-id="{{ .IncidentID }}">🚧 Deploy DOT VMS Advisory &amp; ACO L-Barrier Containment</button>
+              <button type="button" class="btn btn-sm btn-primary btn-resolve-cad-custody" data-incident-id="{{ .IncidentID }}">✅ Confirm Safe Slip-Lead Capture &amp; ACO Custody Handoff</button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="cad-incidents-empty-msg">No municipal 311 or animal control CAD incidents recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/municipal-cad.js" defer></script>
+</body>
+</html>
