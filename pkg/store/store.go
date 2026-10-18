@@ -91,6 +91,7 @@ const (
 	CollectionHumaneTrapDeployments     = "humane_trap_deployments"
 	CollectionMicrochipScanCases        = "microchip_scan_cases"
 	CollectionReunionDecompressionPlans = "reunion_decompression_plans"
+	CollectionWildlifeCorridorReports   = "wildlife_corridor_reports"
 )
 
 // DefaultCollections returns all canonical state store collections.
@@ -142,6 +143,7 @@ func DefaultCollections() []string {
 		CollectionHumaneTrapDeployments,
 		CollectionMicrochipScanCases,
 		CollectionReunionDecompressionPlans,
+		CollectionWildlifeCorridorReports,
 	}
 }
 
