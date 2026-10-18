@@ -10923,12 +10923,7 @@ textarea:focus-visible,
 .badge-threat-extreme,
 .badge-threat-elevated,
 .badge-threat-safe,
-.badge-corridor-metric {
-   Milestone 14.2: Municipal 311 / Animal Control Dispatch CAD Bridge,
-   Roadway Hazard Alerts & Good Samaritan Safe-Capture Routing Cockpit
-   WCAG AAA High-Contrast Badges & Roadway Alerts (> 7.1:1 in Dark & Light Modes)
-   ============================================================================ */
-
+.badge-corridor-metric,
 .badge-cad-status,
 .badge-cad-triage,
 .badge-cad-containment,
@@ -10937,12 +10932,7 @@ textarea:focus-visible,
 .badge-hazard-freeway,
 .badge-hazard-arterial,
 .badge-hazard-safe,
-.badge-cad-metric {
-   Milestone 14.3: Emergency Foster Network Capacity, Quarantine Biosecurity &
-   Medical Foster Matching Cockpit
-   WCAG AAA High-Contrast Badges & Isolation Banners (> 7.1:1 in Dark & Light Modes)
-   ============================================================================ */
-
+.badge-cad-metric,
 .badge-foster-status,
 .badge-foster-pending,
 .badge-foster-staged,
@@ -10961,7 +10951,8 @@ textarea:focus-visible,
   letter-spacing: 0.03em;
 }
 
-.corridor-mitigation-list {
+.corridor-mitigation-list,
+.cad-protocol-list,
 .foster-checks-list {
   display: flex;
   flex-direction: column;
@@ -10973,13 +10964,15 @@ textarea:focus-visible,
   border: 1px solid var(--border-color);
 }
 
-[data-theme="light"] .corridor-mitigation-list {
+[data-theme="light"] .corridor-mitigation-list,
+[data-theme="light"] .cad-protocol-list,
 [data-theme="light"] .foster-checks-list {
   background-color: #f8fafc;
   border: 1px solid #cbd5e1;
 }
 
-.corridor-mitigation-item {
+.corridor-mitigation-item,
+.cad-protocol-item,
 .foster-check-item {
   display: flex;
   align-items: center;
@@ -10988,51 +10981,6 @@ textarea:focus-visible,
   font-size: 0.8125rem;
 }
 
-/* Dark Theme (:root and [data-theme="dark"]) — WCAG AAA (> 7.1:1) */
-:root .badge-corridor-watch,
-[data-theme="dark"] .badge-corridor-watch,
-:root .badge-threat-extreme,
-[data-theme="dark"] .badge-threat-extreme {
-  background-color: #7f1d1d;
-  color: #ffffff;
-  border: 1px solid #f87171;
-}
-
-:root .badge-corridor-hazing,
-[data-theme="dark"] .badge-corridor-hazing,
-:root .badge-threat-elevated,
-[data-theme="dark"] .badge-threat-elevated {
-  background-color: #78350f;
-  color: #ffffff;
-  border: 1px solid #f59e0b;
-}
-
-:root .badge-corridor-cleared,
-[data-theme="dark"] .badge-corridor-cleared,
-:root .badge-threat-safe,
-[data-theme="dark"] .badge-threat-safe {
-  background-color: #064e3b;
-  color: #ffffff;
-  border: 1px solid #10b981;
-}
-
-:root .badge-corridor-metric,
-[data-theme="dark"] .badge-corridor-metric {
-  background-color: #1e3a8a;
-  color: #ffffff;
-  border: 1px solid #60a5fa;
-}
-
-:root .corridor-small-prey-banner,
-[data-theme="dark"] .corridor-small-prey-banner {
-  background-color: #4c1d95;
-  color: #ffffff;
-  border: 2px solid #c084fc;
-/* Dark Theme (:root and [data-theme="dark"]) — WCAG AAA (> 7.1:1) */
-:root .badge-cad-triage,
-[data-theme="dark"] .badge-cad-triage,
-:root .badge-hazard-freeway,
-[data-theme="dark"] .badge-hazard-freeway {
 .foster-checkbox-group {
   display: flex;
   flex-direction: column;
@@ -11049,6 +10997,14 @@ textarea:focus-visible,
 }
 
 /* Dark Theme (:root and [data-theme="dark"]) — WCAG AAA (> 7.1:1) */
+:root .badge-corridor-watch,
+[data-theme="dark"] .badge-corridor-watch,
+:root .badge-threat-extreme,
+[data-theme="dark"] .badge-threat-extreme,
+:root .badge-cad-triage,
+[data-theme="dark"] .badge-cad-triage,
+:root .badge-hazard-freeway,
+[data-theme="dark"] .badge-hazard-freeway,
 :root .badge-foster-pending,
 [data-theme="dark"] .badge-foster-pending,
 :root .badge-bio-iso,
@@ -11058,10 +11014,14 @@ textarea:focus-visible,
   border: 1px solid #f87171;
 }
 
+:root .badge-corridor-hazing,
+[data-theme="dark"] .badge-corridor-hazing,
+:root .badge-threat-elevated,
+[data-theme="dark"] .badge-threat-elevated,
 :root .badge-cad-containment,
 [data-theme="dark"] .badge-cad-containment,
 :root .badge-hazard-arterial,
-[data-theme="dark"] .badge-hazard-arterial {
+[data-theme="dark"] .badge-hazard-arterial,
 :root .badge-foster-staged,
 [data-theme="dark"] .badge-foster-staged,
 :root .badge-bio-medical,
@@ -11071,10 +11031,14 @@ textarea:focus-visible,
   border: 1px solid #f59e0b;
 }
 
+:root .badge-corridor-cleared,
+[data-theme="dark"] .badge-corridor-cleared,
+:root .badge-threat-safe,
+[data-theme="dark"] .badge-threat-safe,
 :root .badge-cad-resolved,
 [data-theme="dark"] .badge-cad-resolved,
 :root .badge-hazard-safe,
-[data-theme="dark"] .badge-hazard-safe {
+[data-theme="dark"] .badge-hazard-safe,
 :root .badge-foster-active,
 [data-theme="dark"] .badge-foster-active,
 :root .badge-bio-cleared,
@@ -11084,8 +11048,10 @@ textarea:focus-visible,
   border: 1px solid #10b981;
 }
 
+:root .badge-corridor-metric,
+[data-theme="dark"] .badge-corridor-metric,
 :root .badge-cad-metric,
-[data-theme="dark"] .badge-cad-metric {
+[data-theme="dark"] .badge-cad-metric,
 :root .badge-foster-metric,
 [data-theme="dark"] .badge-foster-metric {
   background-color: #1e293b;
@@ -11093,8 +11059,10 @@ textarea:focus-visible,
   border: 1px solid #94a3b8;
 }
 
+:root .corridor-small-prey-banner,
+[data-theme="dark"] .corridor-small-prey-banner,
 :root .cad-no-chase-banner,
-[data-theme="dark"] .cad-no-chase-banner {
+[data-theme="dark"] .cad-no-chase-banner,
 :root .foster-iso-quarantine-banner,
 [data-theme="dark"] .foster-iso-quarantine-banner {
   background-color: #450a0a;
@@ -11108,11 +11076,9 @@ textarea:focus-visible,
 }
 
 :root .corridor-clearance-banner,
-[data-theme="dark"] .corridor-clearance-banner {
-  background-color: #064e3b;
-  color: #ffffff;
+[data-theme="dark"] .corridor-clearance-banner,
 :root .cad-resolution-banner,
-[data-theme="dark"] .cad-resolution-banner {
+[data-theme="dark"] .cad-resolution-banner,
 :root .foster-authorization-banner,
 [data-theme="dark"] .foster-authorization-banner {
   background-color: #064e3b;
@@ -11127,10 +11093,9 @@ textarea:focus-visible,
 
 /* Light Theme ([data-theme="light"]) — WCAG AAA (> 7.1:1) */
 [data-theme="light"] .badge-corridor-watch,
-[data-theme="light"] .badge-threat-extreme {
-  background-color: #fef2f2;
+[data-theme="light"] .badge-threat-extreme,
 [data-theme="light"] .badge-cad-triage,
-[data-theme="light"] .badge-hazard-freeway {
+[data-theme="light"] .badge-hazard-freeway,
 [data-theme="light"] .badge-foster-pending,
 [data-theme="light"] .badge-bio-iso {
   background-color: #fee2e2;
@@ -11139,10 +11104,9 @@ textarea:focus-visible,
 }
 
 [data-theme="light"] .badge-corridor-hazing,
-[data-theme="light"] .badge-threat-elevated {
-  background-color: #fffbeb;
+[data-theme="light"] .badge-threat-elevated,
 [data-theme="light"] .badge-cad-containment,
-[data-theme="light"] .badge-hazard-arterial {
+[data-theme="light"] .badge-hazard-arterial,
 [data-theme="light"] .badge-foster-staged,
 [data-theme="light"] .badge-bio-medical {
   background-color: #fef3c7;
@@ -11151,10 +11115,9 @@ textarea:focus-visible,
 }
 
 [data-theme="light"] .badge-corridor-cleared,
-[data-theme="light"] .badge-threat-safe {
-  background-color: #ecfdf5;
+[data-theme="light"] .badge-threat-safe,
 [data-theme="light"] .badge-cad-resolved,
-[data-theme="light"] .badge-hazard-safe {
+[data-theme="light"] .badge-hazard-safe,
 [data-theme="light"] .badge-foster-active,
 [data-theme="light"] .badge-bio-cleared {
   background-color: #d1fae5;
@@ -11162,21 +11125,16 @@ textarea:focus-visible,
   border: 1px solid #047857;
 }
 
-[data-theme="light"] .badge-corridor-metric {
-  background-color: #eff6ff;
-  color: #1e3a8a;
-  border: 1px solid #1d4ed8;
-}
-
-[data-theme="light"] .corridor-small-prey-banner {
-[data-theme="light"] .badge-cad-metric {
+[data-theme="light"] .badge-corridor-metric,
+[data-theme="light"] .badge-cad-metric,
 [data-theme="light"] .badge-foster-metric {
   background-color: #f1f5f9;
   color: #0f172a;
   border: 1px solid #475569;
 }
 
-[data-theme="light"] .cad-no-chase-banner {
+[data-theme="light"] .corridor-small-prey-banner,
+[data-theme="light"] .cad-no-chase-banner,
 [data-theme="light"] .foster-iso-quarantine-banner {
   background-color: #fef2f2;
   color: #7f1d1d;
@@ -11188,9 +11146,8 @@ textarea:focus-visible,
   margin: 0.5rem 0;
 }
 
-[data-theme="light"] .corridor-clearance-banner {
-  background-color: #ecfdf5;
-[data-theme="light"] .cad-resolution-banner {
+[data-theme="light"] .corridor-clearance-banner,
+[data-theme="light"] .cad-resolution-banner,
 [data-theme="light"] .foster-authorization-banner {
   background-color: #d1fae5;
   color: #064e3b;
@@ -11201,5 +11158,6 @@ textarea:focus-visible,
   font-weight: 700;
   margin: 0.5rem 0;
 }
+
 
 

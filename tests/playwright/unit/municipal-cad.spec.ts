@@ -34,6 +34,7 @@ function contrastRatio(fgStr: string, bgStr: string): number {
 }
 
 test.describe('Municipal 311 / Animal Control Dispatch CAD Bridge Cockpit UI (/municipal-cad)', () => {
+  test.describe.configure({ mode: 'serial' });
   test('1. /municipal-cad renders seeded incidents (cad-inc-101, cad-inc-102, cad-inc-103), protocol steps, DO-NOT-CHASE alert banner, and safe custody banner with zero CSP errors', async ({
     page,
   }) => {
