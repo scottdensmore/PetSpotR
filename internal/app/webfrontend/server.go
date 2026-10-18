@@ -501,6 +501,8 @@ func (s *Server) routes() {
 	s.registerTransportRelayRoutes()
 	// Forensic DNA, Coat-Pattern Biometrics & Senior/Blind Pet Cognitive Disorientation Triage Cockpit routes (Milestone 14.5)
 	s.registerBiometricForensicsRoutes()
+	// Aquatic, Floodwater & Ice-Rescue Swiftwater Canine/Feline Extraction Cockpit routes (Milestone 15.1)
+	s.registerSwiftwaterRescueRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

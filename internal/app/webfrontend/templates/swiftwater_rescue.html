@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Aquatic, Floodwater &amp; Ice-Rescue Swiftwater Canine/Feline Extraction Cockpit.">
+  <title>Aquatic, Floodwater &amp; Ice-Rescue Swiftwater Canine/Feline Extraction Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/microchip-federation" class="nav-link nav-link-emergency" id="nav-microchip-federation">📡 Microchip Federation</a></li>
+          <li><a href="/reunion-decompression" class="nav-link nav-link-emergency" id="nav-reunion-decompression">🧘 Reunion Decompression</a></li>
+          <li><a href="/foster-network" class="nav-link nav-link-emergency" id="nav-foster-network">🏡 Foster Biosecurity</a></li>
+          <li><a href="/biometric-forensics" class="nav-link nav-link-emergency" id="nav-biometric-forensics">🧬 Biometric Forensics</a></li>
+          <li><a href="/swiftwater-rescue" class="nav-link active nav-link-emergency" id="nav-swiftwater-rescue">🌊 Swiftwater &amp; Ice Rescue</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="swiftwater-rescue-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header swiftwater-rescue-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🌊 NFPA 1670 SWIFTWATER, FLOODWATER &amp; FRACTURED ICE-SHELF EXTRACTION</span>
+        </div>
+        <h1>Aquatic, Floodwater &amp; Ice-Rescue Swiftwater Canine/Feline Extraction Cockpit</h1>
+        <p class="text-secondary">
+          Downstream Spectra Throw-Bag Rigging, Low-PSI Inflatable Ice-Shelf Sled Flotation, Horizontal Low-Stress Haul &amp; Active Bair Hugger Core Rewarming to Prevent Circum-Rescue Cardiovascular Collapse.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid swiftwater-rescue-kpi-grid" aria-label="Swiftwater &amp; Ice-Rescue Operations Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Swiftwater &amp; Ice Rescue Ops</span>
+        <strong class="kpi-value" id="kpi-sw-total">{{ len .Ops }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Extreme Ice / Hypothermia Risks</span>
+        <strong class="kpi-value" id="kpi-sw-hypothermia">1</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Active Cold-Shock Collapse Alerts</span>
+        <strong class="kpi-value" id="kpi-sw-coldshock">2</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Extracted &amp; Rewarmed Stable</span>
+        <strong class="kpi-value" id="kpi-sw-extracted">1</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="swiftwater-rescue-live-status" class="humane-traps-live-status swiftwater-rescue-live-status" role="status" aria-live="polite">
+      Monitoring {{ len .Ops }} aquatic, floodwater &amp; ice-rescue swiftwater extraction operations.
+    </div>
+
+    <div class="trust-cockpit-grid swiftwater-rescue-cockpit-grid">
+      <!-- Section 1: Evaluate Swiftwater Rescue Op Form + Simulation Presets -->
+      <section class="glass-card trust-panel" id="sw-create-panel" aria-labelledby="heading-create-sw-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-create-sw-op">Evaluate Swiftwater, Floodwater &amp; Ice-Rescue Extraction Op</h2>
+          <span class="badge badge-sw-metric">NFPA 1670 + Bair Hugger Rewarming</span>
+        </div>
+
+        <form id="form-create-sw-op" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="sw-pet-id">Stranded Pet ID</label>
+              <input type="text" id="sw-pet-id" class="form-control" value="pet-2026-001" required>
+            </div>
+            <div class="form-group">
+              <label for="sw-pet-name">Pet Name</label>
+              <input type="text" id="sw-pet-name" class="form-control" value="Yukon" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="sw-pet-species">Species</label>
+              <select id="sw-pet-species" class="form-control" required>
+                <option value="DOG" selected>DOG</option>
+                <option value="CAT">CAT</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sw-waterway-name">Waterway / Ice-Shelf / Flood Channel</label>
+              <input type="text" id="sw-waterway-name" class="form-control" value="Green Lake North Ice Shelf" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="sw-hazard-env">Aquatic / Ice Hazard Environment</label>
+              <select id="sw-hazard-env" class="form-control" required>
+                <option value="FRACTURED_LAKE_ICE_SHELF" selected>FRACTURED_LAKE_ICE_SHELF (Thin / Fractured Pond or Lake Ice Shelf)</option>
+                <option value="FLASH_FLOOD_STORM_CHANNEL">FLASH_FLOOD_STORM_CHANNEL (High-Velocity Flash Flood Culvert / Weir)</option>
+                <option value="TIDAL_MUDFLAT_ESTUARY">TIDAL_MUDFLAT_ESTUARY (Tidal Mudflat &amp; Estuary Entrapment)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sw-water-temp">Water Temperature (°F)</label>
+              <input type="number" id="sw-water-temp" class="form-control" min="28" max="85" step="1" value="34" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="sw-current-knots">Current Velocity (Knots)</label>
+              <input type="number" id="sw-current-knots" class="form-control" min="0" max="25" step="0.5" value="1.5" required>
+            </div>
+            <div class="form-group foster-checkbox-group">
+              <label class="checkbox-label" for="sw-throwbag-deployed">
+                <input type="checkbox" id="sw-throwbag-deployed">
+                <span>PFD &amp; 75ft Spectra Throw-Bag Deployed</span>
+              </label>
+              <label class="checkbox-label" for="sw-warming-ready">
+                <input type="checkbox" id="sw-warming-ready">
+                <span>Bair Hugger Active Warming Blanket Ready</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-create-sw-op" class="btn btn-primary">Evaluate Swiftwater &amp; Ice-Rescue Op</button>
+        </form>
+
+        <div class="trust-subsection">
+          <h3>Swiftwater, Floodwater &amp; Ice-Shelf Scenario Simulators</h3>
+          <div class="trust-sim-actions">
+            <button type="button" id="btn-sim-ice-breakthrough" class="btn btn-secondary">🧊 Simulate 33°F Fractured Pond Ice Shelf Breakthrough (Canine Cold-Shock Alert)</button>
+            <button type="button" id="btn-sim-flash-flood-culvert" class="btn btn-secondary">🌊 Simulate 8.0-Knot Flash Flood Storm Channel Washout (High-Velocity Current)</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Active Swiftwater Rescue Ops Grid -->
+      <section class="glass-card trust-panel" id="sw-ops-panel" aria-labelledby="heading-sw-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-sw-ops">Active Swiftwater, Floodwater &amp; Ice-Rescue Extraction Ops</h2>
+          <span id="sw-ops-count-badge" class="badge badge-secondary">{{ len .Ops }} Ops</span>
+        </div>
+
+        <div id="sw-ops-list" class="trust-screenings-list sw-ops-list" role="list">
+          {{ range .Ops }}
+          <article class="trust-screening-card sw-op-card" data-op-id="{{ .OpID }}" data-extraction-status="{{ .ExtractionStatus }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ .PetName }} ({{ .Species }} · {{ .WaterwayName }} · {{ .HazardEnvironment }})</strong>
+                <code class="trust-pet-id">{{ .OpID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-sw-status {{ if eq (printf "%s" .ExtractionStatus) "STRANDED_IN_SWIFTWATER" }}badge-sw-stranded{{ else if eq (printf "%s" .ExtractionStatus) "THROW_BAG_RIGGED_APPROACH" }}badge-sw-rigged{{ else if eq (printf "%s" .ExtractionStatus) "EXTRACTED_WARMING_STABLE" }}badge-sw-extracted{{ else }}badge-sw-stranded{{ end }}">{{ .ExtractionStatus }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row">
+              <span class="badge badge-hydro-risk {{ if eq (printf "%s" .HydroRisk) "EXTREME_ICE_HYPOTHERMIA_RISK" }}badge-hydro-extreme{{ else if eq (printf "%s" .HydroRisk) "ELEVATED_FLOOD_CURRENT_RISK" }}badge-hydro-elevated{{ else }}badge-hydro-safe{{ end }}">{{ .HydroRisk }}</span>
+              <span class="badge badge-sw-metric">Hypothermia Risk: {{ .HypothermiaRiskScore }}/100 • Rigging Readiness: {{ .RiggingReadinessScore }}/100 • Water Temp: {{ .WaterTempFahrenheit }}°F • Current: {{ printf "%.1f" .CurrentVelocityKnots }} kts</span>
+            </div>
+
+            {{ if .ColdShockAlert }}
+            <div class="sw-coldshock-alert-banner">
+              🥶 COLD SHOCK &amp; CIRCUM-RESCUE COLLAPSE ALERT: {{ .WaterTempFahrenheit }}°F water ({{ printf "%.1f" .CurrentVelocityKnots }} kts) at {{ .WaterwayName }} — Execute horizontal haul &amp; active core rewarming immediately.
+            </div>
+            {{ end }}
+
+            {{ if .ExtractionClearanceCode }}
+            <div class="sw-clearance-banner">
+              ✅ SWIFTWATER EXTRACTION &amp; REWARMING VERIFIED: {{ .ExtractionClearanceCode }}
+            </div>
+            {{ end }}
+
+            <div class="sw-steps-list" aria-label="NFPA 1670 Swiftwater Rigging &amp; Rewarming Checklist">
+              {{ range .ProtocolSteps }}
+              <div class="sw-step-item">
+                <span class="badge {{ if .Completed }}badge-hop-match{{ else }}badge-hop-miss{{ end }}">{{ if .Completed }}COMPLETE{{ else }}PENDING{{ end }}</span>
+                <strong class="sw-step-category">[{{ .Category }}]</strong>
+                <span class="sw-step-title">{{ .Title }}</span>
+              </div>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              {{ if ne (printf "%s" .ExtractionStatus) "EXTRACTED_WARMING_STABLE" }}
+              <button type="button" class="btn btn-sm btn-secondary btn-deploy-sw-rigging" data-op-id="{{ .OpID }}">🪢 Deploy Throw-Bag Rigging &amp; Inflatable Ice Sled</button>
+              <button type="button" class="btn btn-sm btn-primary btn-complete-sw-extraction" data-op-id="{{ .OpID }}">🔥 Complete Shoreline Extraction &amp; Bair Hugger Rewarming</button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="sw-ops-empty-msg">No swiftwater or ice-rescue operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/swiftwater-rescue.js" defer></script>
+</body>
+</html>
