@@ -1,7 +1,6 @@
 # Git metadata & entire CLI
 .git
 .gitignore
-.entire/
 
 # Documentation
 *.md
