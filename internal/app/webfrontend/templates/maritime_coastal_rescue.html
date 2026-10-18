@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Maritime, Coastal &amp; Tidal Mudflat Pet Rescue Operations Cockpit.">
+  <title>Maritime, Coastal &amp; Tidal Mudflat Pet Rescue Operations Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#maritime-coastal-rescue-main" class="skip-link" id="skip-to-main">Skip to Maritime Rescue Cockpit</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/swiftwater-rescue" class="nav-link nav-link-emergency" id="nav-swiftwater-rescue">🌊 Swiftwater &amp; Ice Rescue</a></li>
+          <li><a href="/avalanche-winter-rescue" class="nav-link nav-link-emergency" id="nav-avalanche-winter-rescue">🏔️ Avalanche &amp; Winter SAR</a></li>
+          <li><a href="/reptile-ectotherm-rescue" class="nav-link nav-link-emergency" id="nav-reptile-ectotherm-rescue">🦎 Reptile &amp; Ectotherm</a></li>
+          <li><a href="/usar-structural-collapse" class="nav-link nav-link-emergency" id="nav-usar-structural-collapse">🏚️ USAR Collapse</a></li>
+          <li><a href="/maritime-coastal-rescue" class="nav-link active nav-link-emergency" id="nav-maritime-coastal-rescue">⚓ Maritime &amp; Coastal SAR</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="maritime-coastal-rescue-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header maritime-coastal-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>⚓ MARITIME, COASTAL &amp; TIDAL MUDFLAT PET RESCUE OPERATIONS</span>
+        </div>
+        <h1>Maritime, Coastal &amp; Tidal Mudflat Pet Rescue Operations Cockpit</h1>
+        <p class="text-secondary">
+          Tidal Mudflat Anaerobic Suction Relief (Air-Lance &amp; Mud-Walker Pontoons), Rip-Current PWC Surf Sled Tow-In, Tetrapod Breakwater RHIB Hoisting, Saltwater Aspiration Humidified O2 Triage &amp; Harbor Deck Rewarming.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid maritime-coastal-kpi-grid" aria-label="Maritime &amp; Coastal Rescue Operations Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Maritime SAR Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Tidal / Aspiration Alerts</span>
+        <strong class="kpi-value" id="kpi-critical-tide">{{ .CriticalTideCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Hovercraft / Mud-Sled Staged</span>
+        <strong class="kpi-value" id="kpi-staged-vessel">{{ .StagedVesselCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Extracted Harbor Deck Safe</span>
+        <strong class="kpi-value" id="kpi-extracted-safe">{{ .ExtractedSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="maritime-coastal-live-status" class="humane-traps-live-status maritime-coastal-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} maritime, coastal &amp; tidal mudflat rescue operations.
+    </div>
+
+    <div class="trust-cockpit-grid maritime-coastal-cockpit-grid">
+      <!-- Section 1: Evaluate Maritime Rescue Operation Form + Scenario Simulators -->
+      <section class="glass-card trust-panel" id="mc-evaluate-panel" aria-labelledby="heading-evaluate-mc-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-mc-op">Evaluate Maritime, Coastal &amp; Tidal Mudflat Rescue</h2>
+          <span class="badge badge-mc-zone">Hovercraft · PWC Sled · Air-Lance</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Maritime &amp; Tidal Emergency Scenario Simulators</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary mc-scenario-btn" data-scenario="tidal-mudflat-entrapment" id="btn-sim-tidal-mudflat">
+              ⚠️ Simulate Estuary Tidal Mudflat Suction &amp; Saltwater Aspiration (Surge 62 cm/hr · Mud 48 cm · 8.5°C)
+            </button>
+            <button type="button" class="btn btn-secondary mc-scenario-btn" data-scenario="rip-current-surf-tow" id="btn-sim-rip-current">
+              🌊 Simulate Rip-Current Surf Break PWC Tow-In Sled Extraction (Swell 2.8m · Surge 30 cm/hr)
+            </button>
+            <button type="button" class="btn btn-secondary mc-scenario-btn" data-scenario="salt-marsh-airboat" id="btn-sim-salt-marsh">
+              🌾 Simulate Salt Marsh Cordgrass Slough Airboat &amp; PFD Harness Recovery
+            </button>
+          </div>
+        </div>
+
+        <div id="eval-error-banner" class="mc-error-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="maritime-eval-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-pet-name">Pet Name</label>
+              <input type="text" id="eval-pet-name" name="pet_name" class="form-control" value="Harbor" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-species">Species / Breed</label>
+              <input type="text" id="eval-species" name="species" class="form-control" value="Dog - Chesapeake Bay Retriever" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-weight-kg">Estimated Weight (kg)</label>
+              <input type="number" id="eval-weight-kg" name="weight_kg" class="form-control" min="0.5" max="150" step="0.5" value="34.0" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-maritime-zone">Maritime / Coastal Zone Classification</label>
+              <select id="eval-maritime-zone" name="maritime_zone" class="form-control" required>
+                <option value="TIDAL_MUDFLAT_ESTUARY" selected>TIDAL_MUDFLAT_ESTUARY (Estuary Mudflat &amp; Anaerobic Silt Basin)</option>
+                <option value="RIP_CURRENT_SURF_BREAK">RIP_CURRENT_SURF_BREAK (Rip-Current Channel &amp; Heavy Surf Break)</option>
+                <option value="JETTY_TETRAPOD_BREAKWATER">JETTY_TETRAPOD_BREAKWATER (Armored Dolos / Tetrapod Rock Breakwater)</option>
+                <option value="OFFSHORE_VESSEL_OVERBOARD">OFFSHORE_VESSEL_OVERBOARD (Offshore / Harbor Channel Vessel Overboard)</option>
+                <option value="SALT_MARSH_CORDGRASS_SLOUGH">SALT_MARSH_CORDGRASS_SLOUGH (Intertidal Salt Marsh &amp; Cordgrass Slough)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-tide-surge-cm">Incoming Tide Surge Rate (cm/hr)</label>
+              <input type="number" id="eval-tide-surge-cm" name="tide_surge_rate_cm_hr" class="form-control" min="0" max="200" step="1" value="55.0" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-swell-height-m">Significant Swell Height (m)</label>
+              <input type="number" id="eval-swell-height-m" name="swell_height_meters" class="form-control" min="0" max="15" step="0.1" value="1.4" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-water-temp-c">Water Temperature (°C)</label>
+              <input type="number" id="eval-water-temp-c" name="water_temp_celsius" class="form-control" min="-2" max="40" step="0.5" value="9.0" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-mud-suction-cm">Mud Suction Entrapment Depth (cm)</label>
+              <input type="number" id="eval-mud-suction-cm" name="mud_suction_depth_cm" class="form-control" min="0" max="150" step="1" value="42.0" required>
+            </div>
+          </div>
+
+          <div class="mc-checkbox-grid">
+            <label class="checkbox-label" for="eval-saltwater-aspiration">
+              <input type="checkbox" id="eval-saltwater-aspiration" name="saltwater_aspiration_suspected" checked>
+              <span>Suspected Saltwater Aspiration / Saline Foam Cough</span>
+            </label>
+            <label class="checkbox-label" for="eval-air-lance-deployed">
+              <input type="checkbox" id="eval-air-lance-deployed" name="mud_walkers_air_lance_deployed">
+              <span>Mud-Walkers &amp; Pneumatic Air-Lance Deployed</span>
+            </label>
+            <label class="checkbox-label" for="eval-pfd-secured">
+              <input type="checkbox" id="eval-pfd-secured" name="canine_pfd_harness_secured">
+              <span>Buoyant Canine PFD Dorsal Harness Secured</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-evaluate-maritime-op" class="btn btn-primary">Evaluate Maritime Rescue Operation</button>
+        </form>
+      </section>
+
+      <!-- Section 2: Filter Controls, Active Operations List & Active Operation Workspace -->
+      <section class="glass-card trust-panel" id="mc-ops-panel" aria-labelledby="heading-mc-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-mc-ops">Active Maritime, Coastal &amp; Tidal Mudflat Operations</h2>
+          <span id="mc-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="mc-filter-bar" role="region" aria-label="Filter Maritime Rescue Operations">
+          <div class="form-group">
+            <label for="filter-zone">Filter by Maritime Zone</label>
+            <select id="filter-zone" class="form-control">
+              <option value="">All Maritime Zones</option>
+              <option value="TIDAL_MUDFLAT_ESTUARY">TIDAL_MUDFLAT_ESTUARY</option>
+              <option value="RIP_CURRENT_SURF_BREAK">RIP_CURRENT_SURF_BREAK</option>
+              <option value="JETTY_TETRAPOD_BREAKWATER">JETTY_TETRAPOD_BREAKWATER</option>
+              <option value="OFFSHORE_VESSEL_OVERBOARD">OFFSHORE_VESSEL_OVERBOARD</option>
+              <option value="SALT_MARSH_CORDGRASS_SLOUGH">SALT_MARSH_CORDGRASS_SLOUGH</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-status">Filter by Rescue Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Statuses</option>
+              <option value="TIDAL_FLOOD_ASPIRATION_CRITICAL">TIDAL_FLOOD_ASPIRATION_CRITICAL</option>
+              <option value="HOVERCRAFT_MUD_SLED_STAGED">HOVERCRAFT_MUD_SLED_STAGED</option>
+              <option value="EXTRACTED_HARBOR_DECK_SAFE">EXTRACTED_HARBOR_DECK_SAFE</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="mc-active-workspace" role="region" aria-label="Active Maritime Rescue Workspace" aria-live="polite">
+          {{ if .Operations }}
+          {{ $active := index .Operations 0 }}
+          <div class="mc-workspace-header">
+            <div>
+              <h3 class="mc-workspace-title">Active Workspace: {{ $active.PetName }} ({{ $active.Species }}) — <code>{{ $active.ID }}</code></h3>
+              <p class="mc-workspace-vessel"><strong>Assigned Vessel &amp; Rig:</strong> {{ $active.RequiredVessel }}</p>
+            </div>
+            <div class="mc-workspace-badges">
+              <span class="badge badge-mc-zone">{{ $active.MaritimeZone }}</span>
+              <span class="badge badge-mc-status {{ if eq (printf "%s" $active.Status) "TIDAL_FLOOD_ASPIRATION_CRITICAL" }}badge-mc-critical{{ else if eq (printf "%s" $active.Status) "HOVERCRAFT_MUD_SLED_STAGED" }}badge-mc-staged{{ else }}badge-mc-safe{{ end }}">{{ $active.Status }}</span>
+            </div>
+          </div>
+          <div class="mc-advisory-banner {{ if eq (printf "%s" $active.Status) "TIDAL_FLOOD_ASPIRATION_CRITICAL" }}mc-tidal-alert-banner{{ else if eq (printf "%s" $active.Status) "EXTRACTED_HARBOR_DECK_SAFE" }}mc-clearance-banner{{ else }}mc-staged-banner{{ end }}">
+            {{ $active.TidalRiskAdvisory }}
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="maritime-operations-list" class="trust-screenings-list mc-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card mc-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-zone="{{ $op.MaritimeZone }}" data-status="{{ $op.Status }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-mc-zone">{{ $op.MaritimeZone }}</span>
+                <span class="badge badge-mc-status {{ if eq (printf "%s" $op.Status) "TIDAL_FLOOD_ASPIRATION_CRITICAL" }}badge-mc-critical{{ else if eq (printf "%s" $op.Status) "HOVERCRAFT_MUD_SLED_STAGED" }}badge-mc-staged{{ else if eq (printf "%s" $op.Status) "EXTRACTED_HARBOR_DECK_SAFE" }}badge-mc-safe{{ else }}badge-mc-critical{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row mc-metrics-row">
+              <span class="badge badge-mc-zone">Tide Surge: {{ printf "%.1f" $op.TideSurgeRateCmHr }} cm/hr • Swell: {{ printf "%.1f" $op.SwellHeightMeters }} m • Water Temp: {{ printf "%.1f" $op.WaterTempCelsius }}°C • Mud Suction: {{ printf "%.1f" $op.MudSuctionDepthCm }} cm</span>
+            </div>
+
+            <div class="mc-flags-row">
+              {{ if $op.SaltwaterAspirationSuspected }}
+              <span class="badge badge-mc-flag">SALTWATER_ASPIRATION_SUSPECTED</span>
+              {{ end }}
+              {{ if ge $op.TideSurgeRateCmHr 45.0 }}
+              <span class="badge badge-mc-flag">EXTREME_TIDAL_FLOOD_SURGE</span>
+              {{ end }}
+              {{ if ge $op.MudSuctionDepthCm 35.0 }}
+              <span class="badge badge-mc-flag">ANAEROBIC_MUD_SUCTION_ENTRAPMENT</span>
+              {{ end }}
+              {{ if le $op.WaterTempCelsius 10.0 }}
+              <span class="badge badge-mc-flag">COLD_WATER_IMMERSION_HYPOTHERMIA</span>
+              {{ end }}
+            </div>
+
+            {{ if eq (printf "%s" $op.Status) "TIDAL_FLOOD_ASPIRATION_CRITICAL" }}
+            <div class="mc-tidal-alert-banner">
+              ⚠️ {{ $op.TidalRiskAdvisory }}
+            </div>
+            {{ end }}
+
+            {{ if $op.ClearanceToken }}
+            <div class="mc-clearance-banner">
+              ✅ HARBOR DECK EXTRACTION CLEARANCE VERIFIED: {{ $op.ClearanceToken }}
+            </div>
+            {{ end }}
+
+            <div class="mc-gear-recommendations">
+              <div><strong>Required Maritime Vessel &amp; Rig:</strong> {{ $op.RequiredVessel }}</div>
+              <div><strong>Tidal Risk Advisory:</strong> {{ $op.TidalRiskAdvisory }}</div>
+            </div>
+
+            <div class="mc-steps-list" aria-label="Maritime Suction Relief, PFD Rigging, Saltwater Aspiration O2 &amp; Harbor Deck Rewarming Protocol">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="mc-step-item">
+                <input
+                  type="checkbox"
+                  class="mc-step-checkbox"
+                  data-op-id="{{ $op.ID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "EXTRACTED_HARBOR_DECK_SAFE" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-mc-safe{{ else }}badge-mc-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="mc-step-id">[{{ $step.ID }}]</strong>
+                <span class="mc-step-title">{{ $step.Title }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary mc-select-workspace-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Inspect in Active Workspace
+              </button>
+              {{ if ne (printf "%s" $op.Status) "EXTRACTED_HARBOR_DECK_SAFE" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary mc-issue-clearance-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                ⚓ Issue Harbor Deck Safe Extraction Clearance
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="mc-ops-empty-msg">No maritime rescue operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/maritime-coastal-rescue.js" defer></script>
+</body>
+</html>
