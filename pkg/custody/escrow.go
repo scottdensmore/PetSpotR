@@ -17,7 +17,7 @@ var ErrInvalidHandoverPIN = errors.New("invalid 6-digit handover escrow PIN")
 
 func GenerateHandoverPIN(chainID, petID string, secretKey []byte) string {
 	mac := hmac.New(sha256.New, secretKey)
-	mac.Write([]byte(fmt.Sprintf("PIN|%s|%s", strings.TrimSpace(chainID), strings.TrimSpace(petID))))
+	_, _ = fmt.Fprintf(mac, "PIN|%s|%s", strings.TrimSpace(chainID), strings.TrimSpace(petID))
 	sum := mac.Sum(nil)
 	val := binary.BigEndian.Uint32(sum[:4])
 	pin := 100000 + (val % 900000)
