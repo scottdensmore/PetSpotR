@@ -203,8 +203,7 @@ func normalizeDomainMicrochip(raw string) (normalizedID string, registryName str
 		return clean, "Avid Identification Systems", true
 	case 10:
 		for i := 0; i < len(clean); i++ {
-			c := clean[i]
-			if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+			if !isHexByte(clean[i]) {
 				return "", "", false
 			}
 		}
@@ -212,6 +211,10 @@ func normalizeDomainMicrochip(raw string) (normalizedID string, registryName str
 	default:
 		return "", "", false
 	}
+}
+
+func isHexByte(c byte) bool {
+	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
 }
 
 func maskDomainMicrochip(raw string) string {

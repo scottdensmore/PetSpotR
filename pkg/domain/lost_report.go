@@ -581,31 +581,31 @@ func (r LostPetReport) Persisted() (LostPetRecord, ReportContact) {
 		emb = append([]float32(nil), primary.Embedding...)
 	}
 	return LostPetRecord{
-			PetID:                 r.PetID,
-			PetName:               r.PetName,
-			Species:               r.Species,
-			Breed:                 r.Breed,
-			PrimaryColor:          r.PrimaryColor,
-			Description:           r.Description,
-			OwnerIdentityRef:      identityRef,
-			ImageObject:           r.ImageObject,
-			Images:                clonePetImages(r.Images),
-			Embedding:             emb,
-			ReportedAt:            r.ReportedAt,
-			Location:              r.Location,
-			GeocodingStatus:       r.GeocodingStatus,
-			Coordinates:           cloneLocationPoint(r.Coordinates),
-			Status:                r.Status,
-			OwnedBy:               normalizePrincipalRef(r.OwnedBy),
-			MicrochipID:           r.MicrochipID,
-			MicrochipRegistry:     r.MicrochipRegistry,
-			CollarBeacon:          r.CollarBeacon,
-			ReferenceAudioProfile: cloneAudioProfile(r.ReferenceAudioProfile),
-		}, NormalizeReportContact(ReportContact{
-			IdentityRef: identityRef,
-			Email:       r.ReporterEmail,
-			Phone:       r.Phone,
-		})
+		PetID:                 r.PetID,
+		PetName:               r.PetName,
+		Species:               r.Species,
+		Breed:                 r.Breed,
+		PrimaryColor:          r.PrimaryColor,
+		Description:           r.Description,
+		OwnerIdentityRef:      identityRef,
+		ImageObject:           r.ImageObject,
+		Images:                clonePetImages(r.Images),
+		Embedding:             emb,
+		ReportedAt:            r.ReportedAt,
+		Location:              r.Location,
+		GeocodingStatus:       r.GeocodingStatus,
+		Coordinates:           cloneLocationPoint(r.Coordinates),
+		Status:                r.Status,
+		OwnedBy:               normalizePrincipalRef(r.OwnedBy),
+		MicrochipID:           r.MicrochipID,
+		MicrochipRegistry:     r.MicrochipRegistry,
+		CollarBeacon:          r.CollarBeacon,
+		ReferenceAudioProfile: cloneAudioProfile(r.ReferenceAudioProfile),
+	}, NormalizeReportContact(ReportContact{
+		IdentityRef: identityRef,
+		Email:       r.ReporterEmail,
+		Phone:       r.Phone,
+	})
 }
 
 // NormalizeLostPetRecord canonicalizes persisted state, including legacy
