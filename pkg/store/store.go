@@ -86,7 +86,8 @@ const (
 )
 
 const (
-	CollectionPetCustodyChains = "pet_custody_chains"
+	CollectionPetCustodyChains       = "pet_custody_chains"
+	CollectionSightingTrustScreening = "sighting_trust_screenings"
 )
 
 // Sentinel errors for StateStore operations.
