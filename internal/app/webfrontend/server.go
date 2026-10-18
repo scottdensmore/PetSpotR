@@ -24,6 +24,7 @@ import (
 
 	"github.com/scottdensmore/petspotr/internal/app/foundpet"
 	"github.com/scottdensmore/petspotr/internal/app/lostpet"
+	"github.com/scottdensmore/petspotr/pkg/avianrecovery"
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/confinedspace"
 	"github.com/scottdensmore/petspotr/pkg/domain"
@@ -72,6 +73,7 @@ type Server struct {
 	evacSeedMu               sync.Mutex
 	ollamaClient             *ollama.Client
 	verticalRescueStore      *verticalrescue.Store
+	avianRecoveryStore       *avianrecovery.Store
 	handler                  http.Handler
 }
 
@@ -234,6 +236,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		smsWebhookSecret:         strings.TrimSpace(options.SMSWebhookSecret),
 		ollamaClient:             options.OllamaClient,
 		verticalRescueStore:      verticalrescue.NewStore(),
+		avianRecoveryStore:       avianrecovery.NewStore(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -522,6 +525,8 @@ func (s *Server) routes() {
 	s.registerVerticalRescueRoutes()
 	// Wildfire Smoke, Ashfall, Hazmat Plume & Respiratory Decontamination Triage Cockpit routes (Milestone 16.1)
 	s.registerHazmatDeconRoutes()
+	// Avian, Exotic Parrot & Falconry Telemetry Receiver, Flight-Corridor Thermals & Lure-Call Recovery Cockpit routes (Milestone 16.2)
+	s.registerAvianRecoveryRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
