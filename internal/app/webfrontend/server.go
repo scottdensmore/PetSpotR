@@ -505,6 +505,8 @@ func (s *Server) routes() {
 	s.registerSwiftwaterRescueRoutes()
 	// Working Dog & Service Animal ADA / Critical Medical-Alert Handler Priority Recovery Cockpit routes (Milestone 15.2)
 	s.registerServiceAnimalRoutes()
+	// Livestock, Equine & Exotic Companion Large-Animal Containment & Trailer Dispatch Cockpit routes (Milestone 15.3)
+	s.registerEquineLivestockRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Livestock, Equine &amp; Exotic Companion Large-Animal Containment &amp; Trailer Dispatch Cockpit.">
+  <title>Livestock, Equine &amp; Large-Animal Containment Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/microchip-federation" class="nav-link nav-link-emergency" id="nav-microchip-federation">📡 Microchip Federation</a></li>
+          <li><a href="/reunion-decompression" class="nav-link nav-link-emergency" id="nav-reunion-decompression">🧘 Reunion Decompression</a></li>
+          <li><a href="/foster-network" class="nav-link nav-link-emergency" id="nav-foster-network">🏡 Foster Biosecurity</a></li>
+          <li><a href="/biometric-forensics" class="nav-link nav-link-emergency" id="nav-biometric-forensics">🧬 Biometric Forensics</a></li>
+          <li><a href="/equine-livestock" class="nav-link active nav-link-emergency" id="nav-equine-livestock">🐎 Equine &amp; Livestock</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="equine-livestock-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header equine-livestock-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🐎 LARGE-ANIMAL STAMPEDE CONTAINMENT, PORTABLE CORRAL PANELS &amp; 4-HORSE GOOSENECK TRAILER DISPATCH</span>
+        </div>
+        <h1>Livestock, Equine &amp; Large-Animal Containment Cockpit</h1>
+        <p class="text-secondary">
+          Highway Stampede Siren-Blackout Enforcement, 12ft Interlocking Steel Corral Wing-Panels, Non-Slip 4-Horse Gooseneck Stock Trailer Dispatch &amp; EIA Coggins / Freeze-Brand Verification for Equine, Camelid, Caprine/Ovine &amp; Giant Companion Livestock.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid equine-livestock-kpi-grid" aria-label="Equine &amp; Livestock Containment Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Large-Animal Dispatches</span>
+        <strong class="kpi-value" id="kpi-eq-total">{{ len .Dispatches }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Highway Stampede Alerts</span>
+        <strong class="kpi-value" id="kpi-eq-stampede">2</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Portable Corral Panels Staged</span>
+        <strong class="kpi-value" id="kpi-eq-corralled">1</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Loaded Safe Paddock Custody</span>
+        <strong class="kpi-value" id="kpi-eq-loaded">1</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="equine-livestock-live-status" class="humane-traps-live-status equine-livestock-live-status" role="status" aria-live="polite">
+      Monitoring {{ len .Dispatches }} equine, camelid &amp; companion livestock containment dispatches.
+    </div>
+
+    <div class="trust-cockpit-grid equine-livestock-cockpit-grid">
+      <!-- Section 1: Create Equine/Livestock Dispatch Form + Scenario Simulators -->
+      <section class="glass-card trust-panel" id="eq-create-panel" aria-labelledby="heading-create-eq-dispatch">
+        <div class="trust-panel-header">
+          <h2 id="heading-create-eq-dispatch">Dispatch Large-Animal Corral &amp; Gooseneck Stock Trailer</h2>
+          <span class="badge badge-eq-metric">12ft Wing-Panels + 4-Horse Gooseneck</span>
+        </div>
+
+        <form id="form-create-eq-dispatch" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eq-pet-id">Displaced Equine / Livestock Pet ID</label>
+              <input type="text" id="eq-pet-id" class="form-control" value="pet-2026-001" required>
+            </div>
+            <div class="form-group">
+              <label for="eq-animal-name">Animal / Herd Name</label>
+              <input type="text" id="eq-animal-name" class="form-control" value="Valegro &amp; Starlight" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eq-animal-category">Large-Animal Category</label>
+              <select id="eq-animal-category" class="form-control" required>
+                <option value="EQUINE_WARMBLOOD" selected>EQUINE_WARMBLOOD (Horse / Warmblood / Pony / Donkey)</option>
+                <option value="CAMELID_ALPACA_HERD">CAMELID_ALPACA_HERD (Alpaca / Llama Herd)</option>
+                <option value="CAPRINE_OVINE_FLOCK">CAPRINE_OVINE_FLOCK (Companion Goat / Sheep / Potbellied Pig)</option>
+                <option value="TORTUOUS_EXOTIC_GIANT">TORTUOUS_EXOTIC_GIANT (Sulcata Giant Tortoise / Emu / Macaw)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="eq-breach-location">Pasture Breach / Highway Corridor Location</label>
+              <input type="text" id="eq-breach-location" class="form-control" value="SR-202 Snoqualmie Valley Bridle Corridor" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eq-head-count">Herd Head Count (1–50)</label>
+              <input type="number" id="eq-head-count" class="form-control" min="1" max="50" step="1" value="2" required>
+            </div>
+            <div class="form-group">
+              <label for="eq-weight-kg">Estimated Average Weight (kg, 25–1200)</label>
+              <input type="number" id="eq-weight-kg" class="form-control" min="25" max="1200" step="5" value="540" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group foster-checkbox-group">
+              <label class="checkbox-label" for="eq-trailer-dispatched">
+                <input type="checkbox" id="eq-trailer-dispatched">
+                <span>4-Horse Gooseneck Stock Trailer Dispatched</span>
+              </label>
+            </div>
+            <div class="form-group foster-checkbox-group">
+              <label class="checkbox-label" for="eq-panels-erected">
+                <input type="checkbox" id="eq-panels-erected">
+                <span>12ft Interlocking Steel Corral Panels Erected</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-create-eq-dispatch" class="btn btn-primary">Evaluate &amp; Dispatch Large-Animal Containment</button>
+        </form>
+
+        <div class="trust-subsection">
+          <h3>Equine &amp; Livestock Breach Scenario Simulators</h3>
+          <div class="trust-sim-actions">
+            <button type="button" id="btn-sim-spooked-thoroughbred" class="btn btn-secondary">🐎 Simulate 520kg Spooked Thoroughbred Gelding Near State Highway Corridor</button>
+            <button type="button" id="btn-sim-alpaca-herd-breach" class="btn btn-secondary">🦙 Simulate 4-Head Alpaca Herd Pasture Perimeter Fence Breach</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Active Equine & Livestock Dispatches Grid -->
+      <section class="glass-card trust-panel" id="eq-dispatches-panel" aria-labelledby="heading-eq-dispatches">
+        <div class="trust-panel-header">
+          <h2 id="heading-eq-dispatches">Active Equine, Camelid &amp; Livestock Containment Dispatches</h2>
+          <span id="eq-dispatches-count-badge" class="badge badge-secondary">{{ len .Dispatches }} Dispatches</span>
+        </div>
+
+        <div id="eq-dispatches-list" class="trust-screenings-list eq-dispatches-list" role="list">
+          {{ range .Dispatches }}
+          <article class="trust-screening-card eq-dispatch-card" data-dispatch-id="{{ .DispatchID }}" data-dispatch-status="{{ .DispatchStatus }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ .AnimalName }} ({{ .AnimalCategory }} · {{ .HeadCount }} head · {{ .EstimatedWeightKg }}kg)</strong>
+                <code class="trust-pet-id">{{ .DispatchID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-eq-status {{ if eq (printf "%s" .DispatchStatus) "LOOSE_HERD_CORRIDOR_ALERT" }}badge-eq-loose{{ else if eq (printf "%s" .DispatchStatus) "PORTABLE_CORRAL_STAGED" }}badge-eq-corralled{{ else if eq (printf "%s" .DispatchStatus) "LOADED_SAFE_PADDOCK_CUSTODY" }}badge-eq-loaded{{ else }}badge-eq-loose{{ end }}">{{ .DispatchStatus }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row">
+              <span class="badge badge-collision-risk {{ if eq (printf "%s" .CollisionRisk) "CRITICAL_HIGHWAY_STAMPEDE_RISK" }}badge-collision-critical{{ else if eq (printf "%s" .CollisionRisk) "ELEVATED_PASTURE_PERIMETER_RISK" }}badge-collision-elevated{{ else }}badge-collision-safe{{ end }}">{{ .CollisionRisk }}</span>
+              <span class="badge badge-eq-metric">Collision Risk: {{ .CollisionRiskScore }}/100 • Trailer Readiness: {{ .TrailerReadinessScore }}/100 • Breach: {{ .BreachLocation }}</span>
+            </div>
+
+            {{ if .HighwayStampedeAlert }}
+            <div class="eq-stampede-alert-banner">
+              🚨 HIGHWAY STAMPEDE &amp; SIREN BLACKOUT PROTOCOL: {{ .AnimalCategory }} ({{ .HeadCount }} head · {{ .EstimatedWeightKg }}kg) at {{ .BreachLocation }} — Enforce responder siren/air-horn blackout, deploy calm lead-mare sweet-feed bucket lure &amp; stage 12ft portable corral wing-panels.
+            </div>
+            {{ end }}
+
+            {{ if .PaddockClearanceCode }}
+            <div class="eq-paddock-banner">
+              ✅ GOOSENECK TRAILER &amp; PADDOCK CUSTODY VERIFIED: {{ .PaddockClearanceCode }}
+            </div>
+            {{ end }}
+
+            <div class="eq-steps-list" aria-label="Large-Animal Corral &amp; Gooseneck Trailer Containment Checklist">
+              {{ range .ContainmentSteps }}
+              <div class="eq-step-item">
+                <span class="badge {{ if .Completed }}badge-hop-match{{ else }}badge-hop-miss{{ end }}">{{ if .Completed }}STAGED{{ else }}PENDING{{ end }}</span>
+                <strong class="eq-step-category">[{{ .Category }}]</strong>
+                <span class="eq-step-title">{{ .Title }}</span>
+              </div>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              {{ if ne (printf "%s" .DispatchStatus) "LOADED_SAFE_PADDOCK_CUSTODY" }}
+              <button type="button" class="btn btn-sm btn-secondary btn-stage-eq-corral" data-dispatch-id="{{ .DispatchID }}">🚧 Stage 12ft Corral Panels &amp; Gooseneck Trailer</button>
+              <button type="button" class="btn btn-sm btn-primary btn-complete-eq-load" data-dispatch-id="{{ .DispatchID }}">🚛 Complete Safe Trailer Load &amp; Paddock Custody</button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="eq-dispatches-empty-msg">No equine or livestock containment dispatches recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/equine-livestock.js" defer></script>
+</body>
+</html>

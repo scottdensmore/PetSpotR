@@ -98,6 +98,7 @@ const (
 	CollectionBiometricForensicCases    = "biometric_forensic_cases"
 	CollectionSwiftwaterRescueOps       = "swiftwater_rescue_ops"
 	CollectionServiceAnimalCases        = "service_animal_cases"
+	CollectionEquineLivestockDispatches = "equine_livestock_dispatches"
 )
 
 // DefaultCollections returns all canonical state store collections.
@@ -156,6 +157,7 @@ func DefaultCollections() []string {
 		CollectionBiometricForensicCases,
 		CollectionSwiftwaterRescueOps,
 		CollectionServiceAnimalCases,
+		CollectionEquineLivestockDispatches,
 	}
 }
 
