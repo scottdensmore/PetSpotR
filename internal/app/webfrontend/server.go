@@ -25,6 +25,7 @@ import (
 	"github.com/scottdensmore/petspotr/internal/app/foundpet"
 	"github.com/scottdensmore/petspotr/internal/app/lostpet"
 	"github.com/scottdensmore/petspotr/pkg/blob"
+	"github.com/scottdensmore/petspotr/pkg/confinedspace"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/identity"
 	"github.com/scottdensmore/petspotr/pkg/mesh"
@@ -49,6 +50,7 @@ type Server struct {
 	mux                      *http.ServeMux
 	metrics                  *telemetry.MetricsRegistry
 	stateStore               store.StateStore
+	confinedSpaceStore       *confinedspace.Store
 	foundPetReporter         FoundPetReporter
 	foundPetLifecycle        FoundPetLifecycle
 	lostPetReporter          LostPetReporter
@@ -210,6 +212,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		mux:                      http.NewServeMux(),
 		metrics:                  telemetry.NewMetricsRegistry("web-frontend"),
 		stateStore:               st,
+		confinedSpaceStore:       confinedspace.NewStore(),
 		foundPetReporter:         foundPetReporter,
 		foundPetLifecycle:        foundPetLifecycle,
 		lostPetReporter:          lostPetReporter,
@@ -510,6 +513,8 @@ func (s *Server) routes() {
 	s.registerServiceAnimalRoutes()
 	// Livestock, Equine & Exotic Companion Large-Animal Containment & Trailer Dispatch Cockpit routes (Milestone 15.3)
 	s.registerEquineLivestockRoutes()
+	// Subterranean, Storm-Drain, Culvert & Confined-Space Acoustic/Fiber-Optic Extraction Cockpit routes (Milestone 15.4)
+	s.registerConfinedSpaceRoutes()
 	// High-Rise, Cliffside, Tree-Canopy & Technical Rope/Arborist Vertical Rescue Cockpit routes (Milestone 15.5)
 	s.registerVerticalRescueRoutes()
 
