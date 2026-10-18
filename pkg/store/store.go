@@ -82,6 +82,7 @@ const (
 const (
 	CollectionVolunteerProfiles = "volunteer_profiles"
 	CollectionICSShiftEntries   = "ics_shift_entries"
+	CollectionK9ScentMissions   = "k9_scent_missions"
 )
 
 // Sentinel errors for StateStore operations.
