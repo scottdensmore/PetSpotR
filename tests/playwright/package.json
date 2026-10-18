@@ -4,11 +4,13 @@
   "description": "Playwright automated user journey test suite for PetSpotR microservices",
   "main": "index.js",
   "scripts": {
-    "test": "playwright test",
-    "test:headed": "playwright test --headed"
+    "test": "npm run typecheck && playwright test",
+    "test:headed": "npm run typecheck && playwright test --headed",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",
+    "@types/node": "^24.19.2",
     "typescript": "^7.0.2"
   }
 }
