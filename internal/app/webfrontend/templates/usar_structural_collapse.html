@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Seismic Rubble, Urban Search &amp; Rescue (USAR) Structural Collapse &amp; Delsar Acoustic Void-Space Extraction Cockpit.">
+  <title>Seismic Rubble, USAR Structural Collapse &amp; Delsar Acoustic Void-Space Extraction Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/swiftwater-rescue" class="nav-link nav-link-emergency" id="nav-swiftwater-rescue">🌊 Swiftwater &amp; Ice Rescue</a></li>
+          <li><a href="/service-animal" class="nav-link nav-link-emergency" id="nav-service-animal">🦮 Service Animal ADA</a></li>
+          <li><a href="/equine-livestock" class="nav-link nav-link-emergency" id="nav-equine-livestock">🐎 Equine &amp; Livestock</a></li>
+          <li><a href="/confined-space-rescue" class="nav-link nav-link-emergency" id="nav-confined-space-rescue">🕳️ Confined-Space Rescue</a></li>
+          <li><a href="/avalanche-winter-rescue" class="nav-link nav-link-emergency" id="nav-avalanche-winter-rescue">🏔️ Avalanche &amp; Winter SAR</a></li>
+          <li><a href="/usar-structural-collapse" class="nav-link active nav-link-emergency" id="nav-usar-structural-collapse">🏚️ USAR Collapse Rescue</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="usar-structural-collapse-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header usar-collapse-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🏚️ SEISMIC RUBBLE, URBAN SEARCH &amp; RESCUE (USAR) STRUCTURAL COLLAPSE &amp; VOID-SPACE EXTRACTION</span>
+        </div>
+        <h1>Seismic Rubble, Urban Search &amp; Rescue (USAR) Structural Collapse &amp; Delsar Acoustic Void-Space Extraction Cockpit</h1>
+        <p class="text-secondary">
+          Delsar LD3 6-Geophone Seismic/Acoustic Triangulation, 360° SearchCam Articulating Borehole Snake, 6x6 Timber Box-Cribbing &amp; Pneumatic Paratech Raker Shoring, Aftershock PGA Stability Monitoring &amp; Crush-Syndrome Hyperkalemia / Silica Dust Decon Triage.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid usar-collapse-kpi-grid" aria-label="USAR Structural Collapse Operations Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total USAR Void Operations</span>
+        <strong class="kpi-value" id="stat-total-usar-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Collapse / Crush Alerts</span>
+        <strong class="kpi-value" id="stat-critical-collapse-alerts">{{ .CriticalCollapseAlerts }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Staged Shoring &amp; Delsar Rigs</span>
+        <strong class="kpi-value" id="stat-staged-shoring-rigs">{{ .StagedShoringRigs }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Extracted USAR Decon Safe</span>
+        <strong class="kpi-value" id="stat-extracted-usar-count">{{ .ExtractedUSARCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="usar-collapse-live-status" class="humane-traps-live-status usar-collapse-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} seismic rubble, structural collapse &amp; Delsar acoustic void-space extraction operations.
+    </div>
+
+    <div class="trust-cockpit-grid usar-collapse-cockpit-grid">
+      <!-- Section 1: Evaluate USAR Structural Collapse Form + Scenario Simulators -->
+      <section class="glass-card trust-panel" id="usar-evaluate-panel" aria-labelledby="heading-evaluate-usar-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-usar-op">Evaluate Seismic Rubble / USAR Structural Void-Space Entrapment</h2>
+          <span class="badge badge-usar-void">Delsar 6-Geophone Array + 6x6 Box-Cribbing</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Seismic Pancake Slab, Lean-To Truss &amp; Masonry Rubble Scenario Simulators</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary usar-scenario-btn" data-scenario="pancake-slab-aftershock" id="btn-sim-pancake-slab-aftershock">
+              ⚠️ Simulate Pancake Concrete Slab Void &amp; M5.8 Aftershock Crush Alert (2.9m Overburden · 0.36g PGA · 19.5h)
+            </button>
+            <button type="button" class="btn btn-secondary usar-scenario-btn" data-scenario="leanto-truss-void" id="btn-sim-leanto-truss-void">
+              🪵 Simulate Lean-To Timber Truss Cavity &amp; SearchCam Borehole Pinpoint (4x4 T-Spot Shore + HEPA Air)
+            </button>
+            <button type="button" class="btn btn-secondary usar-scenario-btn" data-scenario="vshape-masonry-pocket" id="btn-sim-vshape-masonry-pocket">
+              🧱 Simulate V-Shape Unreinforced Masonry Rubble Pocket &amp; Silica Eye Decon (Paratech Strut Staged)
+            </button>
+          </div>
+        </div>
+
+        <form id="form-evaluate-usar-op" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="usar-pet-id">Entrapped Pet ID</label>
+              <input type="text" id="usar-pet-id" name="petId" class="form-control" value="PET-USAR-204" required>
+            </div>
+            <div class="form-group">
+              <label for="usar-pet-name">Pet Name</label>
+              <input type="text" id="usar-pet-name" name="petName" class="form-control" value="Brutus" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="usar-species">Species</label>
+              <select id="usar-species" name="species" class="form-control" required>
+                <option value="Canine" selected>Canine</option>
+                <option value="Feline">Feline</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="usar-weight-kg">Estimated Weight (kg)</label>
+              <input type="number" id="usar-weight-kg" name="weightKg" class="form-control" min="0.5" max="150" step="0.5" value="32.5" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="usar-void-type">USAR Structural Collapse Void Classification</label>
+              <select id="usar-void-type" name="voidType" class="form-control" required>
+                <option value="PANCAKE_FLOOR_SLAB_VOID" selected>PANCAKE_FLOOR_SLAB_VOID (Stacked Reinforced-Concrete Floor Slab Void)</option>
+                <option value="LEAN_TO_TIMBER_TRUSS_CAVITY">LEAN_TO_TIMBER_TRUSS_CAVITY (Inclined Wall / Timber Roof Truss Cavity)</option>
+                <option value="V_SHAPE_MASONRY_RUBBLE">V_SHAPE_MASONRY_RUBBLE (Center-Collapsed V-Shape Masonry Pocket)</option>
+                <option value="CANTILEVER_BEAM_OVERHANG">CANTILEVER_BEAM_OVERHANG (Unshored Cantilevered Girder / Slab Overhang)</option>
+                <option value="SUB_BASEMENT_UTILITY_VAULT">SUB_BASEMENT_UTILITY_VAULT (Sub-Basement Mechanical / Utility Vault)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="usar-rubble-overburden">Rubble Overburden Depth (m)</label>
+              <input type="number" id="usar-rubble-overburden" name="rubbleOverburdenMeters" class="form-control" min="0" max="25" step="0.1" value="2.9" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="usar-aftershock-pga">Peak Ground Acceleration / Aftershock PGA (g)</label>
+              <input type="number" id="usar-aftershock-pga" name="aftershockPGA" class="form-control" min="0" max="2.5" step="0.01" value="0.36" required>
+            </div>
+            <div class="form-group">
+              <label for="usar-silica-dust">Respirable Silica / Concrete Dust (mg/m³)</label>
+              <input type="number" id="usar-silica-dust" name="silicaDustMgM3" class="form-control" min="0" max="50" step="0.1" value="8.6" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="usar-hours-entrapped">Elapsed Void Entrapment Duration (hrs)</label>
+              <input type="number" id="usar-hours-entrapped" name="hoursEntrapped" class="form-control" min="0" max="240" step="0.5" value="19.5" required>
+            </div>
+            <div class="form-group">
+              <label for="usar-stability-idx">Structural Stability Index (0–100)</label>
+              <input type="number" id="usar-stability-idx" name="structuralStabilityIdx" class="form-control" min="0" max="100" step="1" value="20" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="usar-structure-grid">Collapse Structure / FEMA USAR Sector Grid</label>
+              <input type="text" id="usar-structure-grid" name="collapseStructureGrid" class="form-control" value="SECTOR-BRAVO-04 (Collapsed Parking Deck B2)" required>
+            </div>
+            <div class="form-group">
+              <label for="usar-spec-callsign">Lead USAR Structural Specialist Callsign</label>
+              <input type="text" id="usar-spec-callsign" name="leadUsarSpecCallsign" class="form-control" value="USAR-TF1-SPEC-01 (Castellano)" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="usar-notes">Delsar Geophone, SearchCam &amp; Shoring Field Notes</label>
+            <input type="text" id="usar-notes" name="notes" class="form-control" value="Delsar 6-geophone array triangulated acoustic scratching beneath B2 pancake slab; erecting 6x6 box cribbing.">
+          </div>
+
+          <button type="submit" id="btn-evaluate-usar-op" class="btn btn-primary">Evaluate USAR Collapse Operation</button>
+        </form>
+      </section>
+
+      <!-- Section 2: Active USAR Structural Collapse Operations Grid -->
+      <section class="glass-card trust-panel" id="usar-ops-panel" aria-labelledby="heading-usar-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-usar-ops">Active Seismic Rubble, Void-Space &amp; Box-Cribbing Shoring Operations</h2>
+          <span id="usar-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="usar-ops-list" class="trust-screenings-list usar-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card usar-op-card" data-operation-id="{{ $op.OperationID }}" data-op-id="{{ $op.OperationID }}" data-status="{{ $op.Status }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightKg }} kg · {{ $op.CollapseStructureGrid }})</strong>
+                <code class="trust-pet-id">{{ $op.OperationID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-usar-void">{{ $op.VoidType }}</span>
+                <span class="badge badge-usar-status {{ if eq (printf "%s" $op.Status) "SECONDARY_COLLAPSE_CRUSH_CRITICAL" }}badge-usar-critical{{ else if eq (printf "%s" $op.Status) "SHORING_CRIBBING_DELSAR_STAGED" }}badge-usar-staged{{ else if eq (printf "%s" $op.Status) "EXTRACTED_USAR_DECON_SAFE" }}badge-usar-safe{{ else }}badge-usar-critical{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row usar-metrics-row">
+              <span class="badge badge-usar-void">Hazard Score: {{ $op.HazardScore }}/100 • Shoring Readiness: {{ $op.ShoringReadinessScore }}% • Overburden: {{ printf "%.1f" $op.RubbleOverburdenMeters }}m ({{ printf "%.1f" $op.HoursEntrapped }}h) • PGA: {{ printf "%.2f" $op.AftershockPGA }}g • Silica: {{ printf "%.1f" $op.SilicaDustMgM3 }} mg/m³ • Stability: {{ $op.StructuralStabilityIdx }}/100</span>
+            </div>
+
+            <div class="usar-flags-row">
+              {{ range $flag := $op.RiskFlags }}
+              <span class="badge badge-usar-flag">{{ $flag }}</span>
+              {{ end }}
+            </div>
+
+            {{ if or $op.SecondaryCollapseAlert $op.CrushRhabdoAlert }}
+            <div class="usar-collapse-alert-banner">
+              ⚠️ SECONDARY COLLAPSE &amp; CRUSH-SYNDROME HYPERKALEMIA ALERT: Overburden {{ printf "%.1f" $op.RubbleOverburdenMeters }}m ({{ printf "%.1f" $op.HoursEntrapped }}h) · Aftershock PGA {{ printf "%.2f" $op.AftershockPGA }}g · Stability {{ $op.StructuralStabilityIdx }}/100 — Erect 6x6 timber box-cribbing &amp; pneumatic raker shore before slab breach.
+            </div>
+            {{ end }}
+
+            {{ if $op.ClearanceCertificateHash }}
+            <div class="usar-clearance-banner">
+              ✅ USAR VOID EXTRACTION &amp; SILICA DECON CLEARANCE VERIFIED: {{ $op.ClearanceCertificateHash }} ({{ $op.LeadUSARSpecCallsign }})
+            </div>
+            {{ end }}
+
+            <div class="usar-gear-recommendations">
+              <div><strong>Delsar Seismic / Borehole Array:</strong> {{ $op.RecommendedAcousticArray }}</div>
+              <div><strong>Timber Box-Cribbing &amp; Shoring Rig:</strong> {{ $op.RecommendedShoringRig }}</div>
+            </div>
+
+            <div class="usar-steps-list" aria-label="Delsar Seismic Triangulation, Box-Cribbing Shoring &amp; Crush-Syndrome Extraction Protocol">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="usar-step-item">
+                <input
+                  type="checkbox"
+                  class="usar-step-checkbox"
+                  data-op-id="{{ $op.OperationID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "EXTRACTED_USAR_DECON_SAFE" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-usar-safe{{ else }}badge-usar-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="usar-step-category">[{{ $step.Category }}]</strong>
+                <span class="usar-step-label">{{ $step.Label }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              {{ if ne (printf "%s" $op.Status) "EXTRACTED_USAR_DECON_SAFE" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary usar-issue-clearance-btn"
+                data-op-id="{{ $op.OperationID }}"
+              >
+                🛡️ Issue USAR Void Extraction &amp; Silica Decon Clearance Certificate
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="usar-ops-empty-msg">No USAR structural collapse operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/usar-structural-collapse.js" defer></script>
+</body>
+</html>
