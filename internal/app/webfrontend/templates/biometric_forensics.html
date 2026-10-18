@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Forensic DNA, Coat-Pattern Biometrics &amp; Senior/Blind Pet Cognitive Disorientation Triage Cockpit.">
+  <title>Forensic DNA, Coat-Pattern Biometrics &amp; Senior Cognitive Triage Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/microchip-federation" class="nav-link nav-link-emergency" id="nav-microchip-federation">📡 Microchip Federation</a></li>
+          <li><a href="/reunion-decompression" class="nav-link nav-link-emergency" id="nav-reunion-decompression">🧘 Reunion Decompression</a></li>
+          <li><a href="/foster-network" class="nav-link nav-link-emergency" id="nav-foster-network">🏡 Foster Biosecurity</a></li>
+          <li><a href="/biometric-forensics" class="nav-link active nav-link-emergency" id="nav-biometric-forensics">🧬 Biometric Forensics</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="biometric-forensics-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header biometric-forensics-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🧬 NASAL PLANUM DERMATOGLYPHICS, STR DNA &amp; SENIOR COGNITIVE SUNDOWNING TRIAGE</span>
+        </div>
+        <h1>Forensic DNA, Coat-Pattern Biometrics &amp; Senior Cognitive Triage Cockpit</h1>
+        <p class="text-secondary">
+          Gabor-Wavelet Nasal Ridge Matching, Iris Melanin Topology, 18-Loci ISAG STR DNA Parity &amp; 150m Culvert/Retention Pond Entrapment Sweep for Blind, Deaf &amp; CCD Sundowning Senior Pets.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid biometric-forensics-kpi-grid" aria-label="Biometric Forensics &amp; Senior Cognitive Triage Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Forensic Biometric Cases</span>
+        <strong class="kpi-value" id="kpi-forensic-total">{{ len .Cases }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Sundowning Entrapment Risks</span>
+        <strong class="kpi-value" id="kpi-forensic-entrapment">1</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Active Senior Cognitive Wander Alerts</span>
+        <strong class="kpi-value" id="kpi-forensic-sundowning">2</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Confirmed Safe Forensic Extractions</span>
+        <strong class="kpi-value" id="kpi-forensic-confirmed">1</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="biometric-forensics-live-status" class="humane-traps-live-status biometric-forensics-live-status" role="status" aria-live="polite">
+      Monitoring {{ len .Cases }} forensic biometric &amp; senior cognitive disorientation triage cases.
+    </div>
+
+    <div class="trust-cockpit-grid biometric-forensics-cockpit-grid">
+      <!-- Section 1: Evaluate Biometric Forensic Case Form + Simulation Presets -->
+      <section class="glass-card trust-panel" id="forensic-create-panel" aria-labelledby="heading-create-forensic-case">
+        <div class="trust-panel-header">
+          <h2 id="heading-create-forensic-case">Evaluate Biometric Forensics &amp; Senior Cognitive Triage Case</h2>
+          <span class="badge badge-forensic-metric">Nasal Ridge + 150m Culvert Sweep</span>
+        </div>
+
+        <form id="form-create-forensic-case" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="forensic-pet-id">Displaced / Unchipped Pet ID</label>
+              <input type="text" id="forensic-pet-id" class="form-control" value="pet-2026-001" required>
+            </div>
+            <div class="form-group">
+              <label for="forensic-pet-name">Pet Name</label>
+              <input type="text" id="forensic-pet-name" class="form-control" value="Barnaby" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="forensic-pet-species">Species</label>
+              <select id="forensic-pet-species" class="form-control" required>
+                <option value="DOG" selected>DOG</option>
+                <option value="CAT">CAT</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="forensic-age-years">Age (Years)</label>
+              <input type="number" id="forensic-age-years" class="form-control" min="1" max="28" step="1" value="14" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="forensic-sensory-condition">Cognitive &amp; Sensory Condition</label>
+              <select id="forensic-sensory-condition" class="form-control" required>
+                <option value="CCD_SUNDOWNING_DEMENTIA" selected>CCD_SUNDOWNING_DEMENTIA (Canine/Feline Cognitive Dysfunction)</option>
+                <option value="BILATERAL_CATARACT_BLIND">BILATERAL_CATARACT_BLIND (Blind / Severe Lenticular Sclerosis)</option>
+                <option value="SENILE_DEAFNESS">SENILE_DEAFNESS (Bilateral Sensorineural Hearing Loss)</option>
+                <option value="INTACT_SENSORY">INTACT_SENSORY (Intact Adult Sensory Baseline)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="forensic-modality">Primary Biometric Modality</label>
+              <select id="forensic-modality" class="form-control" required>
+                <option value="NASAL_PLANUM_RIDGE_PRINT" selected>NASAL_PLANUM_RIDGE_PRINT (Dermatoglyphic Nose Print)</option>
+                <option value="IRIS_MELANIN_TOPOLOGY">IRIS_MELANIN_TOPOLOGY (Ocular Iris Crypt Topology)</option>
+                <option value="COAT_PELAGE_EIGENPATCH">COAT_PELAGE_EIGENPATCH (Coat Pelage Eigenpatch Geometry)</option>
+                <option value="BUCCAL_SWAB_STR_DNA">BUCCAL_SWAB_STR_DNA (18-Loci ISAG STR DNA Swab)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="forensic-hazard-type">Nearest Dead-End / Entrapment Hazard</label>
+              <select id="forensic-hazard-type" class="form-control" required>
+                <option value="RETENTION_POND_CULVERT" selected>RETENTION_POND_CULVERT (Drainage Culvert &amp; Retention Pond)</option>
+                <option value="THICK_BLACKBERRY_BRAMBLE">THICK_BLACKBERRY_BRAMBLE (Dense Bramble / Dead-End Corner)</option>
+                <option value="POOL_UNFENCED_DECK">POOL_UNFENCED_DECK (Unfenced Swimming Pool Perimeter)</option>
+              </select>
+            </div>
+            <div class="form-group foster-checkbox-group">
+              <label class="checkbox-label" for="forensic-nasal-matched">
+                <input type="checkbox" id="forensic-nasal-matched">
+                <span>Nasal Planum Ridge Print Matched</span>
+              </label>
+              <label class="checkbox-label" for="forensic-culvert-cleared">
+                <input type="checkbox" id="forensic-culvert-cleared">
+                <span>150m Water / Culvert Hazard Cleared</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-create-forensic-case" class="btn btn-primary">Evaluate Biometric &amp; Cognitive Triage Case</button>
+        </form>
+
+        <div class="trust-subsection">
+          <h3>Senior Cognitive &amp; Biometric Forensic Scenario Simulators</h3>
+          <div class="trust-sim-actions">
+            <button type="button" id="btn-sim-sundowning-senior" class="btn btn-secondary">🐕 Simulate 15yo CCD Sundowning Dog Near Retention Pond Culvert (Nasal Planum Biometrics)</button>
+            <button type="button" id="btn-sim-blind-cat-bramble" class="btn btn-secondary">🐈 Simulate 13yo Cataract-Blind Cat in Blackberry Bramble (Iris Melanin Topology)</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Biometric Forensic Cases Grid -->
+      <section class="glass-card trust-panel" id="forensic-cases-panel" aria-labelledby="heading-forensic-cases">
+        <div class="trust-panel-header">
+          <h2 id="heading-forensic-cases">Active Biometric Forensic &amp; Senior Cognitive Triage Cases</h2>
+          <span id="forensic-cases-count-badge" class="badge badge-secondary">{{ len .Cases }} Cases</span>
+        </div>
+
+        <div id="forensic-cases-list" class="trust-screenings-list forensic-cases-list" role="list">
+          {{ range .Cases }}
+          <article class="trust-screening-card forensic-case-card" data-case-id="{{ .CaseID }}" data-resolution-status="{{ .ResolutionStatus }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ .PetName }} ({{ .Species }} · {{ .AgeYears }}yo · {{ .SensoryCondition }})</strong>
+                <code class="trust-pet-id">{{ .CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-forensic-status {{ if eq (printf "%s" .ResolutionStatus) "PENDING_BIOMETRIC_SCAN" }}badge-forensic-pending{{ else if eq (printf "%s" .ResolutionStatus) "DERMATOGLYPHIC_CORRELATED" }}badge-forensic-correlated{{ else if eq (printf "%s" .ResolutionStatus) "IDENTITY_CONFIRMED_SAFE_EXTRACTION" }}badge-forensic-confirmed{{ else }}badge-forensic-pending{{ end }}">{{ .ResolutionStatus }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row">
+              <span class="badge badge-entrapment-risk {{ if eq (printf "%s" .EntrapmentRisk) "CRITICAL_SUNDOWNING_ENTRAPMENT" }}badge-entrapment-critical{{ else if eq (printf "%s" .EntrapmentRisk) "ELEVATED_SENSORY_DISORIENTATION" }}badge-entrapment-elevated{{ else }}badge-entrapment-safe{{ end }}">{{ .EntrapmentRisk }}</span>
+              <span class="badge badge-forensic-metric">Entrapment Risk: {{ .EntrapmentRiskScore }}/100 • Biometric Confidence: {{ .BiometricConfidenceScore }}/100 • Modality: {{ .BiometricModality }} • Hazard: {{ .NearestHazardType }}</span>
+            </div>
+
+            {{ if .SundowningWanderAlert }}
+            <div class="forensic-sundowning-alert-banner">
+              🧠 SENIOR COGNITIVE SUNDOWNING &amp; ENTRAPMENT ALERT: {{ .SensoryCondition }} ({{ .AgeYears }}yo) near {{ .NearestHazardType }} — Prioritize 150m dead-end corner &amp; culvert sweep + heated olfactory bedding lure.
+            </div>
+            {{ end }}
+
+            {{ if .ForensicCertificateID }}
+            <div class="forensic-certificate-banner">
+              ✅ BIOMETRIC FORENSIC IDENTITY CONFIRMED: {{ .ForensicCertificateID }}
+            </div>
+            {{ end }}
+
+            <div class="forensic-steps-list" aria-label="Biometric Verification &amp; Sundowning Hazard Sweep Checklist">
+              {{ range .VerificationSteps }}
+              <div class="forensic-step-item">
+                <span class="badge {{ if .Completed }}badge-hop-match{{ else }}badge-hop-miss{{ end }}">{{ if .Completed }}VERIFIED{{ else }}PENDING{{ end }}</span>
+                <strong class="forensic-step-category">[{{ .Category }}]</strong>
+                <span class="forensic-step-title">{{ .Title }}</span>
+              </div>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              {{ if ne (printf "%s" .ResolutionStatus) "IDENTITY_CONFIRMED_SAFE_EXTRACTION" }}
+              <button type="button" class="btn btn-sm btn-secondary btn-correlate-biometric" data-case-id="{{ .CaseID }}">🔬 Correlate Nasal Planum Biometrics &amp; Sweep 150m Culvert</button>
+              <button type="button" class="btn btn-sm btn-primary btn-confirm-forensic-extraction" data-case-id="{{ .CaseID }}">🧬 Confirm STR DNA / Biometric Identity &amp; Safe Extraction</button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="forensic-cases-empty-msg">No biometric forensic cases recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/biometric-forensics.js" defer></script>
+</body>
+</html>
