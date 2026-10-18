@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Cold-Weather Avalanche, Deep-Snow Drift &amp; Thermal Hypothermia Rewarming SAR Cockpit.">
+  <title>Cold-Weather Avalanche, Deep-Snow Drift &amp; Thermal Hypothermia Rewarming SAR Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/swiftwater-rescue" class="nav-link nav-link-emergency" id="nav-swiftwater-rescue">🌊 Swiftwater &amp; Ice Rescue</a></li>
+          <li><a href="/service-animal" class="nav-link nav-link-emergency" id="nav-service-animal">🦮 Service Animal ADA</a></li>
+          <li><a href="/equine-livestock" class="nav-link nav-link-emergency" id="nav-equine-livestock">🐎 Equine &amp; Livestock</a></li>
+          <li><a href="/confined-space-rescue" class="nav-link nav-link-emergency" id="nav-confined-space-rescue">🕳️ Confined-Space Rescue</a></li>
+          <li><a href="/avalanche-winter-rescue" class="nav-link active nav-link-emergency" id="nav-avalanche-winter-rescue">🏔️ Avalanche &amp; Winter SAR</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="avalanche-winter-rescue-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header avalanche-winter-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🏔️ COLD-WEATHER AVALANCHE, DEEP-SNOW DRIFT &amp; THERMAL HYPOTHERMIA REWARMING SAR</span>
+        </div>
+        <h1>Cold-Weather Avalanche, Deep-Snow Drift &amp; Thermal Hypothermia Rewarming SAR Cockpit</h1>
+        <p class="text-secondary">
+          457 kHz Transceiver &amp; RECCO Harmonic Pinpointing, 320cm Carbon Spiral Probe Strike, Downhill V-Conveyor Snow Trenching, Asphyxia Ice-Lens Air-Pocket Management &amp; Horizontal Anti-Afterdrop Thoracic Core Rewarming.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid avalanche-winter-kpi-grid" aria-label="Avalanche &amp; Winter Rescue Operations Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Winter SAR Operations</span>
+        <strong class="kpi-value" id="stat-total-winter-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Burial / Hypothermia Alerts</span>
+        <strong class="kpi-value" id="stat-critical-burial-alerts">{{ .CriticalBurialAlerts }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Staged Probe &amp; Rewarming Bivies</span>
+        <strong class="kpi-value" id="stat-staged-rewarm-bivies">{{ .StagedRewarmBivies }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Extracted Normothermic Safe</span>
+        <strong class="kpi-value" id="stat-normothermic-safe-count">{{ .NormothermicSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="avalanche-winter-live-status" class="humane-traps-live-status avalanche-winter-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} cold-weather avalanche, tree-well &amp; hypothermia rewarming SAR operations.
+    </div>
+
+    <div class="trust-cockpit-grid avalanche-winter-cockpit-grid">
+      <!-- Section 1: Evaluate Winter Rescue Operation Form + Scenario Simulators -->
+      <section class="glass-card trust-panel" id="aw-evaluate-panel" aria-labelledby="heading-evaluate-aw-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-aw-op">Evaluate Cold-Weather Avalanche / Deep-Snow Burial &amp; Rewarming</h2>
+          <span class="badge badge-aw-terrain">457 kHz Beacon + Anti-Afterdrop Bivy</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Avalanche, Tree-Well &amp; Blizzard Emergency Scenario Simulators</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary aw-scenario-btn" data-scenario="avalanche-slab-burial" id="btn-sim-avalanche-slab-burial">
+              ⚠️ Simulate D3 Wind-Slab Debris Burial &amp; Hypothermic Afterdrop (Depth 90cm · Core 33.4°C · -24°C)
+            </button>
+            <button type="button" class="btn btn-secondary aw-scenario-btn" data-scenario="tree-well-immersion" id="btn-sim-tree-well-immersion">
+              🌲 Simulate Subalpine Hemlock Tree-Well Powder Pit Inversion (320cm Carbon Probe + Side V-Trench)
+            </button>
+            <button type="button" class="btn btn-secondary aw-scenario-btn" data-scenario="blizzard-drift-shelter" id="btn-sim-blizzard-drift-shelter">
+              ❄️ Simulate Blizzard Snowdrift Trench Shelter &amp; Paw Frostbite Triage (Thoracic Heat-Pack Bivy)
+            </button>
+          </div>
+        </div>
+
+        <form id="form-evaluate-aw-op" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="aw-pet-id">Buried / Cold-Exposed Pet ID</label>
+              <input type="text" id="aw-pet-id" name="petId" class="form-control" value="PET-AW-204" required>
+            </div>
+            <div class="form-group">
+              <label for="aw-pet-name">Pet Name</label>
+              <input type="text" id="aw-pet-name" name="petName" class="form-control" value="Kodiak" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="aw-species">Species</label>
+              <select id="aw-species" name="species" class="form-control" required>
+                <option value="Canine" selected>Canine</option>
+                <option value="Feline">Feline</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="aw-weight-kg">Estimated Weight (kg)</label>
+              <input type="number" id="aw-weight-kg" name="weightKg" class="form-control" min="0.5" max="150" step="0.5" value="29.0" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="aw-terrain-type">Winter / Alpine Terrain Classification</label>
+              <select id="aw-terrain-type" name="terrainType" class="form-control" required>
+                <option value="AVALANCHE_DEBRIS_CHUTE" selected>AVALANCHE_DEBRIS_CHUTE (Alpine Slab Debris Toe / Couloir Chute)</option>
+                <option value="TREE_WELL_POWDER_PIT">TREE_WELL_POWDER_PIT (Unconsolidated Conifer Tree-Well Funnel)</option>
+                <option value="BLIZZARD_SNOWDRIFT_TRENCH">BLIZZARD_SNOWDRIFT_TRENCH (Wind-Loaded Snowdrift / Cornice Trench)</option>
+                <option value="GLACIAL_CREVASSE_LEDGE">GLACIAL_CREVASSE_LEDGE (Glacial Snow-Bridge Crevasse Ledge)</option>
+                <option value="SUBZERO_FROZEN_TRAIL">SUBZERO_FROZEN_TRAIL (Subzero Exposed Alpine Ridge / Ice Trail)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="aw-burial-depth">Snowpack Burial Depth (cm)</label>
+              <input type="number" id="aw-burial-depth" name="burialDepthCm" class="form-control" min="0" max="500" step="5" value="90" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="aw-wind-chill">Ambient Wind-Chill (°C)</label>
+              <input type="number" id="aw-wind-chill" name="windChillCelsius" class="form-control" min="-60" max="10" step="0.5" value="-24.0" required>
+            </div>
+            <div class="form-group">
+              <label for="aw-core-temp">Estimated Core Temperature (°C)</label>
+              <input type="number" id="aw-core-temp" name="coreTempCelsius" class="form-control" min="24" max="40" step="0.1" value="33.4" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="aw-minutes-buried">Elapsed Burial Duration (min)</label>
+              <input type="number" id="aw-minutes-buried" name="minutesBuried" class="form-control" min="0" max="600" step="1" value="26" required>
+            </div>
+            <div class="form-group">
+              <label for="aw-danger-scale">Avalanche Danger Scale (1–5)</label>
+              <input type="number" id="aw-danger-scale" name="avalancheDangerScale" class="form-control" min="1" max="5" step="1" value="4" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="aw-sector-grid">Alpine / Snowpack Sector Grid</label>
+              <input type="text" id="aw-sector-grid" name="snowpackSectorGrid" class="form-control" value="CHUTE-NORTH-04A (Alpental Backcountry Bowl)" required>
+            </div>
+            <div class="form-group">
+              <label for="aw-patrol-callsign">Lead Ski Patrol / Alpine SAR Callsign</label>
+              <input type="text" id="aw-patrol-callsign" name="leadSkiPatrolCallsign" class="form-control" value="PATROL-ALPINE-01 (Sorensen)" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="aw-notes">Transceiver / Probe &amp; Thermal Field Notes</label>
+            <input type="text" id="aw-notes" name="notes" class="form-control" value="457 kHz collar beacon fine-bracketed at 0.9m depth; V-conveyor snow trenching underway.">
+          </div>
+
+          <button type="submit" id="btn-evaluate-aw-op" class="btn btn-primary">Evaluate Winter Rescue Operation</button>
+        </form>
+      </section>
+
+      <!-- Section 2: Active Winter SAR Operations Grid -->
+      <section class="glass-card trust-panel" id="aw-ops-panel" aria-labelledby="heading-aw-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-aw-ops">Active Cold-Weather Avalanche, Tree-Well &amp; Hypothermia Operations</h2>
+          <span id="aw-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="aw-ops-list" class="trust-screenings-list aw-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card aw-op-card" data-operation-id="{{ $op.OperationID }}" data-op-id="{{ $op.OperationID }}" data-status="{{ $op.Status }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightKg }} kg · {{ $op.SnowpackSectorGrid }})</strong>
+                <code class="trust-pet-id">{{ $op.OperationID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-aw-terrain">{{ $op.TerrainType }}</span>
+                <span class="badge badge-aw-status {{ if eq (printf "%s" $op.Status) "BURIAL_HYPOTHERMIA_CRITICAL" }}badge-aw-critical{{ else if eq (printf "%s" $op.Status) "PROBE_TRENCH_REWARMING_STAGED" }}badge-aw-staged{{ else if eq (printf "%s" $op.Status) "EXTRACTED_NORMOTHERMIC_SAFE" }}badge-aw-safe{{ else }}badge-aw-critical{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row aw-metrics-row">
+              <span class="badge badge-aw-terrain">Hazard Score: {{ $op.HazardScore }}/100 • Rewarming Readiness: {{ $op.RewarmingReadinessScore }}% • Burial: {{ printf "%.0f" $op.BurialDepthCm }}cm ({{ $op.MinutesBuried }}m) • Core: {{ printf "%.1f" $op.CoreTempCelsius }}°C • Wind-Chill: {{ printf "%.1f" $op.WindChillCelsius }}°C • Avy Scale: D{{ $op.AvalancheDangerScale }}</span>
+            </div>
+
+            <div class="aw-flags-row">
+              {{ range $flag := $op.RiskFlags }}
+              <span class="badge badge-aw-flag">{{ $flag }}</span>
+              {{ end }}
+            </div>
+
+            {{ if or $op.AsphyxiaAirPocketAlert $op.SevereFrostbiteAfterdropAlert }}
+            <div class="aw-burial-alert-banner">
+              ⚠️ SNOWPACK ASPHYXIA &amp; HYPOTHERMIC AFTERDROP ALERT: Burial {{ printf "%.0f" $op.BurialDepthCm }}cm ({{ $op.MinutesBuried }} min) · Core {{ printf "%.1f" $op.CoreTempCelsius }}°C · Wind-Chill {{ printf "%.1f" $op.WindChillCelsius }}°C — Excavate downhill V-conveyor airway trench &amp; lift horizontally into active thoracic heat-pack bivy.
+            </div>
+            {{ end }}
+
+            {{ if $op.ClearanceCertificateHash }}
+            <div class="aw-clearance-banner">
+              ✅ WINTER NORMOTHERMIC EXTRACTION CLEARANCE VERIFIED: {{ $op.ClearanceCertificateHash }} ({{ $op.LeadSkiPatrolCallsign }})
+            </div>
+            {{ end }}
+
+            <div class="aw-gear-recommendations">
+              <div><strong>Snowpack Locator &amp; Probe Gear:</strong> {{ $op.RecommendedLocatorGear }}</div>
+              <div><strong>Hypothermia Rewarming Bivy:</strong> {{ $op.RecommendedRewarmingBivy }}</div>
+            </div>
+
+            <div class="aw-steps-list" aria-label="Avalanche Beacon Pinpoint, V-Trench Excavation &amp; Active Core Rewarming Protocol">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="aw-step-item">
+                <input
+                  type="checkbox"
+                  class="aw-step-checkbox"
+                  data-op-id="{{ $op.OperationID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "EXTRACTED_NORMOTHERMIC_SAFE" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-aw-safe{{ else }}badge-aw-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="aw-step-category">[{{ $step.Category }}]</strong>
+                <span class="aw-step-label">{{ $step.Label }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              {{ if ne (printf "%s" $op.Status) "EXTRACTED_NORMOTHERMIC_SAFE" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary aw-issue-clearance-btn"
+                data-op-id="{{ $op.OperationID }}"
+              >
+                🛡️ Issue Winter Normothermic Extraction Clearance Certificate
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="aw-ops-empty-msg">No winter rescue operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/avalanche-winter-rescue.js" defer></script>
+</body>
+</html>
