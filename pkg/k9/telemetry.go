@@ -95,18 +95,18 @@ func ExportK9MissionGPX(mission domain.K9ScentMission) (string, error) {
 	)
 
 	b.WriteString("  <metadata>\n")
-	b.WriteString(fmt.Sprintf("    <name>%s</name>\n", html.EscapeString(metaName)))
-	b.WriteString(fmt.Sprintf("    <desc>%s</desc>\n", html.EscapeString(metaDesc)))
+	_, _ = fmt.Fprintf(&b, "    <name>%s</name>\n", html.EscapeString(metaName))
+	_, _ = fmt.Fprintf(&b, "    <desc>%s</desc>\n", html.EscapeString(metaDesc))
 	b.WriteString("  </metadata>\n")
 
 	lkpName := fmt.Sprintf("LKP Origin: %s", mission.ScentArticleDesc)
-	b.WriteString(fmt.Sprintf("  <wpt lat=\"%.6f\" lon=\"%.6f\">\n", mission.LKPOriginLat, mission.LKPOriginLng))
-	b.WriteString(fmt.Sprintf("    <name>%s</name>\n", html.EscapeString(lkpName)))
+	_, _ = fmt.Fprintf(&b, "  <wpt lat=\"%.6f\" lon=\"%.6f\">\n", mission.LKPOriginLat, mission.LKPOriginLng)
+	_, _ = fmt.Fprintf(&b, "    <name>%s</name>\n", html.EscapeString(lkpName))
 	b.WriteString("  </wpt>\n")
 
 	trkName := fmt.Sprintf("K9 Track: %s (%s)", mission.CanineName, mission.MissionID)
 	b.WriteString("  <trk>\n")
-	b.WriteString(fmt.Sprintf("    <name>%s</name>\n", html.EscapeString(trkName)))
+	_, _ = fmt.Fprintf(&b, "    <name>%s</name>\n", html.EscapeString(trkName))
 	b.WriteString("    <trkseg>\n")
 
 	for _, w := range mission.Waypoints {
@@ -115,10 +115,10 @@ func ExportK9MissionGPX(mission domain.K9ScentMission) (string, error) {
 			ts = time.Now().UTC()
 		}
 		desc := fmt.Sprintf("InPlume=%t | %s", w.InScentPlume, w.Notes)
-		b.WriteString(fmt.Sprintf("      <trkpt lat=\"%.6f\" lon=\"%.6f\">\n", w.Lat, w.Lng))
-		b.WriteString(fmt.Sprintf("        <name>%s</name>\n", html.EscapeString(string(w.Behavior))))
-		b.WriteString(fmt.Sprintf("        <desc>%s</desc>\n", html.EscapeString(desc)))
-		b.WriteString(fmt.Sprintf("        <time>%s</time>\n", ts.UTC().Format(time.RFC3339)))
+		_, _ = fmt.Fprintf(&b, "      <trkpt lat=\"%.6f\" lon=\"%.6f\">\n", w.Lat, w.Lng)
+		_, _ = fmt.Fprintf(&b, "        <name>%s</name>\n", html.EscapeString(string(w.Behavior)))
+		_, _ = fmt.Fprintf(&b, "        <desc>%s</desc>\n", html.EscapeString(desc))
+		_, _ = fmt.Fprintf(&b, "        <time>%s</time>\n", ts.UTC().Format(time.RFC3339))
 		b.WriteString("      </trkpt>\n")
 	}
 
