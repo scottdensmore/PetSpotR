@@ -1,33 +1,224 @@
 <!DOCTYPE html>
 <html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PetSpotR — Trust &amp; Safety Quarantine Cockpit</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Multi-Modal False-Positive &amp; Scam/Hoax Sighting Shield (Trust &amp; Safety Cockpit).">
+  <title>Multi-Modal False-Positive &amp; Scam/Hoax Sighting Shield — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
-    <header class="glass-nav" role="banner">
-        <div class="container nav-container">
-            <a href="/" class="brand-logo" aria-label="PetSpotR Home">🐾 PetSpotR</a>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link active nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
         </div>
-    </header>
-    <main class="container page-main" id="trust-safety-main">
-        <section class="emergency-operations-header trust-header-banner">
-            <span class="status-pill">🛡️ MULTI-MODAL ANTI-EXTORTION &amp; KINEMATIC HOAX SHIELD</span>
-            <h1>Trust &amp; Safety Quarantine Cockpit</h1>
-        </section>
-        <section id="trust-queue-panel">
-            <span id="trust-screenings-count-badge" class="badge badge-secondary">{{ len .Screenings }} Screenings</span>
-            <div id="trust-screenings-list" class="trust-screenings-list" role="list">
-                {{ range .Screenings }}
-                <article class="trust-screening-card" data-screening-id="{{ .ScreeningID }}" data-verdict="{{ .Verdict }}" role="listitem">
-                    <h2>{{ .PetName }} ({{ .PetID }}) — {{ .ReporterHandle }}</h2>
-                    <span class="badge badge-trust-verdict">{{ .Verdict }}</span>
-                </article>
-                {{ end }}
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container page-main" id="trust-safety-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header trust-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🛡️ MULTI-MODAL ANTI-EXTORTION &amp; KINEMATIC HOAX SHIELD</span>
+        </div>
+        <h1>Multi-Modal False-Positive &amp; Scam/Hoax Sighting Shield (Trust &amp; Safety Cockpit)</h1>
+        <p class="text-secondary">
+          Real-Time Multi-Modal Sighting Fraud Detection, Reward-Extortion &amp; 6-Digit PIN Phishing Quarantine, Spatiotemporal Teleportation Kinematics &amp; Synthetic GAN Image Artifact Shield.
+        </p>
+      </div>
+    </div>
+
+    <div class="trust-cockpit-grid">
+      <!-- Section 1: Inbound Sighting Trust & Scam Shield Evaluator -->
+      <section class="glass-card trust-panel" id="trust-evaluator-panel" aria-labelledby="heading-trust-evaluator">
+        <div class="trust-panel-header">
+          <h2 id="heading-trust-evaluator">Inbound Sighting Trust &amp; Scam Shield Evaluator</h2>
+          <span class="badge badge-verdict-authentic">Multi-Modal Screening Engine</span>
+        </div>
+
+        <form id="form-submit-trust-screening" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="ts-pet-id">Pet ID</label>
+              <input type="text" id="ts-pet-id" class="form-control" value="pet-trust-daisy" required>
             </div>
-        </section>
-    </main>
+            <div class="form-group">
+              <label for="ts-pet-name">Pet Name</label>
+              <input type="text" id="ts-pet-name" class="form-control" value="Daisy" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="ts-reporter-handle">Reporter Handle</label>
+              <input type="text" id="ts-reporter-handle" class="form-control" value="citizen-spotter-21" required>
+            </div>
+            <div class="form-group">
+              <label for="ts-reporter-trust">Reporter Prior Trust Score (0-100)</label>
+              <input type="number" id="ts-reporter-trust" class="form-control" value="82" min="0" max="100" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="ts-prev-lat">Previous Reference Latitude</label>
+              <input type="text" id="ts-prev-lat" class="form-control" value="47.6062" required>
+            </div>
+            <div class="form-group">
+              <label for="ts-prev-lng">Previous Reference Longitude</label>
+              <input type="text" id="ts-prev-lng" class="form-control" value="-122.3321" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="ts-sighting-lat">Inbound Sighting Latitude</label>
+              <input type="text" id="ts-sighting-lat" class="form-control" value="47.6095" required>
+            </div>
+            <div class="form-group">
+              <label for="ts-sighting-lng">Inbound Sighting Longitude</label>
+              <input type="text" id="ts-sighting-lng" class="form-control" value="-122.3350" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="ts-elapsed-min">Elapsed Minutes Since Last Sighting</label>
+              <input type="text" id="ts-elapsed-min" class="form-control" value="30" required>
+            </div>
+            <div class="form-group">
+              <label for="ts-image-integrity">Image EXIF &amp; Forensic Tag</label>
+              <select id="ts-image-integrity" class="form-control" required>
+                <option value="CAMERA_EXIF_INTACT">CAMERA_EXIF_INTACT</option>
+                <option value="STRIPPED_EXIF">STRIPPED_EXIF</option>
+                <option value="SYNTHETIC_GAN_SIGNATURE">SYNTHETIC_GAN_SIGNATURE</option>
+                <option value="STOCK_IMAGE_REUSE">STOCK_IMAGE_REUSE</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="ts-submitted-notes">Submitted Sighting / Contact Notes</label>
+            <textarea id="ts-submitted-notes" class="form-control" rows="3" required>Spotted Daisy near Myrtle Edwards Park walking trail</textarea>
+          </div>
+
+          <button type="submit" id="btn-submit-trust-screening" class="btn btn-primary">🔍 Screen Inbound Sighting</button>
+        </form>
+
+        <div class="trust-subsection">
+          <h3>Quick Threat &amp; Hoax Simulation Presets</h3>
+          <div class="trust-sim-actions">
+            <button type="button" id="btn-sim-extortion-scam" class="btn btn-secondary">🚨 Simulate Reward-Extortion &amp; Synthetic GAN Scam</button>
+            <button type="button" id="btn-sim-teleport-hoax" class="btn btn-secondary">⚡ Simulate 150 km/h Teleportation Velocity Anomaly</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Moderator Quarantine & Verification Queue -->
+      <section class="glass-card trust-panel" id="trust-queue-panel" aria-labelledby="heading-trust-queue">
+        <div class="trust-panel-header">
+          <h2 id="heading-trust-queue">Moderator Quarantine &amp; Verification Queue</h2>
+          <span id="trust-screenings-count-badge" class="badge badge-secondary">{{ len .Screenings }} Screenings</span>
+        </div>
+
+        <div id="trust-screenings-list" class="trust-screenings-list" role="list">
+          {{ range .Screenings }}
+          <article class="trust-screening-card" data-screening-id="{{ .ScreeningID }}" data-verdict="{{ .Verdict }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ .PetName }}</strong>
+                <code class="trust-pet-id">{{ .PetID }}</code>
+                <span class="trust-reporter-handle">👤 {{ .ReporterHandle }}</span>
+                <span class="badge badge-reporter-trust">Trust: {{ .ReporterTrustScore }}/100</span>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-trust-verdict {{ if eq (printf "%s" .Verdict) "VERIFIED_AUTHENTIC" }}badge-verdict-authentic{{ else if eq (printf "%s" .Verdict) "HOLD_FOR_MODERATION" }}badge-verdict-hold{{ else if eq (printf "%s" .Verdict) "QUARANTINED_SCAM_RISK" }}badge-verdict-quarantined{{ else if eq (printf "%s" .Verdict) "REJECTED_CONFIRMED_HOAX" }}badge-verdict-rejected{{ else }}badge-verdict-hold{{ end }}">{{ .Verdict }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row">
+              <span class="badge badge-risk-score">Risk: {{ .RiskScore }}/100</span>
+              <span class="badge badge-kinematic-velocity">Velocity: {{ printf "%.1f" .ImpliedVelocityKmh }} km/h ({{ printf "%.1f" .DistanceFromPrevKm }} km / {{ printf "%.0f" .ElapsedMinutes }}m)</span>
+              <span class="badge badge-image-integrity">{{ .ImageIntegrityTag }}</span>
+            </div>
+
+            <div class="trust-anomaly-flags">
+              {{ range .AnomalyFlags }}
+              <span class="badge badge-anomaly-flag" data-flag="{{ . }}">⚠️ {{ . }}</span>
+              {{ end }}
+            </div>
+
+            <p class="trust-screening-notes">{{ .SubmittedNotes }}</p>
+            {{ if .ExplanationSummary }}
+            <p class="trust-explanation-summary">{{ .ExplanationSummary }}</p>
+            {{ end }}
+
+            {{ if or (eq (printf "%s" .Verdict) "QUARANTINED_SCAM_RISK") (eq (printf "%s" .Verdict) "REJECTED_CONFIRMED_HOAX") }}
+            <div class="trust-quarantine-banner">
+              🛡️ OWNER SHIELD ACTIVE: Extortion/Hoax blocked — distressed owner notification suppressed
+            </div>
+            {{ end }}
+
+            {{ if .PromotedSightingID }}
+            <div class="trust-promoted-banner">
+              📍 Promoted to Live Community Sighting: {{ .PromotedSightingID }}
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary btn-approve-screening" data-screening-id="{{ .ScreeningID }}">✅ Approve &amp; Promote to Sighting</button>
+              <button type="button" class="btn btn-sm btn-secondary btn-reject-screening" data-screening-id="{{ .ScreeningID }}">🚫 Confirm Scam / Hoax &amp; Block</button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="trust-screenings-empty-msg">No trust screenings recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+  <div id="trust-aria-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="/static/js/trust-safety.js" defer></script>
 </body>
 </html>
