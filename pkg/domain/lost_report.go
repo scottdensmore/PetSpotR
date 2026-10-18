@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
-
-	"github.com/scottdensmore/petspotr/pkg/microchip"
 )
 
 // LostPetReportedPayloadVersion is the current contact-redacted integration
@@ -430,12 +428,10 @@ func NormalizeLostPetReport(report LostPetReport) LostPetReport {
 	report.MicrochipID = strings.TrimSpace(report.MicrochipID)
 	report.MicrochipRegistry = strings.TrimSpace(report.MicrochipRegistry)
 	if report.MicrochipID != "" {
-		val := microchip.ValidateAndNormalize(report.MicrochipID)
-		if val.Valid {
-			report.MicrochipID = val.NormalizedID
+		if norm, reg, ok := normalizeDomainMicrochip(report.MicrochipID); ok {
+			report.MicrochipID = norm
 			if report.MicrochipRegistry == "" {
-				reg := microchip.IdentifyIssuingRegistry(val.NormalizedID)
-				report.MicrochipRegistry = reg.RegistryName
+				report.MicrochipRegistry = reg
 			}
 		}
 	}
@@ -572,7 +568,7 @@ func (r LostPetReport) Public() PublicLostPetReport {
 		GeocodingStatus:   r.GeocodingStatus,
 		Coordinates:       cloneLocationPoint(r.Coordinates),
 		Status:            r.Status,
-		MicrochipID:       microchip.MaskMicrochip(r.MicrochipID),
+		MicrochipID:       maskDomainMicrochip(r.MicrochipID),
 		MicrochipRegistry: r.MicrochipRegistry,
 	}
 }
@@ -585,31 +581,31 @@ func (r LostPetReport) Persisted() (LostPetRecord, ReportContact) {
 		emb = append([]float32(nil), primary.Embedding...)
 	}
 	return LostPetRecord{
-		PetID:                 r.PetID,
-		PetName:               r.PetName,
-		Species:               r.Species,
-		Breed:                 r.Breed,
-		PrimaryColor:          r.PrimaryColor,
-		Description:           r.Description,
-		OwnerIdentityRef:      identityRef,
-		ImageObject:           r.ImageObject,
-		Images:                clonePetImages(r.Images),
-		Embedding:             emb,
-		ReportedAt:            r.ReportedAt,
-		Location:              r.Location,
-		GeocodingStatus:       r.GeocodingStatus,
-		Coordinates:           cloneLocationPoint(r.Coordinates),
-		Status:                r.Status,
-		OwnedBy:               normalizePrincipalRef(r.OwnedBy),
-		MicrochipID:           r.MicrochipID,
-		MicrochipRegistry:     r.MicrochipRegistry,
-		CollarBeacon:          r.CollarBeacon,
-		ReferenceAudioProfile: cloneAudioProfile(r.ReferenceAudioProfile),
-	}, NormalizeReportContact(ReportContact{
-		IdentityRef: identityRef,
-		Email:       r.ReporterEmail,
-		Phone:       r.Phone,
-	})
+			PetID:                 r.PetID,
+			PetName:               r.PetName,
+			Species:               r.Species,
+			Breed:                 r.Breed,
+			PrimaryColor:          r.PrimaryColor,
+			Description:           r.Description,
+			OwnerIdentityRef:      identityRef,
+			ImageObject:           r.ImageObject,
+			Images:                clonePetImages(r.Images),
+			Embedding:             emb,
+			ReportedAt:            r.ReportedAt,
+			Location:              r.Location,
+			GeocodingStatus:       r.GeocodingStatus,
+			Coordinates:           cloneLocationPoint(r.Coordinates),
+			Status:                r.Status,
+			OwnedBy:               normalizePrincipalRef(r.OwnedBy),
+			MicrochipID:           r.MicrochipID,
+			MicrochipRegistry:     r.MicrochipRegistry,
+			CollarBeacon:          r.CollarBeacon,
+			ReferenceAudioProfile: cloneAudioProfile(r.ReferenceAudioProfile),
+		}, NormalizeReportContact(ReportContact{
+			IdentityRef: identityRef,
+			Email:       r.ReporterEmail,
+			Phone:       r.Phone,
+		})
 }
 
 // NormalizeLostPetRecord canonicalizes persisted state, including legacy
@@ -669,7 +665,7 @@ func (r LostPetRecord) Public() PublicLostPetReport {
 		GeocodingStatus:   r.GeocodingStatus,
 		Coordinates:       cloneLocationPoint(r.Coordinates),
 		Status:            r.Status,
-		MicrochipID:       microchip.MaskMicrochip(r.MicrochipID),
+		MicrochipID:       maskDomainMicrochip(r.MicrochipID),
 		MicrochipRegistry: r.MicrochipRegistry,
 	}
 }

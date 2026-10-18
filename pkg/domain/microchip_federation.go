@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 )
 
 type MicrochipStandardType string
@@ -163,4 +164,72 @@ func (c MicrochipScanCase) Validate() error {
 		return fmt.Errorf("domain: updatedAt is required")
 	}
 	return nil
+}
+
+func normalizeDomainMicrochip(raw string) (normalizedID string, registryName string, ok bool) {
+	clean := strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) || r == '-' || r == '*' {
+			return -1
+		}
+		return r
+	}, raw)
+	switch len(clean) {
+	case 15:
+		for i := 0; i < len(clean); i++ {
+			if clean[i] < '0' || clean[i] > '9' {
+				return "", "", false
+			}
+		}
+		switch clean[:3] {
+		case "985":
+			return clean, "HomeAgain", true
+		case "981":
+			return clean, "AKC Reunite", true
+		case "977":
+			return clean, "PetLink", true
+		case "982":
+			return clean, "24Petwatch", true
+		case "965":
+			return clean, "BuddyID", true
+		default:
+			return clean, "Universal Clearinghouse", true
+		}
+	case 9:
+		for i := 0; i < len(clean); i++ {
+			if clean[i] < '0' || clean[i] > '9' {
+				return "", "", false
+			}
+		}
+		return clean, "Avid Identification Systems", true
+	case 10:
+		for i := 0; i < len(clean); i++ {
+			c := clean[i]
+			if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+				return "", "", false
+			}
+		}
+		return strings.ToUpper(clean), "Euro / Trovan Microchip Registry", true
+	default:
+		return "", "", false
+	}
+}
+
+func maskDomainMicrochip(raw string) string {
+	norm, reg, ok := normalizeDomainMicrochip(raw)
+	if !ok {
+		return ""
+	}
+	lastFour := norm[len(norm)-4:]
+	label := reg
+	switch len(norm) {
+	case 9:
+		label = "Avid"
+	case 10:
+		label = "Euro"
+	default:
+		if reg == "Universal Clearinghouse" {
+			label = "ISO"
+		}
+	}
+	return fmt.Sprintf("%s ••••%s", label, lastFour)
 }

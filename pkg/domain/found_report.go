@@ -6,8 +6,6 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
-
-	"github.com/scottdensmore/petspotr/pkg/microchip"
 )
 
 // FoundPetReportedPayloadVersion is the current found-pet integration payload.
@@ -298,12 +296,10 @@ func NormalizeFoundPetReport(report FoundPetReport) FoundPetReport {
 	report.ShelterName = strings.TrimSpace(report.ShelterName)
 	report.IntakeID = strings.TrimSpace(report.IntakeID)
 	if report.MicrochipID != "" {
-		val := microchip.ValidateAndNormalize(report.MicrochipID)
-		if val.Valid {
-			report.MicrochipID = val.NormalizedID
+		if norm, reg, ok := normalizeDomainMicrochip(report.MicrochipID); ok {
+			report.MicrochipID = norm
 			if report.MicrochipRegistry == "" {
-				reg := microchip.IdentifyIssuingRegistry(val.NormalizedID)
-				report.MicrochipRegistry = reg.RegistryName
+				report.MicrochipRegistry = reg
 			}
 		}
 	}
@@ -392,7 +388,7 @@ func (r FoundPetReport) Public() PublicFoundPetReport {
 		DistinctiveMarkings: append([]string(nil), r.DistinctiveMarkings...),
 		CustodyStatus:       r.CustodyStatus,
 		Status:              r.Status,
-		MicrochipID:         microchip.MaskMicrochip(r.MicrochipID),
+		MicrochipID:         maskDomainMicrochip(r.MicrochipID),
 		MicrochipRegistry:   r.MicrochipRegistry,
 		ShelterID:           r.ShelterID,
 		ShelterName:         r.ShelterName,
@@ -408,33 +404,33 @@ func (r FoundPetReport) Persisted() (FoundPetRecord, ReportContact) {
 		emb = append([]float32(nil), primary.Embedding...)
 	}
 	return FoundPetRecord{
-		PetID:               r.PetID,
-		ImageURL:            r.ImageURL,
-		ImageObject:         r.ImageObject,
-		Images:              clonePetImages(r.Images),
-		Embedding:           emb,
-		FoundAt:             r.FoundAt,
-		Location:            r.Location,
-		GeocodingStatus:     r.GeocodingStatus,
-		Coordinates:         cloneLocationPoint(r.Coordinates),
-		FinderIdentityRef:   identityRef,
-		Species:             r.Species,
-		Breed:               r.Breed,
-		PrimaryColor:        r.PrimaryColor,
-		SecondaryColor:      r.SecondaryColor,
-		DistinctiveMarkings: append([]string(nil), r.DistinctiveMarkings...),
-		CustodyStatus:       r.CustodyStatus,
-		Status:              r.Status,
-		OwnedBy:             normalizePrincipalRef(r.OwnedBy),
-		MicrochipID:         r.MicrochipID,
-		MicrochipRegistry:   r.MicrochipRegistry,
-		ShelterID:           r.ShelterID,
-		ShelterName:         r.ShelterName,
-		IntakeID:            r.IntakeID,
-	}, NormalizeReportContact(ReportContact{
-		IdentityRef: identityRef,
-		Email:       r.FinderEmail,
-	})
+			PetID:               r.PetID,
+			ImageURL:            r.ImageURL,
+			ImageObject:         r.ImageObject,
+			Images:              clonePetImages(r.Images),
+			Embedding:           emb,
+			FoundAt:             r.FoundAt,
+			Location:            r.Location,
+			GeocodingStatus:     r.GeocodingStatus,
+			Coordinates:         cloneLocationPoint(r.Coordinates),
+			FinderIdentityRef:   identityRef,
+			Species:             r.Species,
+			Breed:               r.Breed,
+			PrimaryColor:        r.PrimaryColor,
+			SecondaryColor:      r.SecondaryColor,
+			DistinctiveMarkings: append([]string(nil), r.DistinctiveMarkings...),
+			CustodyStatus:       r.CustodyStatus,
+			Status:              r.Status,
+			OwnedBy:             normalizePrincipalRef(r.OwnedBy),
+			MicrochipID:         r.MicrochipID,
+			MicrochipRegistry:   r.MicrochipRegistry,
+			ShelterID:           r.ShelterID,
+			ShelterName:         r.ShelterName,
+			IntakeID:            r.IntakeID,
+		}, NormalizeReportContact(ReportContact{
+			IdentityRef: identityRef,
+			Email:       r.FinderEmail,
+		})
 }
 
 // NormalizeFoundPetRecord canonicalizes persisted state, including legacy
@@ -495,7 +491,7 @@ func (r FoundPetRecord) Public() PublicFoundPetReport {
 		DistinctiveMarkings: append([]string(nil), r.DistinctiveMarkings...),
 		CustodyStatus:       r.CustodyStatus,
 		Status:              r.Status,
-		MicrochipID:         microchip.MaskMicrochip(r.MicrochipID),
+		MicrochipID:         maskDomainMicrochip(r.MicrochipID),
 		MicrochipRegistry:   r.MicrochipRegistry,
 		ShelterID:           r.ShelterID,
 		ShelterName:         r.ShelterName,
