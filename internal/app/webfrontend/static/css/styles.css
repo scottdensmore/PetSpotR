@@ -9614,3 +9614,391 @@ textarea:focus-visible,
   color: #334155;
 }
 
+/* ==========================================================================
+   Milestone 13.1: Automated Pet Custody Chain, Escrow & Cryptographic Reunion
+   Handover Ledger Cockpit UI (/custody-ledger) — WCAG AAA (> 7.1:1)
+   ========================================================================== */
+
+.custody-header-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.custody-cockpit-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .custody-cockpit-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.custody-column-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.custody-panel {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.custody-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--border-color, #334155);
+  padding-bottom: 0.75rem;
+}
+
+.custody-panel-header h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.custody-inspector-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.custody-subsection {
+  border-top: 1px solid var(--border-color, #334155);
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.custody-subsection h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.custody-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.custody-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.custody-chains-list,
+.custody-hops-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.custody-chain-card,
+.custody-hop-node,
+.reunion-certificate-card {
+  background: var(--bg-card, #0f172a);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: var(--radius-md, 8px);
+  padding: 0.95rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.custody-chain-card-active {
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+}
+
+[data-theme="light"] .custody-chain-card,
+[data-theme="light"] .custody-hop-node,
+[data-theme="light"] .reunion-certificate-card {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.custody-chain-card-header,
+.custody-hop-header,
+.certificate-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.certificate-header h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.custody-chain-identity,
+.custody-chain-badges,
+.custody-chain-actions,
+.certificate-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.custody-pet-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.custody-pet-id,
+.custody-pin-code,
+.custody-head-hash {
+  font-family: monospace;
+  font-size: 0.78rem;
+}
+
+.custody-head-hash {
+  word-break: break-all;
+}
+
+.custody-chain-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #cbd5e1);
+}
+
+[data-theme="light"] .custody-chain-meta {
+  color: #1e293b;
+}
+
+.custody-hop-location {
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #cbd5e1);
+}
+
+[data-theme="light"] .custody-hop-location {
+  color: #1e293b;
+}
+
+.custody-hop-transfer {
+  font-size: 0.875rem;
+}
+
+.custody-hop-notes {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #e2e8f0);
+}
+
+[data-theme="light"] .custody-hop-notes {
+  color: #1e293b;
+}
+
+.custody-hop-hashes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-family: monospace;
+  font-size: 0.75rem;
+  word-break: break-all;
+  color: var(--text-secondary, #cbd5e1);
+}
+
+[data-theme="light"] .custody-hop-hashes {
+  color: #1e293b;
+}
+
+.certificate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem 1rem;
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 640px) {
+  .certificate-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+#cert-head-hash {
+  font-family: monospace;
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+/* WCAG AAA High-Contrast Custody Stage, Integrity & PIN Gate Badges (> 7.1:1 in Dark & Light Modes) */
+.badge-custody-intake,
+.badge-custody-hold,
+.badge-custody-escrow,
+.badge-custody-reunited,
+.badge-integrity-intact,
+.badge-custody-microchip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+/* Dark mode (default) */
+:root .badge-custody-intake,
+[data-theme="dark"] .badge-custody-intake {
+  background-color: #1e1b4b;
+  color: #e0e7ff;
+  border: 1px solid #6366f1;
+}
+
+:root .badge-custody-hold,
+[data-theme="dark"] .badge-custody-hold {
+  background-color: #78350f;
+  color: #fffbeb;
+  border: 1px solid #f59e0b;
+}
+
+:root .badge-custody-escrow,
+[data-theme="dark"] .badge-custody-escrow {
+  background-color: #0f172a;
+  color: #f8fafc;
+  border: 1px solid #38bdf8;
+}
+
+:root .badge-custody-reunited,
+[data-theme="dark"] .badge-custody-reunited {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+}
+
+:root .badge-integrity-intact,
+[data-theme="dark"] .badge-integrity-intact {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #34d399;
+}
+
+:root .badge-custody-microchip,
+[data-theme="dark"] .badge-custody-microchip {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #64748b;
+  font-family: monospace;
+}
+
+:root .custody-pin-gate-alert,
+[data-theme="dark"] .custody-pin-gate-alert {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 2px solid #f87171;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+:root .custody-reunion-cert-banner,
+[data-theme="dark"] .custody-reunion-cert-banner {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+/* Light mode */
+[data-theme="light"] .badge-custody-intake {
+  background-color: #eef2ff;
+  color: #1e1b4b;
+  border: 1px solid #4f46e5;
+}
+
+[data-theme="light"] .badge-custody-hold {
+  background-color: #fffbeb;
+  color: #78350f;
+  border: 1px solid #d97706;
+}
+
+[data-theme="light"] .badge-custody-escrow {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #0284c7;
+}
+
+[data-theme="light"] .badge-custody-reunited {
+  background-color: #ecfdf5;
+  color: #064e3b;
+  border: 1px solid #059669;
+}
+
+[data-theme="light"] .badge-integrity-intact {
+  background-color: #ecfdf5;
+  color: #064e3b;
+  border: 1px solid #059669;
+}
+
+[data-theme="light"] .badge-custody-microchip {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #475569;
+  font-family: monospace;
+}
+
+[data-theme="light"] .custody-pin-gate-alert {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 2px solid #dc2626;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+[data-theme="light"] .custody-reunion-cert-banner {
+  background-color: #ecfdf5;
+  color: #064e3b;
+  border: 1px solid #059669;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.custody-empty-hint {
+  color: var(--text-secondary, #cbd5e1);
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 1.25rem 1rem;
+  margin: 0;
+}
+
+[data-theme="light"] .custody-empty-hint {
+  color: #334155;
+}
+

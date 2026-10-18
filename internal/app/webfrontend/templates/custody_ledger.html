@@ -1,20 +1,365 @@
 <!DOCTYPE html>
-<html lang="{{if .Locale}}{{.Locale}}{{else}}en{{end}}">
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <title>Pet Custody Chain &amp; Cryptographic Reunion Ledger — PetSpotR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Automated Pet Custody Chain, Escrow &amp; Cryptographic Reunion Handover Ledger Cockpit.">
+  <title>Automated Pet Custody Chain, Escrow &amp; Cryptographic Reunion Handover Ledger — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
-  <main id="custody-ledger-root" data-testid="custody-ledger-dashboard">
-    <h1>Pet Custody Chain &amp; Cryptographic Reunion Handover Ledger</h1>
-    <div id="custody-chain-list" data-testid="custody-chain-list">
-      {{range .Chains}}
-      <article data-chain-id="{{.ChainID}}" data-testid="custody-chain-card">
-        <h2>{{.PetName}} ({{.Species}}) — {{.CurrentStage}}</h2>
-        <p>{{.CurrentCustodian}} @ {{.CurrentLocation}}</p>
-      </article>
-      {{end}}
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link active nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container page-main" id="custody-ledger-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header custody-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>⛓️ SHA-256 CUSTODY CHAIN &amp; CRYPTOGRAPHIC REUNION ESCROW</span>
+        </div>
+        <h1>Automated Pet Custody Chain, Escrow &amp; Cryptographic Reunion Handover Ledger</h1>
+        <p class="text-secondary">
+          Tamper-Evident SHA-256 &amp; HMAC-SHA256 Pet Custody Transfer Chain, Dual-Party 6-Digit Cryptographic Escrow PIN Gate, Legal Liability Waiver &amp; Printable Custody Receipt Certificate.
+        </p>
+      </div>
+    </div>
+
+    <div class="custody-cockpit-grid">
+      <!-- Section 1: Active Pet Custody Chains & Cryptographic Integrity Registry -->
+      <section class="glass-card custody-panel" id="custody-chains-panel" aria-labelledby="heading-custody-chains">
+        <div class="custody-panel-header">
+          <h2 id="heading-custody-chains">Active Pet Custody Chains &amp; Cryptographic Integrity Registry</h2>
+          <span id="custody-chains-count-badge" class="badge badge-secondary">{{ len .Chains }} Chains</span>
+        </div>
+
+        <div id="custody-chains-list" class="custody-chains-list" role="list">
+          {{ range .Chains }}
+          <article class="custody-chain-card" data-chain-id="{{ .ChainID }}" data-custody-stage="{{ .CurrentStage }}" data-handover-pin="{{ .HandoverPinCode }}" role="listitem">
+            <div class="custody-chain-card-header">
+              <div class="custody-chain-identity">
+                <strong class="custody-pet-name">{{ .PetName }}</strong>
+                <code class="custody-pet-id">{{ .PetID }}</code>
+                {{ if .MicrochipID }}
+                <span class="badge badge-custody-microchip">CHIP: {{ .MicrochipID }}</span>
+                {{ end }}
+              </div>
+              <div class="custody-chain-badges">
+                <span class="badge badge-custody-stage {{ if or (eq (printf "%s" .CurrentStage) "FINDER_INTAKE") (eq (printf "%s" .CurrentStage) "FIELD_SAR_ESCORT") }}badge-custody-intake{{ else if or (eq (printf "%s" .CurrentStage) "VET_ER_HOLD") (eq (printf "%s" .CurrentStage) "SHELTER_SAFEKEEPING") }}badge-custody-hold{{ else if eq (printf "%s" .CurrentStage) "OWNER_REUNIFICATION_ESCROW" }}badge-custody-escrow{{ else if eq (printf "%s" .CurrentStage) "REUNITED_RELEASED" }}badge-custody-reunited{{ else }}badge-custody-intake{{ end }}">{{ .CurrentStage }}</span>
+                <span class="badge badge-chain-integrity badge-integrity-intact">🔐 SHA-256 CHAIN VERIFIED INTACT ({{ len .Hops }} Hops)</span>
+              </div>
+            </div>
+
+            <div class="custody-chain-meta">
+              <span>👤 Custodian: <strong>{{ .CurrentCustodian }}</strong></span>
+              <span>📍 Location: <strong>{{ .CurrentLocation }}</strong></span>
+              <span>🔑 Escrow PIN: <code class="custody-pin-code">{{ .HandoverPinCode }}</code></span>
+              <span>⛓️ Head Digest: <code class="custody-head-hash">{{ .LatestEntryHashHex }}</code></span>
+            </div>
+
+            {{ if .ReceiptCertificateID }}
+            <div class="custody-reunion-cert-banner">
+              🎉 REUNITED &amp; RELEASED — Certificate: <strong>{{ .ReceiptCertificateID }}</strong> (Owner: {{ .VerifiedOwnerName }})
+            </div>
+            {{ end }}
+
+            <div class="custody-chain-actions">
+              <button type="button" class="btn btn-sm btn-secondary btn-select-custody-chain" data-chain-id="{{ .ChainID }}">🔍 Inspect Hash Chain &amp; Handover</button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="custody-empty-hint" id="custody-chains-empty-msg">No active pet custody chains recorded yet.</p>
+          {{ end }}
+        </div>
+
+        <!-- Subsection 1A: Initiate New Pet Custody Chain Form -->
+        <div class="custody-subsection">
+          <h3>Initiate New Pet Custody Chain</h3>
+          <form id="form-create-custody-chain" class="custody-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="custody-pet-id">Pet ID</label>
+                <input type="text" id="custody-pet-id" class="form-control" value="pet-custody-baxter" required>
+              </div>
+              <div class="form-group">
+                <label for="custody-pet-name">Pet Name</label>
+                <input type="text" id="custody-pet-name" class="form-control" value="Baxter" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="custody-species">Species</label>
+                <select id="custody-species" class="form-control" required>
+                  <option value="Dog">Dog</option>
+                  <option value="Cat">Cat</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="custody-microchip">Microchip ID</label>
+                <input type="text" id="custody-microchip" class="form-control" value="985141007766554">
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="custody-initial-stage">Initial Custody Stage</label>
+                <select id="custody-initial-stage" class="form-control" required>
+                  <option value="FINDER_INTAKE">FINDER_INTAKE — Community Finder Intake</option>
+                  <option value="FIELD_SAR_ESCORT">FIELD_SAR_ESCORT — Field SAR Escort</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="custody-from-custodian">Origin / Recovery Point</label>
+                <input type="text" id="custody-from-custodian" class="form-control" value="Magnuson Park Off-Leash Perimeter" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="custody-to-custodian">Receiving Custodian</label>
+                <input type="text" id="custody-to-custodian" class="form-control" value="Taylor Reed (Community Finder)" required>
+              </div>
+              <div class="form-group">
+                <label for="custody-to-role">Custodian Role</label>
+                <input type="text" id="custody-to-role" class="form-control" value="COMMUNITY_FINDER" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="custody-location">Handover Location Label</label>
+                <input type="text" id="custody-location" class="form-control" value="Magnuson Park North Kiosk" required>
+              </div>
+              <div class="form-group">
+                <label for="custody-notes">Condition &amp; Intake Notes</label>
+                <input type="text" id="custody-notes" class="form-control" value="Healthy Beagle wearing green bandana" required>
+              </div>
+            </div>
+
+            <button type="submit" id="btn-create-custody-chain" class="btn btn-primary">⛓️ Initiate Genesis Custody Chain</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column Stack: Section 2 (Actions & Dual-Party PIN Gate) + Section 3 (Hash-Chain Timeline & Certificate) -->
+      <div class="custody-column-stack">
+        <!-- Section 2: Custody Transfer Hop Appender & Dual-Party PIN Reunion Escrow -->
+        <section class="glass-card custody-panel" id="custody-actions-panel" aria-labelledby="heading-custody-actions">
+          <div class="custody-panel-header">
+            <h2 id="heading-custody-actions">Custody Transfer Hop Appender &amp; Dual-Party PIN Reunion Escrow</h2>
+            <span class="badge badge-custody-escrow">Dual-Party Cryptographic Gate</span>
+          </div>
+
+          <div class="form-group">
+            <label for="active-chain-select">Selected Pet Custody Chain</label>
+            <select id="active-chain-select" class="form-control">
+              {{ range .Chains }}
+              <option value="{{ .ChainID }}">{{ .PetName }} ({{ .PetID }}) — {{ .ChainID }} [{{ .CurrentStage }}]</option>
+              {{ end }}
+            </select>
+          </div>
+
+          <!-- Subsection 2A: Append Custody Transfer Hop Form -->
+          <div class="custody-subsection">
+            <h3>Append Custody Transfer Hop</h3>
+            <form id="form-append-custody-hop" class="custody-form" novalidate>
+              <div class="form-row-2col">
+                <div class="form-group">
+                  <label for="hop-stage">Next Custody Stage</label>
+                  <select id="hop-stage" class="form-control" required>
+                    <option value="FIELD_SAR_ESCORT">FIELD_SAR_ESCORT — Field SAR Escort</option>
+                    <option value="VET_ER_HOLD">VET_ER_HOLD — Veterinary ER Hold</option>
+                    <option value="SHELTER_SAFEKEEPING">SHELTER_SAFEKEEPING — Shelter Safekeeping</option>
+                    <option value="OWNER_REUNIFICATION_ESCROW">OWNER_REUNIFICATION_ESCROW — Owner Reunification Escrow</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="hop-to-custodian">Receiving Custodian Name</label>
+                  <input type="text" id="hop-to-custodian" class="form-control" value="Seattle Animal Shelter Reunion Escrow" required>
+                </div>
+              </div>
+
+              <div class="form-row-2col">
+                <div class="form-group">
+                  <label for="hop-to-role">Receiving Custodian Role</label>
+                  <input type="text" id="hop-to-role" class="form-control" value="ESCROW_CUSTODIAN" required>
+                </div>
+                <div class="form-group">
+                  <label for="hop-location">Transfer Location Label</label>
+                  <input type="text" id="hop-location" class="form-control" value="2061 15th Ave W, Seattle, WA" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="hop-notes">Condition &amp; Transfer Notes</label>
+                <input type="text" id="hop-notes" class="form-control" value="Microchip scanned &amp; owner contacted; placed in reunion escrow" required>
+              </div>
+
+              <button type="submit" id="btn-append-custody-hop" class="btn btn-secondary">➕ Append Signed SHA-256 Transfer Hop</button>
+            </form>
+          </div>
+
+          <!-- Subsection 2B: Dual-Party Cryptographic Reunion Handover Form -->
+          <div class="custody-subsection">
+            <h3>Dual-Party Cryptographic Reunion Handover</h3>
+            <div id="pin-gate-error-alert" class="custody-pin-gate-alert" role="alert" hidden></div>
+
+            <form id="form-complete-reunion" class="custody-form" novalidate>
+              <div class="form-row-2col">
+                <div class="form-group">
+                  <label for="reunion-pin-input">6-Digit Escrow Handover PIN</label>
+                  <input type="text" id="reunion-pin-input" class="form-control" placeholder="6-digit Handover Escrow PIN" required>
+                </div>
+                <div class="form-group">
+                  <label for="reunion-owner-name">Verified Legal Owner Name</label>
+                  <input type="text" id="reunion-owner-name" class="form-control" value="Jordan Taylor" required>
+                </div>
+              </div>
+
+              <div class="form-row-2col">
+                <div class="form-group">
+                  <label for="reunion-proof-method">Ownership Proof Method</label>
+                  <select id="reunion-proof-method" class="form-control" required>
+                    <option value="MICROCHIP_SCAN_MATCH">MICROCHIP_SCAN_MATCH — ISO Microchip Scan Match</option>
+                    <option value="VET_RECORD_DEED">VET_RECORD_DEED — Veterinary Record / Adoption Deed</option>
+                    <option value="PHOTO_BIOMETRIC_MATCH">PHOTO_BIOMETRIC_MATCH — AI Photo Biometric Match</option>
+                    <option value="GOVERNMENT_ID_AFFIDAVIT">GOVERNMENT_ID_AFFIDAVIT — Government ID &amp; Signed Affidavit</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="reunion-location">Reunion Handover Location</label>
+                  <input type="text" id="reunion-location" class="form-control" value="Seattle Animal Shelter Reunion Desk" required>
+                </div>
+              </div>
+
+              <div class="form-group custody-checkbox-row">
+                <input type="checkbox" id="reunion-waiver-checkbox" checked>
+                <label for="reunion-waiver-checkbox">I attest legal ownership and sign the Custody Release &amp; Liability Waiver</label>
+              </div>
+
+              <button type="submit" id="btn-complete-reunion" class="btn btn-primary">🔐 Verify Escrow PIN &amp; Release Pet to Owner</button>
+            </form>
+          </div>
+        </section>
+
+        <!-- Section 3: Tamper-Evident SHA-256 Hash-Chain Timeline & Printable Custody Waiver Certificate -->
+        <section class="glass-card custody-panel" id="custody-inspector-panel" aria-labelledby="heading-custody-inspector">
+          <div class="custody-panel-header">
+            <h2 id="heading-custody-inspector">Tamper-Evident SHA-256 Hash-Chain Timeline &amp; Printable Certificate</h2>
+            <div class="custody-inspector-actions">
+              <span id="audit-result-badge" class="badge badge-integrity-intact">SHA-256 Verified</span>
+              <button type="button" id="btn-verify-chain-integrity" class="btn btn-sm btn-secondary">🛡️ Run Cryptographic Audit</button>
+            </div>
+          </div>
+
+          <div id="custody-hops-timeline" class="custody-hops-timeline" role="list">
+            {{ if gt (len .Chains) 0 }}
+              {{ with index .Chains 0 }}
+                {{ range .Hops }}
+                <div class="custody-hop-node" data-hop-index="{{ .HopIndex }}" role="listitem">
+                  <div class="custody-hop-header">
+                    <span class="badge badge-custody-stage {{ if or (eq (printf "%s" .Stage) "FINDER_INTAKE") (eq (printf "%s" .Stage) "FIELD_SAR_ESCORT") }}badge-custody-intake{{ else if or (eq (printf "%s" .Stage) "VET_ER_HOLD") (eq (printf "%s" .Stage) "SHELTER_SAFEKEEPING") }}badge-custody-hold{{ else if eq (printf "%s" .Stage) "OWNER_REUNIFICATION_ESCROW" }}badge-custody-escrow{{ else if eq (printf "%s" .Stage) "REUNITED_RELEASED" }}badge-custody-reunited{{ else }}badge-custody-intake{{ end }}">#{{ .HopIndex }} {{ .Stage }}</span>
+                    <span class="custody-hop-location">📍 {{ .LocationLabel }}</span>
+                  </div>
+                  <div class="custody-hop-transfer">
+                    <strong>{{ .FromCustodian }} → {{ .ToCustodian }} ({{ .ToRole }})</strong>
+                  </div>
+                  <p class="custody-hop-notes">{{ .ConditionNotes }}</p>
+                  <div class="custody-hop-hashes">
+                    <div><span>PrevHash:</span> <code>{{ .PrevHashHex }}</code></div>
+                    <div><span>EntryHash:</span> <code>{{ .EntryHashHex }}</code></div>
+                    <div><span>HMAC:</span> <code>{{ .HmacSignatureHex }}</code></div>
+                  </div>
+                </div>
+                {{ end }}
+              {{ end }}
+            {{ else }}
+            <p class="custody-empty-hint">No custody hops to display.</p>
+            {{ end }}
+          </div>
+
+          <!-- Printable Custody Receipt & Liability Waiver Certificate -->
+          <div id="reunion-certificate-card" class="reunion-certificate-card">
+            {{ if gt (len .Chains) 0 }}
+              {{ with index .Chains 0 }}
+              <div class="certificate-header">
+                <h3>📜 Cryptographic Pet Custody Receipt &amp; Liability Waiver Certificate</h3>
+                <span id="certificate-id-display" class="badge {{ if .ReceiptCertificateID }}badge-custody-reunited{{ else }}badge-custody-escrow{{ end }}">
+                  {{ if .ReceiptCertificateID }}{{ .ReceiptCertificateID }}{{ else }}PENDING_REUNION_ESCROW{{ end }}
+                </span>
+              </div>
+              <div class="certificate-grid">
+                <div><strong>Pet Name / ID:</strong> <span id="cert-pet-summary">{{ .PetName }} ({{ .PetID }})</span></div>
+                <div><strong>Microchip ID:</strong> <span id="cert-microchip">{{ if .MicrochipID }}{{ .MicrochipID }}{{ else }}N/A{{ end }}</span></div>
+                <div><strong>Current Stage:</strong> <span id="cert-stage">{{ .CurrentStage }}</span></div>
+                <div><strong>Verified Owner:</strong> <span id="cert-owner">{{ if .VerifiedOwnerName }}{{ .VerifiedOwnerName }}{{ else }}Awaiting PIN Handover{{ end }}</span></div>
+                <div><strong>Ownership Proof:</strong> <span id="cert-proof">{{ if .OwnershipProof }}{{ .OwnershipProof }}{{ else }}Pending Verification{{ end }}</span></div>
+                <div><strong>Latest SHA-256 Digest:</strong> <code id="cert-head-hash">{{ .LatestEntryHashHex }}</code></div>
+              </div>
+              <div class="certificate-actions">
+                <button type="button" id="btn-print-custody-certificate" class="btn btn-sm btn-secondary">🖨️ Print Custody Waiver Receipt</button>
+              </div>
+              {{ end }}
+            {{ else }}
+              <div class="certificate-header">
+                <h3>📜 Cryptographic Pet Custody Receipt &amp; Liability Waiver Certificate</h3>
+                <span id="certificate-id-display" class="badge badge-custody-escrow">NO_CHAIN_SELECTED</span>
+              </div>
+              <div class="certificate-actions">
+                <button type="button" id="btn-print-custody-certificate" class="btn btn-sm btn-secondary">🖨️ Print Custody Waiver Receipt</button>
+              </div>
+            {{ end }}
+          </div>
+        </section>
+      </div>
     </div>
   </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+  <div id="custody-aria-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="/static/js/custody-ledger.js" defer></script>
 </body>
 </html>
