@@ -493,6 +493,8 @@ func (s *Server) routes() {
 
 	// Predator & Wildlife Conflict Corridor Alerting Cockpit routes (Milestone 14.1)
 	s.registerWildlifeCorridorRoutes()
+	// Municipal 311 / Animal Control Dispatch CAD Bridge & Roadway Containment Cockpit routes (Milestone 14.2)
+	s.registerMunicipalCADRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
