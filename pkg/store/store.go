@@ -88,7 +88,58 @@ const (
 const (
 	CollectionPetCustodyChains       = "pet_custody_chains"
 	CollectionSightingTrustScreening = "sighting_trust_screenings"
+	CollectionHumaneTrapDeployments  = "humane_trap_deployments"
 )
+
+// DefaultCollections returns all canonical state store collections.
+func DefaultCollections() []string {
+	return []string{
+		LostPetsCollection,
+		FoundPetsCollection,
+		ReportContactsCollection,
+		MatchesCollection,
+		MatchParticipantsCollection,
+		PushSubscriptionsCollection,
+		OutboxCollection,
+		NotificationDeliveriesCollection,
+		MatcherResultsCollection,
+		NotificationPreferencesCollection,
+		InAppNotificationsCollection,
+		NotificationsCollection,
+		SearchPartiesCollection,
+		SectorAssignmentsCollection,
+		WebhooksCollection,
+		WebhookDeliveriesCollection,
+		BreadcrumbsCollection,
+		SMSOptOutCollection,
+		SMSDeliveriesCollection,
+		TrajectoriesCollection,
+		SightingsCollection,
+		VoiceMemosCollection,
+		VoiceMemosAudioCollection,
+		BeaconPingsCollection,
+		EvacuationHubsCollection,
+		TransferManifestsCollection,
+		CrisisIntakesCollection,
+		CrisisReunificationsCollection,
+		CollectionReconMissions,
+		CollectionReconHotspots,
+		CollectionAudioProfiles,
+		CollectionAcousticMatches,
+		CollectionVeterinaryPassports,
+		CollectionTriageAssessments,
+		CollectionCameraNodes,
+		CollectionCameraCaptures,
+		CollectionVeterinaryClinics,
+		CollectionClinicalHandoffs,
+		CollectionVolunteerProfiles,
+		CollectionICSShiftEntries,
+		CollectionK9ScentMissions,
+		CollectionPetCustodyChains,
+		CollectionSightingTrustScreening,
+		CollectionHumaneTrapDeployments,
+	}
+}
 
 // Sentinel errors for StateStore operations.
 var (
