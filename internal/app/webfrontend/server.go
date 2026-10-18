@@ -485,6 +485,9 @@ func (s *Server) routes() {
 	// Humane Live-Trap IoT Telemetry, Bait Decay & Rapid Dispatch Cockpit routes (Milestone 13.3)
 	s.registerHumaneTrapRoutes()
 
+	// Universal Microchip Registry Federation & Ownership Resolution Cockpit routes (Milestone 13.4)
+	s.registerMicrochipFederationRoutes()
+
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
 		"state": func(ctx context.Context) error {
