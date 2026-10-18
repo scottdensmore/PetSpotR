@@ -482,6 +482,9 @@ func (s *Server) routes() {
 	// Multi-Modal False-Positive & Scam/Hoax Sighting Shield routes (Milestone 13.2)
 	s.registerTrustSafetyRoutes()
 
+	// Humane Live-Trap IoT Telemetry, Bait Decay & Rapid Dispatch Cockpit routes (Milestone 13.3)
+	s.registerHumaneTrapRoutes()
+
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
 		"state": func(ctx context.Context) error {
