@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Universal Microchip Registry Federation, Multi-Standard Scanner Lookup &amp; Ownership Resolution Cockpit.">
+  <title>Universal Microchip Registry Federation &amp; Ownership Resolution Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/microchip-federation" class="nav-link active nav-link-emergency" id="nav-microchip-federation">📡 Microchip Federation</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="microchip-federation-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header microchip-federation-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>📡 UNIVERSAL RFID TRANSPONDER DECODER &amp; MULTI-REGISTRY WATERFALL</span>
+        </div>
+        <h1>Universal Microchip Registry Federation &amp; Ownership Resolution Cockpit</h1>
+        <p class="text-secondary">
+          Multi-Standard RFID Transponder Decoding (ISO 11784/11785 134.2 kHz, AVID 9-Digit 125.0 kHz, Legacy FDX-A 10-Hex 128.0 kHz), Federated Registry Waterfall Lookup, Unregistered Manufacturer Batch Lot Clinic Trace &amp; Verified Reunion Promotion.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid microchip-federation-kpi-grid" aria-label="Microchip Federation Fleet Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Scanned Microchip Cases</span>
+        <strong class="kpi-value" id="kpi-chips-total">{{ len .Cases }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Unregistered Batch Lot Traces</span>
+        <strong class="kpi-value" id="kpi-chips-unregistered">1</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Secondary Contact Escalations</span>
+        <strong class="kpi-value" id="kpi-chips-escalated">1</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Verified Reunions Dispatched</span>
+        <strong class="kpi-value" id="kpi-chips-reunited">1</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="microchip-federation-live-status" class="humane-traps-live-status microchip-federation-live-status" role="status" aria-live="polite">
+      Monitoring {{ len .Cases }} federated microchip RFID scan cases across regional registries and clinic PIMS lots.
+    </div>
+
+    <div class="trust-cockpit-grid microchip-federation-cockpit-grid">
+      <!-- Section 1: Universal Multi-Standard RFID Scanner Lookup Form + Simulation Presets -->
+      <section class="glass-card trust-panel" id="microchip-scan-panel" aria-labelledby="heading-scan-microchip">
+        <div class="trust-panel-header">
+          <h2 id="heading-scan-microchip">Universal Multi-Standard RFID Scanner Lookup</h2>
+          <span class="badge badge-chip-standard">134.2 / 125.0 / 128.0 kHz</span>
+        </div>
+
+        <form id="form-scan-microchip" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="mc-pet-id">Target Pet ID</label>
+              <input type="text" id="mc-pet-id" class="form-control" value="pet-2026-002" required>
+            </div>
+            <div class="form-group">
+              <label for="mc-pet-name">Target Pet Name</label>
+              <input type="text" id="mc-pet-name" class="form-control" value="Luna" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="mc-species">Species</label>
+              <select id="mc-species" class="form-control" required>
+                <option value="CAT" selected>CAT</option>
+                <option value="DOG">DOG</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="mc-raw-chip-input">Raw RFID Transponder ID</label>
+              <input type="text" id="mc-raw-chip-input" class="form-control" value="985-141000-774123" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="mc-scanned-by-agency">Scanning Agency / Field Unit</label>
+            <input type="text" id="mc-scanned-by-agency" class="form-control" value="Ballard Emergency Vet RFID Wand" required>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="mc-latitude">Scanner Latitude</label>
+              <input type="text" id="mc-latitude" class="form-control" value="47.6640" required>
+            </div>
+            <div class="form-group">
+              <label for="mc-longitude">Scanner Longitude</label>
+              <input type="text" id="mc-longitude" class="form-control" value="-122.3980" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="mc-simulate-mode">Federated Registry Resolution Mode</label>
+            <select id="mc-simulate-mode" class="form-control" required>
+              <option value="REGISTERED_PRIMARY" selected>REGISTERED_PRIMARY (Active Primary Owner Match)</option>
+              <option value="UNREGISTERED_DEAD_END">UNREGISTERED_DEAD_END (0/4 Registries — Manufacturer Lot Trace)</option>
+              <option value="OUTDATED_PRIMARY_PHONE">OUTDATED_PRIMARY_PHONE (Disconnected Primary — Secondary Escalation)</option>
+            </select>
+          </div>
+
+          <button type="submit" id="btn-scan-microchip" class="btn btn-primary">📡 Run Federated Multi-Registry Scan</button>
+        </form>
+
+        <div class="trust-subsection">
+          <h3>RFID Scanner Simulation Presets</h3>
+          <div class="trust-sim-actions">
+            <button type="button" id="btn-sim-unregistered-iso" class="btn btn-secondary">⚠️ Simulate Unregistered ISO 900 Wholesale Chip (Batch Lot Trace)</button>
+            <button type="button" id="btn-sim-avid9-escalated" class="btn btn-secondary">📞 Simulate Encrypted AVID 9-Digit Chip (Secondary Contact Escalation)</button>
+            <button type="button" id="btn-sim-hex10-legacy" class="btn btn-secondary">🔎 Simulate Legacy 10-Hex FDX-A Chip (128.0 kHz Cross-Enrollment)</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Scanned Microchip Cases List -->
+      <section class="glass-card trust-panel" id="microchip-cases-panel" aria-labelledby="heading-microchip-cases">
+        <div class="trust-panel-header">
+          <h2 id="heading-microchip-cases">Federated Microchip Scan Cases &amp; Ownership Queue</h2>
+          <span id="microchip-cases-count-badge" class="badge badge-secondary">{{ len .Cases }} Cases</span>
+        </div>
+
+        <div id="microchip-cases-list" class="trust-screenings-list microchip-cases-list" role="list">
+          {{ range .Cases }}
+          <article class="trust-screening-card microchip-case-card" data-case-id="{{ .CaseID }}" data-case-status="{{ .Status }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ .PetName }} ({{ .Species }} · {{ .MaskedChipDisplay }})</strong>
+                <code class="trust-pet-id">{{ .CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-chip-status {{ if eq (printf "%s" .Status) "REGISTERED_OWNER_FOUND" }}badge-chip-registered{{ else if eq (printf "%s" .Status) "UNREGISTERED_BATCH_TRACED" }}badge-chip-unregistered{{ else if eq (printf "%s" .Status) "SECONDARY_CONTACT_ESCALATED" }}badge-chip-escalated{{ else if eq (printf "%s" .Status) "REUNION_DISPATCHED_VERIFIED" }}badge-chip-verified{{ else }}badge-chip-registered{{ end }}">{{ .Status }}</span>
+              </div>
+            </div>
+
+            <div class="humane-trap-label-row">
+              <strong>{{ .ManufacturerName }}</strong>
+              <span class="text-secondary">({{ .ScannedByAgency }})</span>
+            </div>
+
+            <div class="trust-kinematics-row">
+              <span class="badge badge-chip-standard">{{ .ChipStandard }} • {{ printf "%.1f" .FrequencyKhz }} kHz</span>
+              <span class="badge badge-chip-lot">Lot: {{ .ManufacturerLotID }}</span>
+              {{ if .WinningRegistry }}
+              <span class="badge badge-winning-registry">Registry: {{ .WinningRegistry }}</span>
+              {{ end }}
+            </div>
+
+            <div class="registry-hops-list" aria-label="Federated Registry Waterfall Hops">
+              {{ range .RegistryHops }}
+              <div class="registry-hop-item">
+                <span class="registry-hop-name">{{ .RegistryName }} ({{ .ManufacturerISO }})</span>
+                <span class="badge {{ if .RecordFound }}badge-hop-match{{ else }}badge-hop-miss{{ end }}">{{ if .RecordFound }}MATCH{{ else }}NO RECORD{{ end }}</span>
+                <span class="registry-hop-note text-secondary">{{ .StatusNote }}</span>
+              </div>
+              {{ end }}
+            </div>
+
+            {{ if eq (printf "%s" .Status) "UNREGISTERED_BATCH_TRACED" }}
+            <div class="chip-lot-trace-banner">
+              🔬 UNREGISTERED CHIP — MANUFACTURER LOT TRACE: {{ .ImplantingClinicName }}{{ if .ImplantPatientChartID }} (Chart: {{ .ImplantPatientChartID }}){{ end }}{{ if .ImplantingClinicPhone }} · {{ .ImplantingClinicPhone }}{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if .ResolvedOwnerName }}
+            <div class="microchip-owner-contact-row">
+              <strong>Resolved Owner Contact:</strong> {{ .ResolvedOwnerName }} ({{ .ResolvedOwnerPhoneMask }})
+            </div>
+            {{ end }}
+
+            {{ if .PromotedSightingID }}
+            <div class="chip-promoted-sighting-banner trust-promoted-banner">
+              📍 Promoted Sighting: {{ .PromotedSightingID }}
+            </div>
+            {{ end }}
+
+            <p class="trust-screening-notes">{{ .ResolutionNotes }}</p>
+
+            <div class="trust-moderator-actions">
+              {{ if eq (printf "%s" .Status) "UNREGISTERED_BATCH_TRACED" }}
+              <button type="button" class="btn btn-sm btn-secondary btn-trace-batch-lot" data-case-id="{{ .CaseID }}">🏥 Trace Manufacturer Batch Lot via Clinic PIMS</button>
+              {{ end }}
+              {{ if ne (printf "%s" .Status) "REUNION_DISPATCHED_VERIFIED" }}
+              <button type="button" class="btn btn-sm btn-primary btn-resolve-chip-reunion" data-case-id="{{ .CaseID }}">✅ Verify Owner &amp; Dispatch Reunion Sighting</button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="microchip-cases-empty-msg">No microchip federation scan cases recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/microchip-federation.js" defer></script>
+</body>
+</html>

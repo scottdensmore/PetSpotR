@@ -6,8 +6,6 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
-
-	"github.com/scottdensmore/petspotr/pkg/microchip"
 )
 
 // FoundPetReportedPayloadVersion is the current found-pet integration payload.
@@ -298,12 +296,10 @@ func NormalizeFoundPetReport(report FoundPetReport) FoundPetReport {
 	report.ShelterName = strings.TrimSpace(report.ShelterName)
 	report.IntakeID = strings.TrimSpace(report.IntakeID)
 	if report.MicrochipID != "" {
-		val := microchip.ValidateAndNormalize(report.MicrochipID)
-		if val.Valid {
-			report.MicrochipID = val.NormalizedID
+		if norm, reg, ok := normalizeDomainMicrochip(report.MicrochipID); ok {
+			report.MicrochipID = norm
 			if report.MicrochipRegistry == "" {
-				reg := microchip.IdentifyIssuingRegistry(val.NormalizedID)
-				report.MicrochipRegistry = reg.RegistryName
+				report.MicrochipRegistry = reg
 			}
 		}
 	}
@@ -392,7 +388,7 @@ func (r FoundPetReport) Public() PublicFoundPetReport {
 		DistinctiveMarkings: append([]string(nil), r.DistinctiveMarkings...),
 		CustodyStatus:       r.CustodyStatus,
 		Status:              r.Status,
-		MicrochipID:         microchip.MaskMicrochip(r.MicrochipID),
+		MicrochipID:         maskDomainMicrochip(r.MicrochipID),
 		MicrochipRegistry:   r.MicrochipRegistry,
 		ShelterID:           r.ShelterID,
 		ShelterName:         r.ShelterName,
@@ -495,7 +491,7 @@ func (r FoundPetRecord) Public() PublicFoundPetReport {
 		DistinctiveMarkings: append([]string(nil), r.DistinctiveMarkings...),
 		CustodyStatus:       r.CustodyStatus,
 		Status:              r.Status,
-		MicrochipID:         microchip.MaskMicrochip(r.MicrochipID),
+		MicrochipID:         maskDomainMicrochip(r.MicrochipID),
 		MicrochipRegistry:   r.MicrochipRegistry,
 		ShelterID:           r.ShelterID,
 		ShelterName:         r.ShelterName,

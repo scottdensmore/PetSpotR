@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
-
-	"github.com/scottdensmore/petspotr/pkg/microchip"
 )
 
 // LostPetReportedPayloadVersion is the current contact-redacted integration
@@ -430,12 +428,10 @@ func NormalizeLostPetReport(report LostPetReport) LostPetReport {
 	report.MicrochipID = strings.TrimSpace(report.MicrochipID)
 	report.MicrochipRegistry = strings.TrimSpace(report.MicrochipRegistry)
 	if report.MicrochipID != "" {
-		val := microchip.ValidateAndNormalize(report.MicrochipID)
-		if val.Valid {
-			report.MicrochipID = val.NormalizedID
+		if norm, reg, ok := normalizeDomainMicrochip(report.MicrochipID); ok {
+			report.MicrochipID = norm
 			if report.MicrochipRegistry == "" {
-				reg := microchip.IdentifyIssuingRegistry(val.NormalizedID)
-				report.MicrochipRegistry = reg.RegistryName
+				report.MicrochipRegistry = reg
 			}
 		}
 	}
@@ -572,7 +568,7 @@ func (r LostPetReport) Public() PublicLostPetReport {
 		GeocodingStatus:   r.GeocodingStatus,
 		Coordinates:       cloneLocationPoint(r.Coordinates),
 		Status:            r.Status,
-		MicrochipID:       microchip.MaskMicrochip(r.MicrochipID),
+		MicrochipID:       maskDomainMicrochip(r.MicrochipID),
 		MicrochipRegistry: r.MicrochipRegistry,
 	}
 }
@@ -669,7 +665,7 @@ func (r LostPetRecord) Public() PublicLostPetReport {
 		GeocodingStatus:   r.GeocodingStatus,
 		Coordinates:       cloneLocationPoint(r.Coordinates),
 		Status:            r.Status,
-		MicrochipID:       microchip.MaskMicrochip(r.MicrochipID),
+		MicrochipID:       maskDomainMicrochip(r.MicrochipID),
 		MicrochipRegistry: r.MicrochipRegistry,
 	}
 }
