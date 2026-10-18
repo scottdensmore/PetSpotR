@@ -11998,3 +11998,174 @@ textarea:focus-visible,
   margin: 0.5rem 0;
 }
 
+/* ============================================================================
+   Milestone 15.4: Subterranean, Storm-Drain, Culvert & Confined-Space
+   Acoustic/Fiber-Optic Extraction Cockpit
+   WCAG AAA High-Contrast Badges & Atmospheric Gas Alerts (> 7.1:1 in Dark & Light Modes)
+   ============================================================================ */
+
+.badge-cs-status,
+.badge-cs-critical,
+.badge-cs-rigged,
+.badge-cs-extracted,
+.badge-cs-space,
+.badge-cs-flag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.cs-flags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.45rem 0;
+}
+
+.cs-rig-recommendations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  margin: 0.45rem 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.4);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .cs-rig-recommendations {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.cs-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.6rem 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .cs-steps-list {
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+.cs-step-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+:root .badge-cs-critical,
+[data-theme="dark"] .badge-cs-critical,
+:root .badge-cs-flag,
+[data-theme="dark"] .badge-cs-flag {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid #f87171;
+}
+
+:root .badge-cs-rigged,
+[data-theme="dark"] .badge-cs-rigged {
+  background-color: #78350f;
+  color: #fffbeb;
+  border: 1px solid #f59e0b;
+}
+
+:root .badge-cs-extracted,
+[data-theme="dark"] .badge-cs-extracted {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+}
+
+:root .badge-cs-space,
+[data-theme="dark"] .badge-cs-space {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #94a3b8;
+}
+
+:root .cs-gas-alert-banner,
+[data-theme="dark"] .cs-gas-alert-banner {
+  background-color: #450a0a;
+  color: #fef2f2;
+  border: 2px solid #f87171;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+:root .cs-clearance-banner,
+[data-theme="dark"] .cs-clearance-banner {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .badge-cs-critical,
+[data-theme="light"] .badge-cs-flag {
+  background-color: #fee2e2;
+  color: #7f1d1d;
+  border: 1px solid #b91c1c;
+}
+
+[data-theme="light"] .badge-cs-rigged {
+  background-color: #fef3c7;
+  color: #78350f;
+  border: 1px solid #b45309;
+}
+
+[data-theme="light"] .badge-cs-extracted {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+}
+
+[data-theme="light"] .badge-cs-space {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #475569;
+}
+
+[data-theme="light"] .cs-gas-alert-banner {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 2px solid #b91c1c;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .cs-clearance-banner {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}

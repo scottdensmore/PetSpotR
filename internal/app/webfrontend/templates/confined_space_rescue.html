@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Subterranean, Storm-Drain, Culvert &amp; Confined-Space Acoustic/Fiber-Optic Extraction Cockpit.">
+  <title>Subterranean, Storm-Drain, Culvert &amp; Confined-Space Extraction Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="glass-nav">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/humane-traps" class="nav-link nav-link-emergency" id="nav-humane-traps">🪤 Humane Traps</a></li>
+          <li><a href="/swiftwater-rescue" class="nav-link nav-link-emergency" id="nav-swiftwater-rescue">🌊 Swiftwater &amp; Ice Rescue</a></li>
+          <li><a href="/service-animal" class="nav-link nav-link-emergency" id="nav-service-animal">🦮 Service Animal ADA</a></li>
+          <li><a href="/equine-livestock" class="nav-link nav-link-emergency" id="nav-equine-livestock">🐎 Equine &amp; Livestock</a></li>
+          <li><a href="/confined-space-rescue" class="nav-link active nav-link-emergency" id="nav-confined-space-rescue">🕳️ Confined-Space Rescue</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="confined-space-rescue-main" class="container page-main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header confined-space-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🕳️ SUBTERRANEAN, STORM-DRAIN, CULVERT &amp; CONFINED-SPACE ACOUSTIC / FIBER-OPTIC EXTRACTION</span>
+        </div>
+        <h1>Subterranean, Storm-Drain, Culvert &amp; Confined-Space Acoustic/Fiber-Optic Extraction Cockpit</h1>
+        <p class="text-secondary">
+          4-Gas Atmospheric Telemetry (O2 / H2S / CO / LEL), Positive-Pressure Axial Blower Ventilation, Articulating Fiber-Optic Borescope &amp; Acoustic Piezo Localization, Upstream Pneumatic Culvert Damming &amp; One-Way Acrylic Pipe-Gate Extraction.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid confined-space-kpi-grid" aria-label="Confined-Space &amp; Subterranean Extraction Operations Summary">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Confined-Space Operations</span>
+        <strong class="kpi-value" id="stat-total-confined-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Atmospheric / Gas Alerts</span>
+        <strong class="kpi-value" id="stat-critical-gas-alerts">{{ .CriticalGasAlerts }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Rigged Borescopes &amp; Pipe-Gates</span>
+        <strong class="kpi-value" id="stat-rigged-borescopes">{{ .RiggedBorescopes }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Extracted Subterranean Safe</span>
+        <strong class="kpi-value" id="stat-extracted-safe-count">{{ .ExtractedSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="confined-space-live-status" class="humane-traps-live-status confined-space-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} subterranean, storm-drain, culvert &amp; confined-space extraction operations.
+    </div>
+
+    <div class="trust-cockpit-grid confined-space-cockpit-grid">
+      <!-- Section 1: Evaluate Confined-Space Operation Form + Scenario Simulators -->
+      <section class="glass-card trust-panel" id="cs-evaluate-panel" aria-labelledby="heading-evaluate-cs-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-cs-op">Evaluate Subterranean / Culvert Confined-Space Extraction</h2>
+          <span class="badge badge-cs-space">4-Gas + Fiber-Optic Borescope</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Confined-Space &amp; Culvert Emergency Scenario Simulators</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary cs-scenario-btn" data-scenario="culvert-gas-surge" id="btn-sim-culvert-gas-surge">
+              ⚠️ Simulate Storm-Drain Culvert H2S Pocket &amp; Flash Inflow Surge (O2 18.1% · H2S 15.2 ppm)
+            </button>
+            <button type="button" class="btn btn-secondary cs-scenario-btn" data-scenario="crawlspace-wedged" id="btn-sim-crawlspace-wedged">
+              🔦 Simulate Sub-Foundation Crawlspace Footing Pinch (Tracked ROV + One-Way Gate)
+            </button>
+            <button type="button" class="btn btn-secondary cs-scenario-btn" data-scenario="chimney-flue-drop" id="btn-sim-chimney-flue-drop">
+              🧱 Simulate Narrow 28cm Masonry Chimney Flue Shaft Vertical Drop (360° IR Camera)
+            </button>
+          </div>
+        </div>
+
+        <form id="form-evaluate-cs-op" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="cs-pet-id">Entrapped Pet ID</label>
+              <input type="text" id="cs-pet-id" name="petId" class="form-control" value="PET-CS-204" required>
+            </div>
+            <div class="form-group">
+              <label for="cs-pet-name">Pet Name</label>
+              <input type="text" id="cs-pet-name" name="petName" class="form-control" value="Shadow" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="cs-species">Species</label>
+              <select id="cs-species" name="species" class="form-control" required>
+                <option value="Feline" selected>Feline</option>
+                <option value="Canine">Canine</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="cs-weight-kg">Estimated Weight (kg)</label>
+              <input type="number" id="cs-weight-kg" name="weightKg" class="form-control" min="0.5" max="120" step="0.1" value="4.0" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="cs-space-type">Confined-Space Geometry</label>
+              <select id="cs-space-type" name="spaceType" class="form-control" required>
+                <option value="STORM_DRAIN_CULVERT" selected>STORM_DRAIN_CULVERT (Corrugated Storm Drain / Catch Culvert)</option>
+                <option value="SUBTERRANEAN_UTILITY_PIPE">SUBTERRANEAN_UTILITY_PIPE (Underground Utility Conduit / Vault)</option>
+                <option value="FOUNDATION_CRAWLSPACE">FOUNDATION_CRAWLSPACE (Sub-Foundation Pier / Joist Crawlspace)</option>
+                <option value="CHIMNEY_FLUE_SHAFT">CHIMNEY_FLUE_SHAFT (Vertical Masonry Flue / Vent Shaft)</option>
+                <option value="COLLAPSED_BURROW_TRENCH">COLLAPSED_BURROW_TRENCH (Collapsed Earthen Burrow / Trench)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="cs-pipe-diameter">Pipe / Aperture Diameter (cm)</label>
+              <input type="number" id="cs-pipe-diameter" name="pipeDiameterCm" class="form-control" min="10" max="300" step="1" value="34" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="cs-depth-meters">Subterranean Depth / Shaft Drop (m)</label>
+              <input type="number" id="cs-depth-meters" name="depthMeters" class="form-control" min="0.5" max="50" step="0.1" value="3.6" required>
+            </div>
+            <div class="form-group">
+              <label for="cs-oxygen-percent">Atmospheric Oxygen O2 (%)</label>
+              <input type="number" id="cs-oxygen-percent" name="oxygenPercent" class="form-control" min="10" max="23.5" step="0.1" value="18.4" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="cs-h2s-ppm">Hydrogen Sulfide H2S (ppm)</label>
+              <input type="number" id="cs-h2s-ppm" name="h2sPpm" class="form-control" min="0" max="200" step="0.5" value="13.5" required>
+            </div>
+            <div class="form-group">
+              <label for="cs-inflow-risk">Stormwater Inflow Surge Risk Index (0–100)</label>
+              <input type="number" id="cs-inflow-risk" name="inflowRiskIndex" class="form-control" min="0" max="100" step="1" value="80" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="cs-sector-grid">Manhole / Utility Sector Grid</label>
+              <input type="text" id="cs-sector-grid" name="manholeSectorGrid" class="form-control" value="MH-NORTH-42B (Ravenna Creek Storm Culvert)" required>
+            </div>
+            <div class="form-group">
+              <label for="cs-tech-callsign">Lead Technical Rescue Callsign</label>
+              <input type="text" id="cs-tech-callsign" name="leadTechCallsign" class="form-control" value="TECH-SUB-01 (Vance)" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="cs-notes">Acoustic / Borescope Field Notes</label>
+            <input type="text" id="cs-notes" name="notes" class="form-control" value="Piezo acoustic vocalization detected 9m past catch-basin elbow.">
+          </div>
+
+          <button type="submit" id="btn-evaluate-cs-op" class="btn btn-primary">Evaluate Confined-Space Operation</button>
+        </form>
+      </section>
+
+      <!-- Section 2: Active Confined-Space Operations Grid -->
+      <section class="glass-card trust-panel" id="cs-ops-panel" aria-labelledby="heading-cs-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-cs-ops">Active Subterranean, Culvert &amp; Confined-Space Operations</h2>
+          <span id="cs-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="cs-ops-list" class="trust-screenings-list cs-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card cs-op-card" data-operation-id="{{ $op.OperationID }}" data-op-id="{{ $op.OperationID }}" data-status="{{ $op.Status }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightKg }} kg · {{ $op.ManholeSectorGrid }})</strong>
+                <code class="trust-pet-id">{{ $op.OperationID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-cs-space">{{ $op.SpaceType }}</span>
+                <span class="badge badge-cs-status {{ if eq (printf "%s" $op.Status) "ATMOSPHERIC_HAZARD_CRITICAL" }}badge-cs-critical{{ else if eq (printf "%s" $op.Status) "BORESCOPE_PIPE_GATE_RIGGED" }}badge-cs-rigged{{ else if eq (printf "%s" $op.Status) "EXTRACTED_SUBTERRANEAN_SAFE" }}badge-cs-extracted{{ else }}badge-cs-critical{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row cs-metrics-row">
+              <span class="badge badge-cs-space">Hazard Score: {{ $op.HazardScore }}/100 • Rigging Readiness: {{ $op.RiggingReadinessScore }}% • Ø {{ printf "%.0f" $op.PipeDiameterCm }}cm • Depth: {{ printf "%.1f" $op.DepthMeters }}m • O2: {{ printf "%.1f" $op.OxygenPercent }}% • H2S: {{ printf "%.1f" $op.H2SPpm }} ppm • Inflow: {{ $op.InflowRiskIndex }}/100</span>
+            </div>
+
+            <div class="cs-flags-row">
+              {{ range $flag := $op.RiskFlags }}
+              <span class="badge badge-cs-flag">{{ $flag }}</span>
+              {{ end }}
+            </div>
+
+            {{ if or $op.ToxicGasAlert $op.FlashInflowAlert }}
+            <div class="cs-gas-alert-banner">
+              ⚠️ ATMOSPHERIC &amp; CULVERT SURGE HAZARD ALERT: O2 {{ printf "%.1f" $op.OxygenPercent }}% · H2S {{ printf "%.1f" $op.H2SPpm }} ppm · Inflow Risk {{ $op.InflowRiskIndex }}/100 — Maintain positive-pressure axial ventilation &amp; upstream pneumatic pipe-plug dam.
+            </div>
+            {{ end }}
+
+            {{ if $op.ClearanceCertificateHash }}
+            <div class="cs-clearance-banner">
+              ✅ SUBTERRANEAN EXTRACTION CLEARANCE VERIFIED: {{ $op.ClearanceCertificateHash }} ({{ $op.LeadTechCallsign }})
+            </div>
+            {{ end }}
+
+            <div class="cs-rig-recommendations">
+              <div><strong>Optics &amp; Acoustic Rig:</strong> {{ $op.RecommendedOpticsRig }}</div>
+              <div><strong>Ventilation &amp; Damming:</strong> {{ $op.RecommendedVentilation }}</div>
+            </div>
+
+            <div class="cs-steps-list" aria-label="Confined-Space Borescope, Ventilation &amp; Pipe-Gate Protocol">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="cs-step-item">
+                <input
+                  type="checkbox"
+                  class="cs-step-checkbox"
+                  data-op-id="{{ $op.OperationID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "EXTRACTED_SUBTERRANEAN_SAFE" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-cs-extracted{{ else }}badge-cs-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="cs-step-category">[{{ $step.Category }}]</strong>
+                <span class="cs-step-label">{{ $step.Label }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              {{ if ne (printf "%s" $op.Status) "EXTRACTED_SUBTERRANEAN_SAFE" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary cs-issue-clearance-btn"
+                data-op-id="{{ $op.OperationID }}"
+              >
+                🛡️ Issue Subterranean Extraction Clearance Certificate
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="cs-ops-empty-msg">No confined-space rescue operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/confined-space-rescue.js" defer></script>
+</body>
+</html>
