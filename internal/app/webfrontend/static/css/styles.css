@@ -10318,3 +10318,219 @@ textarea:focus-visible,
 [data-theme="light"] .trust-empty-hint {
   color: #334155;
 }
+
+/* ============================================================================
+   Milestone 13.3: Humane Live-Trap IoT Telemetry, Bait Decay & Rapid Dispatch Cockpit
+   WCAG AAA High-Contrast Badges & SLA Banners (> 7.1:1 in Dark & Light Modes)
+   ============================================================================ */
+
+.humane-traps-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.humane-trap-kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem 1.25rem;
+}
+
+.humane-trap-kpi-card .kpi-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary, #cbd5e1);
+}
+
+[data-theme="light"] .humane-trap-kpi-card .kpi-label {
+  color: #334155;
+}
+
+.humane-trap-kpi-card .kpi-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-primary, #f8fafc);
+}
+
+[data-theme="light"] .humane-trap-kpi-card .kpi-value {
+  color: #0f172a;
+}
+
+.humane-traps-live-status {
+  margin-bottom: 1.25rem;
+  padding: 0.65rem 1rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #64748b;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+[data-theme="light"] .humane-traps-live-status {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #475569;
+}
+
+.humane-trap-label-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.badge-trap-status,
+.badge-trap-armed,
+.badge-trap-tripped,
+.badge-trap-dispatched,
+.badge-trap-captured,
+.badge-trap-thermal,
+.badge-trap-alert,
+.badge-bait-state,
+.badge-bait-fresh,
+.badge-bait-degrading,
+.badge-bait-spoiled {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+/* Dark Theme (:root and [data-theme="dark"]) — WCAG AAA (> 7.1:1) */
+:root .badge-trap-armed,
+[data-theme="dark"] .badge-trap-armed,
+:root .badge-bait-fresh,
+[data-theme="dark"] .badge-bait-fresh {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+}
+
+:root .badge-trap-tripped,
+[data-theme="dark"] .badge-trap-tripped,
+:root .badge-bait-spoiled,
+[data-theme="dark"] .badge-bait-spoiled {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid #f87171;
+}
+
+:root .badge-trap-dispatched,
+[data-theme="dark"] .badge-trap-dispatched,
+:root .badge-bait-degrading,
+[data-theme="dark"] .badge-bait-degrading {
+  background-color: #78350f;
+  color: #fffbeb;
+  border: 1px solid #f59e0b;
+}
+
+:root .badge-trap-captured,
+[data-theme="dark"] .badge-trap-captured {
+  background-color: #1e3a8a;
+  color: #eff6ff;
+  border: 1px solid #60a5fa;
+}
+
+:root .badge-trap-thermal,
+[data-theme="dark"] .badge-trap-thermal {
+  background-color: #4c1d95;
+  color: #f5f3ff;
+  border: 1px solid #a78bfa;
+}
+
+:root .badge-trap-alert,
+[data-theme="dark"] .badge-trap-alert {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #94a3b8;
+}
+
+:root .trap-sla-urgent-banner,
+[data-theme="dark"] .trap-sla-urgent-banner {
+  background-color: #450a0a;
+  color: #fef2f2;
+  border: 2px solid #f87171;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+:root .trap-promoted-sighting-banner,
+[data-theme="dark"] .trap-promoted-sighting-banner {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+/* Light Theme ([data-theme="light"]) — WCAG AAA (> 7.1:1) */
+[data-theme="light"] .badge-trap-armed,
+[data-theme="light"] .badge-bait-fresh {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+}
+
+[data-theme="light"] .badge-trap-tripped,
+[data-theme="light"] .badge-bait-spoiled {
+  background-color: #fee2e2;
+  color: #7f1d1d;
+  border: 1px solid #b91c1c;
+}
+
+[data-theme="light"] .badge-trap-dispatched,
+[data-theme="light"] .badge-bait-degrading {
+  background-color: #fef3c7;
+  color: #78350f;
+  border: 1px solid #b45309;
+}
+
+[data-theme="light"] .badge-trap-captured {
+  background-color: #dbeafe;
+  color: #1e3a8a;
+  border: 1px solid #1d4ed8;
+}
+
+[data-theme="light"] .badge-trap-thermal {
+  background-color: #ede9fe;
+  color: #4c1d95;
+  border: 1px solid #6d28d9;
+}
+
+[data-theme="light"] .badge-trap-alert {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #475569;
+}
+
+[data-theme="light"] .trap-sla-urgent-banner {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 2px solid #b91c1c;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+[data-theme="light"] .trap-promoted-sighting-banner {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
