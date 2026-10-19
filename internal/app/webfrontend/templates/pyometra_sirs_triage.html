@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Pyometra (Open vs. Closed Cervix), POCUS Fluid-Filled Uterine Horns, E. coli Endotoxemia/SIRS, Stabilization &amp; Ovariohysterectomy (OHE) Cockpit.">
+  <title>Acute Pyometra (Open vs. Closed Cervix), POCUS Fluid-Filled Uterine Horns, E. coli Endotoxemia/SIRS, Stabilization &amp; Ovariohysterectomy (OHE) Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#pyometra-sirs-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/septic-peritonitis-triage" class="nav-link nav-link-emergency" id="nav-septic-peritonitis-triage">🦠 Septic Peritonitis ICU</a></li>
+          <li><a href="/pyometra-sirs-triage" class="nav-link active nav-link-emergency" id="nav-pyometra-sirs-triage">🏥 Pyometra &amp; SIRS OHE ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="pyometra-sirs-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header pyometra-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🏥 ACUTE PYOMETRA (OPEN VS. CLOSED CERVIX), E. COLI ENDOTOXEMIA/SIRS &amp; OVARIOHYSTERECTOMY (OHE) COCKPIT</span>
+        </div>
+        <h1>Acute Pyometra (Open vs. Closed Cervix), POCUS Fluid-Filled Uterine Horns, E. coli Endotoxemia/SIRS, Stabilization &amp; Ovariohysterectomy (OHE) Cockpit</h1>
+        <p class="text-secondary">
+          Closed-Cervix vs. Open-Cervix &amp; Stump Pyometra Triage, POCUS/AFAST Convoluted Fluid-Filled Uterine Horns, E. coli Lipopolysaccharide (LPS) Endotoxin Renal Medullary ADH Antagonism (Secondary Nephrogenic Diabetes Insipidus PU/PD), Strict Contraindication of Blind Percutaneous Cystocentesis &amp; Forceful Palpation, IV Crystalloid + Empiric Enrofloxacin/Ampicillin-Sulbactam Resuscitation &amp; Emergent Ovariohysterectomy (OHE).
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid pyometra-kpi-grid" aria-label="Pyometra SIRS &amp; OHE KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Pyometra ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Closed-Cervix Endotoxic SIRS Triage</span>
+        <strong class="kpi-value" id="kpi-closed-sirs">{{ .ClosedCervixSIRSTriageCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Resuscitated &amp; OHE Staged</span>
+        <strong class="kpi-value" id="kpi-ohe-staged">{{ .OHEStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Post-Op OHE Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-ohe">{{ .ClearedPostopOHECount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Closed-Cervix Rupture Risk</span>
+        <strong class="kpi-value" id="kpi-rupture-risk">{{ .ClosedCervixRuptureRiskCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Peritoneal Effusion Alert</span>
+        <strong class="kpi-value" id="kpi-peritoneal-effusion">{{ .PeritonealEffusionAlertCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="pyometra-live-status" class="humane-traps-live-status pyometra-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Acute Pyometra, E. coli Endotoxemia/SIRS &amp; Ovariohysterectomy (OHE) ICU operations.
+    </div>
+
+    <!-- Global Closed-Cervix Rupture Risk, Blind Cystocentesis Contraindication, E. coli ADH Antagonism PU/PD & Empiric Abx + Emergent OHE Alert Banner -->
+    <div id="pyometra-alert-banner" class="pyometra-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL PYOMETRA, E. COLI ENDOTOXEMIA/SIRS &amp; OHE SAFETY GUARD: (1) Closed-Cervix Uterine Rupture Risk — Functional cervical closure traps purulent exudate over thin necrotic myometrium; do NOT administer Prostaglandin F2-alpha (Dinoprost/Cloprostenol) in closed-cervix or SIRS patients; (2) STRICT CONTRAINDICATION of Blind Percutaneous Cystocentesis &amp; Forceful Abdominal Palpation — NEVER perform blind cystocentesis or vigorous uterine compression (causes catastrophic iatrogenic uterine puncture/rupture and fulminant E. coli septic peritonitis); (3) E. coli Lipopolysaccharide Endotoxin Renal Medullary ADH Antagonism — E. coli endotoxin blocks collecting duct aquaporin-2 / ADH responsiveness (Secondary Nephrogenic Diabetes Insipidus PU/PD &amp; isosthenuria); strictly avoid NSAIDs during endotoxic azotemia; (4) IV Crystalloid + Empiric Enrofloxacin/Ampicillin-Sulbactam Prior to Emergent OHE — Initiate Normosol-R/Plasmalyte shock boluses and broad-spectrum bactericidal IV antibiotics within 1 hour of triage before emergent Ovariohysterectomy (OHE) with moistened laparotomy sponge isolation.
+    </div>
+
+    <!-- Global Post-Op OHE Normotensive Afebrile Clearance Banner -->
+    <div id="pyometra-clearance-banner" class="pyometra-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "POSTOP_OHE_NORMOTENSIVE_AFEBRILE_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ POST-OP OVARIOHYSTERECTOMY (OHE) NORMOTENSIVE &amp; AFEBRILE CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "POSTOP_OHE_NORMOTENSIVE_AFEBRILE_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Discharged by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting post-op OHE hemostasis, lactate normalization, and SIRS resolution clearance.{{ end }}</span>
+    </div>
+
+    <div id="pyometra-error-banner" class="pyometra-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card pyometra-toolbar-card" aria-label="Pyometra SIRS Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col pyometra-toolbar-row">
+        <div class="form-group">
+          <label for="pyometra-status-filter">Filter by Pyometra Triage Status</label>
+          <select id="pyometra-status-filter" class="form-control">
+            <option value="">All Pyometra Triage Statuses</option>
+            <option value="CLOSED_CERVIX_ENDOTOXIC_SIRS_TRIAGE">CLOSED_CERVIX_ENDOTOXIC_SIRS_TRIAGE (Closed-Cervix Endotoxic SIRS Triage)</option>
+            <option value="RESUSCITATED_EMPIRIC_ABX_OHE_STAGED">RESUSCITATED_EMPIRIC_ABX_OHE_STAGED (Resuscitated / Empiric Abx / OHE Staged)</option>
+            <option value="POSTOP_OHE_NORMOTENSIVE_AFEBRILE_CLEARED">POSTOP_OHE_NORMOTENSIVE_AFEBRILE_CLEARED (Post-Op OHE Normotensive Afebrile Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group pyometra-sse-controls">
+          <span class="kpi-label">Live ICU Telemetry Stream</span>
+          <div class="pyometra-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live Pyometra SSE Stream</button>
+            <span id="sse-status-badge" class="pyometra-status-badge pyometra-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid pyometra-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="pyometra-operations-panel" aria-labelledby="heading-pyometra-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-pyometra-ops">Active Pyometra / Endotoxic SIRS Operations</h2>
+          <span id="pyometra-ops-count-badge" class="pyometra-status-badge pyometra-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="pyometra-operations-grid" class="trust-screenings-list pyometra-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card pyometra-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-cervix-type="{{ $op.CervixType }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="pyometra-status-badge {{ if eq (printf "%s" $op.Status) "CLOSED_CERVIX_ENDOTOXIC_SIRS_TRIAGE" }}pyometra-status-critical{{ else if eq (printf "%s" $op.Status) "RESUSCITATED_EMPIRIC_ABX_OHE_STAGED" }}pyometra-status-staged{{ else }}pyometra-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="pyometra-card-metrics">
+              <span><strong>Cervix:</strong> {{ $op.CervixType }}</span>
+              <span><strong>Uterine Horn:</strong> {{ printf "%.1f" $op.UterineHornDiameterCm }} cm</span>
+              <span><strong>Lactate:</strong> {{ printf "%.1f" $op.BloodLactateMmolL }} mmol/L</span>
+              <span><strong>WBC:</strong> {{ printf "%.1f" $op.WBCCountKUl }} K/µL (Bands {{ printf "%.1f" $op.BandNeutrophilPercent }}%)</span>
+              <span><strong>MAP:</strong> {{ $op.MAPMmHg }} mmHg</span>
+              <span><strong>Free Fluid:</strong> {{ if $op.POCUSFreePeritonealFluid }}YES (Rupture Alert){{ else }}NO{{ end }}</span>
+              <span><strong>PU/PD:</strong> {{ if $op.PolyuriaPolydipsiaPresent }}YES (E. coli ADH Block){{ else }}NO{{ end }}</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary pyometra-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open Pyometra Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="pyometra-ops-empty-msg">No Pyometra / Endotoxic SIRS operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="pyometra-divider">
+
+        <!-- Admit New Pyometra Patient Form -->
+        <div class="trust-subsection" id="create-pyometra-section">
+          <h3 id="heading-create-pyometra">Admit New Acute Pyometra / Endotoxic SIRS Patient</h3>
+          <form id="create-pyometra-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-PYO-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Sadie" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species-input">Species</label>
+                <select id="create-species-input" name="species" class="form-control" required>
+                  <option value="Canine" selected>Canine</option>
+                  <option value="Feline">Feline</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed-input">Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="Bernese Mountain Dog" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="110.0" step="0.1" value="38.2" required>
+              </div>
+              <div class="form-group">
+                <label for="create-cervix-type-input">Cervical Patency &amp; Pathology</label>
+                <select id="create-cervix-type-input" name="cervix_type" class="form-control" required>
+                  <option value="CLOSED_CERVIX_RUPTURE_RISK" selected>CLOSED_CERVIX_RUPTURE_RISK (Closed Cervix — High Uterine Rupture Risk)</option>
+                  <option value="OPEN_CERVIX_PURULENT_DISCHARGE">OPEN_CERVIX_PURULENT_DISCHARGE (Open Cervix — Purulent Vulvar Discharge)</option>
+                  <option value="STUMP_PYOMETRA_OVARIAN_REMNANT">STUMP_PYOMETRA_OVARIAN_REMNANT (Stump Pyometra &amp; Ovarian Remnant Syndrome)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-horn-diameter-input">POCUS Uterine Horn Diameter (cm)</label>
+                <input type="number" id="create-horn-diameter-input" name="uterine_horn_diameter_cm" class="form-control" min="0" max="25.0" step="0.1" value="6.1" required>
+              </div>
+              <div class="form-group">
+                <label for="create-lactate-input">Blood Lactate (mmol/L)</label>
+                <input type="number" id="create-lactate-input" name="blood_lactate_mmol_l" class="form-control" min="0.1" max="25.0" step="0.1" value="5.1" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-wbc-input">Total WBC Count (K/µL)</label>
+                <input type="number" id="create-wbc-input" name="wbc_count_k_ul" class="form-control" min="0.5" max="120.0" step="0.1" value="36.4" required>
+              </div>
+              <div class="form-group">
+                <label for="create-bands-input">Band Neutrophils (% Left Shift)</label>
+                <input type="number" id="create-bands-input" name="band_neutrophil_percent" class="form-control" min="0" max="100.0" step="0.1" value="20.0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-map-input">Mean Arterial Pressure MAP (mmHg)</label>
+                <input type="number" id="create-map-input" name="map_mm_hg" class="form-control" min="25" max="200" step="1" value="56" required>
+              </div>
+              <div class="form-group pyometra-checkbox-group">
+                <label class="pyometra-checkbox-item">
+                  <input type="checkbox" id="create-peritoneal-fluid-checkbox" name="pocus_free_peritoneal_fluid">
+                  <span>AFAST Free Peritoneal Fluid (Rupture Suspected)</span>
+                </label>
+                <label class="pyometra-checkbox-item">
+                  <input type="checkbox" id="create-pupd-checkbox" name="polyuria_polydipsia_present" checked>
+                  <span>E. coli ADH Resistance PU/PD &amp; Isosthenuria</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" id="create-pyometra-op-btn" class="btn btn-primary">➕ Admit Pyometra / SIRS Patient</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active Pyometra Workspace & OHE Stabilization / Hemodynamic Check / Discharge Clearance Forms -->
+      <section class="glass-card trust-panel" id="pyometra-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="pyometra-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · Cervix: <strong id="active-cervix-type">{{ $active.CervixType }}</strong> · AFAST Free Fluid: <strong id="active-free-fluid-flag">{{ if $active.POCUSFreePeritonealFluid }}YES{{ else }}NO{{ end }}</strong> · PU/PD: <strong id="active-pupd-flag">{{ if $active.PolyuriaPolydipsiaPresent }}YES{{ else }}NO{{ end }}</strong></p>
+          </div>
+          <span id="active-op-status-badge" class="pyometra-status-badge {{ if eq (printf "%s" $active.Status) "CLOSED_CERVIX_ENDOTOXIC_SIRS_TRIAGE" }}pyometra-status-critical{{ else if eq (printf "%s" $active.Status) "RESUSCITATED_EMPIRIC_ABX_OHE_STAGED" }}pyometra-status-staged{{ else }}pyometra-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- POCUS Uterine Horn, Lactate, WBC/Bands & MAP Telemetry Bar -->
+        <div class="pyometra-vitals-summary" id="active-vitals-summary">
+          <div class="pyometra-vital-chip">
+            <span class="kpi-label">POCUS Uterine Horn Diameter</span>
+            <strong id="active-uterine-diameter">{{ printf "%.1f" $active.UterineHornDiameterCm }} cm</strong>
+          </div>
+          <div class="pyometra-vital-chip">
+            <span class="kpi-label">Systemic Blood Lactate</span>
+            <strong id="active-blood-lactate">{{ printf "%.1f" $active.BloodLactateMmolL }} mmol/L</strong>
+          </div>
+          <div class="pyometra-vital-chip">
+            <span class="kpi-label">WBC &amp; Band Neutrophils</span>
+            <strong id="active-wbc-bands">{{ printf "%.1f" $active.WBCCountKUl }} K/µL ({{ printf "%.1f" $active.BandNeutrophilPercent }}% Bands)</strong>
+          </div>
+          <div class="pyometra-vital-chip">
+            <span class="kpi-label">Mean Arterial Pressure (MAP)</span>
+            <strong id="active-map-mmhg">{{ $active.MAPMmHg }} mmHg</strong>
+          </div>
+        </div>
+
+        <!-- Endotoxemia, POCUS & SIRS Plan Box -->
+        <div class="pyometra-plan-box" id="active-sirs-plan-box">
+          <h3>Closed/Open-Cervix Triage, POCUS Uterine Horns &amp; E. coli Endotoxemia/SIRS Plan</h3>
+          <div class="pyometra-plan-grid">
+            <div><strong>Cervical Patency &amp; Rupture Risk:</strong> <span id="plan-cervix-summary">{{ $active.SIRSPlan.CervixPatencySummary }}</span></div>
+            <div><strong>POCUS / AFAST Uterine Horn Finding:</strong> <span id="plan-pocus-finding">{{ $active.SIRSPlan.POCUSUterineHornFinding }}</span></div>
+            <div><strong>E. coli ADH Antagonism (PU/PD):</strong> <span id="plan-ecoli-adh">{{ $active.SIRSPlan.EColiADHResistancePolyuriaNote }}</span></div>
+            <div><strong>Cystocentesis &amp; Palpation Contraindication:</strong> <span id="plan-cystocentesis-guard">{{ $active.SIRSPlan.CystocentesisContraindication }}</span></div>
+            <div><strong>Prostaglandin Luteolysis Warning:</strong> <span id="plan-prostaglandin-warning">{{ $active.SIRSPlan.ProstaglandinLuteolysisWarning }}</span></div>
+            <div><strong>SIRS, Band Neutrophilia &amp; Lactate Summary:</strong> <span id="plan-sirs-summary">{{ $active.SIRSPlan.SIRSLactateShockSummary }}</span></div>
+          </div>
+        </div>
+
+        <!-- Stabilization & Emergent Ovariohysterectomy (OHE) Plan Box -->
+        <div class="pyometra-plan-box" id="active-ohe-plan-box">
+          <h3>IV Crystalloid Resuscitation, Empiric Enrofloxacin/Ampicillin-Sulbactam &amp; Emergent OHE Plan</h3>
+          <div class="pyometra-plan-grid">
+            <div><strong>Crystalloid Shock Resuscitation:</strong> <span id="plan-crystalloid">{{ $active.OHEPlan.CrystalloidResuscitationPlan }}</span></div>
+            <div><strong>Empiric Bactericidal IV Antibiotics:</strong> <span id="plan-empiric-abx">{{ $active.OHEPlan.EmpiricBactericidalAbxPlan }}</span></div>
+            <div><strong>Surgical OHE Handling &amp; Isolation:</strong> <span id="plan-ohe-handling">{{ $active.OHEPlan.SurgicalOHEHandlingProtocol }}</span></div>
+            <div><strong>Abdominal Lavage &amp; Stump Protocol:</strong> <span id="plan-abdominal-lavage">{{ $active.OHEPlan.AbdominalLavagePlan }}</span></div>
+            <div><strong>Perioperative Analgesia (NSAID Guard):</strong> <span id="plan-analgesia">{{ $active.OHEPlan.PerioperativeAnalgesiaPlan }}</span></div>
+            <div><strong>Post-Op Sepsis &amp; DIC Monitoring:</strong> <span id="plan-sepsis-monitoring">{{ $active.OHEPlan.PostopSepsisMonitoring }}</span></div>
+          </div>
+        </div>
+        {{ end }}
+
+        <hr class="pyometra-divider">
+
+        <!-- 1. Stage IV Crystalloid Resuscitation, Empiric Bactericidal Abx & Emergent OHE Form -->
+        <div class="trust-subsection" id="stage-ohe-section">
+          <h3>1. Stage IV Crystalloid Resuscitation, Empiric Enrofloxacin/Ampicillin-Sulbactam &amp; Emergent OHE Protocol</h3>
+          <form id="stage-ohe-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="stage-crystalloid-plan-input">Buffered Isotonic Crystalloid Shock Resuscitation &amp; Vasopressor Plan</label>
+              <input
+                type="text"
+                id="stage-crystalloid-plan-input"
+                name="crystalloid_resuscitation_plan"
+                class="form-control"
+                value="Normosol-R 20 mL/kg IV shock bolus over 15 min targeting MAP ≥ 65 mmHg; add Norepinephrine 0.1–0.3 mcg/kg/min CRI if vasodilatory shock persists"
+                required
+              >
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-empiric-abx-input">Empiric Broad-Spectrum Bactericidal IV Antibiotics (Within 1 Hour)</label>
+                <input
+                  type="text"
+                  id="stage-empiric-abx-input"
+                  name="empiric_bactericidal_abx_plan"
+                  class="form-control"
+                  value="Enrofloxacin 10 mg/kg slow IV diluted q24h + Ampicillin-Sulbactam 30 mg/kg IV q8h targeting E. coli and anaerobes"
+                  required
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-ohe-handling-input">Emergent Ovariohysterectomy (OHE) Handling &amp; Laparotomy Sponge Isolation</label>
+                <input
+                  type="text"
+                  id="stage-ohe-handling-input"
+                  name="surgical_ohe_handling_protocol"
+                  class="form-control"
+                  value="Atraumatic midline laparotomy OHE: pack off friable distended uterine horns with moistened laparotomy sponges and double-ligate cervical stump"
+                  required
+                >
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-lavage-plan-input">Abdominal Lavage &amp; Glove/Instrument Change Protocol</label>
+                <input
+                  type="text"
+                  id="stage-lavage-plan-input"
+                  name="abdominal_lavage_plan"
+                  class="form-control"
+                  value="Pack off uterine stump with moistened sponges; change gloves &amp; instruments after stump closure; warm 0.9% NaCl 200 mL/kg lavage if any contamination"
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-analgesia-plan-input">Perioperative Full-Mu Opioid Analgesia (Avoid NSAIDs in Endotoxic Azotemia)</label>
+                <input
+                  type="text"
+                  id="stage-analgesia-plan-input"
+                  name="perioperative_analgesia_plan"
+                  class="form-control"
+                  value="Methadone 0.2 mg/kg IV q4h or Fentanyl CRI 3–5 mcg/kg/hr; strictly avoid NSAIDs due to E. coli endotoxin renal medullary ischemia"
+                >
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="stage-sepsis-monitoring-input">Post-Op ICU Sepsis, Lactate, Urine Output &amp; DIC Surveillance</label>
+              <input
+                type="text"
+                id="stage-sepsis-monitoring-input"
+                name="postop_sepsis_monitoring"
+                class="form-control"
+                value="Serial blood lactate, MAP, urine output (target > 1–2 mL/kg/hr), CBC band neutrophil trend, and coagulation profile q4–6h"
+              >
+            </div>
+            <button type="submit" id="stage-ohe-btn" class="btn btn-secondary">💉 Stage Resuscitation, Empiric Abx &amp; Emergent OHE</button>
+          </form>
+        </div>
+
+        <hr class="pyometra-divider">
+
+        <!-- 2. Record Serial Perioperative Hemodynamic, POCUS Uterine Horn, Lactate & WBC/Band Check Form -->
+        <div class="trust-subsection" id="record-hemodynamic-check-section">
+          <h3>2. Record Serial Perioperative POCUS Uterine Horn, Lactate, WBC/Bands &amp; MAP Check</h3>
+          <form id="record-hemodynamic-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-horn-diameter-input">POCUS Uterine Horn Diameter (cm; 0.0 Post-OHE)</label>
+                <input type="number" id="check-horn-diameter-input" name="uterine_horn_diameter_cm" class="form-control" min="0" max="25.0" step="0.1" value="0.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-lactate-input">Systemic Blood Lactate (mmol/L)</label>
+                <input type="number" id="check-lactate-input" name="blood_lactate_mmol_l" class="form-control" min="0.1" max="25.0" step="0.1" value="1.5" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-wbc-input">Total WBC Count (K/µL)</label>
+                <input type="number" id="check-wbc-input" name="wbc_count_k_ul" class="form-control" min="0.5" max="120.0" step="0.1" value="14.8" required>
+              </div>
+              <div class="form-group">
+                <label for="check-bands-input">Band Neutrophils (%)</label>
+                <input type="number" id="check-bands-input" name="band_neutrophil_percent" class="form-control" min="0" max="100.0" step="0.1" value="2.5" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-map-input">Mean Arterial Pressure MAP (mmHg)</label>
+                <input type="number" id="check-map-input" name="map_mm_hg" class="form-control" min="25" max="200" step="1" value="84" required>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (Surgeon / Criticalist)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Hannah Lin, DACVS" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-note-input">Perioperative Hemodynamic, AFAST &amp; OHE Recovery Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="Post-OHE ICU telemetry: distended uterine horns excised (0.0 cm), lactate cleared to 1.5 mmol/L, band neutrophilia resolving (2.5%), MAP 84 mmHg." required>
+            </div>
+            <button type="submit" id="record-hemodynamic-check-btn" class="btn btn-secondary">🩺 Record Perioperative Hemodynamic &amp; Lactate Check</button>
+          </form>
+
+          <div class="pyometra-checks-box">
+            <h4>Serial Perioperative Hemodynamic, Lactate &amp; WBC/Band Checks (<span id="hemodynamic-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.HemodynamicChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="hemodynamic-checks-list" class="pyometra-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.HemodynamicChecks }}
+              <li class="pyometra-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · Uterine Horn {{ printf "%.1f" $chk.UterineHornDiameterCm }} cm · Lactate {{ printf "%.1f" $chk.BloodLactateMmolL }} mmol/L · WBC {{ printf "%.1f" $chk.WBCCountKUl }} K/µL (Bands {{ printf "%.1f" $chk.BandNeutrophilPercent }}%) · MAP <code>{{ $chk.MAPMmHg }} mmHg</code> — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="pyometra-divider">
+
+        <!-- 3. Clear Post-Op OHE Patient for Normotensive Afebrile Discharge Form -->
+        <div class="trust-subsection" id="clear-pyometra-section">
+          <h3>3. Clear Post-Op Ovariohysterectomy (OHE) Patient for Normotensive &amp; Afebrile Discharge</h3>
+          <form id="clear-pyometra-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="clear-discharged-by-input">Discharging Surgeon / Emergency Criticalist</label>
+              <input type="text" id="clear-discharged-by-input" name="discharged_by" class="form-control" value="Dr. Hannah Lin, DACVS" required>
+            </div>
+            <div class="form-group">
+              <label for="clear-summary-input">Post-Op OHE Hemostasis, SIRS Resolution &amp; Antibiotic Discharge Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="discharge_summary"
+                class="form-control"
+                value="Emergent Ovariohysterectomy (OHE) completed without peritoneal contamination; normotensive (MAP 84 mmHg), afebrile, lactate normalized (1.5 mmol/L), resolved E. coli ADH resistance PU/PD, discharged on oral Amoxicillin-Clavulanate + Enrofloxacin."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-pyometra-btn" class="btn btn-primary">🛡️ Clear Post-Op OHE Patient for Discharge</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/pyometra-sirs-triage.js" defer></script>
+</body>
+</html>
