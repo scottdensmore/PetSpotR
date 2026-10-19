@@ -14260,3 +14260,202 @@ textarea:focus-visible,
   font-weight: 700;
   margin: 0.5rem 0;
 }
+
+/* ============================================================================
+   Milestone 18.1: Hyperbaric Oxygen (HBOT), Carbon Monoxide (CO) Carboxyhemoglobin
+   & Cyanide Smoke Triage Cockpit UI (/hyperbaric-co-triage)
+   WCAG AAA High-Contrast Badges, CO-Oximetry Alerts & Chamber Regimen (> 7.1:1 in Dark & Light Modes)
+   ============================================================================ */
+
+.badge-hbot-status,
+.badge-hbot-critical,
+.badge-hbot-staged,
+.badge-hbot-safe,
+.badge-hbot-source,
+.badge-hbot-flag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.hbot-flags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.45rem 0;
+}
+
+.hbot-filter-bar {
+  margin-bottom: 0.85rem;
+}
+
+.hbot-active-workspace {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .hbot-active-workspace {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.hbot-regimen-recommendations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  margin: 0.45rem 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.4);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .hbot-regimen-recommendations {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.hbot-checkbox-group,
+.hbot-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.6rem 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .hbot-checkbox-group,
+[data-theme="light"] .hbot-steps-list {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.hbot-step-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+:root .badge-hbot-critical,
+[data-theme="dark"] .badge-hbot-critical,
+:root .badge-hbot-flag,
+[data-theme="dark"] .badge-hbot-flag {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid #f87171;
+}
+
+:root .badge-hbot-staged,
+[data-theme="dark"] .badge-hbot-staged {
+  background-color: #78350f;
+  color: #fffbeb;
+  border: 1px solid #f59e0b;
+}
+
+:root .badge-hbot-safe,
+[data-theme="dark"] .badge-hbot-safe {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+}
+
+:root .badge-hbot-source,
+[data-theme="dark"] .badge-hbot-source {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #94a3b8;
+}
+
+:root .hbot-cooximetry-alert-banner,
+[data-theme="dark"] .hbot-cooximetry-alert-banner,
+:root .hbot-eval-error-banner,
+[data-theme="dark"] .hbot-eval-error-banner {
+  background-color: #450a0a;
+  color: #fef2f2;
+  border: 2px solid #f87171;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+:root .hbot-clearance-banner,
+[data-theme="dark"] .hbot-clearance-banner {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .badge-hbot-critical,
+[data-theme="light"] .badge-hbot-flag {
+  background-color: #fee2e2;
+  color: #7f1d1d;
+  border: 1px solid #b91c1c;
+}
+
+[data-theme="light"] .badge-hbot-staged {
+  background-color: #fef3c7;
+  color: #78350f;
+  border: 1px solid #b45309;
+}
+
+[data-theme="light"] .badge-hbot-safe {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+}
+
+[data-theme="light"] .badge-hbot-source {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #475569;
+}
+
+[data-theme="light"] .hbot-cooximetry-alert-banner,
+[data-theme="light"] .hbot-eval-error-banner {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 2px solid #b91c1c;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .hbot-clearance-banner {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+
+

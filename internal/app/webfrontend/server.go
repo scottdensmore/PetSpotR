@@ -32,6 +32,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/envenomationtoxin"
 	"github.com/scottdensmore/petspotr/pkg/hazmatdecon"
+	"github.com/scottdensmore/petspotr/pkg/hyperbaricco"
 	"github.com/scottdensmore/petspotr/pkg/hyperthermiaheat"
 	"github.com/scottdensmore/petspotr/pkg/identity"
 	"github.com/scottdensmore/petspotr/pkg/maritimecoastal"
@@ -90,6 +91,7 @@ type Server struct {
 	neonatalIncubatorStore   *neonatalincubator.Store
 	envenomationToxinStore   *envenomationtoxin.Store
 	acousticPanicStore       *acousticpanic.Store
+	hyperbaricCOStore        *hyperbaricco.Store
 	handler                  http.Handler
 }
 
@@ -261,6 +263,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		neonatalIncubatorStore:   neonatalincubator.NewStore(),
 		envenomationToxinStore:   envenomationtoxin.NewStore(),
 		acousticPanicStore:       acousticpanic.NewStore(),
+		hyperbaricCOStore:        hyperbaricco.NewStore(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -567,6 +570,8 @@ func (s *Server) routes() {
 	s.registerEnvenomationToxinRoutes()
 	// Fireworks/Thunderstorm Acoustic Panic, Bolt-Trajectory Vectoring & Calming Pheromone SAR Cockpit routes (Milestone 17.5)
 	s.registerAcousticPanicRoutes()
+	// Hyperbaric Oxygen (HBOT), Carbon Monoxide (CO) Carboxyhemoglobin & Cyanide Smoke Triage Cockpit routes (Milestone 18.1)
+	s.registerHyperbaricCORoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
