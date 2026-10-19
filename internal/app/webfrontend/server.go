@@ -50,6 +50,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/identity"
 	"github.com/scottdensmore/petspotr/pkg/imhathrombosis"
 	"github.com/scottdensmore/petspotr/pkg/maritimecoastal"
+	"github.com/scottdensmore/petspotr/pkg/megaesophagusfb"
 	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/neonatalincubator"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
@@ -150,6 +151,7 @@ type Server struct {
 	hepaticService            *hepaticencephalopathy.HepaticService
 	tlsService                *oncologictls.TLSService
 	burnService               *thermalburnparkland.BurnService
+	megaService               *megaesophagusfb.MegaesophagusService
 	handler                   http.Handler
 }
 
@@ -348,6 +350,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		dicService:                diccoagulopathy.NewDICService(),
 		pancreatitisService:       pancreatitiscpl.NewPancreatitisService(),
 		burnService:               thermalburnparkland.NewBurnService(),
+		megaService:               megaesophagusfb.NewMegaesophagusService(),
 		tlsService:                oncologictls.NewTLSService(),
 	}
 	if s.smsWebhookSecret == "" {
@@ -715,6 +718,8 @@ func (s *Server) routes() {
 	s.registerOncologicTLSRoutes()
 	// Acute Smoke Inhalation, Thermal Burn Classification (Superficial/Partial/Full-Thickness TBSA%), Parkland Crystalloid Resuscitation Formula, Silver Sulfadiazine & Escharotomy Cockpit routes (Milestone 24.1)
 	s.registerThermalBurnParklandRoutes()
+	// Acute Esophageal Foreign Body, Megaesophagus, Myasthenia Gravis (AChR Antibody / Edrophonium-Neostigmine), Aspiration Pneumonia & Pyridostigmine/Bailey Chair Cockpit routes (Milestone 23.5)
+	s.registerMegaesophagusForeignBodyRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
