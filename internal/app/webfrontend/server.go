@@ -49,6 +49,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/sms"
 	"github.com/scottdensmore/petspotr/pkg/store"
 	"github.com/scottdensmore/petspotr/pkg/telemetry"
+	"github.com/scottdensmore/petspotr/pkg/transfusionbloodbank"
 	"github.com/scottdensmore/petspotr/pkg/urethralobstruction"
 	"github.com/scottdensmore/petspotr/pkg/usarcollapse"
 	"github.com/scottdensmore/petspotr/pkg/verticalrescue"
@@ -100,6 +101,7 @@ type Server struct {
 	dystociaEclampsiaStore    *dystociaeclampsia.Store
 	gdvBloatStore             *gdvbloat.Store
 	urethralObstructionStore  *urethralobstruction.Store
+	transfusionBloodbankStore *transfusionbloodbank.Store
 	handler                   http.Handler
 }
 
@@ -276,6 +278,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		dystociaEclampsiaStore:    dystociaeclampsia.NewStore(),
 		gdvBloatStore:             gdvbloat.NewStore(),
 		urethralObstructionStore:  urethralobstruction.NewStore(),
+		transfusionBloodbankStore: transfusionbloodbank.NewStore(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -592,6 +595,8 @@ func (s *Server) routes() {
 	s.registerGDVBloatRoutes()
 	// Feline Urethral Obstruction (Blocked Tom), Hyperkalemic Bradycardia & Calcium Gluconate Cardioprotection Cockpit routes (Milestone 18.5)
 	s.registerUrethralObstructionRoutes()
+	// Canine/Feline Xenotransfusion, DEA 1.1 / AB Blood Typing & Acute Hemolytic Transfusion Reaction Cockpit routes (Milestone 19.1)
+	s.registerTransfusionBloodbankRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

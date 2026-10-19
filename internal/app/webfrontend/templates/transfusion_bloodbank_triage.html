@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Canine/Feline Xenotransfusion, DEA 1.1 / AB Blood Typing &amp; Acute Hemolytic Transfusion Reaction Cockpit.">
+  <title>Canine/Feline Xenotransfusion, DEA 1.1 / AB Blood Typing &amp; Acute Hemolytic Transfusion Reaction Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#transfusion-bloodbank-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/gdv-bloat-triage" class="nav-link nav-link-emergency" id="nav-gdv-bloat-triage">🐕 GDV &amp; Bloat Triage</a></li>
+          <li><a href="/transfusion-bloodbank-triage" class="nav-link active nav-link-emergency" id="nav-transfusion-bloodbank-triage">🩸 Transfusion &amp; Bloodbank</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="transfusion-bloodbank-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header bloodbank-triage-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🩸 CANINE/FELINE XENOTRANSFUSION, DEA 1.1 / AB BLOOD TYPING &amp; ACUTE HEMOLYTIC TRANSFUSION REACTION COCKPIT</span>
+        </div>
+        <h1>Canine/Feline Xenotransfusion, DEA 1.1 / AB Blood Typing &amp; Acute Hemolytic Transfusion Reaction Cockpit</h1>
+        <p class="text-secondary">
+          Feline Type B Natural Anti-A Alloantibody Anaphylaxis Prevention, Canine DEA 1.1 Universal Donor Selection, Single-Bridge Canine-to-Feline Xenotransfusion Guardrails, Dedicated 170-Micron Filter &amp; 0.9% NaCl Line (Strictly Avoiding Calcium/Lactated Ringer's Co-Infusion Clotting in CPDA-1 Units), and 0.25 mL/kg/hr Biologic Trial Monitoring.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid bloodbank-triage-kpi-grid" aria-label="Canine/Feline Xenotransfusion, DEA 1.1 / AB Blood Typing &amp; Hemolytic Reaction KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Transfusion Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Alloantibody / Hemolytic Risk</span>
+        <strong class="kpi-value" id="kpi-critical-hemolytic">{{ .CriticalHemolyticCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Crossmatched &amp; 170µm Filter Staged</span>
+        <strong class="kpi-value" id="kpi-staged-crossmatch">{{ .StagedCrossmatchCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Transfused PCV Restored &amp; Safe</span>
+        <strong class="kpi-value" id="kpi-cleared-safe">{{ .ClearedSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="bloodbank-triage-live-status" class="humane-traps-live-status bloodbank-triage-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} canine/feline xenotransfusion, DEA 1.1 / AB blood typing &amp; acute hemolytic reaction triage operations.
+    </div>
+
+    <div class="trust-cockpit-grid bloodbank-triage-cockpit-grid">
+      <!-- Left Column: Evaluate Transfusion & Blood Typing Form -->
+      <section class="glass-card trust-panel" id="bloodbank-evaluate-panel" aria-labelledby="heading-evaluate-bloodbank-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-bloodbank-op">Evaluate DEA 1.1 / AB Blood Typing, Crossmatch &amp; Xenotransfusion</h2>
+          <span class="badge badge-bloodbank-group">170µm Filter &amp; 0.9% NaCl Only</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Immunohematology &amp; Xenotransfusion Emergency Scenario Presets</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary bloodbank-scenario-btn" data-scenario="feline-type-b-anaphylaxis" id="btn-sim-feline-type-b-anaphylaxis">
+              🚨 Simulate Feline Type B Alloantibody Anaphylaxis Risk (Devon Rex · PCV 9.5% → 24.0%)
+            </button>
+            <button type="button" class="btn btn-secondary bloodbank-scenario-btn" data-scenario="emergency-canine-feline-xeno" id="btn-sim-emergency-canine-feline-xeno">
+              🩸 Simulate Emergency Canine-to-Feline Xenotransfusion Bridge (PCV 8.0% → 22.0% · Single Lifesaving Dose)
+            </button>
+          </div>
+        </div>
+
+        <div id="eval-error-banner" class="bloodbank-eval-error-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="bloodbank-eval-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-pet-name">Pet Name</label>
+              <input type="text" id="eval-pet-name" name="pet_name" class="form-control" value="Bramble" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-species">Species / Breed</label>
+              <input type="text" id="eval-species" name="species" class="form-control" value="Cat - British Shorthair" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-weight-kg">Estimated Weight (kg)</label>
+              <input type="number" id="eval-weight-kg" name="weight_kg" class="form-control" min="1.0" max="100.0" step="0.1" value="4.1" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-blood-group">Blood Group &amp; Typing Profile</label>
+              <select id="eval-blood-group" name="blood_group_type" class="form-control" required>
+                <option value="FELINE_TYPE_B_ALLOANTIBODY_RISK" selected>FELINE_TYPE_B_ALLOANTIBODY_RISK (Type B Cat — Potent Anti-A Alloantibody Anaphylaxis Risk)</option>
+                <option value="FELINE_TYPE_A_CROSSMATCHED">FELINE_TYPE_A_CROSSMATCHED (Type A Cat — Crossmatched Feline Type A Donor)</option>
+                <option value="CANINE_DEA_1_1_NEGATIVE_UNIVERSAL">CANINE_DEA_1_1_NEGATIVE_UNIVERSAL (DEA 1.1 Negative Universal Canine Donor)</option>
+                <option value="CANINE_DEA_1_1_POSITIVE_SENSITIZED">CANINE_DEA_1_1_POSITIVE_SENSITIZED (DEA 1.1 Positive / Previously Transfused Sensitized Dog)</option>
+                <option value="EMERGENCY_CANINE_TO_FELINE_XENOTRANSFUSION">EMERGENCY_CANINE_TO_FELINE_XENOTRANSFUSION (Single-Bridge Canine DEA 1.1- to Feline Xenotransfusion)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-recipient-pcv">Recipient Spun PCV (%)</label>
+              <input type="number" id="eval-recipient-pcv" name="recipient_pcv_pct" class="form-control" min="4.0" max="45.0" step="0.5" value="9.5" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-donor-pcv">Donor Unit PCV (%)</label>
+              <input type="number" id="eval-donor-pcv" name="donor_pcv_pct" class="form-control" min="30.0" max="65.0" step="0.5" value="42.0" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-target-pcv">Target Post-Transfusion PCV (%)</label>
+              <input type="number" id="eval-target-pcv" name="target_pcv_pct" class="form-control" min="15.0" max="55.0" step="0.5" value="24.0" required>
+            </div>
+          </div>
+
+          <div class="bloodbank-checkbox-group">
+            <label class="bloodbank-step-item">
+              <input type="checkbox" id="eval-crossmatch-ok" name="major_minor_crossmatch_compatible" checked>
+              <span>Major &amp; Minor Slide/Gel Crossmatch Compatible (Zero Macroscopic/Microscopic Agglutination or Hemolysis)</span>
+            </label>
+            <label class="bloodbank-step-item">
+              <input type="checkbox" id="eval-micron-filter" name="in_line_170_micron_filter_attached" checked>
+              <span>In-Line 170–260 Micron Blood Clot Filter (or 18-Micron Feline Hemo-Nate Filter) Attached</span>
+            </label>
+            <label class="bloodbank-step-item">
+              <input type="checkbox" id="eval-lrs-avoided" name="lactated_ringers_co_infusion_avoided" checked>
+              <span>Calcium-Containing Lactated Ringer's Solution (LRS) Strictly Avoided — Dedicated 0.9% NaCl Line Only</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-submit-bloodbank-eval" class="btn btn-primary">Evaluate Blood Typing &amp; Transfusion Triage</button>
+        </form>
+      </section>
+
+      <!-- Right Column: Filter Bar, Operations Queue & Active Workspace -->
+      <section class="glass-card trust-panel" id="bloodbank-ops-panel" aria-labelledby="heading-bloodbank-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-bloodbank-ops">Active Transfusion, Crossmatch &amp; Xenotransfusion Operations</h2>
+          <span id="bloodbank-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col bloodbank-filter-bar" role="region" aria-label="Filter Transfusion Bloodbank Triage Operations">
+          <div class="form-group">
+            <label for="filter-blood-group">Filter by Blood Group Type</label>
+            <select id="filter-blood-group" class="form-control">
+              <option value="">All Blood Group Types</option>
+              <option value="FELINE_TYPE_B_ALLOANTIBODY_RISK">FELINE_TYPE_B_ALLOANTIBODY_RISK</option>
+              <option value="FELINE_TYPE_A_CROSSMATCHED">FELINE_TYPE_A_CROSSMATCHED</option>
+              <option value="CANINE_DEA_1_1_NEGATIVE_UNIVERSAL">CANINE_DEA_1_1_NEGATIVE_UNIVERSAL</option>
+              <option value="CANINE_DEA_1_1_POSITIVE_SENSITIZED">CANINE_DEA_1_1_POSITIVE_SENSITIZED</option>
+              <option value="EMERGENCY_CANINE_TO_FELINE_XENOTRANSFUSION">EMERGENCY_CANINE_TO_FELINE_XENOTRANSFUSION</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="ALLOANTIBODY_HEMOLYTIC_ANAPHYLAXIS_CRITICAL">ALLOANTIBODY_HEMOLYTIC_ANAPHYLAXIS_CRITICAL</option>
+              <option value="CROSSMATCHED_MICRON_FILTER_RATE_STAGED">CROSSMATCHED_MICRON_FILTER_RATE_STAGED</option>
+              <option value="TRANSFUSED_PCV_RESTORED_NORMOTHERMIC_SAFE">TRANSFUSED_PCV_RESTORED_NORMOTHERMIC_SAFE</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="bloodbank-active-workspace" role="region" aria-label="Active Transfusion Bloodbank Triage Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="bloodbank-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">Active Workspace: {{ $active.PetName }} ({{ $active.Species }} · {{ printf "%.1f" $active.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $active.ID }} · {{ $active.PetID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-bloodbank-group">{{ $active.BloodGroupType }}</span>
+                <span class="badge badge-bloodbank-status {{ if eq (printf "%s" $active.Status) "ALLOANTIBODY_HEMOLYTIC_ANAPHYLAXIS_CRITICAL" }}badge-bloodbank-critical{{ else if eq (printf "%s" $active.Status) "CROSSMATCHED_MICRON_FILTER_RATE_STAGED" }}badge-bloodbank-staged{{ else }}badge-bloodbank-safe{{ end }}">{{ $active.Status }}</span>
+              </div>
+            </div>
+            <div class="bloodbank-alloantibody-alert-banner">
+              ⚠️ {{ $active.AlloantibodyCalciumWarningNote }}
+            </div>
+            <div class="bloodbank-regimen-recommendations">
+              <div><strong>Required Transfusion &amp; Biologic Trial Regimen:</strong> {{ $active.RequiredTransfusionRegimen }}</div>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="bloodbank-operations-list" class="trust-screenings-list bloodbank-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card bloodbank-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-blood-group-type="{{ $op.BloodGroupType }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-bloodbank-group">{{ $op.BloodGroupType }}</span>
+                <span class="badge badge-bloodbank-status {{ if eq (printf "%s" $op.Status) "ALLOANTIBODY_HEMOLYTIC_ANAPHYLAXIS_CRITICAL" }}badge-bloodbank-critical{{ else if eq (printf "%s" $op.Status) "CROSSMATCHED_MICRON_FILTER_RATE_STAGED" }}badge-bloodbank-staged{{ else }}badge-bloodbank-safe{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row bloodbank-metrics-row">
+              <span class="badge badge-bloodbank-group">Recipient PCV: {{ printf "%.1f" $op.RecipientPCVPct }}% • Donor PCV: {{ printf "%.1f" $op.DonorPCVPct }}% • Target PCV: {{ printf "%.1f" $op.TargetPCVPct }}%</span>
+            </div>
+
+            <div class="bloodbank-flags-row">
+              {{ if lt $op.RecipientPCVPct 14.0 }}
+              <span class="badge badge-bloodbank-flag">SEVERE_HYPOXIC_ANEMIA_PCV_CRITICAL</span>
+              {{ end }}
+              {{ if eq (printf "%s" $op.BloodGroupType) "FELINE_TYPE_B_ALLOANTIBODY_RISK" }}
+              <span class="badge badge-bloodbank-flag">NATURAL_ANTI_A_ALLOANTIBODY_HAZARD</span>
+              {{ end }}
+              {{ if eq (printf "%s" $op.BloodGroupType) "EMERGENCY_CANINE_TO_FELINE_XENOTRANSFUSION" }}
+              <span class="badge badge-bloodbank-flag">SINGLE_DOSE_XENOTRANSFUSION_BRIDGE</span>
+              {{ end }}
+            </div>
+
+            <div class="bloodbank-alloantibody-alert-banner">
+              ⚠️ {{ $op.AlloantibodyCalciumWarningNote }}
+            </div>
+
+            {{ if $op.ClearanceToken }}
+            <div class="bloodbank-clearance-banner">
+              ✅ TRANSFUSION PCV RESTORATION &amp; NORMOTHERMIC CLEARANCE VERIFIED: {{ $op.ClearanceToken }}
+            </div>
+            {{ end }}
+
+            <div class="bloodbank-regimen-recommendations">
+              <div><strong>Required Transfusion Regimen:</strong> {{ $op.RequiredTransfusionRegimen }}</div>
+            </div>
+
+            <div class="bloodbank-steps-list" aria-label="Blood Typing, 170-Micron Filter 0.9% NaCl Setup, Biologic Trial &amp; Post-PCV Protocol Steps">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="bloodbank-step-item">
+                <input
+                  type="checkbox"
+                  class="bloodbank-step-checkbox"
+                  data-op-id="{{ $op.ID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "TRANSFUSED_PCV_RESTORED_NORMOTHERMIC_SAFE" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-bloodbank-safe{{ else }}badge-bloodbank-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="bloodbank-step-title">{{ $step.Title }}</strong>
+                <span class="bloodbank-step-desc">{{ $step.Description }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary bloodbank-select-workspace-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Inspect in Active Workspace
+              </button>
+              {{ if ne (printf "%s" $op.Status) "TRANSFUSED_PCV_RESTORED_NORMOTHERMIC_SAFE" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary bloodbank-issue-clearance-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🛡️ Issue Transfusion PCV Restoration Clearance ({{ $op.ID }})
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="bloodbank-ops-empty-msg">No transfusion or blood typing triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/transfusion-bloodbank-triage.js" defer></script>
+</body>
+</html>
