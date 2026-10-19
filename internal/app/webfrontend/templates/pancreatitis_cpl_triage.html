@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Pancreatitis, Canine/Feline Spec cPL/fPL, POCUS Hypoechoic Pancreas/Hyperechoic Mesentery, Maropitant/Fuzapladib &amp; Early Enteral Nutrition Cockpit.">
+  <title>Acute Pancreatitis, Canine/Feline Spec cPL/fPL, POCUS Hypoechoic Pancreas/Hyperechoic Mesentery, Maropitant/Fuzapladib &amp; Early Enteral Nutrition Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#pancreatitis-cpl-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/pancreatitis-cpl-triage" class="nav-link active nav-link-emergency" id="nav-pancreatitis-cpl-triage">🧬 Pancreatitis &amp; Enteral ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="pancreatitis-cpl-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header pancreatitis-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🧬 ACUTE PANCREATITIS, CANINE/FELINE SPEC CPL/FPL, POCUS HYPOECHOIC PANCREAS/HYPERECHOIC MESENTERY, MAROPITANT/FUZAPLADIB &amp; EARLY ENTERAL NUTRITION COCKPIT</span>
+        </div>
+        <h1>Acute Pancreatitis, Canine/Feline Spec cPL/fPL, POCUS Hypoechoic Pancreas/Hyperechoic Mesentery, Maropitant/Fuzapladib &amp; Early Enteral Nutrition Cockpit</h1>
+        <p class="text-secondary">
+          Quantitative Spec cPL (&gt; 400 &micro;g/L Diagnostic) &amp; Spec fPL (&gt; 5.4 &micro;g/L Positive), Abdominal POCUS Hypoechoic Swollen Pancreas + Hyperechoic Peripancreatic Fat Saponification + Duodenal Corrugation, Fuzapladib Sodium (Panoquell-CA1 0.4 mg/kg IV q24h x 3d LFA-1 Extravasation Inhibitor), Dual Antiemetic Blockade (Maropitant NK-1 + Ondansetron 5-HT3), Multimodal Visceral Analgesia CRI (Fentanyl/Ketamine/Lidocaine — Zero NSAIDs), Feline Triaditis + Cobalamin (Vitamin B12) Supplementation &amp; Early Enteral Nutrition (Nasoesophageal / Esophagostomy Tube RER Ramp — Rejecting the Outdated Prolonged NPO Myth).
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid pancreatitis-kpi-grid" aria-label="Acute Pancreatitis &amp; Early Enteral KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Pancreatitis ICU Operations</span>
+        <strong class="kpi-value" id="metric-total-ops">{{ .Metrics.TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Acute Necrotizing Pancreatitis Triage</span>
+        <strong class="kpi-value" id="metric-acute-triage">{{ .Metrics.AcutePancreatitisTriageCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Fuzapladib / Maropitant / Enteral Staged</span>
+        <strong class="kpi-value" id="metric-enteral-staged">{{ .Metrics.EnteralNutritionStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Tolerating Enteral &amp; Pain-Free Cleared</span>
+        <strong class="kpi-value" id="metric-cleared-enteral">{{ .Metrics.ClearedEnteralCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Diagnostic Spec cPL/fPL Elevated</span>
+        <strong class="kpi-value" id="metric-severe-spec-pl">{{ .Metrics.SevereSpecPLElevatedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Feline Triaditis + Cobalamin B12</span>
+        <strong class="kpi-value" id="metric-feline-triaditis">{{ .Metrics.FelineTriaditisCount }}</strong>
+      </div>
+    </section>
+
+    <!-- Global Clinical Alert Banner (WCAG AAA > 7.1:1) -->
+    <div id="pancreatitis-alert-banner" class="pancreatitis-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL ACUTE PANCREATITIS &amp; EARLY ENTERAL PROTOCOL ALERT: Outdated Prolonged NPO ("Resting the Pancreas" / Gut Starvation) Myth is STRICTLY CONTRAINDICATED — starvation &gt; 24–48h triggers enterocyte villous atrophy, tight-junction breakdown, and fatal enteric bacterial translocation into necrotic pancreatic tissue. Initiate Early Nasoesophageal (NE) or Esophagostomy (E-Tube) Enteral Nutrition (25% &rarr; 100% RER low-fat diet), Fuzapladib Sodium (0.4 mg/kg IV q24h x 3d LFA-1 neutrophil extravasation inhibitor in dogs), Dual Antiemetics (Maropitant NK-1 + Ondansetron 5-HT3), Fentanyl/Ketamine/Lidocaine Visceral Analgesia CRI (ZERO NSAIDs), and Feline Triaditis Cobalamin / Cyanocobalamin (Vitamin B12 250 mcg SC) Supplementation.
+    </div>
+
+    <!-- Global Clearance Banner (WCAG AAA > 7.1:1) -->
+    <div id="pancreatitis-clearance-banner" class="pancreatitis-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "TOLERATING_ENTERAL_PAIN_FREE_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ TOLERATING ENTERAL NUTRITION &amp; VISCERAL PAIN-FREE DISCHARGE CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "TOLERATING_ENTERAL_PAIN_FREE_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Discharged by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting 100% RER enteral tolerance and CMPS-SF pain resolution.{{ end }}</span>
+    </div>
+
+    <!-- Filter & SSE Controls Bar -->
+    <section class="glass-card pancreatitis-toolbar" aria-label="Filter &amp; Live Telemetry Stream Controls">
+      <div class="pancreatitis-toolbar-row">
+        <div class="form-group">
+          <label for="pancreatitis-status-filter">Filter Operations by Pancreatitis Triage Status</label>
+          <select id="pancreatitis-status-filter" class="form-control">
+            <option value="">All Pancreatitis Statuses</option>
+            <option value="ACUTE_NECROTIZING_PANCREATITIS_TRIAGE">ACUTE_NECROTIZING_PANCREATITIS_TRIAGE</option>
+            <option value="FUZAPLADIB_MAROPITANT_ENTERAL_STAGED">FUZAPLADIB_MAROPITANT_ENTERAL_STAGED</option>
+            <option value="TOLERATING_ENTERAL_PAIN_FREE_CLEARED">TOLERATING_ENTERAL_PAIN_FREE_CLEARED</option>
+          </select>
+        </div>
+
+        <div class="pancreatitis-sse-controls">
+          <span id="sse-status-badge" class="pancreatitis-status-badge">SSE Standby (Manual Connect)</span>
+          <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live Pancreatitis Telemetry Stream</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Operations Grid -->
+    <section class="glass-card trust-panel" aria-labelledby="heading-pancreatitis-grid">
+      <div class="trust-panel-header">
+        <h2 id="heading-pancreatitis-grid">Active Pancreatitis, Spec cPL/fPL &amp; Feline Triaditis Operations</h2>
+        <span id="pancreatitis-ops-count-badge" class="pancreatitis-status-badge">{{ len .Operations }} Operations</span>
+      </div>
+
+      <div id="pancreatitis-operations-grid" class="pancreatitis-operations-grid" role="list">
+        {{ range $op := .Operations }}
+        <article
+          class="glass-card pancreatitis-op-card"
+          data-op-id="{{ $op.ID }}"
+          data-status="{{ $op.Status }}"
+          role="listitem"
+        >
+          <div class="trust-screening-card-header">
+            <div class="trust-screening-identity">
+              <strong class="trust-pet-name">{{ $op.ID }} · {{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+              <code class="trust-pet-id">{{ $op.CaseID }} · {{ $op.SeverityClass }}</code>
+            </div>
+            <span class="pancreatitis-status-badge" data-badge-status="{{ $op.Status }}">{{ $op.Status }}</span>
+          </div>
+
+          <div class="pancreatitis-card-metrics">
+            <span><strong>Spec PL:</strong> {{ $op.SpecPLUgL }} &micro;g/L</span>
+            <span><strong>CMPS-SF Pain Score:</strong> {{ $op.ModifiedGlasgowPainScore }}/24</span>
+            <span><strong>Enteral RER:</strong> {{ $op.EnteralRERPercent }}%</span>
+            <span><strong>POCUS Hypoechoic Pancreas:</strong> {{ if $op.POCUSHypoechoicPancreas }}YES{{ else }}NO{{ end }}</span>
+            <span><strong>Hyperechoic Fat:</strong> {{ if $op.HyperechoicPeripancreaticFat }}YES{{ else }}NO{{ end }}</span>
+            <span><strong>Prayer Position:</strong> {{ if $op.PrayerPositionPresent }}YES{{ else }}NO{{ end }}</span>
+            <span><strong>Feline Triaditis:</strong> {{ if $op.FelineTriaditisSuspected }}YES (B12 Indicated){{ else }}NO{{ end }}</span>
+          </div>
+
+          <div class="trust-moderator-actions">
+            <button type="button" class="btn btn-sm btn-secondary select-pancreatitis-op-btn" data-op-id="{{ $op.ID }}">
+              🔍 Open Workspace ({{ $op.ID }})
+            </button>
+          </div>
+        </article>
+        {{ end }}
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid pancreatitis-cockpit-grid">
+      <!-- Left Column: Active Operation Workspace & Clinical Forms -->
+      <section class="glass-card trust-panel" id="pancreatitis-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="trust-panel-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · Severity: {{ $active.SeverityClass }}</p>
+          </div>
+          <span id="active-op-status-badge" class="pancreatitis-status-badge">{{ $active.Status }}</span>
+        </div>
+
+        <div class="pancreatitis-vitals-strip">
+          <div class="pancreatitis-vital-pill">
+            <span>Spec cPL / fPL Quantitative Assay:</span>
+            <strong id="active-spec-pl">{{ $active.SpecPLUgL }} &micro;g/L</strong>
+          </div>
+          <div class="pancreatitis-vital-pill">
+            <span>Modified Glasgow Pain Score (CMPS-SF):</span>
+            <strong id="active-pain-score">{{ $active.ModifiedGlasgowPainScore }}/24</strong>
+          </div>
+          <div class="pancreatitis-vital-pill">
+            <span>Early Enteral Nutrition RER Target:</span>
+            <strong id="active-enteral-rer">{{ $active.EnteralRERPercent }}% RER</strong>
+          </div>
+        </div>
+
+        <div class="pancreatitis-plan-box" id="active-diagnostic-plan-box">
+          <h3>POCUS Sonographic &amp; Spec cPL/fPL Diagnostic Assessment</h3>
+          <ul class="pancreatitis-plan-list">
+            <li><strong>Spec cPL/fPL Result:</strong> <span id="diag-spec-pl-result">{{ $active.DiagnosticPlan.SpecPLAssayResult }}</span></li>
+            <li><strong>POCUS Sonographic Sign:</strong> <span id="diag-pocus-sign">{{ $active.DiagnosticPlan.POCUSSonographicSign }}</span></li>
+            <li><strong>Duodenal Corrugation &amp; Splinting:</strong> <span id="diag-duodenal-corrugation">{{ $active.DiagnosticPlan.DuodenalCorrugationStatus }}</span></li>
+            <li><strong>Extrahepatic Biliary Obstruction (EHBDO):</strong> <span id="diag-ehbdo">{{ $active.DiagnosticPlan.BiliaryObstructionEHBDO }}</span></li>
+            <li><strong>Feline Triaditis &amp; Cobalamin (B12) Note:</strong> <span id="diag-triaditis-note">{{ $active.DiagnosticPlan.TriaditisCobalaminNote }}</span></li>
+            <li><strong>Outdated NPO Myth Contraindication:</strong> <span id="diag-npo-warning">{{ $active.DiagnosticPlan.OutdatedNPOMythWarning }}</span></li>
+          </ul>
+        </div>
+
+        <div class="pancreatitis-plan-box" id="active-nutrition-plan-box">
+          <h3>Staged Fuzapladib, Dual Antiemetic, Visceral Analgesia CRI &amp; Early Enteral Nutrition Protocol</h3>
+          <ul class="pancreatitis-plan-list">
+            <li><strong>Fuzapladib Sodium (LFA-1 Inhibitor):</strong> <span id="plan-fuzapladib-text">{{ $active.NutritionPlan.FuzapladibProtocol }}</span></li>
+            <li><strong>Dual Antiemetic Protocol (NK-1 + 5-HT3):</strong> <span id="plan-antiemetic-text">{{ $active.NutritionPlan.AntiemeticDualProtocol }}</span></li>
+            <li><strong>Visceral Analgesia CRI (Zero NSAIDs):</strong> <span id="plan-analgesia-text">{{ $active.NutritionPlan.VisceralAnalgesiaCRI }}</span></li>
+            <li><strong>Early Enteral Feeding Tube Plan:</strong> <span id="plan-enteral-tube-text">{{ $active.NutritionPlan.EarlyEnteralTubePlan }}</span></li>
+            <li><strong>RER Caloric Ramp Schedule:</strong> <span id="plan-rer-schedule-text">{{ $active.NutritionPlan.RERCaloricRampSchedule }}</span></li>
+            <li><strong>Crystalloid Microcirculation Plan:</strong> <span id="plan-fluid-text">{{ $active.NutritionPlan.FluidCrystalloidPlan }}</span></li>
+          </ul>
+        </div>
+
+        <div class="pancreatitis-plan-box">
+          <h3>Serial Spec cPL/fPL, CMPS-SF Pain Score &amp; Enteral RER Tolerance Log</h3>
+          <ul id="enteral-checks-list" class="pancreatitis-checks-list">
+            {{ range $chk := $active.EnteralChecks }}
+            <li class="pancreatitis-check-item">
+              <strong>{{ $chk.ID }} ({{ $chk.RecordedBy }})</strong> · Spec PL: {{ $chk.SpecPLUgL }} &micro;g/L · Pain Score: {{ $chk.ModifiedGlasgowPainScore }}/24 · Enteral: {{ $chk.EnteralRERPercent }}% RER · Emesis Status: {{ $chk.VomitingRegurgStatus }} — {{ $chk.ClinicalNote }}
+            </li>
+            {{ end }}
+          </ul>
+        </div>
+        {{ end }}
+      </section>
+
+      <!-- Right Column: Stage Enteral Nutrition, Record Check, Clear Discharge & Intake Forms -->
+      <section class="glass-card trust-panel" id="pancreatitis-forms-panel" aria-labelledby="heading-stage-nutrition">
+        <div id="pancreatitis-error-banner" class="pancreatitis-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <!-- 1. Stage Fuzapladib, Maropitant/Ondansetron & Early Enteral Nutrition Form -->
+        <div class="trust-subsection">
+          <h2 id="heading-stage-nutrition">1. Stage Fuzapladib, Dual Antiemetics &amp; Early Enteral Nutrition</h2>
+          <form id="stage-nutrition-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="stage-fuzapladib-input">Fuzapladib Sodium (Panoquell-CA1 LFA-1 Inhibitor) / Triaditis B12 Protocol</label>
+              <input type="text" id="stage-fuzapladib-input" class="form-control" value="Fuzapladib sodium 0.4 mg/kg IV q24h x 3 days (LFA-1 leukocyte extravasation blockade)">
+            </div>
+            <div class="form-group">
+              <label for="stage-antiemetic-input">Dual Antiemetic Protocol (Maropitant NK-1 + Ondansetron 5-HT3)</label>
+              <input type="text" id="stage-antiemetic-input" class="form-control" value="Maropitant 1.0 mg/kg IV q24h + Ondansetron 0.5 mg/kg IV q8h">
+            </div>
+            <div class="form-group">
+              <label for="stage-analgesia-input">Visceral Analgesia CRI (Fentanyl / Ketamine / Lidocaine — Zero NSAIDs)</label>
+              <input type="text" id="stage-analgesia-input" class="form-control" value="Fentanyl CRI 4 mcg/kg/hr + Ketamine CRI 3 mcg/kg/min + Lidocaine CRI 30 mcg/kg/min (Zero NSAIDs)">
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-enteral-tube-input">Early Enteral Tube Plan (NE / E-Tube)</label>
+                <input type="text" id="stage-enteral-tube-input" class="form-control" value="8 Fr Nasoesophageal (NE) tube ultra-low-fat polymeric liquid diet initiated within 12h">
+              </div>
+              <div class="form-group">
+                <label for="stage-rer-schedule-input">RER Caloric Ramp Schedule</label>
+                <input type="text" id="stage-rer-schedule-input" class="form-control" value="Day 1: 25% RER trickle CRI -> Day 2: 50% RER -> Day 3: 75% RER -> Day 4: 100% RER">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="stage-fluid-plan-input">Pancreatic Microcirculation Crystalloid Plan</label>
+              <input type="text" id="stage-fluid-plan-input" class="form-control" value="Lactated Ringer's + 20 mEq/L KCl at maintenance + 7% dehydration deficit over 12h">
+            </div>
+            <button type="submit" id="stage-nutrition-btn" class="btn btn-primary">💉 Stage Fuzapladib, Maropitant &amp; Early Enteral Nutrition</button>
+          </form>
+        </div>
+
+        <hr class="pancreatitis-divider">
+
+        <!-- 2. Record Serial Spec cPL/fPL, Pain Score & Enteral RER Check Form -->
+        <div class="trust-subsection">
+          <h2 id="heading-record-check">2. Record Serial Spec cPL/fPL, CMPS-SF Pain &amp; Enteral RER Check</h2>
+          <form id="record-enteral-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-spec-pl-input">Spec cPL / fPL (&micro;g/L)</label>
+                <input type="number" id="check-spec-pl-input" class="form-control" min="0" max="5000" step="1" value="320" required>
+              </div>
+              <div class="form-group">
+                <label for="check-pain-score-input">Modified Glasgow Pain Score (0–24)</label>
+                <input type="number" id="check-pain-score-input" class="form-control" min="0" max="24" step="1" value="4" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-rer-percent-input">Enteral Nutrition RER (%)</label>
+                <input type="number" id="check-rer-percent-input" class="form-control" min="0" max="150" step="5" value="75" required>
+              </div>
+              <div class="form-group">
+                <label for="check-vomiting-input">Vomiting / Regurgitation Status</label>
+                <input type="text" id="check-vomiting-input" class="form-control" value="ZERO_EMESIS_TOLERATING_NE_TUBE" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By Clinician</label>
+                <input type="text" id="check-recorded-by-input" class="form-control" value="Dr. Elena Rostova, DACVECC" required>
+              </div>
+              <div class="form-group">
+                <label for="check-note-input">Clinical Telemetry Note</label>
+                <input type="text" id="check-note-input" class="form-control" value="Tolerating 75% RER via NE tube with zero emesis; prayer position resolved; Spec cPL trending down." required>
+              </div>
+            </div>
+            <button type="submit" id="record-enteral-check-btn" class="btn btn-secondary">🩺 Record Enteral &amp; Pain Check</button>
+          </form>
+        </div>
+
+        <hr class="pancreatitis-divider">
+
+        <!-- 3. Clear Pancreatitis Discharge Form -->
+        <div class="trust-subsection">
+          <h2 id="heading-clear-pancreatitis">3. Clear Pancreatitis Operation for Pain-Free Low-Fat Discharge</h2>
+          <form id="clear-pancreatitis-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clear-discharged-by-input">Discharging Veterinarian</label>
+                <input type="text" id="clear-discharged-by-input" class="form-control" value="Dr. Elena Rostova, DACVECC" required>
+              </div>
+              <div class="form-group">
+                <label for="clear-summary-input">Discharge Summary &amp; Ultra-Low-Fat Diet Instructions</label>
+                <input type="text" id="clear-summary-input" class="form-control" value="Completed 3-day Fuzapladib sodium &amp; Maropitant/Ondansetron course; tolerating 100% RER ultra-low-fat diet pain-free." required>
+              </div>
+            </div>
+            <button type="submit" id="clear-pancreatitis-btn" class="btn btn-primary">✅ Clear Tolerating Enteral &amp; Pain-Free Discharge</button>
+          </form>
+        </div>
+
+        <hr class="pancreatitis-divider">
+
+        <!-- 4. Create New Pancreatitis Operation Form -->
+        <div class="trust-subsection">
+          <h2 id="heading-create-pancreatitis">4. Intake New Acute Pancreatitis / Feline Triaditis Case</h2>
+          <form id="create-pancreatitis-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id">Case ID</label>
+                <input type="text" id="create-case-id" class="form-control" value="CASE-PANC-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name">Pet Name</label>
+                <input type="text" id="create-pet-name" class="form-control" value="Waffles" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species">Species</label>
+                <select id="create-species" class="form-control">
+                  <option value="Canine" selected>Canine</option>
+                  <option value="Feline">Feline</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed">Breed</label>
+                <input type="text" id="create-breed" class="form-control" value="Cavalier King Charles Spaniel">
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-kg">Weight (kg)</label>
+                <input type="number" id="create-weight-kg" class="form-control" min="0.5" max="120" step="0.1" value="7.4" required>
+              </div>
+              <div class="form-group">
+                <label for="create-severity-class">Severity Class</label>
+                <select id="create-severity-class" class="form-control">
+                  <option value="SEVERE_NECROTIZING_SIRS_MODS" selected>SEVERE_NECROTIZING_SIRS_MODS</option>
+                  <option value="MODERATE_ACUTE_PANCREATITIS">MODERATE_ACUTE_PANCREATITIS</option>
+                  <option value="FELINE_TRIADITIS_CHOLANGIOHEPATITIS">FELINE_TRIADITIS_CHOLANGIOHEPATITIS</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-spec-pl">Spec cPL / fPL (&micro;g/L)</label>
+                <input type="number" id="create-spec-pl" class="form-control" min="0" max="5000" step="1" value="780" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pain-score">Modified Glasgow Pain Score (0–24)</label>
+                <input type="number" id="create-pain-score" class="form-control" min="0" max="24" step="1" value="13" required>
+              </div>
+            </div>
+            <div class="pancreatitis-checkbox-group">
+              <label class="pancreatitis-checkbox-item">
+                <input type="checkbox" id="create-pocus-hypoechoic" checked>
+                <span>POCUS Hypoechoic Enlarged Pancreas</span>
+              </label>
+              <label class="pancreatitis-checkbox-item">
+                <input type="checkbox" id="create-hyperechoic-fat" checked>
+                <span>Hyperechoic Peripancreatic Fat Saponification</span>
+              </label>
+              <label class="pancreatitis-checkbox-item">
+                <input type="checkbox" id="create-prayer-position" checked>
+                <span>Prayer Position Cranial Abdominal Pain</span>
+              </label>
+              <label class="pancreatitis-checkbox-item">
+                <input type="checkbox" id="create-triaditis">
+                <span>Feline Triaditis Suspected (Add Cobalamin B12)</span>
+              </label>
+            </div>
+            <button type="submit" id="create-pancreatitis-btn" class="btn btn-secondary">➕ Create Pancreatitis Triage Operation</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/pancreatitis-cpl-triage.js" defer></script>
+</body>
+</html>

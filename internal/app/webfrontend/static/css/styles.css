@@ -17810,3 +17810,195 @@ textarea:focus-visible,
   font-weight: 700;
   margin: 0.5rem 0;
 }
+
+/* ============================================================================
+   Milestone 22.4: Acute Pancreatitis, Spec cPL/fPL & Early Enteral Cockpit
+   ============================================================================ */
+
+.pancreatitis-toolbar {
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.pancreatitis-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pancreatitis-sse-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pancreatitis-operations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.pancreatitis-op-card {
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+}
+
+.pancreatitis-card-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.85rem;
+  font-size: 0.8125rem;
+  margin: 0.65rem 0;
+}
+
+.pancreatitis-vitals-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.pancreatitis-vital-pill {
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--border-color);
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+[data-theme="light"] .pancreatitis-vital-pill {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.pancreatitis-plan-box {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border-color);
+  font-size: 0.825rem;
+}
+
+[data-theme="light"] .pancreatitis-plan-box {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.pancreatitis-plan-list,
+.pancreatitis-checks-list {
+  margin: 0.5rem 0 0 1.1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.pancreatitis-check-item {
+  font-size: 0.8125rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.25);
+}
+
+.pancreatitis-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.5rem 0;
+}
+
+.pancreatitis-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.pancreatitis-divider {
+  border: 0;
+  border-top: 1px solid var(--border-color);
+  margin: 1rem 0;
+}
+
+:root .pancreatitis-status-badge,
+[data-theme="dark"] .pancreatitis-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background-color: #082f49;
+  color: #f0f9ff;
+  border: 1px solid #38bdf8;
+}
+
+[data-theme="light"] .pancreatitis-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background-color: #e0f2fe;
+  color: #082f49;
+  border: 1px solid #0284c7;
+}
+
+:root .pancreatitis-alert-banner,
+[data-theme="dark"] .pancreatitis-alert-banner {
+  background-color: #450a0a;
+  color: #fef2f2;
+  border: 2px solid #f87171;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.65rem 0;
+}
+
+[data-theme="light"] .pancreatitis-alert-banner {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 2px solid #b91c1c;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.65rem 0;
+}
+
+:root .pancreatitis-clearance-banner,
+[data-theme="dark"] .pancreatitis-clearance-banner {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.65rem 0;
+}
+
+[data-theme="light"] .pancreatitis-clearance-banner {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.65rem 0;
+}
+
