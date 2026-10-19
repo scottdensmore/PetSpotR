@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Anticoagulant Rodenticide, Xylitol Hypoglycemia/Hepatotoxicity &amp; Lipid Emulsion (ILE) Poison Control Cockpit.">
+  <title>Anticoagulant Rodenticide, Xylitol Hypoglycemia/Hepatotoxicity &amp; Lipid Emulsion (ILE) Poison Control Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#toxicology-poison-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/gdv-bloat-triage" class="nav-link nav-link-emergency" id="nav-gdv-bloat-triage">🐕 GDV &amp; Bloat Triage</a></li>
+          <li><a href="/toxicology-poison-triage" class="nav-link active nav-link-emergency" id="nav-toxicology-poison-triage">🧪 Poison Control Cockpit</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="toxicology-poison-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header poison-triage-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🧪 ANTICOAGULANT RODENTICIDE, XYLITOL HYPOGLYCEMIA/HEPATOTOXICITY &amp; LIPID EMULSION (ILE) POISON CONTROL COCKPIT</span>
+        </div>
+        <h1>Anticoagulant Rodenticide, Xylitol Hypoglycemia/Hepatotoxicity &amp; Lipid Emulsion (ILE) Poison Control Cockpit</h1>
+        <p class="text-secondary">
+          Phytonadione Vitamin K1 28–30 Day Anticoagulant Rodenticide Therapy (Avoiding Ineffective/Nephrotoxic Vitamin K3 Menadione), IV Dextrose + NAC/SAMe Xylitol Hepatoprotection (Skipping Non-Binding Activated Charcoal), 20% Intravenous Lipid Emulsion (ILE "Lipid Sink") for Lipophilic Ivermectin/Permethrin/Bromethalin Neurotoxins &amp; 48-Hour Feline Lily (Lilium spp.) Renal Diuresis.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid poison-triage-kpi-grid" aria-label="Toxicology &amp; Poison Control KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Poison Control Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Coagulopathy / Hepatic / Neuro</span>
+        <strong class="kpi-value" id="kpi-critical-poison">{{ .CriticalPoisonCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Vitamin K1 / ILE / Decon Staged</span>
+        <strong class="kpi-value" id="kpi-staged-decon">{{ .StagedDeconCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Decontaminated PT &amp; Glucose Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-safe">{{ .ClearedSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="poison-triage-live-status" class="humane-traps-live-status poison-triage-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} anticoagulant rodenticide, xylitol hypoglycemia/hepatotoxicity &amp; lipid emulsion (ILE) poison control triage operations.
+    </div>
+
+    <div class="trust-cockpit-grid poison-triage-cockpit-grid">
+      <!-- Left Column: Evaluate Toxicology & Poison Control Form -->
+      <section class="glass-card trust-panel" id="poison-evaluate-panel" aria-labelledby="heading-evaluate-poison-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-poison-op">Evaluate Anticoagulant Rodenticide, Xylitol &amp; ILE Poison Triage</h2>
+          <span class="badge badge-poison-agent">Vitamin K1, 20% ILE &amp; NAC/SAMe</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Emergency Toxicology &amp; Poison Control Scenario Presets</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary poison-scenario-btn" data-scenario="xylitol-hypoglycemia-hepatic" id="btn-sim-xylitol-hypoglycemia">
+              🚨 Simulate Xylitol Insulin Surge &amp; Acute Hepatic Necrosis (BG 38 mg/dL · PT Ratio 1.9 · Skip Charcoal)
+            </button>
+            <button type="button" class="btn btn-secondary poison-scenario-btn" data-scenario="feline-lily-nephrotoxin" id="btn-sim-feline-lily">
+              🐱 Simulate Feline Easter Lily (Lilium spp.) Nephrotoxicosis (48–72h Aggressive IV Diuresis)
+            </button>
+          </div>
+        </div>
+
+        <div id="eval-error-banner" class="poison-eval-error-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="poison-eval-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-pet-name">Pet Name</label>
+              <input type="text" id="eval-pet-name" name="pet_name" class="form-control" value="Mochi" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-species">Species / Breed</label>
+              <input type="text" id="eval-species" name="species" class="form-control" value="Dog - French Bulldog" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-weight-kg">Estimated Weight (kg)</label>
+              <input type="number" id="eval-weight-kg" name="weight_kg" class="form-control" min="0.8" max="100.0" step="0.1" value="11.2" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-agent-type">Toxicant / Poison Agent Type</label>
+              <select id="eval-agent-type" name="agent_type" class="form-control" required>
+                <option value="XYLITOL_INSULIN_SURGE_HEPATOTOXIN" selected>XYLITOL_INSULIN_SURGE_HEPATOTOXIN (Xylitol Insulin Surge, Hypoglycemia &amp; Hepatic Necrosis)</option>
+                <option value="SECOND_GEN_ANTICOAGULANT_BRODIFACOUM">SECOND_GEN_ANTICOAGULANT_BRODIFACOUM (Brodifacoum 2nd-Gen Anticoagulant Rodenticide)</option>
+                <option value="BROMETHALIN_NEUROTOXIC_CEREBRAL_EDEMA">BROMETHALIN_NEUROTOXIC_CEREBRAL_EDEMA (Bromethalin Uncoupled Oxidative Phosphorylation &amp; Cerebral Edema)</option>
+                <option value="LILIUM_SPP_FELINE_NEPHROTOXIN">LILIUM_SPP_FELINE_NEPHROTOXIN (Feline Lilium / Hemerocallis Acute Proximal Renal Tubular Necrosis)</option>
+                <option value="IVERMECTIN_PERYTHRIN_LIPOPHILIC_TOXIN">IVERMECTIN_PERYTHRIN_LIPOPHILIC_TOXIN (Lipophilic Ivermectin / Feline Permethrin Neurotoxicosis)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-dose-mgkg">Estimated Ingested Dose (mg/kg)</label>
+              <input type="number" id="eval-dose-mgkg" name="estimated_dose_mg_kg" class="form-control" min="0.1" max="5000.0" step="0.5" value="540.0" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-pt-ratio">Prothrombin Time (PT) Ratio (x Baseline)</label>
+              <input type="number" id="eval-pt-ratio" name="prothrombin_time_ratio" class="form-control" min="0.8" max="10.0" step="0.1" value="1.9" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-glucose-mgdl">Blood Glucose (mg/dL)</label>
+              <input type="number" id="eval-glucose-mgdl" name="blood_glucose_mg_dl" class="form-control" min="15.0" max="400.0" step="1.0" value="38.0" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-ingestion-mins">Time Since Ingestion (Minutes)</label>
+              <input type="number" id="eval-ingestion-mins" name="time_since_ingestion_mins" class="form-control" min="1" max="10080" step="1" value="40" required>
+            </div>
+          </div>
+
+          <div class="poison-checkbox-group">
+            <label class="poison-step-item">
+              <input type="checkbox" id="eval-charcoal-avoided" name="charcoal_avoided_for_xylitol" checked>
+              <span>Activated Charcoal Avoided for Xylitol (Charcoal Does NOT Bind Xylitol &amp; Delays IV Dextrose/NAC/SAMe)</span>
+            </label>
+            <label class="poison-step-item">
+              <input type="checkbox" id="eval-k3-avoided" name="vitamin_k3_menadione_avoided" checked>
+              <span>Vitamin K3 (Menadione) Avoided — Using Phytonadione (Vitamin K1) for 28–30 Days</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-submit-poison-eval" class="btn btn-primary">Evaluate Poison Control &amp; Antidote Triage</button>
+        </form>
+      </section>
+
+      <!-- Right Column: Filter Bar, Operations Queue & Active Workspace -->
+      <section class="glass-card trust-panel" id="poison-ops-panel" aria-labelledby="heading-poison-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-poison-ops">Active Toxicology &amp; Poison Control Operations</h2>
+          <span id="poison-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col poison-filter-bar" role="region" aria-label="Filter Toxicology Poison Triage Operations">
+          <div class="form-group">
+            <label for="filter-agent-type">Filter by Toxicant Agent Type</label>
+            <select id="filter-agent-type" class="form-control">
+              <option value="">All Toxicant Agent Types</option>
+              <option value="SECOND_GEN_ANTICOAGULANT_BRODIFACOUM">SECOND_GEN_ANTICOAGULANT_BRODIFACOUM</option>
+              <option value="XYLITOL_INSULIN_SURGE_HEPATOTOXIN">XYLITOL_INSULIN_SURGE_HEPATOTOXIN</option>
+              <option value="BROMETHALIN_NEUROTOXIC_CEREBRAL_EDEMA">BROMETHALIN_NEUROTOXIC_CEREBRAL_EDEMA</option>
+              <option value="LILIUM_SPP_FELINE_NEPHROTOXIN">LILIUM_SPP_FELINE_NEPHROTOXIN</option>
+              <option value="IVERMECTIN_PERYTHRIN_LIPOPHILIC_TOXIN">IVERMECTIN_PERYTHRIN_LIPOPHILIC_TOXIN</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="COAGULOPATHY_HEPATIC_NEURO_TOXIC_CRITICAL">COAGULOPATHY_HEPATIC_NEURO_TOXIC_CRITICAL</option>
+              <option value="VITAMIN_K1_ILE_CHARCOAL_DECON_STAGED">VITAMIN_K1_ILE_CHARCOAL_DECON_STAGED</option>
+              <option value="DECONTAMINATED_PT_GLUCOSE_NORMAL_CLEARED">DECONTAMINATED_PT_GLUCOSE_NORMAL_CLEARED</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="poison-active-workspace" role="region" aria-label="Active Toxicology Poison Triage Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="poison-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">Active Workspace: {{ $active.PetName }} ({{ $active.Species }} · {{ printf "%.1f" $active.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $active.ID }} · {{ $active.PetID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-poison-agent">{{ $active.AgentType }}</span>
+                <span class="badge badge-poison-status {{ if eq (printf "%s" $active.Status) "COAGULOPATHY_HEPATIC_NEURO_TOXIC_CRITICAL" }}badge-poison-critical{{ else if eq (printf "%s" $active.Status) "VITAMIN_K1_ILE_CHARCOAL_DECON_STAGED" }}badge-poison-staged{{ else }}badge-poison-safe{{ end }}">{{ $active.Status }}</span>
+              </div>
+            </div>
+            <div class="poison-pitfall-alert-banner">
+              ⚠️ {{ $active.ToxicologyPitfallWarningNote }}
+            </div>
+            <div class="poison-regimen-recommendations">
+              <div><strong>Required Antidote &amp; Decontamination Regimen:</strong> {{ $active.RequiredAntidoteDeconRegimen }}</div>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="poison-operations-list" class="trust-screenings-list poison-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card poison-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-agent-type="{{ $op.AgentType }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-poison-agent">{{ $op.AgentType }}</span>
+                <span class="badge badge-poison-status {{ if eq (printf "%s" $op.Status) "COAGULOPATHY_HEPATIC_NEURO_TOXIC_CRITICAL" }}badge-poison-critical{{ else if eq (printf "%s" $op.Status) "VITAMIN_K1_ILE_CHARCOAL_DECON_STAGED" }}badge-poison-staged{{ else }}badge-poison-safe{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row poison-metrics-row">
+              <span class="badge badge-poison-agent">Dose: {{ printf "%.1f" $op.EstimatedDoseMgKg }} mg/kg • PT Ratio: {{ printf "%.1f" $op.ProthrombinTimeRatio }}x • Blood Glucose: {{ printf "%.1f" $op.BloodGlucoseMgDl }} mg/dL • Elapsed: {{ $op.TimeSinceIngestionMins }} mins</span>
+            </div>
+
+            <div class="poison-flags-row">
+              {{ if lt $op.BloodGlucoseMgDl 60.0 }}
+              <span class="badge badge-poison-flag">XYLITOL_HYPOGLYCEMIC_CRISIS</span>
+              {{ end }}
+              {{ if ge $op.ProthrombinTimeRatio 1.5 }}
+              <span class="badge badge-poison-flag">PROLONGED_PT_COAGULOPATHY_ALERT</span>
+              {{ end }}
+              {{ if eq (printf "%s" $op.AgentType) "LILIUM_SPP_FELINE_NEPHROTOXIN" }}
+              <span class="badge badge-poison-flag">FELINE_LILY_ANURIC_RENAL_RISK</span>
+              {{ end }}
+              {{ if eq (printf "%s" $op.AgentType) "BROMETHALIN_NEUROTOXIC_CEREBRAL_EDEMA" }}
+              <span class="badge badge-poison-flag">BROMETHALIN_CEREBRAL_EDEMA_ALERT</span>
+              {{ end }}
+            </div>
+
+            <div class="poison-pitfall-alert-banner">
+              ⚠️ {{ $op.ToxicologyPitfallWarningNote }}
+            </div>
+
+            {{ if $op.ClearanceToken }}
+            <div class="poison-clearance-banner">
+              ✅ DECONTAMINATED PT &amp; GLUCOSE NORMAL CLEARANCE VERIFIED: {{ $op.ClearanceToken }}
+            </div>
+            {{ end }}
+
+            <div class="poison-regimen-recommendations">
+              <div><strong>Required Antidote &amp; Decontamination Regimen:</strong> {{ $op.RequiredAntidoteDeconRegimen }}</div>
+            </div>
+
+            <div class="poison-steps-list" aria-label="Emesis Gate, Phytonadione Vitamin K1 / 20% ILE Lipid Sink, Dextrose/NAC/SAMe Diuresis &amp; 48h PT Recheck Protocol Steps">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="poison-step-item">
+                <input
+                  type="checkbox"
+                  class="poison-step-checkbox"
+                  data-op-id="{{ $op.ID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "DECONTAMINATED_PT_GLUCOSE_NORMAL_CLEARED" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-poison-safe{{ else }}badge-poison-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="poison-step-title">{{ $step.Title }}</strong>
+                <span class="poison-step-desc">{{ $step.Description }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary poison-select-workspace-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Inspect in Active Workspace
+              </button>
+              {{ if ne (printf "%s" $op.Status) "DECONTAMINATED_PT_GLUCOSE_NORMAL_CLEARED" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary poison-issue-clearance-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🛡️ Issue Toxicology &amp; Poison Clearance ({{ $op.ID }})
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="poison-ops-empty-msg">No toxicology or poison control triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/toxicology-poison-triage.js" defer></script>
+</body>
+</html>
