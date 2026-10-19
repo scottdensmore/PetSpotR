@@ -48,6 +48,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/ratelimit"
 	"github.com/scottdensmore/petspotr/pkg/reptileectotherm"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
+	"github.com/scottdensmore/petspotr/pkg/septicperitonitis"
 	"github.com/scottdensmore/petspotr/pkg/sms"
 	"github.com/scottdensmore/petspotr/pkg/statusepilepticus"
 	"github.com/scottdensmore/petspotr/pkg/store"
@@ -110,6 +111,7 @@ type Server struct {
 	epilepticusService        *statusepilepticus.EpilepticusService
 	airwayService             *airwaytracheostomy.AirwayService
 	cardiogenicService        *cardiogenicedema.CardiogenicService
+	peritonitisService        *septicperitonitis.PeritonitisService
 	handler                   http.Handler
 }
 
@@ -289,6 +291,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		transfusionBloodbankStore: transfusionbloodbank.NewStore(),
 		toxicologyPoisonStore:     toxicologypoison.NewStore(),
 		epilepticusService:        statusepilepticus.NewEpilepticusService(),
+		peritonitisService:        septicperitonitis.NewPeritonitisService(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -615,6 +618,8 @@ func (s *Server) routes() {
 	s.registerAirwayTracheostomyRoutes()
 	// Acute Cardiogenic Pulmonary Edema, Mitral Valve Chordae Rupture, Furosemide/Pimobendan & Oxygen Cage Cockpit routes (Milestone 19.4)
 	s.registerCardiogenicEdemaRoutes()
+	// Septic Peritonitis, Abdominocentesis Blood-Fluid Glucose/Lactate Gradient & Closed-Suction Jackson-Pratt Drain Cockpit routes (Milestone 20.3)
+	s.registerSepticPeritonitisRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

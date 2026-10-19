@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Septic Peritonitis, Abdominocentesis Blood-Fluid Glucose/Lactate Gradient &amp; Closed-Suction Jackson-Pratt Drain Triage Cockpit.">
+  <title>Septic Peritonitis, Abdominocentesis Blood-Fluid Glucose/Lactate Gradient &amp; Closed-Suction Jackson-Pratt Drain Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#septic-peritonitis-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/status-epilepticus-triage" class="nav-link nav-link-emergency" id="nav-status-epilepticus-triage">⚡ Status Epilepticus ICU</a></li>
+          <li><a href="/septic-peritonitis-triage" class="nav-link active nav-link-emergency" id="nav-septic-peritonitis-triage">🧬 Septic Peritonitis ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="septic-peritonitis-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header peritonitis-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🧬 SEPTIC PERITONITIS, ABDOMINOCENTESIS BLOOD-FLUID GLUCOSE/LACTATE GRADIENT &amp; CLOSED-SUCTION JACKSON-PRATT DRAIN COCKPIT</span>
+        </div>
+        <h1>Septic Peritonitis, Abdominocentesis Blood-Fluid Glucose/Lactate Gradient &amp; Closed-Suction Jackson-Pratt Drain Cockpit</h1>
+        <p class="text-secondary">
+          Abdominocentesis Blood-to-Fluid Glucose Gradient (&gt; 20 mg/dL) &amp; Fluid-to-Blood Lactate Gradient (&gt; 2.0 mmol/L), Intracellular Bacteria &amp; Degenerate Neutrophil Cytology, 1-Hour Surviving Sepsis Empiric IV Ampicillin/Sulbactam (30 mg/kg) + Enrofloxacin (10 mg/kg Canine / 5 mg/kg Feline), Copious Warm Sterile 0.9% NaCl Abdominal Lavage (200–300 mL/kg, Zero Antiseptic Addition Guard) &amp; Closed-Suction Jackson-Pratt (JP) Drain Management.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid peritonitis-kpi-grid" aria-label="Septic Peritonitis &amp; JP Drain KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Peritonitis Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Septic Effusion / Bacteria Critical</span>
+        <strong class="kpi-value" id="kpi-critical-septic">{{ .SepticEffusionCriticalCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Antibiotic / Lavage / JP Staged</span>
+        <strong class="kpi-value" id="kpi-staged-lavage">{{ .AntibioticLavageJPStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Non-Septic JP Drain Removed Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-jp-removed">{{ .NonSepticClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Septic Gradient / 1h Delay Alerts</span>
+        <strong class="kpi-value" id="kpi-septic-gradient-alerts">{{ .SepticGradientAlertCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="peritonitis-live-status" class="humane-traps-live-status peritonitis-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} septic peritonitis, abdominocentesis gradient &amp; Jackson-Pratt closed-suction drain operations.
+    </div>
+
+    <!-- Global Septic Peritonitis & Antiseptic Lavage Pitfall Alert Banner -->
+    <div id="peritonitis-alert-banner" class="peritonitis-alert-banner" role="alert" aria-live="assertive">
+      {{ if and .ActiveOperation .ActiveOperation.SurgicalPlan }}
+      ⚠️ SEPTIC GRADIENT &amp; ANTISEPTIC LAVAGE GUARD ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }} · Glucose Gradient {{ printf "%.1f" .ActiveOperation.SurgicalPlan.BloodFluidGlucoseGradientMgDl }} mg/dL · Lactate Gradient {{ printf "%.2f" .ActiveOperation.SurgicalPlan.FluidBloodLactateGradientMmolL }} mmol/L · Lavage {{ printf "%.2f" .ActiveOperation.SurgicalPlan.WarmSterileSalineLavageLiters }} L 0.9% NaCl): {{ .ActiveOperation.SurgicalPlan.PeritonitisPitfallAlert }}
+      {{ else }}
+      ⚠️ CRITICAL SEPTIC PERITONITIS PITFALL ALERT: NEVER delay broad-spectrum IV antibiotics beyond 1 hour (Surviving Sepsis Campaign); NEVER add chlorhexidine or povidone-iodine to abdominal lavage fluid (causes fatal chemical peritonitis); and ALWAYS aspirate all lavage fluid before closing with Jackson-Pratt closed-suction drains.
+      {{ end }}
+    </div>
+
+    <!-- Global Non-Septic Cytology & JP Drain Removal Clearance Banner -->
+    <div id="peritonitis-clearance-banner" class="peritonitis-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation .ActiveOperation.DrainClearance) }}hidden{{ end }}>
+      {{ if and .ActiveOperation .ActiveOperation.DrainClearance }}
+      ✅ NON-SEPTIC CYTOLOGY &amp; JP DRAIN REMOVAL CLEARANCE VERIFIED ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }}): Final Drain Output {{ printf "%.1f" .ActiveOperation.DrainClearance.FinalDrainOutputMlKgDay }} mL/kg/day · Serum Albumin {{ printf "%.1f" .ActiveOperation.DrainClearance.FinalSerumAlbuminGdl }} g/dL · Vet License {{ .ActiveOperation.DrainClearance.VetLicense }} — {{ .ActiveOperation.DrainClearance.Summary }}
+      {{ else }}
+      ✅ NON-SEPTIC CYTOLOGY &amp; JP DRAIN REMOVAL CLEARANCE VERIFIED
+      {{ end }}
+    </div>
+
+    <div class="trust-cockpit-grid peritonitis-cockpit-grid">
+      <!-- Left Column: Intake Form & Active Operation Surgical Plan / JP Drain Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="peritonitis-forms-panel" aria-labelledby="heading-peritonitis-intake">
+        <div class="trust-panel-header">
+          <h2 id="heading-peritonitis-intake">1. Septic Peritonitis &amp; Abdominocentesis Gradient Intake</h2>
+          <span class="status-pill status-pill-staged">Glucose &gt; 20 · Lactate &gt; 2.0 · JP Drain</span>
+        </div>
+
+        <div id="peritonitis-error-banner" class="peritonitis-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="create-peritonitis-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-incident-id">Incident ID</label>
+              <input type="text" id="create-incident-id" name="incident_id" class="form-control" value="INC-SP-9504" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pet-name">Pet Name</label>
+              <input type="text" id="create-pet-name" name="pet_name" class="form-control" value="Roscoe" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-species">Peritonitis Etiology &amp; Species</label>
+              <select id="create-species" name="species" class="form-control" required>
+                <option value="CANINE_GI_DEHISCENCE_PERFORATION" selected>CANINE_GI_DEHISCENCE_PERFORATION (Canine GI Dehiscence / Foreign Body Perforation)</option>
+                <option value="CANINE_RUPTURED_PROSTATIC_ABSCESS">CANINE_RUPTURED_PROSTATIC_ABSCESS (Canine Ruptured Prostatic / Hepatic Abscess)</option>
+                <option value="FELINE_SEPTIC_BILE_PERITONITIS">FELINE_SEPTIC_BILE_PERITONITIS (Feline Septic Bile Peritonitis — Enrofloxacin 5 mg/kg Cap)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-breed">Breed</label>
+              <input type="text" id="create-breed" name="breed" class="form-control" value="German Shepherd">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-weight-kg">Weight (kg)</label>
+              <input type="number" id="create-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="34.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-degenerate-neutrophils">Degenerate Neutrophils (/µL)</label>
+              <input type="number" id="create-degenerate-neutrophils" name="degenerate_neutrophils_count_ul" class="form-control" min="0" max="500000" step="100" value="42000" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-blood-glucose">Blood Glucose (mg/dL)</label>
+              <input type="number" id="create-blood-glucose" name="blood_glucose_mg_dl" class="form-control" min="10.0" max="600.0" step="1.0" value="124.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-effusion-glucose">Abdominal Effusion Glucose (mg/dL)</label>
+              <input type="number" id="create-effusion-glucose" name="effusion_glucose_mg_dl" class="form-control" min="0.0" max="600.0" step="1.0" value="46.0" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-blood-lactate">Blood Lactate (mmol/L)</label>
+              <input type="number" id="create-blood-lactate" name="blood_lactate_mmol_l" class="form-control" min="0.1" max="30.0" step="0.1" value="2.2" required>
+            </div>
+            <div class="form-group">
+              <label for="create-effusion-lactate">Abdominal Effusion Lactate (mmol/L)</label>
+              <input type="number" id="create-effusion-lactate" name="effusion_lactate_mmol_l" class="form-control" min="0.1" max="35.0" step="0.1" value="6.4" required>
+            </div>
+          </div>
+
+          <label class="peritonitis-checkbox-item">
+            <input type="checkbox" id="create-intracellular-bacteria" name="intracellular_bacteria_seen" checked>
+            <span>Intracellular Bacteria Phagocytosed in Degenerate Neutrophils on Cytology</span>
+          </label>
+
+          <button type="submit" id="btn-create-peritonitis-op" class="btn btn-primary">Create Septic Peritonitis Operation</button>
+        </form>
+
+        <hr class="peritonitis-divider">
+
+        <!-- Stage Empiric Antibiotic, Warm Saline Lavage & JP Drain Surgical Plan Form -->
+        <div class="trust-subsection" id="stage-plan-section">
+          <h3 id="heading-stage-plan">2. Stage Empiric IV Antibiotic, 0.9% NaCl Lavage &amp; JP Drain Surgical Plan</h3>
+          <form id="stage-plan-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-weight-kg">Weight (kg)</label>
+                <input type="number" id="stage-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.WeightKg }}{{ else }}31.0{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-species">Peritonitis Etiology &amp; Species</label>
+                <select id="stage-species" name="species" class="form-control" required>
+                  <option value="CANINE_GI_DEHISCENCE_PERFORATION">CANINE_GI_DEHISCENCE_PERFORATION</option>
+                  <option value="CANINE_RUPTURED_PROSTATIC_ABSCESS">CANINE_RUPTURED_PROSTATIC_ABSCESS</option>
+                  <option value="FELINE_SEPTIC_BILE_PERITONITIS">FELINE_SEPTIC_BILE_PERITONITIS</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-blood-glucose">Blood Glucose (mg/dL)</label>
+                <input type="number" id="stage-blood-glucose" name="blood_glucose_mg_dl" class="form-control" min="10.0" max="600.0" step="1.0" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.BloodGlucoseMgDl }}{{ else }}118.0{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-effusion-glucose">Effusion Glucose (mg/dL)</label>
+                <input type="number" id="stage-effusion-glucose" name="effusion_glucose_mg_dl" class="form-control" min="0.0" max="600.0" step="1.0" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.EffusionGlucoseMgDl }}{{ else }}42.0{{ end }}" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-blood-lactate">Blood Lactate (mmol/L)</label>
+                <input type="number" id="stage-blood-lactate" name="blood_lactate_mmol_l" class="form-control" min="0.1" max="30.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.BloodLactateMmolL }}{{ else }}2.4{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-effusion-lactate">Effusion Lactate (mmol/L)</label>
+                <input type="number" id="stage-effusion-lactate" name="effusion_lactate_mmol_l" class="form-control" min="0.1" max="35.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.EffusionLactateMmolL }}{{ else }}6.8{{ end }}" required>
+              </div>
+            </div>
+            <button type="submit" id="btn-stage-plan" class="btn btn-secondary">🧬 Stage Ampicillin/Sulbactam · Enrofloxacin · 0.9% NaCl Lavage &amp; JP Drain Plan</button>
+          </form>
+        </div>
+
+        <hr class="peritonitis-divider">
+
+        <!-- Serial Jackson-Pratt Closed-Suction Drain Check Form -->
+        <div class="trust-subsection" id="drain-check-section">
+          <h3 id="heading-drain-check">3. Record Jackson-Pratt (JP) Closed-Suction Drain Check</h3>
+          <form id="drain-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-effusion-production">Effusion Output (mL/kg/day)</label>
+                <input type="number" id="check-effusion-production" name="effusion_production_ml_kg_day" class="form-control" min="0.0" max="100.0" step="0.1" value="1.8" required>
+              </div>
+              <div class="form-group">
+                <label for="check-serum-albumin">Serum Albumin (g/dL)</label>
+                <input type="number" id="check-serum-albumin" name="serum_albumin_g_dl" class="form-control" min="0.5" max="6.0" step="0.1" value="2.4" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-map">Mean Arterial Pressure (MAP mmHg)</label>
+                <input type="number" id="check-map" name="mean_arterial_pressure_mm_hg" class="form-control" min="30" max="220" step="1" value="82" required>
+              </div>
+              <div class="form-group">
+                <label for="check-callsign">Clinician Callsign</label>
+                <input type="text" id="check-callsign" name="clinician_callsign" class="form-control" value="DR-SURG-14" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-notes">JP Drain Bulb &amp; Cytology Notes</label>
+              <input type="text" id="check-notes" name="notes" class="form-control" value="JP suction bulbs compressed; serosanguinous output reduced to 1.8 mL/kg/day; cytology negative for intracellular bacteria.">
+            </div>
+            <div class="peritonitis-checkbox-group">
+              <label class="peritonitis-checkbox-item">
+                <input type="checkbox" id="check-intracellular-bacteria" name="cytology_intracellular_bacteria">
+                <span>Intracellular Bacteria Observed on JP Drain Fluid Cytology</span>
+              </label>
+              <label class="peritonitis-checkbox-item">
+                <input type="checkbox" id="check-degenerate-neutrophils" name="degenerate_neutrophils_present">
+                <span>Degenerate / Karyolytic Neutrophils Present</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-record-drain-check" class="btn btn-secondary">🩺 Log Jackson-Pratt Drain Check</button>
+          </form>
+        </div>
+
+        <hr class="peritonitis-divider">
+
+        <!-- Drain Removal Clearance Form -->
+        <div class="trust-subsection" id="drain-clearance-section">
+          <h3 id="heading-drain-clearance">4. Issue Non-Septic Cytology &amp; JP Drain Removal Clearance</h3>
+          <form id="drain-clearance-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-final-output">Final Drain Output (mL/kg/day ≤ 2.0)</label>
+                <input type="number" id="clearance-final-output" name="final_drain_output_ml_kg_day" class="form-control" min="0.0" max="2.0" step="0.1" value="1.5" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-final-albumin">Final Serum Albumin (g/dL ≥ 2.0)</label>
+                <input type="number" id="clearance-final-albumin" name="final_serum_albumin_g_dl" class="form-control" min="2.0" max="6.0" step="0.1" value="2.5" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-vet-license">Attending Surgeon / ECC License</label>
+                <input type="text" id="clearance-vet-license" name="vet_license" class="form-control" value="VET-SURG-90512" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-summary">Drain Removal &amp; Enteral Recovery Summary</label>
+                <input type="text" id="clearance-summary" name="summary" class="form-control" value="Non-septic cytology verified; JP drain output 1.5 mL/kg/day; albumin 2.5 g/dL; enteral nutrition tolerated; JP drains aseptically pulled.">
+              </div>
+            </div>
+            <div class="peritonitis-checkbox-group">
+              <label class="peritonitis-checkbox-item">
+                <input type="checkbox" id="clearance-bacteria-negative" name="final_cytology_bacteria_negative" checked>
+                <span>Final Effusion Cytology Negative for Intracellular &amp; Extracellular Bacteria</span>
+              </label>
+              <label class="peritonitis-checkbox-item">
+                <input type="checkbox" id="clearance-enteral-nutrition" name="enteral_nutrition_tolerated" checked>
+                <span>Enteral Nutrition Tolerated Without Regurgitation or Ileus</span>
+              </label>
+              <label class="peritonitis-checkbox-item">
+                <input type="checkbox" id="clearance-jp-removed" name="jp_drain_aseptically_removed" checked>
+                <span>Closed-Suction Jackson-Pratt (JP) Drains Aseptically Removed</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-issue-drain-clearance" class="btn btn-primary">🛡️ Issue Non-Septic JP Drain Removal Clearance</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Queue -->
+      <section class="glass-card trust-panel" id="peritonitis-ops-panel" aria-labelledby="heading-peritonitis-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-peritonitis-ops">Active Septic Peritonitis &amp; JP Drain Operations</h2>
+          <span id="peritonitis-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col peritonitis-filter-bar" role="region" aria-label="Filter Septic Peritonitis Operations">
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="SEPTIC_EFFUSION_INTRACELLULAR_BACTERIA_CRITICAL">SEPTIC_EFFUSION_INTRACELLULAR_BACTERIA_CRITICAL</option>
+              <option value="EMPIRIC_ANTIBIOTIC_LAVAGE_JP_DRAIN_STAGED">EMPIRIC_ANTIBIOTIC_LAVAGE_JP_DRAIN_STAGED</option>
+              <option value="NON_SEPTIC_CYTOLOGY_JP_DRAIN_REMOVED_CLEARED">NON_SEPTIC_CYTOLOGY_JP_DRAIN_REMOVED_CLEARED</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-species">Filter by Peritonitis Etiology</label>
+            <select id="filter-species" class="form-control">
+              <option value="">All Peritonitis Etiologies</option>
+              <option value="CANINE_GI_DEHISCENCE_PERFORATION">CANINE_GI_DEHISCENCE_PERFORATION</option>
+              <option value="CANINE_RUPTURED_PROSTATIC_ABSCESS">CANINE_RUPTURED_PROSTATIC_ABSCESS</option>
+              <option value="FELINE_SEPTIC_BILE_PERITONITIS">FELINE_SEPTIC_BILE_PERITONITIS</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="peritonitis-active-workspace" role="region" aria-label="Active Septic Peritonitis Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="peritonitis-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-pet-title">Active Workspace: {{ $active.PetName }} ({{ $active.PatientProfile.Species }}{{ if $active.PatientProfile.Breed }} · {{ $active.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $active.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id" id="workspace-op-code">{{ $active.ID }} · {{ $active.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species" id="workspace-species-pill">{{ $active.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $active.Status) "SEPTIC_EFFUSION_INTRACELLULAR_BACTERIA_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $active.Status) "EMPIRIC_ANTIBIOTIC_LAVAGE_JP_DRAIN_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}" id="workspace-status-pill">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="peritonitis-vitals-summary" id="workspace-vitals-summary">
+              <span><strong>Blood/Fluid BG:</strong> {{ printf "%.1f" $active.PatientProfile.BloodGlucoseMgDl }} / {{ printf "%.1f" $active.PatientProfile.EffusionGlucoseMgDl }} mg/dL</span>
+              <span><strong>Blood/Fluid Lactate:</strong> {{ printf "%.1f" $active.PatientProfile.BloodLactateMmolL }} / {{ printf "%.1f" $active.PatientProfile.EffusionLactateMmolL }} mmol/L</span>
+              <span><strong>Degenerate Neutrophils:</strong> {{ $active.PatientProfile.DegenerateNeutrophilsCountUl }}/µL</span>
+              <span><strong>Intracellular Bacteria:</strong> {{ if $active.PatientProfile.IntracellularBacteriaSeen }}POSITIVE{{ else }}NEGATIVE{{ end }}</span>
+            </div>
+
+            {{ if $active.SurgicalPlan }}
+            <div class="peritonitis-plan-box" id="workspace-plan-box">
+              <h4>Calculated Abdominocentesis Gradients, Empiric IV Antibiotics, Lavage &amp; JP Drain Plan</h4>
+              <div class="peritonitis-doses-grid">
+                <div><strong>Blood-Fluid Glucose Gradient (&gt;20):</strong> <span id="plan-glucose-gradient">{{ printf "%.1f" $active.SurgicalPlan.BloodFluidGlucoseGradientMgDl }} mg/dL</span></div>
+                <div><strong>Fluid-Blood Lactate Gradient (&gt;2.0):</strong> <span id="plan-lactate-gradient">{{ printf "%.2f" $active.SurgicalPlan.FluidBloodLactateGradientMmolL }} mmol/L</span></div>
+                <div><strong>Ampicillin/Sulbactam (30 mg/kg IV):</strong> <span id="plan-amp-sulbactam-mg">{{ printf "%.1f" $active.SurgicalPlan.AmpicillinSulbactam30MgKgMg }} mg</span></div>
+                <div><strong>Enrofloxacin IV Dose:</strong> <span id="plan-enrofloxacin-mg">{{ printf "%.1f" $active.SurgicalPlan.Enrofloxacin10MgKgDoseMg }} mg</span></div>
+                <div><strong>Warm 0.9% NaCl Lavage (300 mL/kg):</strong> <span id="plan-lavage-liters">{{ printf "%.2f" $active.SurgicalPlan.WarmSterileSalineLavageLiters }} L</span></div>
+                <div><strong>Closed-Suction JP Drains:</strong> <span id="plan-jp-drains">{{ $active.SurgicalPlan.JacksonPrattClosedSuctionDrains }}</span></div>
+                <div><strong>Zero Antiseptic Lavage Guard:</strong> <span id="plan-antiseptic-guard">{{ if $active.SurgicalPlan.ZeroAntisepticLavageAdditionGuard }}ENFORCED (NO CHLORHEXIDINE/IODINE){{ else }}OFF{{ end }}</span></div>
+              </div>
+              <p class="peritonitis-rationale-text" id="workspace-clinical-rationale">{{ $active.SurgicalPlan.ClinicalRationale }}</p>
+            </div>
+            {{ end }}
+
+            <div class="peritonitis-drain-checks-box">
+              <h4>Serial Jackson-Pratt Drain Checks (<span id="workspace-checks-count">{{ len $active.DrainChecks }}</span>)</h4>
+              <ul id="drain-checks-list" class="peritonitis-checks-list">
+                {{ range $chk := $active.DrainChecks }}
+                <li class="peritonitis-check-item">
+                  <strong>{{ $chk.ClinicianCallsign }}</strong> · Output {{ printf "%.1f" $chk.EffusionProductionMlKgDay }} mL/kg/day · Albumin {{ printf "%.1f" $chk.SerumAlbuminGdl }} g/dL · MAP {{ $chk.MeanArterialPressureMmHg }} mmHg · {{ if $chk.CytologyIntracellularBacteria }}BACTERIA POSITIVE{{ else }}BACTERIA NEGATIVE{{ end }} — {{ $chk.Notes }}
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="peritonitis-operations-list" class="trust-screenings-list peritonitis-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card peritonitis-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-species="{{ $op.PatientProfile.Species }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.PatientProfile.Species }}{{ if $op.PatientProfile.Breed }} · {{ $op.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $op.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species">{{ $op.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $op.Status) "SEPTIC_EFFUSION_INTRACELLULAR_BACTERIA_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $op.Status) "EMPIRIC_ANTIBIOTIC_LAVAGE_JP_DRAIN_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row peritonitis-metrics-row">
+              <span class="status-pill status-pill-species">BG: {{ printf "%.1f" $op.PatientProfile.BloodGlucoseMgDl }}/{{ printf "%.1f" $op.PatientProfile.EffusionGlucoseMgDl }} mg/dL • Lactate: {{ printf "%.1f" $op.PatientProfile.BloodLactateMmolL }}/{{ printf "%.1f" $op.PatientProfile.EffusionLactateMmolL }} mmol/L • Neutrophils: {{ $op.PatientProfile.DegenerateNeutrophilsCountUl }}/µL</span>
+            </div>
+
+            {{ if $op.SepticGradientAntibioticDelayAlert }}
+            <div class="peritonitis-alert-banner">
+              ⚠️ SEPTIC GRADIENT &amp; 1-HOUR ANTIBIOTIC ALERT ({{ if $op.SurgicalPlan }}ΔBG {{ printf "%.1f" $op.SurgicalPlan.BloodFluidGlucoseGradientMgDl }} mg/dL · ΔLactate {{ printf "%.2f" $op.SurgicalPlan.FluidBloodLactateGradientMmolL }} mmol/L{{ end }}): {{ if $op.SurgicalPlan }}{{ $op.SurgicalPlan.PeritonitisPitfallAlert }}{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if $op.DrainClearance }}
+            <div class="peritonitis-clearance-banner">
+              ✅ NON-SEPTIC CYTOLOGY JP DRAIN CLEARANCE ({{ $op.DrainClearance.VetLicense }}): Output {{ printf "%.1f" $op.DrainClearance.FinalDrainOutputMlKgDay }} mL/kg/day · Albumin {{ printf "%.1f" $op.DrainClearance.FinalSerumAlbuminGdl }} g/dL
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary peritonitis-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select Operation ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="peritonitis-ops-empty-msg">No septic peritonitis triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/septic-peritonitis-triage.js" defer></script>
+</body>
+</html>
