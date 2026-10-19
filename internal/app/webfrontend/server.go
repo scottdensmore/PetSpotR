@@ -74,6 +74,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/statusepilepticus"
 	"github.com/scottdensmore/petspotr/pkg/store"
 	"github.com/scottdensmore/petspotr/pkg/telemetry"
+	"github.com/scottdensmore/petspotr/pkg/tetanusbotulism"
 	"github.com/scottdensmore/petspotr/pkg/thermalburnparkland"
 	"github.com/scottdensmore/petspotr/pkg/toxicologypoison"
 	"github.com/scottdensmore/petspotr/pkg/transfusionbloodbank"
@@ -158,6 +159,7 @@ type Server struct {
 	orthoService              *polytraumaortho.OrthoService
 	ncpeService               *ncpeelectrocution.NCPEService
 	fipService                *fipgs441524.FIPService
+	tetanusBotulismService    *tetanusbotulism.TetanusBotulismService
 	handler                   http.Handler
 }
 
@@ -733,6 +735,8 @@ func (s *Server) routes() {
 	s.registerNCPEElectrocutionRoutes()
 	// Acute Feline Infectious Peritonitis (FIP — Effusive Wet & Non-Effusive Dry/Ocular/Neurological), Rivalta Test, Albumin:Globulin Ratio < 0.4, GS-441524 / Remdesivir Nucleoside Analog & Blood-Brain/Ocular Barrier Dosing Cockpit routes (Milestone 24.4)
 	s.registerFIPGS441524Routes()
+	// Acute Tetanus (Clostridium tetani) & Botulism (Clostridium botulinum), Risus Sardonicus / Sawhorse Stance vs. Ascending Flaccid Lower Motor Neuron Paralysis, Equine Tetanus Antitoxin (TAT) Intradermal Test, Metronidazole (vs. Penicillin GABA Antagonism) & Dark/Quiet Sensory-Isolation Cockpit routes (Milestone 25.2)
+	s.registerTetanusBotulismRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
