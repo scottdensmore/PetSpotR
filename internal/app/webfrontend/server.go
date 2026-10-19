@@ -49,6 +49,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/neonatalincubator"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
+	"github.com/scottdensmore/petspotr/pkg/ophthalmicglobe"
 	"github.com/scottdensmore/petspotr/pkg/pericardialtamponade"
 	"github.com/scottdensmore/petspotr/pkg/pneumothorax"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
@@ -130,6 +131,7 @@ type Server struct {
 	pneumothoraxService       *pneumothorax.PneumothoraxService
 	anaphylaxisService        *anaphylaxishalo.AnaphylaxisService
 	recoverService            *recovercpr.RecoverService
+	ophthalmicService         *ophthalmicglobe.OphthalmicService
 	handler                   http.Handler
 }
 
@@ -315,6 +317,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		addisonianService:         addisoniancrisis.NewAddisonianService(),
 		pneumothoraxService:       pneumothorax.NewPneumothoraxService(),
 		anaphylaxisService:        anaphylaxishalo.NewAnaphylaxisService(),
+		ophthalmicService:         ophthalmicglobe.NewOphthalmicService(),
 		recoverService:            recovercpr.NewRecoverService(),
 		tamponadeService:          pericardialtamponade.NewTamponadeService(),
 		imhaService:               imhathrombosis.NewIMHAService(),
@@ -665,6 +668,8 @@ func (s *Server) routes() {
 	s.registerAnaphylaxisHaloRoutes()
 	// Cardiopulmonary Resuscitation (RECOVER Guidelines), Open/Closed-Chest Compression, EtCO2 > 15 mmHg & Defibrillation Cockpit routes (Milestone 22.1)
 	s.registerRecoverCPRRoutes()
+	// Acute Ophthalmic Emergencies, Descemetoceles, Proptosed Globe, Acute Congestive Glaucoma (IOP > 40 mmHg) & Mannitol/Latanoprost Cockpit routes (Milestone 22.2)
+	s.registerOphthalmicGlobeRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

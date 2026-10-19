@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Ophthalmic Emergencies, Descemetoceles, Proptosed Globe, Acute Congestive Glaucoma (IOP > 40 mmHg) &amp; Mannitol/Latanoprost Triage Cockpit.">
+  <title>Acute Ophthalmic Emergencies, Descemetoceles, Proptosed Globe, Acute Congestive Glaucoma (IOP &gt; 40 mmHg) &amp; Mannitol/Latanoprost Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#ophthalmic-globe-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/anaphylaxis-halo-triage" class="nav-link nav-link-emergency" id="nav-anaphylaxis-halo-triage">🐝 Anaphylaxis ICU</a></li>
+          <li><a href="/ophthalmic-globe-triage" class="nav-link active nav-link-emergency" id="nav-ophthalmic-globe-triage">👁️ Ophthalmic &amp; Glaucoma ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="ophthalmic-globe-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header ophthalmic-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>👁️ ACUTE OPHTHALMIC EMERGENCIES, DESCEMETOCELES, PROPTOSED GLOBE, ACUTE CONGESTIVE GLAUCOMA (IOP &gt; 40 MMHG) &amp; MANNITOL/LATANOPROST COCKPIT</span>
+        </div>
+        <h1>Acute Ophthalmic Emergencies, Descemetoceles, Proptosed Globe, Acute Congestive Glaucoma (IOP &gt; 40 mmHg) &amp; Mannitol/Latanoprost Cockpit</h1>
+        <p class="text-secondary">
+          Rebound/Applanation Tonometry (IOP &gt; 40 mmHg), Latanoprost 0.005% Anterior Lens Luxation Contraindication Guard, Mannitol 1.0 g/kg Slow IV Vitreous Dehydration, Fluorescein Donut-Ring Descemetocele &amp; Seidel Aqueous Leak Triage, Autologous Serum q1h Anti-Collagenase Therapy, Temporary Tarsorrhaphy (&lt; 3 Extraocular Muscles Avulsed) &amp; Zero Topical Corticosteroid / Jugular Compression Guard.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid ophthalmic-kpi-grid" aria-label="Acute Ophthalmic &amp; Globe Preservation KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Ophthalmic ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Vision-Threatening IOP / Descemetocele Critical</span>
+        <strong class="kpi-value" id="kpi-critical-globe">{{ .VisionThreateningCriticalCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Latanoprost / Mannitol / Tarsorrhaphy Staged</span>
+        <strong class="kpi-value" id="kpi-staged-latanoprost">{{ .LatanoprostTarsorrhaphyStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">IOP Normalized &amp; Globe Protected Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-iop">{{ .IOPNormalizedClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Latanoprost / Lens Luxation / Steroid Alerts</span>
+        <strong class="kpi-value" id="kpi-latanoprost-alerts">{{ .LatanoprostSteroidAlertCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="ophthalmic-live-status" class="humane-traps-live-status ophthalmic-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} acute ophthalmic, glaucoma, descemetocele &amp; globe proptosis operations.
+    </div>
+
+    <!-- Global Latanoprost Anterior Lens Luxation, Topical Corticosteroid & Jugular Compression Pitfall Alert Banner -->
+    <div id="ophthalmic-alert-banner" class="ophthalmic-alert-banner" role="alert" aria-live="assertive">
+      {{ if and .ActiveOperation .ActiveOperation.PreservationPlan }}
+      ⚠️ OPHTHALMIC GLOBE &amp; GLAUCOMA GUARD ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }} · IOP {{ .ActiveOperation.PatientProfile.IntraocularPressureMmHg }} mmHg · Stain {{ .ActiveOperation.PatientProfile.FluoresceinStainPattern }} · Lens Luxation {{ if .ActiveOperation.PatientProfile.AnteriorLensLuxationPresent }}YES{{ else }}NO{{ end }} · Avulsed Muscles {{ .ActiveOperation.PatientProfile.ExtraocularMusclesAvulsedCount }}): {{ .ActiveOperation.PreservationPlan.OphthalmicPitfallAlert }}
+      {{ else }}
+      ⚠️ CRITICAL OPHTHALMIC GLOBE &amp; GLAUCOMA PITFALL ALERT: NEVER administer Latanoprost (0.005%) when anterior lens luxation is present or in feline uveitic glaucoma (causes severe pupillary miosis that traps the luxated lens and spikes IOP further); NEVER apply topical corticosteroids or petroleum-based ointments to deep/melting corneal ulcers or perforated descemetoceles; and NEVER perform manual jugular compression or neck-lead restraint (spikes IOP by 15–25 mmHg and ruptures fragile descemetoceles).
+      {{ end }}
+    </div>
+
+    <!-- Global IOP Normalized & Globe Protected Discharge Clearance Banner -->
+    <div id="ophthalmic-clearance-banner" class="ophthalmic-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation .ActiveOperation.DischargeClearance) }}hidden{{ end }}>
+      {{ if and .ActiveOperation .ActiveOperation.DischargeClearance }}
+      ✅ IOP NORMALIZED &amp; GLOBE PROTECTED CLEARANCE VERIFIED ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }}): Final IOP {{ .ActiveOperation.DischargeClearance.FinalIOPMmHg }} mmHg · Vet License {{ .ActiveOperation.DischargeClearance.VetLicense }} — {{ .ActiveOperation.DischargeClearance.Summary }}
+      {{ else }}
+      ✅ IOP NORMALIZED &amp; GLOBE PROTECTED CLEARANCE VERIFIED
+      {{ end }}
+    </div>
+
+    <div class="trust-cockpit-grid ophthalmic-cockpit-grid">
+      <!-- Left Column: Intake Form & Active Operation Preservation Plan / Tonometry Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="ophthalmic-forms-panel" aria-labelledby="heading-ophthalmic-intake">
+        <div class="trust-panel-header">
+          <h2 id="heading-ophthalmic-intake">1. Acute Ophthalmic, Glaucoma &amp; Descemetocele Intake</h2>
+          <span class="status-pill status-pill-staged">Mannitol IV · Latanoprost · Serum q1h</span>
+        </div>
+
+        <div id="ophthalmic-error-banner" class="ophthalmic-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="create-ophthalmic-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-incident-id">Incident ID</label>
+              <input type="text" id="create-incident-id" name="incident_id" class="form-control" value="INC-OG-9954" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pet-name">Pet Name</label>
+              <input type="text" id="create-pet-name" name="pet_name" class="form-control" value="Gizmo" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-species">Ophthalmic Emergency Classification</label>
+              <select id="create-species" name="species" class="form-control" required>
+                <option value="CANINE_PRIMARY_CONGESTIVE_GLAUCOMA" selected>CANINE_PRIMARY_CONGESTIVE_GLAUCOMA (Canine Acute Congestive Glaucoma · IOP &gt; 40 mmHg)</option>
+                <option value="CANINE_BRACHYCEPHALIC_GLOBE_PROPTOSIS">CANINE_BRACHYCEPHALIC_GLOBE_PROPTOSIS (Canine Brachycephalic Traumatic Globe Proptosis)</option>
+                <option value="FELINE_MELTING_DESCEMETOCELE_ULCER">FELINE_MELTING_DESCEMETOCELE_ULCER (Feline Melting Corneal Ulcer / Descemetocele)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-breed">Breed</label>
+              <input type="text" id="create-breed" name="breed" class="form-control" value="Shih Tzu">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-weight-kg">Weight (kg)</label>
+              <input type="number" id="create-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="6.5" required>
+            </div>
+            <div class="form-group">
+              <label for="create-iop-mmhg">Intraocular Pressure IOP (mmHg)</label>
+              <input type="number" id="create-iop-mmhg" name="intraocular_pressure_mmhg" class="form-control" min="2" max="120" step="1" value="58" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-fluorescein-pattern">Fluorescein Corneal Stain Pattern</label>
+              <select id="create-fluorescein-pattern" name="fluorescein_stain_pattern" class="form-control" required>
+                <option value="FLUORESCEIN_NEGATIVE_INTACT" selected>FLUORESCEIN_NEGATIVE_INTACT (Intact Corneal Epithelium)</option>
+                <option value="STROMAL_POSITIVE_MELTING">STROMAL_POSITIVE_MELTING (Hydrophilic Stromal Uptake · Melting Ulcer)</option>
+                <option value="DONUT_RING_CLEAR_CENTER_DESCEMETOCELE">DONUT_RING_CLEAR_CENTER_DESCEMETOCELE (Donut Ring Clear Center · Descemetocele)</option>
+                <option value="SEIDEL_POSITIVE_AQUEOUS_LEAK">SEIDEL_POSITIVE_AQUEOUS_LEAK (Seidel Positive Aqueous Humor Leak)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-muscles-avulsed">Extraocular Muscles Avulsed (0–6)</label>
+              <input type="number" id="create-muscles-avulsed" name="extraocular_muscles_avulsed_count" class="form-control" min="0" max="6" step="1" value="0" required>
+            </div>
+          </div>
+
+          <div class="ophthalmic-checkbox-group">
+            <label class="ophthalmic-checkbox-item">
+              <input type="checkbox" id="create-anterior-luxation" name="anterior_lens_luxation_present">
+              <span>Anterior Lens Luxation Present (Strictly Contraindicates Latanoprost 0.005% Prostaglandin Analogue!)</span>
+            </label>
+            <label class="ophthalmic-checkbox-item">
+              <input type="checkbox" id="create-consensual-plr" name="consensual_plr_present" checked>
+              <span>Consensual Pupillary Light Reflex (PLR) Present in Contralateral Eye</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-create-ophthalmic-op" class="btn btn-primary">Create Ophthalmic &amp; Globe Triage Operation</button>
+        </form>
+
+        <hr class="ophthalmic-divider">
+
+        <!-- Stage Preservation Plan Form -->
+        <div class="trust-subsection" id="stage-plan-section">
+          <h3 id="heading-stage-plan">2. Stage Latanoprost / Mannitol IV / Autologous Serum / Tarsorrhaphy Plan</h3>
+          <form id="stage-plan-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-weight-kg">Weight (kg)</label>
+                <input type="number" id="stage-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.WeightKg }}{{ else }}12.5{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-species">Ophthalmic Classification</label>
+                <select id="stage-species" name="species" class="form-control" required>
+                  <option value="CANINE_PRIMARY_CONGESTIVE_GLAUCOMA">CANINE_PRIMARY_CONGESTIVE_GLAUCOMA (Canine Congestive Glaucoma)</option>
+                  <option value="CANINE_BRACHYCEPHALIC_GLOBE_PROPTOSIS">CANINE_BRACHYCEPHALIC_GLOBE_PROPTOSIS (Canine Globe Proptosis)</option>
+                  <option value="FELINE_MELTING_DESCEMETOCELE_ULCER">FELINE_MELTING_DESCEMETOCELE_ULCER (Feline Melting Descemetocele)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-iop-mmhg">Intraocular Pressure IOP (mmHg)</label>
+                <input type="number" id="stage-iop-mmhg" name="intraocular_pressure_mmhg" class="form-control" min="2" max="120" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.IntraocularPressureMmHg }}{{ else }}64{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-fluorescein-pattern">Fluorescein Stain Pattern</label>
+                <select id="stage-fluorescein-pattern" name="fluorescein_stain_pattern" class="form-control" required>
+                  <option value="FLUORESCEIN_NEGATIVE_INTACT">FLUORESCEIN_NEGATIVE_INTACT</option>
+                  <option value="STROMAL_POSITIVE_MELTING">STROMAL_POSITIVE_MELTING</option>
+                  <option value="DONUT_RING_CLEAR_CENTER_DESCEMETOCELE">DONUT_RING_CLEAR_CENTER_DESCEMETOCELE</option>
+                  <option value="SEIDEL_POSITIVE_AQUEOUS_LEAK">SEIDEL_POSITIVE_AQUEOUS_LEAK</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-muscles-avulsed">Extraocular Muscles Avulsed (0–6)</label>
+                <input type="number" id="stage-muscles-avulsed" name="extraocular_muscles_avulsed_count" class="form-control" min="0" max="6" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.ExtraocularMusclesAvulsedCount }}{{ else }}0{{ end }}" required>
+              </div>
+              <div class="form-group ophthalmic-checkbox-group">
+                <label class="ophthalmic-checkbox-item">
+                  <input type="checkbox" id="stage-anterior-luxation" name="anterior_lens_luxation_present" {{ if and .ActiveOperation .ActiveOperation.PatientProfile.AnteriorLensLuxationPresent }}checked{{ end }}>
+                  <span>Anterior Lens Luxation Present</span>
+                </label>
+                <label class="ophthalmic-checkbox-item">
+                  <input type="checkbox" id="stage-consensual-plr" name="consensual_plr_present" {{ if not .ActiveOperation }}checked{{ else if .ActiveOperation.PatientProfile.ConsensualPLRPresent }}checked{{ end }}>
+                  <span>Consensual PLR Present</span>
+                </label>
+              </div>
+            </div>
+            <button type="submit" id="btn-stage-plan" class="btn btn-secondary">💧 Stage Globe Preservation &amp; IOP Lowering Plan</button>
+          </form>
+        </div>
+
+        <hr class="ophthalmic-divider">
+
+        <!-- Serial Tonometry, Seidel & Dazzle Reflex Check Form -->
+        <div class="trust-subsection" id="tonometry-check-section">
+          <h3 id="heading-tonometry-check">3. Record Serial Rebound Tonometry (IOP), Seidel Test &amp; Dazzle Reflex Check</h3>
+          <form id="tonometry-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-iop-mmhg">Intraocular Pressure IOP (mmHg)</label>
+                <input type="number" id="check-iop-mmhg" name="intraocular_pressure_mmhg" class="form-control" min="2" max="120" step="1" value="18" required>
+              </div>
+              <div class="form-group">
+                <label for="check-callsign">Clinician Callsign</label>
+                <input type="text" id="check-callsign" name="clinician_callsign" class="form-control" value="DR-OPHTHO-11" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-notes">Tonometry, Slit-Lamp &amp; Corneal Tectonic Notes</label>
+              <input type="text" id="check-notes" name="notes" class="form-control" value="Post-Mannitol 12.5 g IV &amp; Dorzolamide/Timolol q8h tonometry: IOP reduced from 64 to 18 mmHg; Seidel negative; dazzle reflex intact; rigid E-collar verified.">
+            </div>
+            <div class="ophthalmic-checkbox-group">
+              <label class="ophthalmic-checkbox-item">
+                <input type="checkbox" id="check-seidel-negative" name="seidel_test_negative" checked>
+                <span>Seidel Test Negative (No Fluorescein Dilution / No Aqueous Humor Micro-Leak)</span>
+              </label>
+              <label class="ophthalmic-checkbox-item">
+                <input type="checkbox" id="check-dazzle-present" name="dazzle_reflex_present" checked>
+                <span>Subcortical Dazzle Reflex &amp; Consensual PLR Intact</span>
+              </label>
+              <label class="ophthalmic-checkbox-item">
+                <input type="checkbox" id="check-ecollar-verified" name="rigid_e_collar_verified" checked>
+                <span>Rigid Hard-Plastic Elizabethan Collar Verified &amp; Neck-Lead Restraint Removed</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-record-tonometry-check" class="btn btn-secondary">👁️ Log Tonometry, Seidel &amp; Dazzle Check</button>
+          </form>
+        </div>
+
+        <hr class="ophthalmic-divider">
+
+        <!-- Discharge Clearance Form -->
+        <div class="trust-subsection" id="discharge-clearance-section">
+          <h3 id="heading-discharge-clearance">4. Issue IOP Normalized &amp; Globe Protected Discharge Clearance</h3>
+          <form id="discharge-clearance-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-final-iop">Final Normalized IOP (mmHg, 10–25)</label>
+                <input type="number" id="clearance-final-iop" name="final_iop_mmhg" class="form-control" min="10" max="25" step="1" value="16" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-vet-license">Attending Ophthalmologist / ECC Vet License</label>
+                <input type="text" id="clearance-vet-license" name="vet_license" class="form-control" value="VET-OPHTHO-99508" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="clearance-summary">Discharge Summary &amp; Topical Drop Spacing Instructions</label>
+              <input type="text" id="clearance-summary" name="summary" class="form-control" value="IOP normalized at 16 mmHg; globe tectonic integrity confirmed; hard plastic E-collar fitted and owner educated on 5-minute spacing between topical ophthalmic drops.">
+            </div>
+            <div class="ophthalmic-checkbox-group">
+              <label class="ophthalmic-checkbox-item">
+                <input type="checkbox" id="clearance-tectonic-integrity" name="globe_tectonic_integrity_confirmed" checked>
+                <span>Globe Tectonic Integrity Confirmed (Seidel Negative, Corneal Graft / Tarsorrhaphy Secure)</span>
+              </label>
+              <label class="ophthalmic-checkbox-item">
+                <input type="checkbox" id="clearance-ecollar-fitted" name="hard_plastic_e_collar_fitted" checked>
+                <span>Hard Plastic Elizabethan Collar Fitted 24/7 &amp; Chest Harness Only (Zero Neck Collar)</span>
+              </label>
+              <label class="ophthalmic-checkbox-item">
+                <input type="checkbox" id="clearance-drop-spacing-educated" name="topical_drop_5_min_spacing_educated" checked>
+                <span>Owner Educated on &ge; 5-Minute Spacing Between Topical Eye Drops &amp; Zero Corticosteroid Drops</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-issue-discharge-clearance" class="btn btn-primary">🛡️ Issue IOP Normalized &amp; Globe Protected Clearance</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Queue -->
+      <section class="glass-card trust-panel" id="ophthalmic-ops-panel" aria-labelledby="heading-ophthalmic-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-ophthalmic-ops">Active Ophthalmic, Glaucoma &amp; Descemetocele Operations</h2>
+          <span id="ophthalmic-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col ophthalmic-filter-bar" role="region" aria-label="Filter Ophthalmic Globe Operations">
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="VISION_THREATENING_IOP_DESCEMETOCELE_CRITICAL">VISION_THREATENING_IOP_DESCEMETOCELE_CRITICAL</option>
+              <option value="LATANOPROST_MANNITOL_TARSORRHAPHY_STAGED">LATANOPROST_MANNITOL_TARSORRHAPHY_STAGED</option>
+              <option value="IOP_NORMALIZED_GLOBE_PROTECTED_CLEARED">IOP_NORMALIZED_GLOBE_PROTECTED_CLEARED</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-species">Filter by Ophthalmic Classification</label>
+            <select id="filter-species" class="form-control">
+              <option value="">All Ophthalmic Classifications</option>
+              <option value="CANINE_PRIMARY_CONGESTIVE_GLAUCOMA">CANINE_PRIMARY_CONGESTIVE_GLAUCOMA</option>
+              <option value="CANINE_BRACHYCEPHALIC_GLOBE_PROPTOSIS">CANINE_BRACHYCEPHALIC_GLOBE_PROPTOSIS</option>
+              <option value="FELINE_MELTING_DESCEMETOCELE_ULCER">FELINE_MELTING_DESCEMETOCELE_ULCER</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="ophthalmic-active-workspace" role="region" aria-label="Active Ophthalmic Globe Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="ophthalmic-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-pet-title">Active Workspace: {{ $active.PetName }} ({{ $active.PatientProfile.Species }}{{ if $active.PatientProfile.Breed }} · {{ $active.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $active.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id" id="workspace-op-code">{{ $active.ID }} · {{ $active.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species" id="workspace-species-pill">{{ $active.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $active.Status) "VISION_THREATENING_IOP_DESCEMETOCELE_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $active.Status) "LATANOPROST_MANNITOL_TARSORRHAPHY_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}" id="workspace-status-pill">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="ophthalmic-vitals-summary" id="workspace-vitals-summary">
+              <span><strong>IOP:</strong> {{ $active.PatientProfile.IntraocularPressureMmHg }} mmHg</span>
+              <span><strong>Fluorescein:</strong> {{ $active.PatientProfile.FluoresceinStainPattern }}</span>
+              <span><strong>Anterior Lens Luxation:</strong> {{ if $active.PatientProfile.AnteriorLensLuxationPresent }}YES (Latanoprost Contraindicated){{ else }}NO{{ end }}</span>
+              <span><strong>Avulsed EOMs:</strong> {{ $active.PatientProfile.ExtraocularMusclesAvulsedCount }}</span>
+              <span><strong>Consensual PLR:</strong> {{ if $active.PatientProfile.ConsensualPLRPresent }}PRESENT{{ else }}ABSENT{{ end }}</span>
+            </div>
+
+            {{ if $active.PreservationPlan }}
+            <div class="ophthalmic-plan-box" id="workspace-plan-box">
+              <h4>Calculated Globe Preservation, Osmotic Mannitol IV, Latanoprost Eligibility &amp; Anticollagenase Plan</h4>
+              <div class="ophthalmic-doses-grid">
+                <div><strong>Latanoprost 0.005% Allowed:</strong> <span id="plan-latanoprost">{{ if $active.PreservationPlan.Latanoprost0005PctAllowed }}ALLOWED (1 drop){{ else }}CONTRAINDICATED{{ end }}</span></div>
+                <div><strong>Dorzolamide/Timolol Drops:</strong> <span id="plan-dorzolamide">{{ $active.PreservationPlan.DorzolamideTimololDropsFreq }}</span></div>
+                <div><strong>Mannitol 1.0 g/kg Slow IV:</strong> <span id="plan-mannitol">{{ printf "%.1f" $active.PreservationPlan.Mannitol1GKgIVGrams }} g IV</span></div>
+                <div><strong>Autologous Serum q1h:</strong> <span id="plan-serum">{{ if $active.PreservationPlan.AutologousSerumDropsQ1H }}INDICATED (q1h){{ else }}Not Indicated{{ end }}</span></div>
+                <div><strong>Temporary Tarsorrhaphy:</strong> <span id="plan-tarsorrhaphy">{{ if $active.PreservationPlan.TemporaryTarsorrhaphyIndicated }}INDICATED (&lt; 3 EOMs){{ else }}Not Indicated{{ end }}</span></div>
+                <div><strong>Zero Steroid / Neck-Lead Guard:</strong> <span id="plan-steroid-guard">{{ if $active.PreservationPlan.ZeroTopicalSteroidOintmentNeckLeadGuard }}ENFORCED{{ else }}OFF{{ end }}</span></div>
+              </div>
+              <p class="ophthalmic-rationale-text" id="workspace-clinical-rationale">{{ $active.PreservationPlan.ClinicalRationale }}</p>
+            </div>
+            {{ end }}
+
+            <div class="ophthalmic-tonometry-checks-box">
+              <h4>Serial Rebound Tonometry (IOP), Seidel Test &amp; Dazzle Reflex Checks (<span id="workspace-checks-count">{{ len $active.TonometryChecks }}</span>)</h4>
+              <ul id="tonometry-checks-list" class="ophthalmic-checks-list">
+                {{ range $chk := $active.TonometryChecks }}
+                <li class="ophthalmic-check-item">
+                  <strong>{{ $chk.ClinicianCallsign }}</strong> · IOP {{ $chk.IntraocularPressureMmHg }} mmHg · Seidel Neg: {{ if $chk.SeidelTestNegative }}YES{{ else }}NO{{ end }} · Dazzle: {{ if $chk.DazzleReflexPresent }}YES{{ else }}NO{{ end }} · Rigid E-Collar: {{ if $chk.RigidECollarVerified }}YES{{ else }}NO{{ end }} — {{ $chk.Notes }}
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="ophthalmic-operations-list" class="trust-screenings-list ophthalmic-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card ophthalmic-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-species="{{ $op.PatientProfile.Species }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.PatientProfile.Species }}{{ if $op.PatientProfile.Breed }} · {{ $op.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $op.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species">{{ $op.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $op.Status) "VISION_THREATENING_IOP_DESCEMETOCELE_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $op.Status) "LATANOPROST_MANNITOL_TARSORRHAPHY_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row ophthalmic-metrics-row">
+              <span class="status-pill status-pill-species">IOP: {{ $op.PatientProfile.IntraocularPressureMmHg }} mmHg • Stain: {{ $op.PatientProfile.FluoresceinStainPattern }} • Lens Luxation: {{ if $op.PatientProfile.AnteriorLensLuxationPresent }}YES{{ else }}NO{{ end }} • Avulsed EOMs: {{ $op.PatientProfile.ExtraocularMusclesAvulsedCount }} • Consensual PLR: {{ if $op.PatientProfile.ConsensualPLRPresent }}YES{{ else }}NO{{ end }}</span>
+            </div>
+
+            {{ if $op.LatanoprostLuxationSteroidAlert }}
+            <div class="ophthalmic-alert-banner">
+              ⚠️ LATANOPROST, LENS LUXATION &amp; CORNEAL STEROID GUARD (IOP {{ $op.PatientProfile.IntraocularPressureMmHg }} mmHg · Stain {{ $op.PatientProfile.FluoresceinStainPattern }}): {{ if $op.PreservationPlan }}{{ $op.PreservationPlan.OphthalmicPitfallAlert }}{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if $op.DischargeClearance }}
+            <div class="ophthalmic-clearance-banner">
+              ✅ IOP NORMALIZED &amp; GLOBE PROTECTED ({{ $op.DischargeClearance.VetLicense }}): Final IOP {{ $op.DischargeClearance.FinalIOPMmHg }} mmHg · Hard E-Collar &amp; 5-Min Drop Spacing Verified
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary ophthalmic-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select Operation ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="ophthalmic-ops-empty-msg">No Acute Ophthalmic &amp; Globe Preservation triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/ophthalmic-globe-triage.js" defer></script>
+</body>
+</html>
