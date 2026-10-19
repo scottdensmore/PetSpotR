@@ -42,6 +42,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/hyperbaricco"
 	"github.com/scottdensmore/petspotr/pkg/hyperthermiaheat"
 	"github.com/scottdensmore/petspotr/pkg/identity"
+	"github.com/scottdensmore/petspotr/pkg/imhathrombosis"
 	"github.com/scottdensmore/petspotr/pkg/maritimecoastal"
 	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/neonatalincubator"
@@ -116,6 +117,7 @@ type Server struct {
 	peritonitisService        *septicperitonitis.PeritonitisService
 	hemoabdomenService        *hemoabdomen.HemoabdomenService
 	dkaService                *dkainsulin.DKAService
+	imhaService               *imhathrombosis.IMHAService
 	handler                   http.Handler
 }
 
@@ -297,6 +299,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		epilepticusService:        statusepilepticus.NewEpilepticusService(),
 		hemoabdomenService:        hemoabdomen.NewHemoabdomenService(),
 		dkaService:                dkainsulin.NewDKAService(),
+		imhaService:               imhathrombosis.NewIMHAService(),
 		peritonitisService:        septicperitonitis.NewPeritonitisService(),
 	}
 	if s.smsWebhookSecret == "" {
@@ -630,6 +633,8 @@ func (s *Server) routes() {
 	s.registerHemoabdomenRoutes()
 	// Diabetic Ketoacidosis (DKA), Regular Insulin CRI, Hypokalemia/Hypophosphatemia & Cerebral Edema Triage Cockpit routes (Milestone 20.1)
 	s.registerDKAInsulinRoutes()
+	// Immune-Mediated Hemolytic Anemia (IMHA) & Thrombocytopenia (IMTP), Saline Agglutination, Spherocytosis & Thromboprophylaxis Cockpit routes (Milestone 20.5)
+	s.registerIMHAThrombosisRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
