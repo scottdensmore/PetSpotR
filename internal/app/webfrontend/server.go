@@ -59,6 +59,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/pancreatitiscpl"
 	"github.com/scottdensmore/petspotr/pkg/pericardialtamponade"
 	"github.com/scottdensmore/petspotr/pkg/pneumothorax"
+	"github.com/scottdensmore/petspotr/pkg/polytraumaortho"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/pyometrasirs"
 	"github.com/scottdensmore/petspotr/pkg/ratelimit"
@@ -152,6 +153,7 @@ type Server struct {
 	tlsService                *oncologictls.TLSService
 	burnService               *thermalburnparkland.BurnService
 	megaService               *megaesophagusfb.MegaesophagusService
+	orthoService              *polytraumaortho.OrthoService
 	handler                   http.Handler
 }
 
@@ -352,6 +354,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		burnService:               thermalburnparkland.NewBurnService(),
 		megaService:               megaesophagusfb.NewMegaesophagusService(),
 		tlsService:                oncologictls.NewTLSService(),
+		orthoService:              polytraumaortho.NewOrthoService(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -720,6 +723,8 @@ func (s *Server) routes() {
 	s.registerThermalBurnParklandRoutes()
 	// Acute Esophageal Foreign Body, Megaesophagus, Myasthenia Gravis (AChR Antibody / Edrophonium-Neostigmine), Aspiration Pneumonia & Pyridostigmine/Bailey Chair Cockpit routes (Milestone 23.5)
 	s.registerMegaesophagusForeignBodyRoutes()
+	// Acute Bite Wound, Vehicular Polytrauma, Degloving/Shearing Injury, Open Fracture Gustilo-Anderson Classification, Wet-to-Dry/NPWT Vacuum-Assisted Closure & Damage-Control Orthopedics Cockpit routes (Milestone 24.2)
+	s.registerPolytraumaOrthopedicRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

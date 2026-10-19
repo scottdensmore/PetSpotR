@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Bite Wound, Vehicular Polytrauma, Degloving/Shearing Injury, Open Fracture Gustilo-Anderson Classification, Wet-to-Dry/NPWT Vacuum-Assisted Closure &amp; Damage-Control Orthopedics Cockpit.">
+  <title>Acute Bite Wound, Vehicular Polytrauma, Degloving/Shearing Injury, Open Fracture Gustilo-Anderson Classification, Wet-to-Dry/NPWT Vacuum-Assisted Closure &amp; Damage-Control Orthopedics Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#polytrauma-orthopedic-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/thermal-burn-parkland-triage" class="nav-link nav-link-emergency" id="nav-thermal-burn-triage">🔥 Thermal Burn &amp; Parkland ICU</a></li>
+          <li><a href="/polytrauma-orthopedic-triage" class="nav-link active nav-link-emergency" id="nav-polytrauma-orthopedic-triage">🦴 Polytrauma &amp; Open Fracture ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="polytrauma-orthopedic-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header ortho-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🦴 ACUTE BITE WOUND, VEHICULAR POLYTRAUMA, OPEN FRACTURE GUSTILO-ANDERSON &amp; NPWT COCKPIT</span>
+        </div>
+        <h1>Acute Bite Wound, Vehicular Polytrauma, Degloving/Shearing Injury, Open Fracture Gustilo-Anderson Classification, Wet-to-Dry/NPWT Vacuum-Assisted Closure &amp; Damage-Control Orthopedics Cockpit</h1>
+        <p class="text-secondary">
+          Gustilo-Anderson Grade I–III Open Fracture &amp; Tarsal/Carpal Degloving Triage, Big-Dog-Little-Dog (BDLD) Crushing Thoracic Bite "Iceberg Effect" Exploration, Sterile Water-Soluble Gel Clip Protection, 7–8 PSI Warm Isotonic LRS Lavage (1 L Bag + 300 mmHg Pressure Cuff + 18G Needle), Negative Pressure Wound Therapy (NPWT at -125 mmHg), Joint-Above-and-Joint-Below Robert Jones Splinting &amp; Transarticular External Skeletal Fixation (ESF).
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid ortho-kpi-grid" aria-label="Polytrauma &amp; Orthopedic KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Polytrauma &amp; Ortho Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Acute Open Fracture / Degloving Triage</span>
+        <strong class="kpi-value" id="kpi-acute-triage">{{ .AcuteOpenFractureTriageCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Lavage / NPWT / Robert Jones Splint Staged</span>
+        <strong class="kpi-value" id="kpi-npwt-staged">{{ .NPWTSplintStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Granulation &amp; Fixation Stable Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-fixation">{{ .ClearedFixationCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Gustilo Grade III Shearing / Degloving</span>
+        <strong class="kpi-value" id="kpi-gustilo-iii-count">{{ .GustiloGradeIIIShearingCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">BDLD Thoracic Bite / Penetration</span>
+        <strong class="kpi-value" id="kpi-thoracic-bite-count">{{ .ThoracicBitePenetrationCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="ortho-live-status" class="humane-traps-live-status ortho-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Acute Bite Wound, Vehicular Polytrauma &amp; Open Fracture Gustilo-Anderson ICU operations.
+    </div>
+
+    <!-- Global Gustilo-Anderson, BDLD Iceberg Effect, 7-8 PSI Lavage, Primary Closure Contraindication & Joint-Above-Joint-Below Splint Alert Banner -->
+    <div id="ortho-alert-banner" class="ortho-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL POLYTRAUMA, OPEN FRACTURE &amp; DEGLOVING GUARD: (1) Classify Open Fractures via Gustilo-Anderson Grade I–III and pack wounds with sterile water-soluble gel before wide #40 clipping; (2) Recognize the "Iceberg Effect" of BDLD (Big-Dog-Little-Dog) Crushing Bite Wounds Requiring Surgical Exploration &amp; Dead-Space Reconstruction; (3) Perform 7–8 PSI Pulsatile Lavage (1 L Bag + 300 mmHg Pressure Cuff + 18G Needle or 35 mL Syringe + 18G Needle) with Warm Isotonic LRS/0.9% NaCl (Avoiding Cytotoxic Povidone-Iodine/Chlorhexidine/Hydrogen Peroxide in Deep Tissues); (4) STRICT CONTRAINDICATION of Primary Closure Over Infected/Contaminated Shearing Wounds Without Debridement/NPWT (-125 mmHg); (5) Immobilize the Joint Above and Joint Below in Robert Jones / Spica Splints.
+    </div>
+
+    <!-- Global Granulation & Orthopedic Fixation Clearance Banner -->
+    <div id="ortho-clearance-banner" class="ortho-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "GRANULATION_FIXATION_STABLE_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ GRANULATION BED &amp; ORTHOPEDIC FIXATION CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "GRANULATION_FIXATION_STABLE_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Discharged by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting healthy granulation bed over exposed bone/tendon, rigid ESF/splint stability &amp; normal distal toe perfusion.{{ end }}</span>
+    </div>
+
+    <div id="ortho-error-banner" class="ortho-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card ortho-toolbar-card" aria-label="Polytrauma &amp; Orthopedic Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col ortho-toolbar-row">
+        <div class="form-group">
+          <label for="ortho-status-filter">Filter by Polytrauma &amp; Orthopedic Status</label>
+          <select id="ortho-status-filter" class="form-control">
+            <option value="">All Polytrauma &amp; Orthopedic Statuses</option>
+            <option value="ACUTE_OPEN_FRACTURE_DEGLOVING_TRIAGE">ACUTE_OPEN_FRACTURE_DEGLOVING_TRIAGE (Acute Open Fracture / Degloving Triage)</option>
+            <option value="LAVAGE_NPWT_ROBERT_JONES_SPLINT_STAGED">LAVAGE_NPWT_ROBERT_JONES_SPLINT_STAGED (7–8 PSI Lavage / NPWT -125 mmHg / Robert Jones Splint Staged)</option>
+            <option value="GRANULATION_FIXATION_STABLE_CLEARED">GRANULATION_FIXATION_STABLE_CLEARED (Granulation &amp; Fixation Stable Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group ortho-sse-controls">
+          <span class="kpi-label">Live ICU Telemetry Stream</span>
+          <div class="ortho-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live Polytrauma Ortho SSE Stream</button>
+            <span id="sse-status-badge" class="ortho-status-badge ortho-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid ortho-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="ortho-operations-panel" aria-labelledby="heading-ortho-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-ortho-ops">Active Polytrauma, Open Fracture &amp; NPWT Operations</h2>
+          <span id="ortho-ops-count-badge" class="ortho-status-badge ortho-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="ortho-operations-grid" class="trust-screenings-list ortho-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card ortho-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-gustilo-class="{{ $op.GustiloClass }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="ortho-status-badge {{ if eq (printf "%s" $op.Status) "ACUTE_OPEN_FRACTURE_DEGLOVING_TRIAGE" }}ortho-status-critical{{ else if eq (printf "%s" $op.Status) "LAVAGE_NPWT_ROBERT_JONES_SPLINT_STAGED" }}ortho-status-staged{{ else }}ortho-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="ortho-card-metrics">
+              <span><strong>Gustilo Class:</strong> {{ $op.GustiloClass }}</span>
+              <span><strong>ATT Score:</strong> {{ $op.AnimalTraumaTriageScore }}/18</span>
+              <span><strong>Lavage:</strong> {{ $op.LavageVolumeML }} mL</span>
+              <span><strong>NPWT:</strong> {{ $op.NPWTVacuumMmHg }} mmHg</span>
+              <span><strong>Lactate:</strong> {{ printf "%.1f" $op.BloodLactateMmolL }} mmol/L</span>
+              <span><strong>Toe ΔT:</strong> {{ printf "%.1f" $op.DistalToeTempDeltaC }}°C</span>
+              <span><strong>Exposed Bone:</strong> {{ if $op.ExposedCorticalBoneTendon }}YES{{ else }}NO{{ end }}</span>
+              <span><strong>Thoracic Bite:</strong> {{ if $op.ThoracicWallPenetrationSuspected }}SUSPECTED{{ else }}NO{{ end }}</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary ortho-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open Ortho Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="ortho-ops-empty-msg">No Polytrauma &amp; Orthopedic operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="ortho-divider">
+
+        <!-- Admit New Polytrauma / Open Fracture Patient Form -->
+        <div class="trust-subsection" id="create-ortho-section">
+          <h3 id="heading-create-ortho">Admit New Polytrauma / Open Fracture / Bite Wound Patient</h3>
+          <form id="create-ortho-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-ORTHO-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Bandit" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species-input">Species</label>
+                <select id="create-species-input" name="species" class="form-control" required>
+                  <option value="Canine" selected>Canine</option>
+                  <option value="Feline">Feline</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed-input">Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="Australian Shepherd" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="22.5" required>
+              </div>
+              <div class="form-group">
+                <label for="create-gustilo-class-input">Gustilo-Anderson / Polytrauma Classification</label>
+                <select id="create-gustilo-class-input" name="gustilo_class" class="form-control" required>
+                  <option value="GUSTILO_GRADE_III_SHEARING_DEGLOVING" selected>GUSTILO_GRADE_III_SHEARING_DEGLOVING (Gustilo Grade III Shearing / Degloving)</option>
+                  <option value="BIG_DOG_LITTLE_DOG_THORACIC_BITE_FLAIL">BIG_DOG_LITTLE_DOG_THORACIC_BITE_FLAIL (BDLD Crushing Thoracic Bite / Flail Chest)</option>
+                  <option value="GUSTILO_GRADE_I_II_OPEN_LONG_BONE_FRACTURE">GUSTILO_GRADE_I_II_OPEN_LONG_BONE_FRACTURE (Gustilo Grade I–II Open Long-Bone Fracture)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-att-score-input">Animal Trauma Triage (ATT) Score (0–18)</label>
+                <input type="number" id="create-att-score-input" name="animal_trauma_triage_score" class="form-control" min="0" max="18" step="1" value="8" required>
+              </div>
+              <div class="form-group">
+                <label for="create-lavage-input">Warm Isotonic 7–8 PSI Lavage Volume (mL)</label>
+                <input type="number" id="create-lavage-input" name="lavage_volume_ml" class="form-control" min="0" max="20000" step="100" value="1800" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-npwt-input">NPWT Vacuum Pressure (mmHg, 0 or -75 to -125)</label>
+                <input type="number" id="create-npwt-input" name="npwt_vacuum_mmhg" class="form-control" min="-250" max="0" step="5" value="0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-lactate-input">Blood Lactate (mmol/L)</label>
+                <input type="number" id="create-lactate-input" name="blood_lactate_mmol_l" class="form-control" min="0.5" max="20.0" step="0.1" value="3.9" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="create-toe-delta-input">Distal Toe-Web Temperature Delta ΔT (°C)</label>
+              <input type="number" id="create-toe-delta-input" name="distal_toe_temp_delta_c" class="form-control" min="0.0" max="10.0" step="0.1" value="1.6" required>
+            </div>
+
+            <div class="form-group ortho-checkbox-group">
+              <label class="ortho-checkbox-item">
+                <input type="checkbox" id="create-exposed-bone-checkbox" name="exposed_cortical_bone_tendon" checked>
+                <span>Exposed Cortical Bone / Stripped Periosteum or Sheared Collateral Tendon</span>
+              </label>
+              <label class="ortho-checkbox-item">
+                <input type="checkbox" id="create-thoracic-penetration-checkbox" name="thoracic_wall_penetration_suspected">
+                <span>BDLD Thoracic Wall Penetration / Intercostal Avulsion Suspected ("Iceberg Effect")</span>
+              </label>
+            </div>
+
+            <button type="submit" id="create-ortho-op-btn" class="btn btn-primary">➕ Admit Polytrauma / Open Fracture Patient</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active Polytrauma Ortho Workspace & Clinical Staging / Wound Check / Discharge Clearance Forms -->
+      <section class="glass-card trust-panel" id="ortho-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="ortho-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · Gustilo Class: <strong id="active-gustilo-class">{{ $active.GustiloClass }}</strong> · Exposed Bone/Tendon: <strong id="active-exposed-bone-flag">{{ if $active.ExposedCorticalBoneTendon }}YES{{ else }}NO{{ end }}</strong> · Thoracic Bite Penetration: <strong id="active-thoracic-bite-flag">{{ if $active.ThoracicWallPenetrationSuspected }}SUSPECTED{{ else }}NO{{ end }}</strong></p>
+          </div>
+          <span id="active-op-status-badge" class="ortho-status-badge {{ if eq (printf "%s" $active.Status) "ACUTE_OPEN_FRACTURE_DEGLOVING_TRIAGE" }}ortho-status-critical{{ else if eq (printf "%s" $active.Status) "LAVAGE_NPWT_ROBERT_JONES_SPLINT_STAGED" }}ortho-status-staged{{ else }}ortho-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- Polytrauma & Orthopedic Telemetry Bar -->
+        <div class="ortho-vitals-summary" id="active-vitals-summary">
+          <div class="ortho-vital-chip">
+            <span class="kpi-label">Animal Trauma Triage (ATT)</span>
+            <strong id="active-att-score">{{ $active.AnimalTraumaTriageScore }}/18</strong>
+          </div>
+          <div class="ortho-vital-chip">
+            <span class="kpi-label">7–8 PSI Lavage Volume</span>
+            <strong id="active-lavage-volume">{{ $active.LavageVolumeML }} mL</strong>
+          </div>
+          <div class="ortho-vital-chip">
+            <span class="kpi-label">NPWT Vacuum Pressure</span>
+            <strong id="active-npwt-vacuum">{{ $active.NPWTVacuumMmHg }} mmHg</strong>
+          </div>
+          <div class="ortho-vital-chip">
+            <span class="kpi-label">Blood Lactate / Toe ΔT</span>
+            <strong id="active-lactate-toe-delta">{{ printf "%.1f" $active.BloodLactateMmolL }} mmol/L / {{ printf "%.1f" $active.DistalToeTempDeltaC }}°C</strong>
+          </div>
+        </div>
+
+        <!-- Gustilo-Anderson & Wound Assessment Profile Box -->
+        <div class="ortho-plan-box" id="active-assessment-plan-box">
+          <h3>Gustilo-Anderson Open Fracture &amp; BDLD Wound Assessment Profile</h3>
+          <div class="ortho-plan-grid">
+            <div><strong>Gustilo Grade Pathophysiology:</strong> <span id="plan-gustilo-patho">{{ $active.AssessmentPlan.GustiloGradePathophysiology }}</span></div>
+            <div><strong>BDLD "Iceberg Effect" Dead-Space Alert:</strong> <span id="plan-iceberg-alert">{{ $active.AssessmentPlan.IcebergBiteDeadSpaceAlert }}</span></div>
+            <div><strong>7–8 PSI Pulsatile Lavage Note:</strong> <span id="plan-lavage-note">{{ $active.AssessmentPlan.HighPressureLavage7to8PSINote }}</span></div>
+            <div><strong>Primary Closure Contraindication:</strong> <span id="plan-closure-guard">{{ $active.AssessmentPlan.PrimaryClosureContraindication }}</span></div>
+            <div><strong>Joint-Above &amp; Joint-Below Splint Rule:</strong> <span id="plan-splint-rule">{{ $active.AssessmentPlan.JointAboveJointBelowSplintRule }}</span></div>
+            <div><strong>Distal Limb Neurovascular Note:</strong> <span id="plan-neurovasc-note">{{ $active.AssessmentPlan.VascularNeuroDistalLimbNote }}</span></div>
+          </div>
+        </div>
+
+        <!-- Debridement, NPWT & Orthopedic Fixation Protocol Box -->
+        <div class="ortho-plan-box" id="active-fixation-plan-box">
+          <h3>Sterile Gel Clip, 7–8 PSI Lavage, NPWT (-125 mmHg), Robert Jones Splint &amp; ESF Fixation Protocol</h3>
+          <div class="ortho-plan-grid">
+            <div><strong>Sterile Water-Soluble Gel &amp; Wide Clip Plan:</strong> <span id="plan-gel-clip">{{ $active.FixationPlan.SterileWaterSolubleGelClipPlan }}</span></div>
+            <div><strong>Copious 7–8 PSI Warm Isotonic Lavage Plan:</strong> <span id="plan-copious-lavage">{{ $active.FixationPlan.CopiousLavage35mLSyringe18GPlan }}</span></div>
+            <div><strong>NPWT (-125 mmHg) / Tie-Over Dressing Plan:</strong> <span id="plan-npwt-dressing">{{ $active.FixationPlan.NPWTVacuumOrTieOverDressingPlan }}</span></div>
+            <div><strong>Post-Lavage Culture &amp; Empiric Antimicrobials:</strong> <span id="plan-abx-culture">{{ $active.FixationPlan.EmpiricAbxCultureBeforeLavage }}</span></div>
+            <div><strong>Robert Jones / Spica Splint Plan:</strong> <span id="plan-robert-jones">{{ $active.FixationPlan.RobertJonesOrSpicaSplintPlan }}</span></div>
+            <div><strong>Definitive External Skeletal Fixator (ESF):</strong> <span id="plan-definitive-esf">{{ $active.FixationPlan.DefinitiveExternalSkeletalFixator }}</span></div>
+          </div>
+        </div>
+        {{ end }}
+
+        <hr class="ortho-divider">
+
+        <!-- 1. Stage 7-8 PSI Lavage, NPWT (-125 mmHg), Robert Jones Splint & ESF Fixation Form -->
+        <div class="trust-subsection" id="stage-fixation-section">
+          <h3>1. Stage Sterile Gel Clip, 7–8 PSI Warm LRS Lavage, NPWT (-125 mmHg) &amp; Robert Jones / ESF Fixation</h3>
+          <form id="stage-fixation-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="stage-gel-clip-input">Sterile Water-Soluble Gel (K-Y Jelly) Wound Packing &amp; Wide #40 Surgical Clip Plan</label>
+              <input
+                type="text"
+                id="stage-gel-clip-input"
+                name="sterile_water_soluble_gel_clip_plan"
+                class="form-control"
+                value="Pack open wound bed generously with sterile K-Y water-soluble lubricant prior to wide #40 blade hair clipping and chlorhexidine scrub"
+                required
+              >
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-lavage-plan-input">Copious 7–8 PSI Warm Isotonic LRS Lavage Plan (Avoid Cytotoxic Antiseptics)</label>
+                <input
+                  type="text"
+                  id="stage-lavage-plan-input"
+                  name="copious_lavage_35_ml_syringe_18g_plan"
+                  class="form-control"
+                  value="Copious 7–8 PSI warm isotonic LRS lavage (2,500 mL via 1 L bag in 300 mmHg pressure cuff + 18G needle) with staged sharp debridement"
+                  required
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-npwt-plan-input">NPWT Vacuum-Assisted Closure (-125 mmHg) / Tie-Over Dressing Plan</label>
+                <input
+                  type="text"
+                  id="stage-npwt-plan-input"
+                  name="npwt_vacuum_or_tie_over_dressing_plan"
+                  class="form-control"
+                  value="Apply NPWT open-pore polyurethane foam at -125 mmHg continuous vacuum (strictly avoid primary closure over contaminated shearing bed)"
+                  required
+                >
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-abx-culture-input">Deep Post-Lavage Tissue Culture &amp; Empiric IV Cefazolin Protocol</label>
+                <input
+                  type="text"
+                  id="stage-abx-culture-input"
+                  name="empiric_abx_culture_before_lavage"
+                  class="form-control"
+                  value="Deep tissue aerobic/anaerobic culture post-lavage + Cefazolin 22 mg/kg IV q8h + Enrofloxacin for polymicrobial flora"
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-splint-plan-input">Robert Jones / Spica Splint Plan (Joint Above &amp; Joint Below)</label>
+                <input
+                  type="text"
+                  id="stage-splint-plan-input"
+                  name="robert_jones_or_spica_splint_plan"
+                  class="form-control"
+                  value="Modified Robert Jones splint immobilizing the joint above and joint below the fracture site with distal digits 3 &amp; 4 exposed"
+                >
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="stage-esf-plan-input">Definitive Transarticular External Skeletal Fixator (ESF) &amp; Reconstruction Plan</label>
+              <input
+                type="text"
+                id="stage-esf-plan-input"
+                name="definitive_external_skeletal_fixator"
+                class="form-control"
+                value="Transarticular Type II External Skeletal Fixator (ESF) permitting open NPWT wound access until granulation bed supports mesh skin graft"
+              >
+            </div>
+            <button type="submit" id="stage-fixation-btn" class="btn btn-secondary">🦴 Stage 7–8 PSI Lavage / NPWT (-125 mmHg) / Robert Jones &amp; ESF Protocol</button>
+          </form>
+        </div>
+
+        <hr class="ortho-divider">
+
+        <!-- 2. Record Serial Orthopedic & Wound Check (ATT Score, Lavage Volume, NPWT, Lactate, Toe Temp Delta) Form -->
+        <div class="trust-subsection" id="record-wound-check-section">
+          <h3>2. Record Serial Orthopedic, NPWT &amp; Distal Limb Perfusion Check</h3>
+          <form id="record-wound-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-att-score-input">Animal Trauma Triage (ATT) Score (0–18)</label>
+                <input type="number" id="check-att-score-input" name="animal_trauma_triage_score" class="form-control" min="0" max="18" step="1" value="3" required>
+              </div>
+              <div class="form-group">
+                <label for="check-lavage-input">Cumulative 7–8 PSI Lavage Volume (mL)</label>
+                <input type="number" id="check-lavage-input" name="lavage_volume_ml" class="form-control" min="0" max="20000" step="100" value="3000" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-npwt-input">NPWT Vacuum Pressure (mmHg)</label>
+                <input type="number" id="check-npwt-input" name="npwt_vacuum_mmhg" class="form-control" min="-250" max="0" step="5" value="-125" required>
+              </div>
+              <div class="form-group">
+                <label for="check-lactate-input">Blood Lactate (mmol/L)</label>
+                <input type="number" id="check-lactate-input" name="blood_lactate_mmol_l" class="form-control" min="0.5" max="20.0" step="0.1" value="1.4" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-toe-delta-input">Distal Toe-Web Temp Delta ΔT (°C)</label>
+                <input type="number" id="check-toe-delta-input" name="distal_toe_temp_delta_c" class="form-control" min="0.0" max="10.0" step="0.1" value="0.3" required>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (Surgeon / Criticalist)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Caleb Thorne, DACVS (Orthopedics)" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-note-input">Clinical Granulation Bed, NPWT Seal &amp; Distal Limb Perfusion Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="72h post-7–8 PSI LRS lavage (3,000 mL), NPWT (-125 mmHg) &amp; transarticular ESF: healthy vascularized granulation tissue covering exposed bone, ATT score reduced to 3, Lactate 1.4 mmol/L, toe-web ΔT 0.3°C." required>
+            </div>
+            <button type="submit" id="record-wound-check-btn" class="btn btn-secondary">🩺 Record Orthopedic &amp; Wound Bed Check</button>
+          </form>
+
+          <div class="ortho-checks-box">
+            <h4>Serial Orthopedic &amp; Wound Bed Checks (<span id="wound-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.WoundChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="wound-checks-list" class="ortho-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.WoundChecks }}
+              <li class="ortho-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · ATT {{ $chk.AnimalTraumaTriageScore }}/18 · Lavage {{ $chk.LavageVolumeML }} mL · NPWT {{ $chk.NPWTVacuumMmHg }} mmHg · Lactate {{ printf "%.1f" $chk.BloodLactateMmolL }} mmol/L · Toe ΔT {{ printf "%.1f" $chk.DistalToeTempDeltaC }}°C — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="ortho-divider">
+
+        <!-- 3. Clear Polytrauma / Open Fracture Patient for Granulation & Fixation Stable Discharge Form -->
+        <div class="trust-subsection" id="clear-ortho-section">
+          <h3>3. Clear Granulation-Bed &amp; Orthopedic Fixation-Stable Patient for Step-Down / Discharge</h3>
+          <form id="clear-ortho-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="clear-discharged-by-input">Discharging Veterinary Orthopedic Surgeon / Criticalist</label>
+              <input type="text" id="clear-discharged-by-input" name="discharged_by" class="form-control" value="Dr. Caleb Thorne, DACVS (Orthopedics)" required>
+            </div>
+            <div class="form-group">
+              <label for="clear-summary-input">Granulation Bed, ESF/Splint Stability &amp; Distal Perfusion Clearance Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="discharge_summary"
+                class="form-control"
+                value="Healthy granulation bed established over exposed cortical bone after 3,000 mL 7–8 PSI warm LRS lavage and -125 mmHg NPWT, transarticular ESF stable, ATT score 3, Lactate 1.4 mmol/L, and warm distal digits (ΔT 0.3°C)."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-ortho-btn" class="btn btn-primary">🛡️ Clear Polytrauma &amp; Ortho Patient for Stable Fixation Discharge</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/polytrauma-orthopedic-triage.js" defer></script>
+</body>
+</html>
