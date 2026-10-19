@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Status Epilepticus, Cluster Seizures, Bromethalin/Metaldehyde Neuro-Tremor &amp; Levetiracetam/Propofol CRI Triage Cockpit.">
+  <title>Status Epilepticus, Cluster Seizures, Bromethalin/Metaldehyde Neuro-Tremor &amp; Levetiracetam/Propofol CRI Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#status-epilepticus-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/toxicology-poison-triage" class="nav-link nav-link-emergency" id="nav-toxicology-poison-triage">🧪 Poison Control Cockpit</a></li>
+          <li><a href="/status-epilepticus-triage" class="nav-link active nav-link-emergency" id="nav-status-epilepticus-triage">⚡ Status Epilepticus ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="status-epilepticus-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header epilepticus-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>⚡ STATUS EPILEPTICUS, CLUSTER SEIZURES, BROMETHALIN/METALDEHYDE NEURO-TREMOR &amp; LEVETIRACETAM/PROPOFOL CRI COCKPIT</span>
+        </div>
+        <h1>Status Epilepticus, Cluster Seizures, Bromethalin/Metaldehyde Neuro-Tremor &amp; Levetiracetam/Propofol CRI Cockpit</h1>
+        <p class="text-secondary">
+          First-Line Intranasal/IV Midazolam (0.2 mg/kg), Levetiracetam (Keppra 60 mg/kg IV Load), Phenobarbital Loading, Methocarbamol (55 mg/kg IV) for Metaldehyde Snail Bait &amp; Feline Permethrin Tremors, Mannitol (0.5 g/kg IV) for Bromethalin Cerebral Edema, Refractory Propofol CRI (0.1 mg/kg/min) &amp; Active Evaporative Cooling Cutoff at 103.0°F.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid epilepticus-kpi-grid" aria-label="Status Epilepticus &amp; Neuro ICU KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Neuro ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Active Ictal / Hyperthermia Critical</span>
+        <strong class="kpi-value" id="kpi-critical-ictal">{{ .ActiveIctalCriticalCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Midazolam / Keppra / CRI Staged</span>
+        <strong class="kpi-value" id="kpi-staged-cri">{{ .AnticonvulsantCRIStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">24h Seizure-Free Normothermic Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-normothermic">{{ .SeizureFreeClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Neurogenic Hyperthermia Alerts</span>
+        <strong class="kpi-value" id="kpi-hyperthermia-alerts">{{ .HyperthermiaAlertCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="epilepticus-live-status" class="humane-traps-live-status epilepticus-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} status epilepticus, cluster seizure &amp; neurotoxic tremor ICU operations.
+    </div>
+
+    <!-- Global Neurogenic Hyperthermia & Pitfall Alert Banner -->
+    <div id="epilepticus-alert-banner" class="epilepticus-alert-banner" role="alert" aria-live="assertive">
+      {{ if and .ActiveOperation .ActiveOperation.TitrationRegimen }}
+      ⚠️ NEUROGENIC HYPERTHERMIA &amp; ICTAL AIRWAY GUARD ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }} · {{ printf "%.1f" .ActiveOperation.PatientProfile.RectalTempFahrenheit }}°F · Stop Cooling at {{ printf "%.1f" .ActiveOperation.TitrationRegimen.StopCoolingThresholdTempF }}°F): {{ .ActiveOperation.TitrationRegimen.NeuroprotectionPitfallAlert }}
+      {{ else }}
+      ⚠️ CRITICAL NEUROPROTECTION PITFALL ALERT: NEVER place fingers or objects into an ictal animal's mouth; enforce ZERO oral administration while gag reflex is absent; NEVER use oral diazepam in cats (fulminant hepatic necrosis); and STOP active cooling at 103.0°F.
+      {{ end }}
+    </div>
+
+    <!-- Global 24h Seizure-Free Normothermic Clearance Banner -->
+    <div id="epilepticus-clearance-banner" class="epilepticus-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation .ActiveOperation.DischargeClearance) }}hidden{{ end }}>
+      {{ if and .ActiveOperation .ActiveOperation.DischargeClearance }}
+      ✅ SEIZURE-FREE 24H NORMOTHERMIC DISCHARGE CLEARANCE VERIFIED ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }}): {{ .ActiveOperation.DischargeClearance.SeizureFreeHours }}h Seizure-Free · Final Temp {{ printf "%.1f" .ActiveOperation.DischargeClearance.FinalRectalTempFahrenheit }}°F · MGCS {{ .ActiveOperation.DischargeClearance.FinalModifiedGlasgowScore }}/18 · Vet License {{ .ActiveOperation.DischargeClearance.VetLicense }} — {{ .ActiveOperation.DischargeClearance.Summary }}
+      {{ else }}
+      ✅ SEIZURE-FREE 24H NORMOTHERMIC DISCHARGE CLEARANCE VERIFIED
+      {{ end }}
+    </div>
+
+    <div class="trust-cockpit-grid epilepticus-cockpit-grid">
+      <!-- Left Column: Intake Form & Active Operation Titration / Serial Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="epilepticus-forms-panel" aria-labelledby="heading-epilepticus-intake">
+        <div class="trust-panel-header">
+          <h2 id="heading-epilepticus-intake">1. Status Epilepticus &amp; Neuro-Tremor Intake</h2>
+          <span class="status-pill status-pill-staged">Midazolam · Keppra · Propofol CRI</span>
+        </div>
+
+        <div id="epilepticus-error-banner" class="epilepticus-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="create-epilepticus-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-incident-id">Incident ID</label>
+              <input type="text" id="create-incident-id" name="incident_id" class="form-control" value="INC-SE-9204" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pet-name">Pet Name</label>
+              <input type="text" id="create-pet-name" name="pet_name" class="form-control" value="Nova" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-species">Species</label>
+              <select id="create-species" name="species" class="form-control" required>
+                <option value="CANINE" selected>CANINE (Dog)</option>
+                <option value="FELINE">FELINE (Cat — No Oral Diazepam)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-breed">Breed</label>
+              <input type="text" id="create-breed" name="breed" class="form-control" value="Belgian Malinois">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-weight-kg">Weight (kg)</label>
+              <input type="number" id="create-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="26.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-neuro-etiology">Neurological Etiology</label>
+              <select id="create-neuro-etiology" name="neuro_etiology" class="form-control" required>
+                <option value="IDIOPATHIC_STATUS_EPILEPTICUS">IDIOPATHIC_STATUS_EPILEPTICUS (Idiopathic / Cluster Status Epilepticus)</option>
+                <option value="METALDEHYDE_SNAIL_BAIT_TREMOR">METALDEHYDE_SNAIL_BAIT_TREMOR (Metaldehyde Snail Bait Shake &amp; Bake Tremor)</option>
+                <option value="PYRETHROID_FELINE_PERMETHRIN">PYRETHROID_FELINE_PERMETHRIN (Feline Canine-Spot-On Permethrin Neurotoxicosis)</option>
+                <option value="BROMETHALIN_CEREBRAL_EDEMA" selected>BROMETHALIN_CEREBRAL_EDEMA (Bromethalin Uncoupled Oxidative Phosphorylation Cerebral Edema)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-ictal-mins">Continuous Ictal Duration (Minutes)</label>
+              <input type="number" id="create-ictal-mins" name="continuous_ictal_minutes" class="form-control" min="0" max="1440" step="1" value="12" required>
+            </div>
+            <div class="form-group">
+              <label for="create-cluster-count">24-Hour Cluster Seizure Count</label>
+              <input type="number" id="create-cluster-count" name="cluster_count_24hr" class="form-control" min="0" max="100" step="1" value="4" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-rectal-temp">Rectal Temp (°F)</label>
+              <input type="number" id="create-rectal-temp" name="rectal_temp_fahrenheit" class="form-control" min="94.0" max="112.0" step="0.1" value="105.8" required>
+            </div>
+            <div class="form-group">
+              <label for="create-blood-glucose">Blood Glucose (mg/dL)</label>
+              <input type="number" id="create-blood-glucose" name="blood_glucose_mg_dl" class="form-control" min="15.0" max="500.0" step="1.0" value="58.0" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="create-mgcs">Modified Glasgow Coma Scale (MGCS 3–18)</label>
+            <input type="number" id="create-mgcs" name="modified_glasgow_coma_score" class="form-control" min="3" max="18" step="1" value="10" required>
+          </div>
+
+          <button type="submit" id="btn-create-epilepticus-op" class="btn btn-primary">Create Status Epilepticus Operation</button>
+        </form>
+
+        <hr class="epilepticus-divider">
+
+        <!-- Stage Anticonvulsant & CRI Titration Regimen Form -->
+        <div class="trust-subsection" id="stage-regimen-section">
+          <h3 id="heading-stage-regimen">2. Stage Anticonvulsant &amp; Propofol CRI Titration Regimen</h3>
+          <form id="stage-regimen-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-weight-kg">Weight (kg)</label>
+                <input type="number" id="stage-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.WeightKg }}{{ else }}24.0{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-neuro-etiology">Neuro Etiology</label>
+                <select id="stage-neuro-etiology" name="neuro_etiology" class="form-control" required>
+                  <option value="IDIOPATHIC_STATUS_EPILEPTICUS">IDIOPATHIC_STATUS_EPILEPTICUS</option>
+                  <option value="METALDEHYDE_SNAIL_BAIT_TREMOR">METALDEHYDE_SNAIL_BAIT_TREMOR</option>
+                  <option value="PYRETHROID_FELINE_PERMETHRIN">PYRETHROID_FELINE_PERMETHRIN</option>
+                  <option value="BROMETHALIN_CEREBRAL_EDEMA">BROMETHALIN_CEREBRAL_EDEMA</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-rectal-temp">Rectal Temp (°F)</label>
+                <input type="number" id="stage-rectal-temp" name="rectal_temp_fahrenheit" class="form-control" min="94.0" max="112.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.RectalTempFahrenheit }}{{ else }}106.4{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-mgcs">MGCS Score (3–18)</label>
+                <input type="number" id="stage-mgcs" name="modified_glasgow_coma_score" class="form-control" min="3" max="18" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.ModifiedGlasgowComaScore }}{{ else }}9{{ end }}" required>
+              </div>
+            </div>
+            <button type="submit" id="btn-stage-regimen" class="btn btn-secondary">⚡ Stage Midazolam / Keppra / Methocarbamol / CRI Regimen</button>
+          </form>
+        </div>
+
+        <hr class="epilepticus-divider">
+
+        <!-- Serial Neuro ICU Check Form -->
+        <div class="trust-subsection" id="neuro-check-section">
+          <h3 id="heading-neuro-check">3. Record Serial Neuro ICU Check</h3>
+          <form id="neuro-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-rectal-temp">Rectal Temp (°F)</label>
+                <input type="number" id="check-rectal-temp" name="rectal_temp_fahrenheit" class="form-control" min="94.0" max="112.0" step="0.1" value="101.8" required>
+              </div>
+              <div class="form-group">
+                <label for="check-mgcs">MGCS Score (3–18)</label>
+                <input type="number" id="check-mgcs" name="modified_glasgow_coma_score" class="form-control" min="3" max="18" step="1" value="16" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-plr">Pupillary Light Reflex (PLR)</label>
+                <select id="check-plr" name="pupillary_light_reflex" class="form-control" required>
+                  <option value="NORMAL_BILATERAL" selected>NORMAL_BILATERAL</option>
+                  <option value="MIOTIC_PINPOINT">MIOTIC_PINPOINT</option>
+                  <option value="ANISOCORIA_CUSHING_REFLEX">ANISOCORIA_CUSHING_REFLEX</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="check-blood-glucose">Blood Glucose (mg/dL)</label>
+                <input type="number" id="check-blood-glucose" name="blood_glucose_mg_dl" class="form-control" min="15.0" max="500.0" step="1.0" value="96.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-callsign">Clinician Callsign</label>
+                <input type="text" id="check-callsign" name="clinician_callsign" class="form-control" value="DR-NEURO-41" required>
+              </div>
+              <div class="form-group">
+                <label for="check-notes">ICU Serial Notes</label>
+                <input type="text" id="check-notes" name="notes" class="form-control" value="Cooling stopped at 103.0°F; normothermic 101.8°F; seizure activity resolved on Keppra + Midazolam.">
+              </div>
+            </div>
+            <label class="epilepticus-checkbox-item">
+              <input type="checkbox" id="check-seizure-observed" name="seizure_activity_observed">
+              <span>Breakthrough Seizure / Myoclonic Tremor Activity Observed</span>
+            </label>
+            <button type="submit" id="btn-record-neuro-check" class="btn btn-secondary">🩺 Log Serial Neuro ICU Check</button>
+          </form>
+        </div>
+
+        <hr class="epilepticus-divider">
+
+        <!-- Discharge Clearance Form -->
+        <div class="trust-subsection" id="discharge-clearance-section">
+          <h3 id="heading-discharge-clearance">4. Issue 24h Seizure-Free Normothermic Discharge Clearance</h3>
+          <form id="discharge-clearance-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-seizure-free-hours">Seizure-Free Duration (Hours ≥ 24)</label>
+                <input type="number" id="clearance-seizure-free-hours" name="seizure_free_hours" class="form-control" min="24" max="720" step="1" value="26" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-final-mgcs">Final MGCS Score (16–18)</label>
+                <input type="number" id="clearance-final-mgcs" name="final_modified_glasgow_score" class="form-control" min="16" max="18" step="1" value="18" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-final-temp">Final Rectal Temp (°F, 99.0–102.5)</label>
+                <input type="number" id="clearance-final-temp" name="final_rectal_temp_fahrenheit" class="form-control" min="99.0" max="102.5" step="0.1" value="101.2" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-vet-license">Attending Veterinarian License</label>
+                <input type="text" id="clearance-vet-license" name="vet_license" class="form-control" value="VET-NEURO-90411" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="clearance-summary">Discharge Summary &amp; Home Anticonvulsant Plan</label>
+              <input type="text" id="clearance-summary" name="summary" class="form-control" value="26h seizure-free normothermic recovery; MGCS 18/18; ambulatory &amp; bilateral menace intact; home intranasal midazolam rescue kit dispensed.">
+            </div>
+            <div class="epilepticus-checkbox-group">
+              <label class="epilepticus-checkbox-item">
+                <input type="checkbox" id="clearance-ambulatory-menace" name="ambulatory_menace_intact" checked>
+                <span>Ambulatory &amp; Bilateral Menace / Gag Reflex Intact</span>
+              </label>
+              <label class="epilepticus-checkbox-item">
+                <input type="checkbox" id="clearance-rescue-midazolam" name="rescue_intranasal_midazolam_dispensed" checked>
+                <span>Home Rescue Intranasal Midazolam Atomizer Dispensed &amp; Owner Trained</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-issue-discharge-clearance" class="btn btn-primary">🛡️ Issue 24h Seizure-Free Normothermic Clearance</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Queue -->
+      <section class="glass-card trust-panel" id="epilepticus-ops-panel" aria-labelledby="heading-epilepticus-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-epilepticus-ops">Active Status Epilepticus &amp; Neuro-Tremor Operations</h2>
+          <span id="epilepticus-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col epilepticus-filter-bar" role="region" aria-label="Filter Status Epilepticus Operations">
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="ACTIVE_ICTAL_HYPERTHERMIA_CRITICAL">ACTIVE_ICTAL_HYPERTHERMIA_CRITICAL</option>
+              <option value="MIDAZOLAM_KEPPRA_METHOCARBAMOL_STAGED">MIDAZOLAM_KEPPRA_METHOCARBAMOL_STAGED</option>
+              <option value="SEIZURE_FREE_24H_NORMOTHERMIC_CLEARED">SEIZURE_FREE_24H_NORMOTHERMIC_CLEARED</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-etiology">Filter by Neuro Etiology</label>
+            <select id="filter-etiology" class="form-control">
+              <option value="">All Neuro Etiologies</option>
+              <option value="IDIOPATHIC_STATUS_EPILEPTICUS">IDIOPATHIC_STATUS_EPILEPTICUS</option>
+              <option value="METALDEHYDE_SNAIL_BAIT_TREMOR">METALDEHYDE_SNAIL_BAIT_TREMOR</option>
+              <option value="PYRETHROID_FELINE_PERMETHRIN">PYRETHROID_FELINE_PERMETHRIN</option>
+              <option value="BROMETHALIN_CEREBRAL_EDEMA">BROMETHALIN_CEREBRAL_EDEMA</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="epilepticus-active-workspace" role="region" aria-label="Active Status Epilepticus Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="epilepticus-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-pet-title">Active Workspace: {{ $active.PetName }} ({{ $active.PatientProfile.Species }}{{ if $active.PatientProfile.Breed }} · {{ $active.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $active.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id" id="workspace-op-code">{{ $active.ID }} · {{ $active.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-etiology" id="workspace-etiology-pill">{{ $active.PatientProfile.NeuroEtiology }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $active.Status) "ACTIVE_ICTAL_HYPERTHERMIA_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $active.Status) "MIDAZOLAM_KEPPRA_METHOCARBAMOL_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}" id="workspace-status-pill">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="epilepticus-vitals-summary" id="workspace-vitals-summary">
+              <span><strong>Ictal Duration:</strong> {{ $active.PatientProfile.ContinuousIctalMinutes }} mins</span>
+              <span><strong>24h Clusters:</strong> {{ $active.PatientProfile.ClusterCount24Hr }}</span>
+              <span><strong>Rectal Temp:</strong> {{ printf "%.1f" $active.PatientProfile.RectalTempFahrenheit }}°F</span>
+              <span><strong>Blood Glucose:</strong> {{ printf "%.1f" $active.PatientProfile.BloodGlucoseMgDl }} mg/dL</span>
+              <span><strong>MGCS:</strong> {{ $active.PatientProfile.ModifiedGlasgowComaScore }}/18</span>
+            </div>
+
+            {{ if $active.TitrationRegimen }}
+            <div class="epilepticus-regimen-box" id="workspace-regimen-box">
+              <h4>Calculated Anticonvulsant, Muscle Relaxant &amp; Osmotherapy Titration Regimen</h4>
+              <div class="epilepticus-doses-grid">
+                <div><strong>Midazolam (0.2 mg/kg IV/IN):</strong> <span id="regimen-midazolam-mg">{{ printf "%.2f" $active.TitrationRegimen.MidazolamFirstLineBolusMg }} mg</span></div>
+                <div><strong>Levetiracetam Load (60 mg/kg IV):</strong> <span id="regimen-levetiracetam-mg">{{ printf "%.1f" $active.TitrationRegimen.LevetiracetamLoading60MgKgMg }} mg</span></div>
+                <div><strong>Phenobarbital Load (16 mg/kg):</strong> <span id="regimen-phenobarbital-mg">{{ printf "%.1f" $active.TitrationRegimen.PhenobarbitalLoadingDoseMg }} mg</span></div>
+                <div><strong>Methocarbamol (55 mg/kg IV):</strong> <span id="regimen-methocarbamol-mg">{{ printf "%.1f" $active.TitrationRegimen.Methocarbamol55MgKgDoseMg }} mg</span></div>
+                <div><strong>Mannitol (0.5 g/kg IV):</strong> <span id="regimen-mannitol-g">{{ printf "%.2f" $active.TitrationRegimen.Mannitol05GKgCerebralEdemaGrams }} g</span></div>
+                <div><strong>Propofol CRI Rate:</strong> <span id="regimen-propofol-cri">{{ printf "%.2f" $active.TitrationRegimen.PropofolCRIRateMgKgMin }} mg/kg/min</span></div>
+                <div><strong>Stop Active Cooling At:</strong> <span id="regimen-stop-cooling">{{ printf "%.1f" $active.TitrationRegimen.StopCoolingThresholdTempF }}°F</span></div>
+                <div><strong>Zero Oral Gag Guard:</strong> <span id="regimen-oral-guard">{{ if $active.TitrationRegimen.ZeroOralGagAspirationGuard }}ENFORCED{{ else }}OFF{{ end }}</span></div>
+              </div>
+              <p class="epilepticus-rationale-text" id="workspace-clinical-rationale">{{ $active.TitrationRegimen.ClinicalRationale }}</p>
+            </div>
+            {{ end }}
+
+            <div class="epilepticus-neuro-checks-box">
+              <h4>Serial Neuro ICU Checks (<span id="workspace-checks-count">{{ len $active.NeuroChecks }}</span>)</h4>
+              <ul id="neuro-checks-list" class="epilepticus-checks-list">
+                {{ range $chk := $active.NeuroChecks }}
+                <li class="epilepticus-check-item">
+                  <strong>{{ $chk.ClinicianCallsign }}</strong> · Temp {{ printf "%.1f" $chk.RectalTempFahrenheit }}°F · MGCS {{ $chk.ModifiedGlasgowComaScore }}/18 · PLR {{ $chk.PupillaryLightReflex }} · BG {{ printf "%.1f" $chk.BloodGlucoseMgDl }} mg/dL · {{ if $chk.SeizureActivityObserved }}ICTAL ACTIVITY{{ else }}SEIZURE-FREE{{ end }} — {{ $chk.Notes }}
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="epilepticus-operations-list" class="trust-screenings-list epilepticus-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card epilepticus-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-etiology="{{ $op.PatientProfile.NeuroEtiology }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.PatientProfile.Species }}{{ if $op.PatientProfile.Breed }} · {{ $op.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $op.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-etiology">{{ $op.PatientProfile.NeuroEtiology }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $op.Status) "ACTIVE_ICTAL_HYPERTHERMIA_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $op.Status) "MIDAZOLAM_KEPPRA_METHOCARBAMOL_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row epilepticus-metrics-row">
+              <span class="status-pill status-pill-etiology">Ictal: {{ $op.PatientProfile.ContinuousIctalMinutes }}m • Clusters: {{ $op.PatientProfile.ClusterCount24Hr }} • Temp: {{ printf "%.1f" $op.PatientProfile.RectalTempFahrenheit }}°F • BG: {{ printf "%.1f" $op.PatientProfile.BloodGlucoseMgDl }} mg/dL • MGCS: {{ $op.PatientProfile.ModifiedGlasgowComaScore }}/18</span>
+            </div>
+
+            {{ if $op.NeurogenicHyperthermiaAlert }}
+            <div class="epilepticus-alert-banner">
+              ⚠️ NEUROGENIC HYPERTHERMIA &amp; ICTAL AIRWAY ALERT ({{ printf "%.1f" $op.PatientProfile.RectalTempFahrenheit }}°F — Cease Active Cooling at 103.0°F): {{ if $op.TitrationRegimen }}{{ $op.TitrationRegimen.NeuroprotectionPitfallAlert }}{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if $op.DischargeClearance }}
+            <div class="epilepticus-clearance-banner">
+              ✅ 24H SEIZURE-FREE NORMOTHERMIC CLEARANCE ({{ $op.DischargeClearance.VetLicense }}): {{ $op.DischargeClearance.SeizureFreeHours }}h Seizure-Free · {{ printf "%.1f" $op.DischargeClearance.FinalRectalTempFahrenheit }}°F · MGCS {{ $op.DischargeClearance.FinalModifiedGlasgowScore }}/18
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary epilepticus-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select Operation ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="epilepticus-ops-empty-msg">No status epilepticus triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/status-epilepticus-triage.js" defer></script>
+</body>
+</html>
