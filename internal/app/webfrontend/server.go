@@ -51,6 +51,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/neonatalincubator"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/ophthalmicglobe"
+	"github.com/scottdensmore/petspotr/pkg/pancreatitiscpl"
 	"github.com/scottdensmore/petspotr/pkg/pericardialtamponade"
 	"github.com/scottdensmore/petspotr/pkg/pneumothorax"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
@@ -134,6 +135,7 @@ type Server struct {
 	recoverService            *recovercpr.RecoverService
 	ophthalmicService         *ophthalmicglobe.OphthalmicService
 	akiService                *akidialysis.AKIService
+	pancreatitisService       *pancreatitiscpl.PancreatitisService
 	handler                   http.Handler
 }
 
@@ -325,6 +327,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		tamponadeService:          pericardialtamponade.NewTamponadeService(),
 		imhaService:               imhathrombosis.NewIMHAService(),
 		peritonitisService:        septicperitonitis.NewPeritonitisService(),
+		pancreatitisService:       pancreatitiscpl.NewPancreatitisService(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -675,6 +678,8 @@ func (s *Server) routes() {
 	s.registerOphthalmicGlobeRoutes()
 	// Acute Kidney Injury (AKI), Lily/Ethylene Glycol/Grape Nephrotoxicity, Oliguria/Anuria & Furosemide/Diltiazem/Dialysis Cockpit routes (Milestone 21.5)
 	s.registerAKIDialysisRoutes()
+	// Acute Pancreatitis, Canine/Feline Spec cPL/fPL, POCUS Hypoechoic Pancreas/Hyperechoic Mesentery, Maropitant/Fuzapladib & Early Enteral Nutrition Cockpit routes (Milestone 22.4)
+	s.registerPancreatitisCPLRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
