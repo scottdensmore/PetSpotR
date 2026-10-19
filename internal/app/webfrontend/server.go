@@ -53,6 +53,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/neonatalincubator"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
+	"github.com/scottdensmore/petspotr/pkg/oncologictls"
 	"github.com/scottdensmore/petspotr/pkg/ophthalmicglobe"
 	"github.com/scottdensmore/petspotr/pkg/pancreatitiscpl"
 	"github.com/scottdensmore/petspotr/pkg/pericardialtamponade"
@@ -146,6 +147,7 @@ type Server struct {
 	dicService                *diccoagulopathy.DICService
 	pyometraService           *pyometrasirs.PyometraService
 	hepaticService            *hepaticencephalopathy.HepaticService
+	tlsService                *oncologictls.TLSService
 	handler                   http.Handler
 }
 
@@ -343,6 +345,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		hepaticService:            hepaticencephalopathy.NewHepaticService(),
 		dicService:                diccoagulopathy.NewDICService(),
 		pancreatitisService:       pancreatitiscpl.NewPancreatitisService(),
+		tlsService:                oncologictls.NewTLSService(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -705,6 +708,8 @@ func (s *Server) routes() {
 	s.registerPyometraSIRSRoutes()
 	// Acute Hepatic Failure, Hepatic Encephalopathy, Sago Palm (Cycad) / Amanita / Blue-Green Algae (Microcystin) Hepatotoxicity, N-Acetylcysteine (NAC) & Lactulose/Levetiracetam Cockpit routes (Milestone 23.2)
 	s.registerHepaticEncephalopathyRoutes()
+	// Acute Tumor Lysis Syndrome (TLS) & Oncologic Hypercalcemia of Malignancy, Hyperkalemia/Hyperphosphatemia/Hypocalcemia, Rasburicase/Allopurinol & Zoledronate/Saline Diuresis Cockpit routes (Milestone 23.4)
+	s.registerOncologicTLSRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

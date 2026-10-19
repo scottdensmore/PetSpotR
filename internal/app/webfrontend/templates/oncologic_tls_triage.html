@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Tumor Lysis Syndrome (TLS) &amp; Oncologic Hypercalcemia of Malignancy, Hyperkalemia/Hyperphosphatemia/Hypocalcemia, Rasburicase/Allopurinol &amp; Zoledronate/Saline Diuresis Cockpit.">
+  <title>Acute Tumor Lysis Syndrome (TLS) &amp; Oncologic Hypercalcemia of Malignancy, Hyperkalemia/Hyperphosphatemia/Hypocalcemia, Rasburicase/Allopurinol &amp; Zoledronate/Saline Diuresis Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#oncologic-tls-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/dic-coagulopathy-triage" class="nav-link nav-link-emergency" id="nav-dic-coagulopathy-triage">🧪 DIC &amp; Coagulopathy ICU</a></li>
+          <li><a href="/oncologic-tls-triage" class="nav-link active nav-link-emergency" id="nav-oncologic-tls-triage">🧬 Oncologic TLS &amp; Hypercalcemia ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="oncologic-tls-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header tls-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🧬 ACUTE TUMOR LYSIS SYNDROME (TLS) &amp; ONCOLOGIC HYPERCALCEMIA OF MALIGNANCY COCKPIT</span>
+        </div>
+        <h1>Acute Tumor Lysis Syndrome (TLS) &amp; Oncologic Hypercalcemia of Malignancy, Hyperkalemia/Hyperphosphatemia/Hypocalcemia, Rasburicase/Allopurinol &amp; Zoledronate/Saline Diuresis Cockpit</h1>
+        <p class="text-secondary">
+          High-Grade Lymphoma / Acute Leukemia Tumor Lysis Syndrome (TLS) &amp; Paraneoplastic PTHrP Hypercalcemia Triage, 0.9% NaCl Calcium-Free Saline Diuresis, Rasburicase (Recombinant Urate Oxidase) &amp; Allopurinol Urate Reduction, Zoledronate (0.25 mg/kg IV over 15m) &amp; Calcitonin Bisphosphonate Therapy, Strict Pre-Biopsy Glucocorticoid Contraindication (MDR1 Chemoresistance &amp; Lymphoma Masking) &amp; Sodium Bicarbonate Urine Alkalinization Guard.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid tls-kpi-grid" aria-label="Oncologic TLS &amp; Hypercalcemia KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Oncologic ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Acute TLS / Hypercalcemia Triage</span>
+        <strong class="kpi-value" id="kpi-acute-triage">{{ .AcuteMetabolicTriageCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Saline Diuresis / Rasburicase / Zoledronate Staged</span>
+        <strong class="kpi-value" id="kpi-diuresis-staged">{{ .DiuresisStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Electrolytes Normalized Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-normoelectrolytic">{{ .ClearedNormoelectrolyticCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Acute Tumor Lysis Syndrome (TLS)</span>
+        <strong class="kpi-value" id="kpi-tls-count">{{ .TumorLysisSyndromeCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Paraneoplastic Hypercalcemia (PTHrP)</span>
+        <strong class="kpi-value" id="kpi-hypercalcemia-count">{{ .HypercalcemiaMalignancyCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="tls-live-status" class="humane-traps-live-status tls-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Acute Tumor Lysis Syndrome (TLS) &amp; Oncologic Hypercalcemia ICU operations.
+    </div>
+
+    <!-- Global Oncologic TLS, Saline Diuresis, Rasburicase, Zoledronate, Pre-Biopsy Steroid & NaHCO3 Contraindication Alert Banner -->
+    <div id="tls-alert-banner" class="tls-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL ONCOLOGIC TLS &amp; HYPERCALCEMIA GUARD: (1) Initiate aggressive 0.9% NaCl Calcium-Free Diuresis (2–3× maintenance) to restore intravascular volume and promote calciuresis/kaliuresis/phosphaturia; (2) Administer Rasburicase (0.15–0.2 mg/kg IV) / Allopurinol (10 mg/kg PO q8–12h) for Urate Reduction in Acute Tumor Lysis Syndrome; (3) Administer Zoledronate 0.25 mg/kg IV over 15m + Furosemide ONLY AFTER Euvolemia is restored; (4) STRICT CONTRAINDICATION of Prednisone/Dexamethasone Prior to Lymph Node/Bone Marrow Cytology in Undiagnosed Hypercalcemia (Masking Lymphoma &amp; Inducing MDR1 P-Glycoprotein Chemoresistance); (5) Avoid Sodium Bicarbonate Urine Alkalinization in TLS (Precipitating Calcium Phosphate Renal Tubular Crystals when Ca x P &gt; 60–70).
+    </div>
+
+    <!-- Global Normoelectrolytic & Renal Protection Clearance Banner -->
+    <div id="tls-clearance-banner" class="tls-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "ELECTROLYTES_NORMALIZED_RENAL_PROTECTED_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ ELECTROLYTES NORMALIZED &amp; RENAL PROTECTION CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "ELECTROLYTES_NORMALIZED_RENAL_PROTECTED_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Discharged by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting normokalemia, normocalcemia, phosphorus reduction &amp; renal tubular stabilization.{{ end }}</span>
+    </div>
+
+    <div id="tls-error-banner" class="tls-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card tls-toolbar-card" aria-label="Oncologic TLS Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col tls-toolbar-row">
+        <div class="form-group">
+          <label for="tls-status-filter">Filter by Oncologic TLS / Hypercalcemia Status</label>
+          <select id="tls-status-filter" class="form-control">
+            <option value="">All Oncologic TLS &amp; Hypercalcemia Statuses</option>
+            <option value="ACUTE_TLS_HYPERCALCEMIA_METABOLIC_TRIAGE">ACUTE_TLS_HYPERCALCEMIA_METABOLIC_TRIAGE (Acute TLS / Hypercalcemia Metabolic Triage)</option>
+            <option value="SALINE_DIURESIS_RASBURICASE_ZOLEDRONATE_STAGED">SALINE_DIURESIS_RASBURICASE_ZOLEDRONATE_STAGED (0.9% NaCl / Rasburicase / Zoledronate Staged)</option>
+            <option value="ELECTROLYTES_NORMALIZED_RENAL_PROTECTED_CLEARED">ELECTROLYTES_NORMALIZED_RENAL_PROTECTED_CLEARED (Electrolytes Normalized Renal Protected Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group tls-sse-controls">
+          <span class="kpi-label">Live ICU Telemetry Stream</span>
+          <div class="tls-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live Oncologic TLS SSE Stream</button>
+            <span id="sse-status-badge" class="tls-status-badge tls-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid tls-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="tls-operations-panel" aria-labelledby="heading-tls-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-tls-ops">Active Oncologic TLS &amp; Hypercalcemia Operations</h2>
+          <span id="tls-ops-count-badge" class="tls-status-badge tls-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="tls-operations-grid" class="trust-screenings-list tls-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card tls-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-emergency-type="{{ $op.EmergencyType }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="tls-status-badge {{ if eq (printf "%s" $op.Status) "ACUTE_TLS_HYPERCALCEMIA_METABOLIC_TRIAGE" }}tls-status-critical{{ else if eq (printf "%s" $op.Status) "SALINE_DIURESIS_RASBURICASE_ZOLEDRONATE_STAGED" }}tls-status-staged{{ else }}tls-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="tls-card-metrics">
+              <span><strong>Emergency:</strong> {{ $op.EmergencyType }}</span>
+              <span><strong>K+:</strong> {{ printf "%.1f" $op.SerumPotassiumMmolL }} mmol/L</span>
+              <span><strong>Phosphorus:</strong> {{ printf "%.1f" $op.SerumPhosphorusMgDL }} mg/dL</span>
+              <span><strong>iCa:</strong> {{ printf "%.2f" $op.IonizedCalciumMmolL }} mmol/L</span>
+              <span><strong>Uric Acid:</strong> {{ printf "%.1f" $op.UricAcidMgDL }} mg/dL</span>
+              <span><strong>Creatinine:</strong> {{ printf "%.1f" $op.SerumCreatinineMgDL }} mg/dL</span>
+              <span><strong>Ca x P:</strong> {{ printf "%.1f" $op.CaXPProduct }}</span>
+              <span><strong>Cytology:</strong> {{ if $op.DefinitiveCytologyConfirmed }}Confirmed{{ else }}Pending (Hold Steroids){{ end }}</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary tls-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open TLS Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="tls-ops-empty-msg">No Oncologic TLS &amp; Hypercalcemia operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="tls-divider">
+
+        <!-- Admit New Oncologic TLS / Hypercalcemia Patient Form -->
+        <div class="trust-subsection" id="create-tls-section">
+          <h3 id="heading-create-tls">Admit New Oncologic TLS / Hypercalcemia Patient</h3>
+          <form id="create-tls-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-TLS-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Apollo" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species-input">Species</label>
+                <select id="create-species-input" name="species" class="form-control" required>
+                  <option value="Canine" selected>Canine</option>
+                  <option value="Feline">Feline</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed-input">Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="Golden Retriever" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="30.5" required>
+              </div>
+              <div class="form-group">
+                <label for="create-emergency-type-input">Oncologic Emergency Type</label>
+                <select id="create-emergency-type-input" name="emergency_type" class="form-control" required>
+                  <option value="ACUTE_TUMOR_LYSIS_SYNDROME_LYMPHOMA" selected>ACUTE_TUMOR_LYSIS_SYNDROME_LYMPHOMA (Acute Tumor Lysis Syndrome — Lymphoma)</option>
+                  <option value="PARANEOPLASTIC_HYPERCALCEMIA_PTHRP">PARANEOPLASTIC_HYPERCALCEMIA_PTHRP (Paraneoplastic Hypercalcemia — PTHrP)</option>
+                  <option value="FEBRILE_NEUTROPENIA_CHEMO_SEPSIS">FEBRILE_NEUTROPENIA_CHEMO_SEPSIS (Febrile Neutropenia / Chemo Sepsis)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-potassium-input">Serum Potassium K+ (mmol/L)</label>
+                <input type="number" id="create-potassium-input" name="serum_potassium_mmol_l" class="form-control" min="1.5" max="12.0" step="0.1" value="6.9" required>
+              </div>
+              <div class="form-group">
+                <label for="create-phosphorus-input">Serum Phosphorus (mg/dL)</label>
+                <input type="number" id="create-phosphorus-input" name="serum_phosphorus_mg_dl" class="form-control" min="1.0" max="30.0" step="0.1" value="10.8" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-ical-input">Ionized Calcium iCa (mmol/L)</label>
+                <input type="number" id="create-ical-input" name="ionized_calcium_mmol_l" class="form-control" min="0.30" max="3.50" step="0.01" value="0.82" required>
+              </div>
+              <div class="form-group">
+                <label for="create-uric-acid-input">Uric Acid (mg/dL)</label>
+                <input type="number" id="create-uric-acid-input" name="uric_acid_mg_dl" class="form-control" min="0.1" max="30.0" step="0.1" value="8.8" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-creatinine-input">Serum Creatinine (mg/dL)</label>
+                <input type="number" id="create-creatinine-input" name="serum_creatinine_mg_dl" class="form-control" min="0.2" max="20.0" step="0.1" value="2.8" required>
+              </div>
+              <div class="form-group">
+                <label for="create-caxp-input">Ca x P Product (mg²/dL²)</label>
+                <input type="number" id="create-caxp-input" name="ca_x_p_product" class="form-control" min="10.0" max="250.0" step="0.1" value="92.5" required>
+              </div>
+            </div>
+
+            <div class="form-group tls-checkbox-group">
+              <label class="tls-checkbox-item">
+                <input type="checkbox" id="create-cytology-checkbox" name="definitive_cytology_confirmed" checked>
+                <span>Definitive Lymph Node / Bone Marrow Cytology Confirmed (Safe to Administer Glucocorticoids)</span>
+              </label>
+            </div>
+
+            <button type="submit" id="create-tls-op-btn" class="btn btn-primary">➕ Admit Oncologic TLS / Hypercalcemia Patient</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active Oncologic TLS Workspace & Clinical Staging / Electrolyte Check / Discharge Clearance Forms -->
+      <section class="glass-card trust-panel" id="tls-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="tls-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · Emergency: <strong id="active-emergency-type">{{ $active.EmergencyType }}</strong> · Ca x P Product: <strong id="active-caxp-product">{{ printf "%.1f" $active.CaXPProduct }}</strong> · Cytology Confirmed: <strong id="active-cytology-flag">{{ if $active.DefinitiveCytologyConfirmed }}YES{{ else }}NO (HOLD STEROIDS){{ end }}</strong></p>
+          </div>
+          <span id="active-op-status-badge" class="tls-status-badge {{ if eq (printf "%s" $active.Status) "ACUTE_TLS_HYPERCALCEMIA_METABOLIC_TRIAGE" }}tls-status-critical{{ else if eq (printf "%s" $active.Status) "SALINE_DIURESIS_RASBURICASE_ZOLEDRONATE_STAGED" }}tls-status-staged{{ else }}tls-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- Electrolyte & Renal Telemetry Bar -->
+        <div class="tls-vitals-summary" id="active-vitals-summary">
+          <div class="tls-vital-chip">
+            <span class="kpi-label">Serum Potassium (K+)</span>
+            <strong id="active-potassium">{{ printf "%.1f" $active.SerumPotassiumMmolL }} mmol/L</strong>
+          </div>
+          <div class="tls-vital-chip">
+            <span class="kpi-label">Serum Phosphorus</span>
+            <strong id="active-phosphorus">{{ printf "%.1f" $active.SerumPhosphorusMgDL }} mg/dL</strong>
+          </div>
+          <div class="tls-vital-chip">
+            <span class="kpi-label">Ionized Calcium (iCa)</span>
+            <strong id="active-ionized-calcium">{{ printf "%.2f" $active.IonizedCalciumMmolL }} mmol/L</strong>
+          </div>
+          <div class="tls-vital-chip">
+            <span class="kpi-label">Uric Acid / Creatinine</span>
+            <strong id="active-uric-creatinine">{{ printf "%.1f" $active.UricAcidMgDL }} / {{ printf "%.1f" $active.SerumCreatinineMgDL }} mg/dL</strong>
+          </div>
+        </div>
+
+        <!-- Metabolic & Nephroprotection Profile Box -->
+        <div class="tls-plan-box" id="active-metabolic-plan-box">
+          <h3>Oncologic Metabolic &amp; Renal Nephroprotection Profile</h3>
+          <div class="tls-plan-grid">
+            <div><strong>Emergency Pathophysiology:</strong> <span id="plan-emergency-patho">{{ $active.MetabolicPlan.EmergencyPathophysiology }}</span></div>
+            <div><strong>Ca x P Product Mineralization Risk:</strong> <span id="plan-caxp-note">{{ $active.MetabolicPlan.CalciumPhosphorusProductNote }}</span></div>
+            <div><strong>Ionized Calcium / Potassium Alert:</strong> <span id="plan-ical-potassium-alert">{{ $active.MetabolicPlan.IonizedCalciumOrPotassiumAlert }}</span></div>
+            <div><strong>Pre-Biopsy Steroid Contraindication:</strong> <span id="plan-steroid-guard">{{ $active.MetabolicPlan.SteroidBeforeBiopsyContraindication }}</span></div>
+            <div><strong>Sodium Bicarbonate Urine Guard:</strong> <span id="plan-bicarb-note">{{ $active.MetabolicPlan.SodiumBicarbonateUrineNote }}</span></div>
+            <div><strong>Urate / Calcium-Phosphate Nephropathy Risk:</strong> <span id="plan-urate-risk">{{ $active.MetabolicPlan.UrateOxalateNephropathyRisk }}</span></div>
+          </div>
+        </div>
+
+        <!-- Diuresis, Rasburicase & Zoledronate Protocol Box -->
+        <div class="tls-plan-box" id="active-diuresis-plan-box">
+          <h3>0.9% NaCl Saline Diuresis, Rasburicase/Allopurinol &amp; Zoledronate Protocol</h3>
+          <div class="tls-plan-grid">
+            <div><strong>0.9% NaCl Calcium-Free Diuresis Plan:</strong> <span id="plan-saline-diuresis">{{ $active.DiuresisPlan.ZeroCalciumSalineDiuresisPlan }}</span></div>
+            <div><strong>Rasburicase / Allopurinol Protocol:</strong> <span id="plan-rasburicase-protocol">{{ $active.DiuresisPlan.RasburicaseAllopurinolProtocol }}</span></div>
+            <div><strong>Zoledronate / Calcitonin Protocol:</strong> <span id="plan-zoledronate-protocol">{{ $active.DiuresisPlan.ZoledronateCalcitoninProtocol }}</span></div>
+            <div><strong>Hyperkalemia Cardioprotection Plan:</strong> <span id="plan-cardioprotection">{{ $active.DiuresisPlan.HyperkalemiaCardioprotectionPlan }}</span></div>
+            <div><strong>Phosphate Binder / Loop Diuretic Plan:</strong> <span id="plan-binder-diuretic">{{ $active.DiuresisPlan.PhosphateBinderOrLoopDiuretic }}</span></div>
+            <div><strong>Serial Electrolyte &amp; ECG Schedule:</strong> <span id="plan-electrolyte-schedule">{{ $active.DiuresisPlan.SerialElectrolyteECGSchedule }}</span></div>
+          </div>
+        </div>
+        {{ end }}
+
+        <hr class="tls-divider">
+
+        <!-- 1. Stage 0.9% NaCl Diuresis, Rasburicase & Zoledronate Protocol Form -->
+        <div class="trust-subsection" id="stage-diuresis-section">
+          <h3>1. Stage 0.9% NaCl Calcium-Free Diuresis, Rasburicase/Allopurinol &amp; Zoledronate Protocol</h3>
+          <form id="stage-diuresis-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="stage-saline-plan-input">0.9% NaCl Calcium-Free Saline Diuresis Plan (2–3× Maintenance)</label>
+              <input
+                type="text"
+                id="stage-saline-plan-input"
+                name="zero_calcium_saline_diuresis_plan"
+                class="form-control"
+                value="0.9% NaCl Calcium-Free IV Diuresis at 150 mL/hr (2.5× maintenance) to restore intravascular volume and promote calciuresis/kaliuresis/phosphaturia"
+                required
+              >
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-rasburicase-input">Rasburicase (0.2 mg/kg IV) &amp; Allopurinol Urate Reduction Protocol</label>
+                <input
+                  type="text"
+                  id="stage-rasburicase-input"
+                  name="rasburicase_allopurinol_protocol"
+                  class="form-control"
+                  value="Rasburicase (Recombinant Urate Oxidase) 0.2 mg/kg IV over 30 min + Allopurinol 10 mg/kg PO q8h for rapid uric acid conversion to allantoin"
+                  required
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-zoledronate-input">Zoledronate (0.25 mg/kg IV over 15m) &amp; Calcitonin Protocol</label>
+                <input
+                  type="text"
+                  id="stage-zoledronate-input"
+                  name="zoledronate_calcitonin_protocol"
+                  class="form-control"
+                  value="Zoledronate 0.25 mg/kg IV over 15 min + Calcitonin 4–6 IU/kg SC q8–12h; strictly withhold Prednisone prior to definitive cytology"
+                  required
+                >
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-cardioprotection-input">Hyperkalemia Cardioprotection &amp; Insulin/Dextrose Plan</label>
+                <input
+                  type="text"
+                  id="stage-cardioprotection-input"
+                  name="hyperkalemia_cardioprotection_plan"
+                  class="form-control"
+                  value="Regular Insulin 0.5 U/kg IV + Dextrose 2 g/U Insulin for K+ > 6.5 mmol/L; avoid NaHCO3 urinary alkalinization"
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-binder-diuretic-input">Furosemide (Post-Euvolemia Only) &amp; Enteral Phosphate Binder</label>
+                <input
+                  type="text"
+                  id="stage-binder-diuretic-input"
+                  name="phosphate_binder_or_loop_diuretic"
+                  class="form-control"
+                  value="Furosemide 2 mg/kg IV q8–12h ONLY AFTER full euvolemia + Aluminum Hydroxide 60 mg/kg/day PO for hyperphosphatemia"
+                >
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="stage-electrolyte-schedule-input">Serial Electrolyte, Ionized Calcium &amp; ECG Monitoring Schedule</label>
+              <input
+                type="text"
+                id="stage-electrolyte-schedule-input"
+                name="serial_electrolyte_ecg_schedule"
+                class="form-control"
+                value="Recheck Serum K+, Phosphorus, Ionized Calcium (iCa), Uric Acid, Creatinine, Urine Output (> 2 mL/kg/hr) &amp; Lead II ECG q4h"
+              >
+            </div>
+            <button type="submit" id="stage-diuresis-btn" class="btn btn-secondary">💧 Stage 0.9% NaCl Diuresis / Rasburicase / Zoledronate Protocol</button>
+          </form>
+        </div>
+
+        <hr class="tls-divider">
+
+        <!-- 2. Record Serial Electrolyte & Renal Panel (K+, Phosphorus, iCa, Uric Acid, Creatinine) Check Form -->
+        <div class="trust-subsection" id="record-electrolyte-check-section">
+          <h3>2. Record Serial Electrolyte &amp; Renal Panel (K+, Phosphorus, iCa, Uric Acid &amp; Creatinine) Check</h3>
+          <form id="record-electrolyte-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-potassium-input">Serum Potassium K+ (mmol/L)</label>
+                <input type="number" id="check-potassium-input" name="serum_potassium_mmol_l" class="form-control" min="1.5" max="12.0" step="0.1" value="4.4" required>
+              </div>
+              <div class="form-group">
+                <label for="check-phosphorus-input">Serum Phosphorus (mg/dL)</label>
+                <input type="number" id="check-phosphorus-input" name="serum_phosphorus_mg_dl" class="form-control" min="1.0" max="30.0" step="0.1" value="4.6" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-ical-input">Ionized Calcium iCa (mmol/L)</label>
+                <input type="number" id="check-ical-input" name="ionized_calcium_mmol_l" class="form-control" min="0.30" max="3.50" step="0.01" value="1.24" required>
+              </div>
+              <div class="form-group">
+                <label for="check-uric-acid-input">Uric Acid (mg/dL)</label>
+                <input type="number" id="check-uric-acid-input" name="uric_acid_mg_dl" class="form-control" min="0.1" max="30.0" step="0.1" value="1.6" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-creatinine-input">Serum Creatinine (mg/dL)</label>
+                <input type="number" id="check-creatinine-input" name="serum_creatinine_mg_dl" class="form-control" min="0.2" max="20.0" step="0.1" value="1.3" required>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (Clinician)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Soren Lindqvist, DACVIM (Oncology)" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-note-input">Clinical Electrolyte, ECG &amp; Renal Diuresis Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="Post-0.9% NaCl diuresis, Rasburicase &amp; Zoledronate: K+ normalized to 4.4 mmol/L, Phosphorus reduced to 4.6 mg/dL, iCa stabilized at 1.24 mmol/L, Uric Acid 1.6 mg/dL, Creatinine 1.3 mg/dL." required>
+            </div>
+            <button type="submit" id="record-electrolyte-check-btn" class="btn btn-secondary">🧪 Record Electrolyte &amp; Renal Check</button>
+          </form>
+
+          <div class="tls-checks-box">
+            <h4>Serial Electrolyte &amp; Renal Panel Checks (<span id="electrolyte-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.ElectrolyteChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="electrolyte-checks-list" class="tls-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.ElectrolyteChecks }}
+              <li class="tls-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · K+ {{ printf "%.1f" $chk.SerumPotassiumMmolL }} mmol/L · Phosphorus {{ printf "%.1f" $chk.SerumPhosphorusMgDL }} mg/dL · iCa {{ printf "%.2f" $chk.IonizedCalciumMmolL }} mmol/L · Uric Acid {{ printf "%.1f" $chk.UricAcidMgDL }} mg/dL · Creatinine {{ printf "%.1f" $chk.SerumCreatinineMgDL }} mg/dL — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="tls-divider">
+
+        <!-- 3. Clear Oncologic TLS / Hypercalcemia Operation for Normoelectrolytic & Renal Protected Discharge Form -->
+        <div class="trust-subsection" id="clear-tls-section">
+          <h3>3. Clear Normoelectrolytic &amp; Renal-Protected Patient for Oncology Ward / Discharge</h3>
+          <form id="clear-tls-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="clear-discharged-by-input">Discharging Medical Oncologist / Criticalist</label>
+              <input type="text" id="clear-discharged-by-input" name="discharged_by" class="form-control" value="Dr. Soren Lindqvist, DACVIM (Oncology)" required>
+            </div>
+            <div class="form-group">
+              <label for="clear-summary-input">Normoelectrolytic &amp; Renal Protection Clearance Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="discharge_summary"
+                class="form-control"
+                value="Hyperkalemia and hyperphosphatemia resolved (K+ 4.4 mmol/L, Phosphorus 4.6 mg/dL), ionized calcium normalized (iCa 1.24 mmol/L), uric acid cleared (1.6 mg/dL), and renal function protected (Creatinine 1.3 mg/dL)."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-tls-btn" class="btn btn-primary">🛡️ Clear Oncologic TLS Patient for Normoelectrolytic Discharge</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/oncologic-tls-triage.js" defer></script>
+</body>
+</html>
