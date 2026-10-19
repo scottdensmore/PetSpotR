@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Traumatic Brain Injury (TBI), Modified Glasgow Coma Scale (MGCS), Cushing's Reflex &amp; Hypertonic Saline/Mannitol Triage Cockpit.">
+  <title>Traumatic Brain Injury (TBI), Modified Glasgow Coma Scale (MGCS), Cushing's Reflex &amp; Hypertonic Saline/Mannitol Triage Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#traumatic-brain-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/status-epilepticus-triage" class="nav-link nav-link-emergency" id="nav-status-epilepticus-triage">⚡ Status Epilepticus ICU</a></li>
+          <li><a href="/traumatic-brain-triage" class="nav-link active nav-link-emergency" id="nav-traumatic-brain-triage">🧠 Traumatic Brain ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="traumatic-brain-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header tbi-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🧠 TRAUMATIC BRAIN INJURY (TBI), MODIFIED GLASGOW COMA SCALE (MGCS), CUSHING'S REFLEX &amp; HYPERTONIC SALINE/MANNITOL COCKPIT</span>
+        </div>
+        <h1>Traumatic Brain Injury (TBI), Modified Glasgow Coma Scale (MGCS), Cushing's Reflex &amp; Hypertonic Saline/Mannitol Triage Cockpit</h1>
+        <p class="text-secondary">
+          Modified Glasgow Coma Scale (MGCS 3–18), Cushing's Reflex Detection (Systemic Hypertension + Reflex Bradycardia), 7.5% Hypertonic Saline (4.0 mL/kg Canine vs 2.0 mL/kg Feline IV over 15m), Mannitol 0.5 g/kg Slow IV via In-Line Filter (Normotensive MAP &ge; 80 mmHg Guard), 30&deg; Slant-Board Head Elevation (Zero Jugular Compression), Normocapnic EtCO2 (35–40 mmHg) &amp; Absolute Corticosteroid Contraindication Guard.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid tbi-kpi-grid" aria-label="Traumatic Brain Injury KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total TBI ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Cushing's Reflex / Herniation Critical</span>
+        <strong class="kpi-value" id="kpi-cushing-critical">{{ .CushingHerniationCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">7.5% HTS / Mannitol / 30&deg; Head Staged</span>
+        <strong class="kpi-value" id="kpi-staged-hts-mannitol">{{ .HypertonicMannitolStaged }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">MGCS Recovered / Normocapnic Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-mgcs">{{ .MGCSRecoveredClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Cushing's &amp; Steroid Contraindication Alerts</span>
+        <strong class="kpi-value" id="kpi-cushing-steroid-alerts">{{ .CushingSteroidAlertCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="tbi-live-status" class="humane-traps-live-status tbi-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} traumatic brain injury (TBI), MGCS &amp; hyperosmolar neuroprotection operations.
+    </div>
+
+    <!-- Global Cushing's Reflex, Jugular Outflow & Corticosteroid Contraindication Alert Banner -->
+    <div id="tbi-alert-banner" class="tbi-alert-banner" role="alert" aria-live="assertive">
+      {{ if and .ActiveOperation .ActiveOperation.NeuroprotectivePlan }}
+      ⚠️ CUSHING'S REFLEX, ICP HERNIATION &amp; STEROID CONTRAINDICATION GUARD ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }} · MGCS {{ .ActiveOperation.PatientProfile.ModifiedGlasgowComaScore }}/18 · MAP {{ .ActiveOperation.PatientProfile.MeanArterialPressureMmHg }} mmHg · HR {{ .ActiveOperation.PatientProfile.HeartRateBpm }} bpm · EtCO2 {{ printf "%.1f" .ActiveOperation.PatientProfile.EndTidalCO2MmHg }} mmHg · Head {{ .ActiveOperation.NeuroprotectivePlan.HeadElevationAngleDegrees }}&deg;): {{ .ActiveOperation.NeuroprotectivePlan.TBIPitfallAlert }}
+      {{ else }}
+      ⚠️ CRITICAL TBI, CUSHING'S REFLEX &amp; ICP HERNIATION PITFALL ALERT: NEVER administer corticosteroids (Dexamethasone/Prednisolone) in Traumatic Brain Injury (contraindicated per CRASH trial — increases mortality and hyperglycemia); NEVER compress external jugular veins or flex the neck; and NEVER give Mannitol to hypovolemic/hypotensive patients before restoring intravascular volume with 7.5% Hypertonic Saline.
+      {{ end }}
+    </div>
+
+    <!-- Global MGCS Recovery & Normocapnic Discharge Clearance Banner -->
+    <div id="tbi-clearance-banner" class="tbi-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation .ActiveOperation.DischargeClearance) }}hidden{{ end }}>
+      {{ if and .ActiveOperation .ActiveOperation.DischargeClearance }}
+      ✅ MGCS RECOVERED &amp; NORMOCAPNIC DISCHARGE CLEARANCE VERIFIED ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }}): Final MGCS {{ .ActiveOperation.DischargeClearance.FinalModifiedGlasgowScore }}/18 · Final MAP {{ .ActiveOperation.DischargeClearance.FinalMAPMmHg }} mmHg · Isocoric Responsive Pupils · Intact Gag/Swallow · Vet License {{ .ActiveOperation.DischargeClearance.VetLicense }} — {{ .ActiveOperation.DischargeClearance.Summary }}
+      {{ else }}
+      ✅ MGCS RECOVERED &amp; NORMOCAPNIC DISCHARGE CLEARANCE VERIFIED
+      {{ end }}
+    </div>
+
+    <div class="trust-cockpit-grid tbi-cockpit-grid">
+      <!-- Left Column: Intake Form & Active Operation Neuroprotective Plan / Serial Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="tbi-forms-panel" aria-labelledby="heading-tbi-intake">
+        <div class="trust-panel-header">
+          <h2 id="heading-tbi-intake">1. Traumatic Brain Injury (TBI) &amp; MGCS Intake</h2>
+          <span class="status-pill status-pill-staged">7.5% HTS · Mannitol · 30&deg; Slant Board</span>
+        </div>
+
+        <div id="tbi-error-banner" class="tbi-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="create-tbi-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-incident-id">Incident ID</label>
+              <input type="text" id="create-incident-id" name="incident_id" class="form-control" value="INC-TBI-9804" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pet-name">Pet Name</label>
+              <input type="text" id="create-pet-name" name="pet_name" class="form-control" value="Zephyr" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-species">TBI Mechanism &amp; Species Classification</label>
+              <select id="create-species" name="species" class="form-control" required>
+                <option value="CANINE_BLUNT_VEHICULAR_TBI" selected>CANINE_BLUNT_VEHICULAR_TBI (Canine Blunt Vehicular TBI — 7.5% HTS 4.0 mL/kg)</option>
+                <option value="CANINE_HIGH_VELOCITY_CRANIAL">CANINE_HIGH_VELOCITY_CRANIAL (Canine High-Velocity Cranial Trauma — 7.5% HTS 4.0 mL/kg)</option>
+                <option value="FELINE_MAXILLOFACIAL_CRANIAL_TRAUMA">FELINE_MAXILLOFACIAL_CRANIAL_TRAUMA (Feline Maxillofacial/Cranial Trauma — 7.5% HTS 2.0 mL/kg)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-breed">Breed</label>
+              <input type="text" id="create-breed" name="breed" class="form-control" value="Belgian Malinois">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-weight-kg">Weight (kg)</label>
+              <input type="number" id="create-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="29.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-mgcs">Modified Glasgow Coma Scale (MGCS 3–18)</label>
+              <input type="number" id="create-mgcs" name="modified_glasgow_coma_score" class="form-control" min="3" max="18" step="1" value="9" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-map-mmhg">Mean Arterial Pressure (MAP mmHg)</label>
+              <input type="number" id="create-map-mmhg" name="mean_arterial_pressure_mmhg" class="form-control" min="30" max="240" step="1" value="146" required>
+            </div>
+            <div class="form-group">
+              <label for="create-hr-bpm">Heart Rate (bpm)</label>
+              <input type="number" id="create-hr-bpm" name="heart_rate_bpm" class="form-control" min="20" max="300" step="1" value="48" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-etco2-mmhg">End-Tidal CO2 (EtCO2 mmHg)</label>
+              <input type="number" id="create-etco2-mmhg" name="end_tidal_co2_mmhg" class="form-control" min="15.0" max="90.0" step="0.5" value="46.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pupils">Pupillary Light Reflex (PLR) Status</label>
+              <select id="create-pupils" name="pupillary_status" class="form-control" required>
+                <option value="ANISOCORIA_UNILATERAL_MYDRIASIS" selected>ANISOCORIA_UNILATERAL_MYDRIASIS (Unilateral Mydriasis / Brainstem Compression)</option>
+                <option value="MIOTIC_PINPOINT_BILATERAL">MIOTIC_PINPOINT_BILATERAL (Bilateral Miotic / Forebrain Injury)</option>
+                <option value="RESPONSIVE_ISOCORIC">RESPONSIVE_ISOCORIC (Responsive Isocoric Normal PLRs)</option>
+              </select>
+            </div>
+          </div>
+
+          <label class="tbi-checkbox-item">
+            <input type="checkbox" id="create-cushing-reflex" name="cushing_reflex_present" checked>
+            <span>Cushing's Reflex Present (Systemic Hypertension + Reflex Bradycardia Indicating Impending Brainstem Herniation)</span>
+          </label>
+
+          <button type="submit" id="btn-create-tbi-op" class="btn btn-primary">Create Traumatic Brain Triage Operation</button>
+        </form>
+
+        <hr class="tbi-divider">
+
+        <!-- Stage 7.5% Hypertonic Saline, Mannitol & 30-Deg Head Elevation Plan Form -->
+        <div class="trust-subsection" id="stage-plan-section">
+          <h3 id="heading-stage-plan">2. Stage 7.5% Hypertonic Saline, Mannitol &amp; 30&deg; Slant-Board Neuroprotective Plan</h3>
+          <form id="stage-plan-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-weight-kg">Weight (kg)</label>
+                <input type="number" id="stage-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.WeightKg }}{{ else }}42.0{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-species">TBI Mechanism &amp; Species</label>
+                <select id="stage-species" name="species" class="form-control" required>
+                  <option value="CANINE_BLUNT_VEHICULAR_TBI">CANINE_BLUNT_VEHICULAR_TBI (4.0 mL/kg 7.5% HTS)</option>
+                  <option value="CANINE_HIGH_VELOCITY_CRANIAL">CANINE_HIGH_VELOCITY_CRANIAL (4.0 mL/kg 7.5% HTS)</option>
+                  <option value="FELINE_MAXILLOFACIAL_CRANIAL_TRAUMA">FELINE_MAXILLOFACIAL_CRANIAL_TRAUMA (2.0 mL/kg 7.5% HTS)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-mgcs">MGCS Score (3–18)</label>
+                <input type="number" id="stage-mgcs" name="modified_glasgow_coma_score" class="form-control" min="3" max="18" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.ModifiedGlasgowComaScore }}{{ else }}12{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-map-mmhg">MAP (mmHg, Target &ge; 80)</label>
+                <input type="number" id="stage-map-mmhg" name="mean_arterial_pressure_mmhg" class="form-control" min="30" max="240" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.MeanArterialPressureMmHg }}{{ else }}104{{ end }}" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-hr-bpm">Heart Rate (bpm)</label>
+                <input type="number" id="stage-hr-bpm" name="heart_rate_bpm" class="form-control" min="20" max="300" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.HeartRateBpm }}{{ else }}82{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-etco2-mmhg">EtCO2 (mmHg, Target 35–40)</label>
+                <input type="number" id="stage-etco2-mmhg" name="end_tidal_co2_mmhg" class="form-control" min="15.0" max="90.0" step="0.5" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.EndTidalCO2MmHg }}{{ else }}38.0{{ end }}" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="stage-pupils">Pupillary Light Reflex Status</label>
+              <select id="stage-pupils" name="pupillary_status" class="form-control" required>
+                <option value="ANISOCORIA_UNILATERAL_MYDRIASIS">ANISOCORIA_UNILATERAL_MYDRIASIS</option>
+                <option value="MIOTIC_PINPOINT_BILATERAL">MIOTIC_PINPOINT_BILATERAL</option>
+                <option value="RESPONSIVE_ISOCORIC">RESPONSIVE_ISOCORIC</option>
+              </select>
+            </div>
+            <button type="submit" id="btn-stage-plan" class="btn btn-secondary">🧠 Stage 7.5% HTS / Mannitol / 30&deg; Head Elevation Plan</button>
+          </form>
+        </div>
+
+        <hr class="tbi-divider">
+
+        <!-- Serial q30-60m MGCS, MAP, EtCO2 & Pupillary Check Form -->
+        <div class="trust-subsection" id="neuro-check-section">
+          <h3 id="heading-neuro-check">3. Record Serial MGCS, MAP, EtCO2 &amp; Pupillary Neuro Check</h3>
+          <form id="neuro-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-mgcs">MGCS Score (3–18)</label>
+                <input type="number" id="check-mgcs" name="modified_glasgow_coma_score" class="form-control" min="3" max="18" step="1" value="15" required>
+              </div>
+              <div class="form-group">
+                <label for="check-map-mmhg">Mean Arterial Pressure (MAP mmHg)</label>
+                <input type="number" id="check-map-mmhg" name="mean_arterial_pressure_mmhg" class="form-control" min="30" max="240" step="1" value="96" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-hr-bpm">Heart Rate (bpm)</label>
+                <input type="number" id="check-hr-bpm" name="heart_rate_bpm" class="form-control" min="20" max="300" step="1" value="88" required>
+              </div>
+              <div class="form-group">
+                <label for="check-etco2-mmhg">End-Tidal CO2 (mmHg)</label>
+                <input type="number" id="check-etco2-mmhg" name="end_tidal_co2_mmhg" class="form-control" min="15.0" max="90.0" step="0.5" value="37.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-pupils">Pupillary Status</label>
+                <select id="check-pupils" name="pupillary_status" class="form-control" required>
+                  <option value="RESPONSIVE_ISOCORIC" selected>RESPONSIVE_ISOCORIC</option>
+                  <option value="MIOTIC_PINPOINT_BILATERAL">MIOTIC_PINPOINT_BILATERAL</option>
+                  <option value="ANISOCORIA_UNILATERAL_MYDRIASIS">ANISOCORIA_UNILATERAL_MYDRIASIS</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="check-callsign">Clinician Callsign</label>
+                <input type="text" id="check-callsign" name="clinician_callsign" class="form-control" value="DR-NEURO-11" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-notes">Serial Neuro ICU &amp; PLR Notes</label>
+              <input type="text" id="check-notes" name="notes" class="form-control" value="Cushing's reflex resolved after 7.5% HTS + Mannitol; MGCS improved to 15/18; pupils isocoric; MAP 96 mmHg; EtCO2 37 mmHg.">
+            </div>
+            <button type="submit" id="btn-record-neuro-check" class="btn btn-secondary">🩺 Log Serial MGCS &amp; Neuro Check</button>
+          </form>
+        </div>
+
+        <hr class="tbi-divider">
+
+        <!-- Discharge Clearance Form -->
+        <div class="trust-subsection" id="discharge-clearance-section">
+          <h3 id="heading-discharge-clearance">4. Issue MGCS-Recovered &amp; Normocapnic Discharge Clearance</h3>
+          <form id="discharge-clearance-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-final-mgcs">Final MGCS Score (16–18)</label>
+                <input type="number" id="clearance-final-mgcs" name="final_modified_glasgow_score" class="form-control" min="16" max="18" step="1" value="17" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-final-map">Final MAP (mmHg, 80–120)</label>
+                <input type="number" id="clearance-final-map" name="final_map_mmhg" class="form-control" min="80" max="120" step="1" value="96" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-vet-license">Attending Veterinarian License</label>
+                <input type="text" id="clearance-vet-license" name="vet_license" class="form-control" value="VET-NEURO-98104" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-summary">Discharge Summary &amp; Neuro Recovery Plan</label>
+                <input type="text" id="clearance-summary" name="summary" class="form-control" value="MGCS recovered to 17/18; normotensive MAP 96 mmHg; responsive isocoric pupils; intact gag/swallow reflex; ambulatory normocapnic.">
+              </div>
+            </div>
+            <div class="tbi-checkbox-group">
+              <label class="tbi-checkbox-item">
+                <input type="checkbox" id="clearance-pupils-isocoric" name="pupils_isocoric_responsive" checked>
+                <span>Pupils Isocoric &amp; Briskly Responsive Bilaterally (Zero Anisocoria)</span>
+              </label>
+              <label class="tbi-checkbox-item">
+                <input type="checkbox" id="clearance-gag-reflex" name="gag_swallow_reflex_intact" checked>
+                <span>Gag &amp; Swallow Reflex Intact — Safe for Oral Water &amp; Nutrition</span>
+              </label>
+              <label class="tbi-checkbox-item">
+                <input type="checkbox" id="clearance-ambulatory-normocapnic" name="ambulatory_normocapnic_verified" checked>
+                <span>Ambulatory &amp; Normocapnic Verified (EtCO2 35–40 mmHg Without Hyperosmolar Rebound)</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-issue-discharge-clearance" class="btn btn-primary">🛡️ Issue MGCS-Recovered Normocapnic Clearance</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Queue -->
+      <section class="glass-card trust-panel" id="tbi-ops-panel" aria-labelledby="heading-tbi-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-tbi-ops">Active Traumatic Brain Injury (TBI) Operations</h2>
+          <span id="tbi-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col tbi-filter-bar" role="region" aria-label="Filter TBI Operations">
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="CUSHING_REFLEX_ICP_HERNIATION_CRITICAL">CUSHING_REFLEX_ICP_HERNIATION_CRITICAL</option>
+              <option value="HTS_MANNITOL_30DEG_HEAD_ELEVATION_STAGED">HTS_MANNITOL_30DEG_HEAD_ELEVATION_STAGED</option>
+              <option value="MGCS_RECOVERED_NORMOCAPNIC_CLEARED">MGCS_RECOVERED_NORMOCAPNIC_CLEARED</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-species">Filter by TBI Mechanism</label>
+            <select id="filter-species" class="form-control">
+              <option value="">All TBI Mechanisms</option>
+              <option value="CANINE_BLUNT_VEHICULAR_TBI">CANINE_BLUNT_VEHICULAR_TBI</option>
+              <option value="CANINE_HIGH_VELOCITY_CRANIAL">CANINE_HIGH_VELOCITY_CRANIAL</option>
+              <option value="FELINE_MAXILLOFACIAL_CRANIAL_TRAUMA">FELINE_MAXILLOFACIAL_CRANIAL_TRAUMA</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="tbi-active-workspace" role="region" aria-label="Active TBI Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="tbi-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-pet-title">Active Workspace: {{ $active.PetName }} ({{ $active.PatientProfile.Species }}{{ if $active.PatientProfile.Breed }} · {{ $active.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $active.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id" id="workspace-op-code">{{ $active.ID }} · {{ $active.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species" id="workspace-species-pill">{{ $active.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $active.Status) "CUSHING_REFLEX_ICP_HERNIATION_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $active.Status) "HTS_MANNITOL_30DEG_HEAD_ELEVATION_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}" id="workspace-status-pill">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="tbi-vitals-summary" id="workspace-vitals-summary">
+              <span><strong>MGCS:</strong> {{ $active.PatientProfile.ModifiedGlasgowComaScore }}/18</span>
+              <span><strong>MAP:</strong> {{ $active.PatientProfile.MeanArterialPressureMmHg }} mmHg</span>
+              <span><strong>HR:</strong> {{ $active.PatientProfile.HeartRateBpm }} bpm</span>
+              <span><strong>EtCO2:</strong> {{ printf "%.1f" $active.PatientProfile.EndTidalCO2MmHg }} mmHg</span>
+              <span><strong>Pupils:</strong> {{ $active.PatientProfile.PupillaryStatus }}</span>
+              <span><strong>Cushing's Reflex:</strong> {{ if $active.PatientProfile.CushingReflexPresent }}PRESENT{{ else }}ABSENT{{ end }}</span>
+            </div>
+
+            {{ if $active.NeuroprotectivePlan }}
+            <div class="tbi-plan-box" id="workspace-plan-box">
+              <h4>Calculated 7.5% Hypertonic Saline, Mannitol &amp; 30&deg; Slant-Board Neuroprotective Plan</h4>
+              <div class="tbi-doses-grid">
+                <div><strong>7.5% Hypertonic Saline:</strong> <span id="plan-hts-dose">{{ printf "%.1f" $active.NeuroprotectivePlan.HypertonicSaline75PctMlKg }} mL/kg ({{ printf "%.1f" $active.NeuroprotectivePlan.HypertonicSalineTotalDoseMl }} mL)</span></div>
+                <div><strong>Mannitol 0.5 g/kg Slow IV:</strong> <span id="plan-mannitol-grams">{{ printf "%.2f" $active.NeuroprotectivePlan.Mannitol05GKgSlow20MinGrams }} g (20m Filter)</span></div>
+                <div><strong>Slant-Board Head Elevation:</strong> <span id="plan-head-elevation">{{ $active.NeuroprotectivePlan.HeadElevationAngleDegrees }}&deg;</span></div>
+                <div><strong>Target Minimum MAP:</strong> <span id="plan-target-map">&ge; {{ $active.NeuroprotectivePlan.TargetMAPMinimumMmHg }} mmHg (CPP Guard)</span></div>
+                <div><strong>Target Normocapnic EtCO2:</strong> <span id="plan-target-etco2">{{ $active.NeuroprotectivePlan.TargetEtCO2RangeMmHg }}</span></div>
+                <div><strong>No Jugular / No Steroid Guard:</strong> <span id="plan-steroid-guard">{{ if $active.NeuroprotectivePlan.ZeroJugularCompressionCorticosteroidGuard }}ENFORCED{{ else }}OFF{{ end }}</span></div>
+              </div>
+              <p class="tbi-rationale-text" id="workspace-clinical-rationale">{{ $active.NeuroprotectivePlan.ClinicalRationale }}</p>
+            </div>
+            {{ end }}
+
+            <div class="tbi-neuro-checks-box">
+              <h4>Serial MGCS, MAP, EtCO2 &amp; Pupillary Checks (<span id="workspace-checks-count">{{ len $active.NeuroChecks }}</span>)</h4>
+              <ul id="neuro-checks-list" class="tbi-checks-list">
+                {{ range $chk := $active.NeuroChecks }}
+                <li class="tbi-check-item">
+                  <strong>{{ $chk.ClinicianCallsign }}</strong> · MGCS {{ $chk.ModifiedGlasgowComaScore }}/18 · MAP {{ $chk.MeanArterialPressureMmHg }} mmHg · HR {{ $chk.HeartRateBpm }} bpm · EtCO2 {{ printf "%.1f" $chk.EndTidalCO2MmHg }} mmHg · {{ $chk.PupillaryStatus }} — {{ $chk.Notes }}
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="tbi-operations-list" class="trust-screenings-list tbi-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card tbi-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-species="{{ $op.PatientProfile.Species }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.PatientProfile.Species }}{{ if $op.PatientProfile.Breed }} · {{ $op.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $op.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species">{{ $op.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $op.Status) "CUSHING_REFLEX_ICP_HERNIATION_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $op.Status) "HTS_MANNITOL_30DEG_HEAD_ELEVATION_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row tbi-metrics-row">
+              <span class="status-pill status-pill-species">MGCS: {{ $op.PatientProfile.ModifiedGlasgowComaScore }}/18 • MAP: {{ $op.PatientProfile.MeanArterialPressureMmHg }} mmHg • HR: {{ $op.PatientProfile.HeartRateBpm }} bpm • EtCO2: {{ printf "%.1f" $op.PatientProfile.EndTidalCO2MmHg }} mmHg • Pupils: {{ $op.PatientProfile.PupillaryStatus }}</span>
+            </div>
+
+            {{ if $op.CushingHerniationSteroidAlert }}
+            <div class="tbi-alert-banner">
+              ⚠️ CUSHING'S REFLEX &amp; ICP HERNIATION ALERT (MGCS {{ $op.PatientProfile.ModifiedGlasgowComaScore }}/18 · MAP {{ $op.PatientProfile.MeanArterialPressureMmHg }} mmHg · HR {{ $op.PatientProfile.HeartRateBpm }} bpm · 30&deg; Head Elevation): {{ if $op.NeuroprotectivePlan }}{{ $op.NeuroprotectivePlan.TBIPitfallAlert }}{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if $op.DischargeClearance }}
+            <div class="tbi-clearance-banner">
+              ✅ MGCS RECOVERED &amp; NORMOCAPNIC CLEARED ({{ $op.DischargeClearance.VetLicense }}): MGCS {{ $op.DischargeClearance.FinalModifiedGlasgowScore }}/18 · MAP {{ $op.DischargeClearance.FinalMAPMmHg }} mmHg · Isocoric Responsive Pupils
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary tbi-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select Operation ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="tbi-ops-empty-msg">No Traumatic Brain Injury (TBI) triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/traumatic-brain-triage.js" defer></script>
+</body>
+</html>

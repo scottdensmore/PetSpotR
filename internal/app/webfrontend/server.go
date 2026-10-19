@@ -58,6 +58,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/telemetry"
 	"github.com/scottdensmore/petspotr/pkg/toxicologypoison"
 	"github.com/scottdensmore/petspotr/pkg/transfusionbloodbank"
+	"github.com/scottdensmore/petspotr/pkg/traumaticbrain"
 	"github.com/scottdensmore/petspotr/pkg/urethralobstruction"
 	"github.com/scottdensmore/petspotr/pkg/usarcollapse"
 	"github.com/scottdensmore/petspotr/pkg/verticalrescue"
@@ -118,6 +119,7 @@ type Server struct {
 	hemoabdomenService        *hemoabdomen.HemoabdomenService
 	dkaService                *dkainsulin.DKAService
 	imhaService               *imhathrombosis.IMHAService
+	tbiService                *traumaticbrain.TBIService
 	handler                   http.Handler
 }
 
@@ -299,6 +301,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		epilepticusService:        statusepilepticus.NewEpilepticusService(),
 		hemoabdomenService:        hemoabdomen.NewHemoabdomenService(),
 		dkaService:                dkainsulin.NewDKAService(),
+		tbiService:                traumaticbrain.NewTBIService(),
 		imhaService:               imhathrombosis.NewIMHAService(),
 		peritonitisService:        septicperitonitis.NewPeritonitisService(),
 	}
@@ -635,6 +638,8 @@ func (s *Server) routes() {
 	s.registerDKAInsulinRoutes()
 	// Immune-Mediated Hemolytic Anemia (IMHA) & Thrombocytopenia (IMTP), Saline Agglutination, Spherocytosis & Thromboprophylaxis Cockpit routes (Milestone 20.5)
 	s.registerIMHAThrombosisRoutes()
+	// Traumatic Brain Injury (TBI), Modified Glasgow Coma Scale (MGCS), Cushing's Reflex & Hypertonic Saline/Mannitol Cockpit routes (Milestone 21.1)
+	s.registerTraumaticBrainRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
