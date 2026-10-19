@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Spinal Cord Injury, Intervertebral Disc Extrusion (IVDD), Deep Pain Nociception, Schiff-Sherrington Posture &amp; Hemilaminectomy Triage Cockpit.">
+  <title>Acute Spinal Cord Injury, Intervertebral Disc Extrusion (IVDD), Deep Pain Nociception, Schiff-Sherrington Posture &amp; Hemilaminectomy Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#spinal-ivdd-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/ophthalmic-globe-triage" class="nav-link nav-link-emergency" id="nav-ophthalmic-globe-triage">👁️ Ophthalmic ICU</a></li>
+          <li><a href="/spinal-ivdd-triage" class="nav-link active nav-link-emergency" id="nav-spinal-ivdd-triage">🦴 Spinal &amp; IVDD ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="spinal-ivdd-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header ivdd-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🦴 ACUTE SPINAL CORD INJURY, INTERVERTEBRAL DISC EXTRUSION (IVDD), DEEP PAIN NOCICEPTION, SCHIFF-SHERRINGTON POSTURE &amp; HEMILAMINECTOMY COCKPIT</span>
+        </div>
+        <h1>Acute Spinal Cord Injury, Intervertebral Disc Extrusion (IVDD), Deep Pain Nociception, Schiff-Sherrington Posture &amp; Hemilaminectomy Cockpit</h1>
+        <p class="text-secondary">
+          Modified Frankel Grading (Grade 5 Deep Pain Absent Emergency &lt; 12–24h Surgical Window), Conscious Cerebral Deep Pain Perception vs Local Spinal Flexor Withdrawal Reflex Differentiation, Schiff-Sherrington Border-Cell Disinhibition Posture, Serial Cutaneous Trunci (Panniculus) Cutoff Tracking for Ascending Hemorrhagic Myelomalacia, UMN vs LMN Neurogenic Bladder Management &amp; Absolute Steroid + NSAID GI Perforation Contraindication Guard.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid ivdd-kpi-grid" aria-label="Acute Spinal Cord Injury &amp; IVDD KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Spinal &amp; IVDD Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Acute Paraplegia Nociception Triage</span>
+        <strong class="kpi-value" id="kpi-acute-triage">{{ .AcuteParaplegiaTriageCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">CT-Myelogram / Hemilaminectomy Staged</span>
+        <strong class="kpi-value" id="kpi-staged-hemi">{{ .HemilaminectomyStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Post-Op Nociception &amp; Bladder Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-postop">{{ .ClearedPostopCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Grade 5 Deep Pain Absent Emergencies</span>
+        <strong class="kpi-value" id="kpi-deep-pain-absent">{{ .DeepPainAbsentEmergencyCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Schiff-Sherrington Posture Cases</span>
+        <strong class="kpi-value" id="kpi-schiff-sherrington">{{ .SchiffSherringtonCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status & SSE Control Bar -->
+    <div class="ivdd-toolbar-row">
+      <div id="ivdd-live-status" class="humane-traps-live-status ivdd-live-status" role="status" aria-live="polite">
+        Monitoring {{ .TotalOperations }} acute spinal cord injury, IVDD nociception &amp; hemilaminectomy operations.
+      </div>
+      <div class="ivdd-sse-controls">
+        <span id="sse-status-badge" class="ivdd-status-badge ivdd-status-staged">SSE Standby (Manual Connect)</span>
+        <button type="button" id="connect-sse-btn" class="btn btn-sm btn-secondary">📡 Connect Live Spinal Telemetry SSE</button>
+      </div>
+    </div>
+
+    <!-- Global Spinal Nociception, Schiff-Sherrington, Myelomalacia & Steroid/NSAID Contraindication Alert Banner -->
+    <div id="ivdd-alert-banner" class="ivdd-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL SPINAL CORD &amp; IVDD NOCICEPTION GUARD: (1) Local Spinal Withdrawal Reflex ≠ Conscious Deep Pain Perception (flexor withdrawal pulls the limb via local L4–S1 spinal arc without cerebral pain perception — require conscious head turn/vocalization on periosteal digit clamping); (2) Schiff-Sherrington Thoracic Limb Extensor Rigidity ≠ Prognostic Doom (reflects acute L1–L7 border-cell disinhibition, NOT irreversible cord transection when deep pain is evaluated); (3) Cranial Migration of Cutaneous Trunci (Panniculus) Cutoff = Ascending Hemorrhagic Myelomalacia Warning; (4) NEVER co-administer Corticosteroids (Dexamethasone/Prednisone) with NSAIDs (Meloxicam/Carprofen) — high risk of fatal GI ulceration and colonic perforation.
+    </div>
+
+    <!-- Global Post-Op Nociception Intact & Bladder Cleared Banner -->
+    <div id="ivdd-clearance-banner" class="ivdd-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "POSTOP_NOCICEPTION_INTACT_BLADDER_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ POST-OP NOCICEPTION INTACT &amp; NEUROGENIC BLADDER CLEARED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation .ActiveOperation.DischargeSummary }}{{ .ActiveOperation.DischargedBy }} — {{ .ActiveOperation.DischargeSummary }}{{ else }}Cleared for strict 4–6 week confined crate rest and neuro-rehabilitation.{{ end }}</span>
+    </div>
+
+    <div class="trust-cockpit-grid ivdd-cockpit-grid">
+      <!-- Left Column: Intake, Stage Decompression, Serial Neuro Check & Discharge Forms -->
+      <section class="glass-card trust-panel" id="ivdd-forms-panel" aria-labelledby="heading-ivdd-intake">
+        <div class="trust-panel-header">
+          <h2 id="heading-ivdd-intake">1. Acute Spinal Cord Injury &amp; IVDD Triage Intake</h2>
+          <span class="ivdd-status-badge ivdd-status-staged">Frankel Grade · Panniculus · MAP &ge; 85</span>
+        </div>
+
+        <div id="ivdd-error-banner" class="ivdd-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="create-ivdd-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-case-id-input">Case ID</label>
+              <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-IVDD-2234" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pet-name-input">Pet Name</label>
+              <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Waffles" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-species-input">Species</label>
+              <input type="text" id="create-species-input" name="species" class="form-control" value="Canine" required>
+            </div>
+            <div class="form-group">
+              <label for="create-breed-input">Breed</label>
+              <input type="text" id="create-breed-input" name="breed" class="form-control" value="Miniature Dachshund" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-weight-input">Weight (kg)</label>
+              <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="6.4" required>
+            </div>
+            <div class="form-group">
+              <label for="create-onset-input">Onset Duration (Hours)</label>
+              <input type="number" id="create-onset-input" name="onset_hours" class="form-control" min="0" max="720" step="0.5" value="3.5" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-frankel-input">Modified Frankel Grade</label>
+              <select id="create-frankel-input" name="frankel_grade" class="form-control" required>
+                <option value="GRADE_5_PARAPLEGIA_DEEP_PAIN_ABSENT" selected>GRADE_5_PARAPLEGIA_DEEP_PAIN_ABSENT (Paraplegia · Deep Pain Absent · &lt;12–24h Surgical Emergency)</option>
+                <option value="GRADE_4_PARAPLEGIA_DEEP_PAIN_INTACT">GRADE_4_PARAPLEGIA_DEEP_PAIN_INTACT (Paraplegia · Deep Pain Intact)</option>
+                <option value="GRADE_3_NON_AMBULATORY_PARAPARESIS">GRADE_3_NON_AMBULATORY_PARAPARESIS (Non-Ambulatory Paraparesis)</option>
+                <option value="GRADE_2_AMBULATORY_PARAPARESIS">GRADE_2_AMBULATORY_PARAPARESIS (Ambulatory Paraparesis &amp; Ataxia)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-zone-input">Neurolocalization Zone</label>
+              <select id="create-zone-input" name="localization_zone" class="form-control" required>
+                <option value="T3_L3_THORACOLUMBAR_UMN" selected>T3_L3_THORACOLUMBAR_UMN (Thoracolumbar T3–L3 UMN Pelvic &amp; UMN Bladder)</option>
+                <option value="L4_S3_LUMBOSACRAL_LMN">L4_S3_LUMBOSACRAL_LMN (Lumbosacral L4–S3 LMN Flaccid &amp; LMN Bladder)</option>
+                <option value="C1_C5_CERVICAL_TETRAPARESIS">C1_C5_CERVICAL_TETRAPARESIS (Cervical C1–C5 Tetraparesis / Ventral Slot)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-trunci-input">Cutaneous Trunci (Panniculus) Cutoff Vertebra</label>
+              <input type="text" id="create-trunci-input" name="cutaneous_trunci_vertebra" class="form-control" value="T13 (Caudal Absent)" required>
+            </div>
+            <div class="form-group">
+              <label for="create-prior-med-input">Prior Steroid or NSAID Exposure</label>
+              <input type="text" id="create-prior-med-input" name="prior_steroid_or_nsaid" class="form-control" value="Carprofen 2.2 mg/kg PO 4h ago — Steroids CONTRAINDICATED">
+            </div>
+          </div>
+
+          <div class="ivdd-checkbox-group">
+            <label class="ivdd-checkbox-item">
+              <input type="checkbox" id="create-deep-pain-input" name="deep_pain_present">
+              <span>Conscious Deep Pain Perception Present (Head Turn / Vocalization on Periosteal Digit Clamp)</span>
+            </label>
+            <label class="ivdd-checkbox-item">
+              <input type="checkbox" id="create-schiff-input" name="schiff_sherrington_present" checked>
+              <span>Schiff-Sherrington Thoracic Limb Extensor Rigidity Present (Acute L1–L7 Border-Cell Disinhibition)</span>
+            </label>
+          </div>
+
+          <button type="submit" id="create-ivdd-btn" class="btn btn-primary">Create Spinal &amp; IVDD Triage Operation</button>
+        </form>
+
+        <hr class="ivdd-divider">
+
+        <!-- Stage CT/MRI & Hemilaminectomy Decompression Form -->
+        <div class="trust-subsection" id="stage-decompression-section">
+          <h3 id="heading-stage-decompression">2. Stage 3D CT / MRI &amp; Hemilaminectomy Decompression</h3>
+          <form id="stage-decompression-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-window-input">Surgical Decompression Window Target</label>
+                <input type="text" id="stage-window-input" name="surgical_window_target" class="form-control" value="Emergent Decompression &lt; 12h (Grade 5 Deep Pain Absent); Target MAP &ge; 85 mmHg" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-imaging-input">Advanced Neuro-Imaging Modality</label>
+                <input type="text" id="stage-imaging-input" name="imaging_modality" class="form-control" value="High-Field 1.5T Thoracolumbar MRI + Helical CT" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-site-input">Hemilaminectomy / Ventral Slot Surgical Site</label>
+                <input type="text" id="stage-site-input" name="hemilaminectomy_site" class="form-control" value="Left T13–L1 Hemilaminectomy + Prophylactic L1–L2 Fenestration" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-bladder-input">Neurogenic Bladder Management Protocol</label>
+                <input type="text" id="stage-bladder-input" name="bladder_management_protocol" class="form-control" value="UMN Bladder: Prazosin 0.05 mg/kg PO q8h + Diazepam 0.2 mg/kg IV pre-expression q6h" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-analgesia-input">Multi-Modal Analgesia CRI Protocol</label>
+                <input type="text" id="stage-analgesia-input" name="analgesia_cri_protocol" class="form-control" value="Fentanyl CRI 3 mcg/kg/h + Ketamine CRI 2 mcg/kg/min + Gabapentin 10 mg/kg PO q8h (ZERO Steroids)" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-crate-rest-input">Strict Post-Op Crate Rest Protocol</label>
+                <input type="text" id="stage-crate-rest-input" name="strict_crate_rest_protocol" class="form-control" value="Strict 4–6 week confined crate rest, padded turning q4h, PROM physiotherapy, sling walks only" required>
+              </div>
+            </div>
+            <button type="submit" id="stage-decompression-btn" class="btn btn-secondary">🔬 Stage CT/MRI &amp; Hemilaminectomy Decompression</button>
+          </form>
+        </div>
+
+        <hr class="ivdd-divider">
+
+        <!-- Serial Neuro & Nociception Check Form -->
+        <div class="trust-subsection" id="record-neuro-check-section">
+          <h3 id="heading-record-neuro-check">3. Record Serial Nociception, Cutaneous Trunci &amp; Bladder Check</h3>
+          <form id="record-neuro-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="neuro-frankel-input">Modified Frankel Grade</label>
+                <select id="neuro-frankel-input" name="frankel_grade" class="form-control" required>
+                  <option value="GRADE_5_PARAPLEGIA_DEEP_PAIN_ABSENT">GRADE_5_PARAPLEGIA_DEEP_PAIN_ABSENT</option>
+                  <option value="GRADE_4_PARAPLEGIA_DEEP_PAIN_INTACT">GRADE_4_PARAPLEGIA_DEEP_PAIN_INTACT</option>
+                  <option value="GRADE_3_NON_AMBULATORY_PARAPARESIS" selected>GRADE_3_NON_AMBULATORY_PARAPARESIS</option>
+                  <option value="GRADE_2_AMBULATORY_PARAPARESIS">GRADE_2_AMBULATORY_PARAPARESIS</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="neuro-deep-pain-input">Conscious Deep Pain Perception Status</label>
+                <input type="text" id="neuro-deep-pain-input" name="deep_pain_status" class="form-control" value="Intact Bilaterally — Conscious Head Turn &amp; Vocalization Restored" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="neuro-trunci-input">Cutaneous Trunci (Panniculus) Cutoff Level</label>
+                <input type="text" id="neuro-trunci-input" name="cutaneous_trunci_level" class="form-control" value="L2 (Caudal Improvement — Zero Cranial Migration)" required>
+              </div>
+              <div class="form-group">
+                <label for="neuro-bladder-input">Neurogenic Bladder Tone &amp; Voiding Status</label>
+                <input type="text" id="neuro-bladder-input" name="bladder_tone_status" class="form-control" value="Normotonic Detrusor — Voluntary Voiding Stream Observed" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="neuro-recorded-by-input">Recorded By (Neurologist / ECC Clinician)</label>
+                <input type="text" id="neuro-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Elena Rostova, DACVIM (Neurology)" required>
+              </div>
+              <div class="form-group">
+                <label for="neuro-note-input">Clinical Neurological Note</label>
+                <input type="text" id="neuro-note-input" name="clinical_note" class="form-control" value="Post-hemilaminectomy decompression: conscious deep pain perception restored bilaterally; panniculus cutoff improved caudally to L2; Schiff-Sherrington resolved." required>
+              </div>
+            </div>
+            <button type="submit" id="record-neuro-check-btn" class="btn btn-secondary">🩺 Log Serial Nociception &amp; Cutaneous Trunci Check</button>
+          </form>
+        </div>
+
+        <hr class="ivdd-divider">
+
+        <!-- Clear Neurology & Bladder Discharge Form -->
+        <div class="trust-subsection" id="clear-ivdd-section">
+          <h3 id="heading-clear-ivdd">4. Clear Post-Op Nociception &amp; Bladder Recovery Discharge</h3>
+          <form id="clear-ivdd-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clear-discharged-by-input">Discharging Neurologist / Surgeon</label>
+                <input type="text" id="clear-discharged-by-input" name="discharged_by" class="form-control" value="Dr. Elena Rostova, DACVIM (Neurology)" required>
+              </div>
+              <div class="form-group">
+                <label for="clear-summary-input">Discharge Summary &amp; 4–6 Week Crate Rest Instructions</label>
+                <input type="text" id="clear-summary-input" name="discharge_summary" class="form-control" value="Post-op T13–L1 hemilaminectomy nociception intact bilaterally, voluntary urination verified, cleared for 4-week strict crate rest with zero steroid/NSAID overlap." required>
+              </div>
+            </div>
+            <button type="submit" id="clear-ivdd-btn" class="btn btn-primary">🛡️ Clear Post-Op Nociception &amp; Bladder Discharge</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Grid -->
+      <section class="glass-card trust-panel" id="ivdd-ops-panel" aria-labelledby="heading-ivdd-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-ivdd-ops">Active Spinal Cord Injury &amp; IVDD Operations</h2>
+          <span id="ivdd-ops-count-badge" class="ivdd-status-badge ivdd-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col ivdd-filter-bar" role="region" aria-label="Filter Spinal IVDD Operations">
+          <div class="form-group">
+            <label for="ivdd-status-filter">Filter by Spinal Triage Status</label>
+            <select id="ivdd-status-filter" class="form-control">
+              <option value="">All Spinal Triage Statuses</option>
+              <option value="ACUTE_PARAPLEGIA_NOCICEPTION_TRIAGE">ACUTE_PARAPLEGIA_NOCICEPTION_TRIAGE</option>
+              <option value="CT_MYELOGRAM_HEMILAMINECTOMY_STAGED">CT_MYELOGRAM_HEMILAMINECTOMY_STAGED</option>
+              <option value="POSTOP_NOCICEPTION_INTACT_BLADDER_CLEARED">POSTOP_NOCICEPTION_INTACT_BLADDER_CLEARED</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="ivdd-zone-filter">Filter by Neurolocalization Zone</label>
+            <select id="ivdd-zone-filter" class="form-control">
+              <option value="">All Neurolocalization Zones</option>
+              <option value="T3_L3_THORACOLUMBAR_UMN">T3_L3_THORACOLUMBAR_UMN</option>
+              <option value="L4_S3_LUMBOSACRAL_LMN">L4_S3_LUMBOSACRAL_LMN</option>
+              <option value="C1_C5_CERVICAL_TETRAPARESIS">C1_C5_CERVICAL_TETRAPARESIS</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="ivdd-active-workspace" class="ivdd-active-workspace" role="region" aria-label="Active Spinal IVDD Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="ivdd-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="active-op-title">{{ $active.PetName }} ({{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg · {{ $active.ID }})</strong>
+                <code class="trust-pet-id" id="active-op-case-id">{{ $active.ID }} · {{ $active.CaseID }} · {{ $active.LocalizationZone }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="ivdd-status-badge {{ if eq (printf "%s" $active.Status) "ACUTE_PARAPLEGIA_NOCICEPTION_TRIAGE" }}ivdd-status-critical{{ else if eq (printf "%s" $active.Status) "CT_MYELOGRAM_HEMILAMINECTOMY_STAGED" }}ivdd-status-staged{{ else }}ivdd-status-cleared{{ end }}" id="active-op-status-badge">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="ivdd-vitals-summary" id="workspace-vitals-summary">
+              <span><strong>Frankel Grade:</strong> <span id="active-frankel-grade">{{ $active.FrankelGrade }}</span></span>
+              <span><strong>Cutaneous Trunci Cutoff:</strong> <span id="active-cutaneous-trunci">{{ $active.CutaneousTrunciVertebra }}</span></span>
+              <span><strong>Deep Pain:</strong> <span id="active-deep-pain">{{ if $active.DeepPainPresent }}INTACT{{ else }}ABSENT (EMERGENCY){{ end }}</span></span>
+              <span><strong>Schiff-Sherrington:</strong> <span id="active-schiff-sherrington">{{ if $active.SchiffSherringtonPresent }}PRESENT{{ else }}ABSENT{{ end }}</span></span>
+              <span><strong>Target MAP:</strong> <span id="active-target-map">&ge; {{ $active.TargetMAPMmHg }} mmHg</span></span>
+              <span><strong>Prior Meds:</strong> <span id="active-prior-meds">{{ $active.PriorSteroidOrNSAID }}</span></span>
+            </div>
+
+            <div class="ivdd-plan-box" id="workspace-nociception-box">
+              <h4>Nociception, Withdrawal Reflex Differentiation, Myelomalacia &amp; Steroid/NSAID Washout Assessment</h4>
+              <div class="ivdd-doses-grid">
+                <div><strong>Deep Pain Perception:</strong> <span id="plan-deep-pain">{{ $active.NociceptionPlan.DeepPainPerception }}</span></div>
+                <div><strong>Withdrawal Reflex Note:</strong> <span id="plan-withdrawal-note">{{ $active.NociceptionPlan.WithdrawalReflexNote }}</span></div>
+                <div><strong>Schiff-Sherrington Posture:</strong> <span id="plan-schiff-note">{{ $active.NociceptionPlan.SchiffSherringtonPosture }}</span></div>
+                <div><strong>Cutaneous Trunci Cutoff:</strong> <span id="plan-trunci-cutoff">{{ $active.NociceptionPlan.CutaneousTrunciCutoff }}</span></div>
+                <div><strong>Myelomalacia Risk Guard:</strong> <span id="plan-myelomalacia-warning">{{ $active.NociceptionPlan.MyelomalaciaRiskWarning }}</span></div>
+                <div><strong>Steroid/NSAID Washout Alert:</strong> <span id="plan-washout-alert">{{ $active.NociceptionPlan.SteroidNSAIDWashoutAlert }}</span></div>
+              </div>
+            </div>
+
+            <div class="ivdd-plan-box" id="workspace-decompression-box">
+              <h4>Staged 3D CT/MRI, Hemilaminectomy, Neurogenic Bladder &amp; Crate Rest Plan</h4>
+              <div class="ivdd-doses-grid">
+                <div><strong>Surgical Window Target:</strong> <span id="plan-surgical-window">{{ $active.DecompressionPlan.SurgicalWindowTarget }}</span></div>
+                <div><strong>Imaging Modality:</strong> <span id="plan-imaging-modality">{{ $active.DecompressionPlan.ImagingModality }}</span></div>
+                <div><strong>Hemilaminectomy Site:</strong> <span id="plan-hemilaminectomy-site">{{ $active.DecompressionPlan.HemilaminectomySite }}</span></div>
+                <div><strong>Bladder Management:</strong> <span id="plan-bladder-protocol">{{ $active.DecompressionPlan.BladderManagementProtocol }}</span></div>
+                <div><strong>Analgesia CRI Protocol:</strong> <span id="plan-analgesia-protocol">{{ $active.DecompressionPlan.AnalgesiaCRIProtocol }}</span></div>
+                <div><strong>Strict Crate Rest:</strong> <span id="plan-crate-rest">{{ $active.DecompressionPlan.StrictCrateRestProtocol }}</span></div>
+              </div>
+            </div>
+
+            <div class="ivdd-neuro-checks-box">
+              <h4>Serial Nociception, Cutaneous Trunci &amp; Bladder Checks (<span id="workspace-checks-count">{{ len $active.NeuroChecks }}</span>)</h4>
+              <ul id="neuro-checks-list" class="ivdd-checks-list">
+                {{ range $chk := $active.NeuroChecks }}
+                <li class="ivdd-check-item">
+                  <strong>{{ $chk.ID }} · {{ $chk.RecordedBy }}</strong> · {{ $chk.FrankelGrade }} · Deep Pain: {{ $chk.DeepPainStatus }} · Trunci: {{ $chk.CutaneousTrunciLevel }} · Bladder: {{ $chk.BladderToneStatus }} — {{ $chk.ClinicalNote }}
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations Grid -->
+        <div id="ivdd-operations-grid" class="trust-screenings-list ivdd-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card ivdd-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-zone="{{ $op.LocalizationZone }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }} · {{ $op.LocalizationZone }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="ivdd-status-badge {{ if eq (printf "%s" $op.Status) "ACUTE_PARAPLEGIA_NOCICEPTION_TRIAGE" }}ivdd-status-critical{{ else if eq (printf "%s" $op.Status) "CT_MYELOGRAM_HEMILAMINECTOMY_STAGED" }}ivdd-status-staged{{ else }}ivdd-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row ivdd-metrics-row">
+              <span class="ivdd-status-badge ivdd-status-staged">Frankel: {{ $op.FrankelGrade }} • Cutaneous Trunci: {{ $op.CutaneousTrunciVertebra }} • Deep Pain: {{ if $op.DeepPainPresent }}INTACT{{ else }}ABSENT{{ end }} • Schiff-Sherrington: {{ if $op.SchiffSherringtonPresent }}YES{{ else }}NO{{ end }}</span>
+            </div>
+
+            {{ if or (not $op.DeepPainPresent) $op.SchiffSherringtonPresent }}
+            <div class="ivdd-alert-banner">
+              ⚠️ GRADE 5 NOCICEPTION &amp; WASHOUT GUARD ({{ $op.ID }} — {{ $op.PetName }}): Deep Pain {{ if $op.DeepPainPresent }}INTACT{{ else }}ABSENT (&lt;12h Window){{ end }} · Cutaneous Trunci {{ $op.CutaneousTrunciVertebra }} · {{ $op.PriorSteroidOrNSAID }}
+            </div>
+            {{ end }}
+
+            {{ if eq (printf "%s" $op.Status) "POSTOP_NOCICEPTION_INTACT_BLADDER_CLEARED" }}
+            <div class="ivdd-clearance-banner">
+              ✅ POST-OP NOCICEPTION &amp; BLADDER CLEARED ({{ $op.DischargedBy }}): {{ $op.DischargeSummary }}
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary ivdd-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select Operation ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="ivdd-ops-empty-msg">No Acute Spinal Cord Injury &amp; IVDD triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/spinal-ivdd-triage.js" defer></script>
+</body>
+</html>

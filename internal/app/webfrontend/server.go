@@ -61,6 +61,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/septicperitonitis"
 	"github.com/scottdensmore/petspotr/pkg/sms"
+	"github.com/scottdensmore/petspotr/pkg/spinalivdd"
 	"github.com/scottdensmore/petspotr/pkg/statusepilepticus"
 	"github.com/scottdensmore/petspotr/pkg/store"
 	"github.com/scottdensmore/petspotr/pkg/telemetry"
@@ -136,6 +137,7 @@ type Server struct {
 	ophthalmicService         *ophthalmicglobe.OphthalmicService
 	akiService                *akidialysis.AKIService
 	pancreatitisService       *pancreatitiscpl.PancreatitisService
+	spinalService             *spinalivdd.IVDDService
 	handler                   http.Handler
 }
 
@@ -327,6 +329,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		tamponadeService:          pericardialtamponade.NewTamponadeService(),
 		imhaService:               imhathrombosis.NewIMHAService(),
 		peritonitisService:        septicperitonitis.NewPeritonitisService(),
+		spinalService:             spinalivdd.NewIVDDService(),
 		pancreatitisService:       pancreatitiscpl.NewPancreatitisService(),
 	}
 	if s.smsWebhookSecret == "" {
@@ -680,6 +683,8 @@ func (s *Server) routes() {
 	s.registerAKIDialysisRoutes()
 	// Acute Pancreatitis, Canine/Feline Spec cPL/fPL, POCUS Hypoechoic Pancreas/Hyperechoic Mesentery, Maropitant/Fuzapladib & Early Enteral Nutrition Cockpit routes (Milestone 22.4)
 	s.registerPancreatitisCPLRoutes()
+	// Acute Spinal Cord Injury, Intervertebral Disc Extrusion (IVDD), Deep Pain Nociception, Schiff-Sherrington Posture & Hemilaminectomy Cockpit routes (Milestone 22.3)
+	s.registerSpinalIVDDRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
