@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Traumatic Hemoabdomen, Autotransfusion, Centesis Non-Clotting &amp; Norepinephrine/TXA Resuscitation Cockpit.">
+  <title>Acute Traumatic Hemoabdomen, Autotransfusion, Centesis Non-Clotting &amp; Norepinephrine/TXA Resuscitation Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#hemoabdomen-autotransfusion-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/hemoabdomen-autotransfusion-triage" class="nav-link active nav-link-emergency" id="nav-hemoabdomen-autotransfusion-triage">🩸 Hemoabdomen &amp; Autotransfusion ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="hemoabdomen-autotransfusion-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header hemoabdomen-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🩸 ACUTE TRAUMATIC HEMOABDOMEN, AUTOTRANSFUSION, CENTESIS NON-CLOTTING &amp; NOREPINEPHRINE/TXA RESUSCITATION COCKPIT</span>
+        </div>
+        <h1>Acute Traumatic Hemoabdomen, Autotransfusion, Centesis Non-Clotting &amp; Norepinephrine/TXA Resuscitation Cockpit</h1>
+        <p class="text-secondary">
+          AFAST Abdominal Fluid Score (AFS 0–4), Non-Clotting Abdominocentesis Verification, Permissive Hypotensive Resuscitation (Target MAP 65 mmHg), Conservative 10 mL/kg Crystalloid Aliquots, Tranexamic Acid (TXA 10 mg/kg IV Antifibrinolytic), Autologous Cell Salvage / Autotransfusion via 170–260 µm Filter, Norepinephrine CRI (0.1 mcg/kg/min) &amp; Zero Abdominal Compression Wrap Guard.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid hemoabdomen-kpi-grid" aria-label="Hemoabdomen &amp; Autotransfusion ICU KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Hemoabdomen Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Hemorrhagic Shock Critical</span>
+        <strong class="kpi-value" id="kpi-critical-shock">{{ .HemorrhagicShockCriticalCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Autotransfusion / TXA Staged</span>
+        <strong class="kpi-value" id="kpi-staged-autotransfusion">{{ .AutotransfusionTXAStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Hemostasis / Splenectomy Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-hemostasis">{{ .HemostasisClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Clot-Popping / Neoplasia Alerts</span>
+        <strong class="kpi-value" id="kpi-clot-neoplasia-alerts">{{ .ClotPoppingNeoplasiaAlertCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="hemoabdomen-live-status" class="humane-traps-live-status hemoabdomen-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} acute traumatic hemoabdomen, autotransfusion &amp; TXA resuscitation operations.
+    </div>
+
+    <!-- Global Clot-Popping, Abdominal Wrap & Neoplasia Pitfall Alert Banner -->
+    <div id="hemoabdomen-alert-banner" class="hemoabdomen-alert-banner" role="alert" aria-live="assertive">
+      {{ if and .ActiveOperation .ActiveOperation.ResuscitationPlan }}
+      ⚠️ PERMISSIVE HYPOTENSION &amp; AUTOTRANSFUSION GUARD ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }} · MAP {{ .ActiveOperation.PatientProfile.MeanArterialPressureMmHg }} mmHg · Target MAP {{ .ActiveOperation.ResuscitationPlan.PermissiveHypotensionTargetMAPMmHg }} mmHg · Filter {{ .ActiveOperation.ResuscitationPlan.MicronFilterSizeUm }} µm): {{ .ActiveOperation.ResuscitationPlan.HemoabdomenPitfallAlert }}
+      {{ else }}
+      ⚠️ CRITICAL HEMOABDOMEN RESUSCITATION PITFALL ALERT: NEVER administer full-shock 90 mL/kg crystalloid boluses (pops nascent clots via dilutional coagulopathy); enforce ZERO compressive abdominal wraps; and NEVER autotransfuse unverified neoplastic effusions or infuse shed blood without a 170–260 µm blood filter.
+      {{ end }}
+    </div>
+
+    <!-- Global Hemostasis & Splenectomy Normotensive Clearance Banner -->
+    <div id="hemoabdomen-clearance-banner" class="hemoabdomen-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation .ActiveOperation.HemostasisClearance) }}hidden{{ end }}>
+      {{ if and .ActiveOperation .ActiveOperation.HemostasisClearance }}
+      ✅ HEMOSTASIS &amp; NORMOTENSIVE CLEARANCE VERIFIED ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }}): Final MAP {{ .ActiveOperation.HemostasisClearance.FinalMAPMmHg }} mmHg · Final PCV {{ printf "%.1f" .ActiveOperation.HemostasisClearance.FinalPeripheralPCVPercent }}% · Lactate {{ printf "%.1f" .ActiveOperation.HemostasisClearance.FinalPlasmaLactateMmolL }} mmol/L · Vet License {{ .ActiveOperation.HemostasisClearance.VetLicense }} — {{ .ActiveOperation.HemostasisClearance.Summary }}
+      {{ else }}
+      ✅ HEMOSTASIS &amp; NORMOTENSIVE CLEARANCE VERIFIED
+      {{ end }}
+    </div>
+
+    <div class="trust-cockpit-grid hemoabdomen-cockpit-grid">
+      <!-- Left Column: Intake Form & Active Operation Resuscitation / Hemodynamic Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="hemoabdomen-forms-panel" aria-labelledby="heading-hemoabdomen-intake">
+        <div class="trust-panel-header">
+          <h2 id="heading-hemoabdomen-intake">1. Acute Hemoabdomen &amp; Abdominocentesis Intake</h2>
+          <span class="status-pill status-pill-staged">MAP 65 · TXA · 170 µm Filter</span>
+        </div>
+
+        <div id="hemoabdomen-error-banner" class="hemoabdomen-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="create-hemoabdomen-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-incident-id">Incident ID</label>
+              <input type="text" id="create-incident-id" name="incident_id" class="form-control" value="INC-HA-9404" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pet-name">Pet Name</label>
+              <input type="text" id="create-pet-name" name="pet_name" class="form-control" value="Titan" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-species">Presentation / Species Etiology</label>
+              <select id="create-species" name="species" class="form-control" required>
+                <option value="CANINE_BLUNT_TRAUMA_HEPATIC" selected>CANINE_BLUNT_TRAUMA_HEPATIC (Canine Blunt Hepatic/Splenic Trauma — Autotransfusion Candidate)</option>
+                <option value="CANINE_SPLENIC_HEMANGIOSARCOMA">CANINE_SPLENIC_HEMANGIOSARCOMA (Canine Ruptured Splenic Hemangiosarcoma — Neoplasia Alert)</option>
+                <option value="FELINE_RETROPERITONEAL_TRAUMA">FELINE_RETROPERITONEAL_TRAUMA (Feline Blunt Retroperitoneal / Pelvic Hemoabdomen)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-breed">Breed</label>
+              <input type="text" id="create-breed" name="breed" class="form-control" value="Rottweiler">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-weight-kg">Weight (kg)</label>
+              <input type="number" id="create-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="38.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-afast-score">AFAST Abdominal Fluid Score (AFS 0–4)</label>
+              <input type="number" id="create-afast-score" name="afast_afs4_score" class="form-control" min="0" max="4" step="1" value="4" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-effusion-pcv">Abdominocentesis Effusion PCV (%)</label>
+              <input type="number" id="create-effusion-pcv" name="effusion_pcv_percent" class="form-control" min="0.0" max="75.0" step="0.5" value="40.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-peripheral-pcv">Peripheral Venous PCV (%)</label>
+              <input type="number" id="create-peripheral-pcv" name="peripheral_pcv_percent" class="form-control" min="5.0" max="75.0" step="0.5" value="30.0" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-map-mmhg">Mean Arterial Pressure (MAP mmHg)</label>
+              <input type="number" id="create-map-mmhg" name="mean_arterial_pressure_mmhg" class="form-control" min="20" max="180" step="1" value="50" required>
+            </div>
+            <div class="form-group">
+              <label for="create-lactate">Plasma Lactate (mmol/L)</label>
+              <input type="number" id="create-lactate" name="plasma_lactate_mmol_l" class="form-control" min="0.5" max="25.0" step="0.1" value="6.8" required>
+            </div>
+          </div>
+
+          <div class="hemoabdomen-checkbox-group">
+            <label class="hemoabdomen-checkbox-item">
+              <input type="checkbox" id="create-non-clotting-verified" name="effusion_non_clotting_verified" checked>
+              <span>Abdominocentesis Effusion Verified Non-Clotting in Plain Tube (Defibrinated Peritoneal Blood, Not Splenic Puncture)</span>
+            </label>
+            <label class="hemoabdomen-checkbox-item">
+              <input type="checkbox" id="create-suspected-neoplasia" name="suspected_neoplasia">
+              <span>Suspected Splenic Hemangiosarcoma / Abdominal Neoplasia (Contraindicates Autotransfusion)</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-create-hemoabdomen-op" class="btn btn-primary">Create Hemoabdomen Triage Operation</button>
+        </form>
+
+        <hr class="hemoabdomen-divider">
+
+        <!-- Stage Permissive Hypotensive, TXA & Autotransfusion Resuscitation Plan Form -->
+        <div class="trust-subsection" id="stage-plan-section">
+          <h3 id="heading-stage-plan">2. Stage Permissive Hypotensive, TXA &amp; Autotransfusion Plan</h3>
+          <form id="stage-plan-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-weight-kg">Weight (kg)</label>
+                <input type="number" id="stage-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.WeightKg }}{{ else }}34.0{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-species">Presentation / Species Etiology</label>
+                <select id="stage-species" name="species" class="form-control" required>
+                  <option value="CANINE_BLUNT_TRAUMA_HEPATIC">CANINE_BLUNT_TRAUMA_HEPATIC</option>
+                  <option value="CANINE_SPLENIC_HEMANGIOSARCOMA">CANINE_SPLENIC_HEMANGIOSARCOMA</option>
+                  <option value="FELINE_RETROPERITONEAL_TRAUMA">FELINE_RETROPERITONEAL_TRAUMA</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-effusion-pcv">Effusion PCV (%)</label>
+                <input type="number" id="stage-effusion-pcv" name="effusion_pcv_percent" class="form-control" min="0.0" max="75.0" step="0.5" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.EffusionPCVPercent }}{{ else }}38.0{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-map-mmhg">Current MAP (mmHg)</label>
+                <input type="number" id="stage-map-mmhg" name="mean_arterial_pressure_mmhg" class="form-control" min="20" max="180" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.MeanArterialPressureMmHg }}{{ else }}48{{ end }}" required>
+              </div>
+            </div>
+            <div class="hemoabdomen-checkbox-group">
+              <label class="hemoabdomen-checkbox-item">
+                <input type="checkbox" id="stage-non-clotting-verified" name="effusion_non_clotting_verified" checked>
+                <span>Non-Clotting Abdominocentesis Effusion Verified</span>
+              </label>
+              <label class="hemoabdomen-checkbox-item">
+                <input type="checkbox" id="stage-suspected-neoplasia" name="suspected_neoplasia">
+                <span>Suspected Splenic Hemangiosarcoma / Neoplasia</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-stage-plan" class="btn btn-secondary">🩸 Stage Permissive Hypotension / TXA / Autotransfusion Plan</button>
+          </form>
+        </div>
+
+        <hr class="hemoabdomen-divider">
+
+        <!-- Serial Hemodynamic & Autotransfusion Check Form -->
+        <div class="trust-subsection" id="hemodynamic-check-section">
+          <h3 id="heading-hemodynamic-check">3. Record Serial Hemodynamic &amp; Autotransfusion Check</h3>
+          <form id="hemodynamic-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-map-mmhg">MAP (mmHg)</label>
+                <input type="number" id="check-map-mmhg" name="mean_arterial_pressure_mmhg" class="form-control" min="20" max="180" step="1" value="68" required>
+              </div>
+              <div class="form-group">
+                <label for="check-hr-bpm">Heart Rate (bpm)</label>
+                <input type="number" id="check-hr-bpm" name="heart_rate_bpm" class="form-control" min="30" max="300" step="1" value="118" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-peripheral-pcv">Peripheral PCV (%)</label>
+                <input type="number" id="check-peripheral-pcv" name="peripheral_pcv_percent" class="form-control" min="5.0" max="75.0" step="0.5" value="33.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-total-solids">Total Solids (g/dL)</label>
+                <input type="number" id="check-total-solids" name="total_solids_gdl" class="form-control" min="1.0" max="15.0" step="0.1" value="5.4" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-lactate">Plasma Lactate (mmol/L)</label>
+                <input type="number" id="check-lactate" name="plasma_lactate_mmol_l" class="form-control" min="0.5" max="25.0" step="0.1" value="2.3" required>
+              </div>
+              <div class="form-group">
+                <label for="check-autotransfused-ml">Autotransfused Volume (mL via 170 µm Filter)</label>
+                <input type="number" id="check-autotransfused-ml" name="autotransfused_volume_ml" class="form-control" min="0.0" max="2500.0" step="10.0" value="350.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-callsign">Clinician Callsign</label>
+                <input type="text" id="check-callsign" name="clinician_callsign" class="form-control" value="DR-TRAUMA-14" required>
+              </div>
+              <div class="form-group">
+                <label for="check-notes">Hemodynamic &amp; Autotransfusion Notes</label>
+                <input type="text" id="check-notes" name="notes" class="form-control" value="350 mL autologous shed blood reinfused via 170 µm filter; MAP stabilized at 68 mmHg; lactate clearing to 2.3 mmol/L.">
+              </div>
+            </div>
+            <button type="submit" id="btn-record-hemodynamic-check" class="btn btn-secondary">🩺 Log Serial Hemodynamic &amp; Autotransfusion Check</button>
+          </form>
+        </div>
+
+        <hr class="hemoabdomen-divider">
+
+        <!-- Hemostasis & Normotensive Clearance Form -->
+        <div class="trust-subsection" id="hemostasis-clearance-section">
+          <h3 id="heading-hemostasis-clearance">4. Issue Surgical / Spontaneous Hemostasis Normotensive Clearance</h3>
+          <form id="hemostasis-clearance-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-final-map">Final MAP (mmHg, 70–110)</label>
+                <input type="number" id="clearance-final-map" name="final_map_mmhg" class="form-control" min="70" max="110" step="1" value="84" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-final-pcv">Final Peripheral PCV (%, ≥ 25.0)</label>
+                <input type="number" id="clearance-final-pcv" name="final_peripheral_pcv_percent" class="form-control" min="25.0" max="75.0" step="0.5" value="34.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-final-lactate">Final Plasma Lactate (mmol/L, ≤ 2.5)</label>
+                <input type="number" id="clearance-final-lactate" name="final_plasma_lactate_mmol_l" class="form-control" min="0.5" max="2.5" step="0.1" value="1.5" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-vet-license">Attending Veterinarian License</label>
+                <input type="text" id="clearance-vet-license" name="vet_license" class="form-control" value="VET-SURG-90814" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="clearance-summary">Hemostasis &amp; Post-Operative Recovery Summary</label>
+              <input type="text" id="clearance-summary" name="summary" class="form-control" value="Surgical hemostasis confirmed; post-autotransfusion PCV 34.0%, MAP 84 mmHg, lactate 1.5 mmol/L; repeat AFAST AFS 0/4 free fluid resolved.">
+            </div>
+            <div class="hemoabdomen-checkbox-group">
+              <label class="hemoabdomen-checkbox-item">
+                <input type="checkbox" id="clearance-surgical-hemostasis" name="surgical_hemostasis_confirmed" checked>
+                <span>Definitive Surgical (Splenectomy / Hepatic Lobe) or Spontaneous Hemostasis Confirmed</span>
+              </label>
+              <label class="hemoabdomen-checkbox-item">
+                <input type="checkbox" id="clearance-repeat-afast-resolved" name="repeat_afast_free_fluid_resolved" checked>
+                <span>Repeat AFAST Abdominal Fluid Score (AFS 0/4) Free Peritoneal Fluid Resolved</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-issue-hemostasis-clearance" class="btn btn-primary">🛡️ Issue Hemostasis &amp; Normotensive Clearance</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Queue -->
+      <section class="glass-card trust-panel" id="hemoabdomen-ops-panel" aria-labelledby="heading-hemoabdomen-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-hemoabdomen-ops">Active Hemoabdomen &amp; Autotransfusion Operations</h2>
+          <span id="hemoabdomen-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col hemoabdomen-filter-bar" role="region" aria-label="Filter Hemoabdomen Operations">
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="HEMORRHAGIC_SHOCK_HEMOABDOMEN_CRITICAL">HEMORRHAGIC_SHOCK_HEMOABDOMEN_CRITICAL</option>
+              <option value="AUTOTRANSFUSION_TXA_HYPOTENSIVE_STAGED">AUTOTRANSFUSION_TXA_HYPOTENSIVE_STAGED</option>
+              <option value="HEMOSTASIS_SPLENECTOMY_NORMOTENSIVE_SAFE">HEMOSTASIS_SPLENECTOMY_NORMOTENSIVE_SAFE</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-species">Filter by Presentation Etiology</label>
+            <select id="filter-species" class="form-control">
+              <option value="">All Presentation Etiologies</option>
+              <option value="CANINE_BLUNT_TRAUMA_HEPATIC">CANINE_BLUNT_TRAUMA_HEPATIC</option>
+              <option value="CANINE_SPLENIC_HEMANGIOSARCOMA">CANINE_SPLENIC_HEMANGIOSARCOMA</option>
+              <option value="FELINE_RETROPERITONEAL_TRAUMA">FELINE_RETROPERITONEAL_TRAUMA</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="hemoabdomen-active-workspace" role="region" aria-label="Active Hemoabdomen Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="hemoabdomen-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-pet-title">Active Workspace: {{ $active.PetName }} ({{ $active.PatientProfile.Species }}{{ if $active.PatientProfile.Breed }} · {{ $active.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $active.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id" id="workspace-op-code">{{ $active.ID }} · {{ $active.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species" id="workspace-species-pill">{{ $active.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $active.Status) "HEMORRHAGIC_SHOCK_HEMOABDOMEN_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $active.Status) "AUTOTRANSFUSION_TXA_HYPOTENSIVE_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}" id="workspace-status-pill">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="hemoabdomen-vitals-summary" id="workspace-vitals-summary">
+              <span><strong>AFAST AFS:</strong> {{ $active.PatientProfile.AfastAFS4Score }}/4</span>
+              <span><strong>Effusion PCV:</strong> {{ printf "%.1f" $active.PatientProfile.EffusionPCVPercent }}%</span>
+              <span><strong>Peripheral PCV:</strong> {{ printf "%.1f" $active.PatientProfile.PeripheralPCVPercent }}%</span>
+              <span><strong>MAP:</strong> {{ $active.PatientProfile.MeanArterialPressureMmHg }} mmHg</span>
+              <span><strong>Lactate:</strong> {{ printf "%.1f" $active.PatientProfile.PlasmaLactateMmolL }} mmol/L</span>
+            </div>
+
+            {{ if $active.ResuscitationPlan }}
+            <div class="hemoabdomen-plan-box" id="workspace-plan-box">
+              <h4>Calculated Permissive Hypotensive, TXA &amp; Autotransfusion Resuscitation Plan</h4>
+              <div class="hemoabdomen-doses-grid">
+                <div><strong>Target MAP:</strong> <span id="plan-target-map">{{ $active.ResuscitationPlan.PermissiveHypotensionTargetMAPMmHg }} mmHg</span></div>
+                <div><strong>Crystalloid Aliquot:</strong> <span id="plan-crystalloid-aliquot">{{ printf "%.1f" $active.ResuscitationPlan.CrystalloidAliquotMlKg }} mL/kg</span></div>
+                <div><strong>Tranexamic Acid (10 mg/kg IV):</strong> <span id="plan-txa-mg">{{ printf "%.1f" $active.ResuscitationPlan.TranexamicAcid10MgKgDoseMg }} mg</span></div>
+                <div><strong>Autotransfusion:</strong> <span id="plan-autotransfusion-status">{{ if $active.ResuscitationPlan.AutotransfusionIndicated }}INDICATED{{ else }}CONTRAINDICATED / DEFERRED{{ end }}</span></div>
+                <div><strong>Max Salvage Collect (15 mL/kg):</strong> <span id="plan-max-collect-ml">{{ printf "%.1f" $active.ResuscitationPlan.AutotransfusionMaxCollectMl }} mL</span></div>
+                <div><strong>Inline Blood Filter:</strong> <span id="plan-filter-um">{{ $active.ResuscitationPlan.MicronFilterSizeUm }} µm</span></div>
+                <div><strong>Norepinephrine CRI:</strong> <span id="plan-norepi-cri">{{ printf "%.2f" $active.ResuscitationPlan.NorepinephrineCRIMcgKgMin }} mcg/kg/min</span></div>
+                <div><strong>Zero Belly Wrap Guard:</strong> <span id="plan-wrap-guard">{{ if $active.ResuscitationPlan.ZeroAbdominalCompressionWrapGuard }}ENFORCED{{ else }}OFF{{ end }}</span></div>
+              </div>
+              <p class="hemoabdomen-rationale-text" id="workspace-clinical-rationale">{{ $active.ResuscitationPlan.ClinicalRationale }}</p>
+            </div>
+            {{ end }}
+
+            <div class="hemoabdomen-checks-box">
+              <h4>Serial Hemodynamic &amp; Autotransfusion Checks (<span id="workspace-checks-count">{{ len $active.HemodynamicChecks }}</span>)</h4>
+              <ul id="hemodynamic-checks-list" class="hemoabdomen-checks-list">
+                {{ range $chk := $active.HemodynamicChecks }}
+                <li class="hemoabdomen-check-item">
+                  <strong>{{ $chk.ClinicianCallsign }}</strong> · MAP {{ $chk.MeanArterialPressureMmHg }} mmHg · HR {{ $chk.HeartRateBpm }} bpm · PCV {{ printf "%.1f" $chk.PeripheralPCVPercent }}% · TS {{ printf "%.1f" $chk.TotalSolidsGdl }} g/dL · Lactate {{ printf "%.1f" $chk.PlasmaLactateMmolL }} mmol/L · Autotransfused {{ printf "%.0f" $chk.AutotransfusedVolumeMl }} mL — {{ $chk.Notes }}
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="hemoabdomen-operations-list" class="trust-screenings-list hemoabdomen-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card hemoabdomen-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-species="{{ $op.PatientProfile.Species }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.PatientProfile.Species }}{{ if $op.PatientProfile.Breed }} · {{ $op.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $op.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species">{{ $op.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $op.Status) "HEMORRHAGIC_SHOCK_HEMOABDOMEN_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $op.Status) "AUTOTRANSFUSION_TXA_HYPOTENSIVE_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row hemoabdomen-metrics-row">
+              <span class="status-pill status-pill-species">AFS: {{ $op.PatientProfile.AfastAFS4Score }}/4 • Effusion PCV: {{ printf "%.1f" $op.PatientProfile.EffusionPCVPercent }}% • Peripheral PCV: {{ printf "%.1f" $op.PatientProfile.PeripheralPCVPercent }}% • MAP: {{ $op.PatientProfile.MeanArterialPressureMmHg }} mmHg • Lactate: {{ printf "%.1f" $op.PatientProfile.PlasmaLactateMmolL }} mmol/L</span>
+            </div>
+
+            {{ if $op.ClotPoppingNeoplasiaAlert }}
+            <div class="hemoabdomen-alert-banner">
+              ⚠️ CLOT-POPPING &amp; AUTOTRANSFUSION GUARD (MAP {{ $op.PatientProfile.MeanArterialPressureMmHg }} mmHg — Target 65 mmHg · 170 µm Filter): {{ if $op.ResuscitationPlan }}{{ $op.ResuscitationPlan.HemoabdomenPitfallAlert }}{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if $op.HemostasisClearance }}
+            <div class="hemoabdomen-clearance-banner">
+              ✅ HEMOSTASIS &amp; NORMOTENSIVE CLEARANCE ({{ $op.HemostasisClearance.VetLicense }}): MAP {{ $op.HemostasisClearance.FinalMAPMmHg }} mmHg · PCV {{ printf "%.1f" $op.HemostasisClearance.FinalPeripheralPCVPercent }}% · Lactate {{ printf "%.1f" $op.HemostasisClearance.FinalPlasmaLactateMmolL }} mmol/L
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary hemoabdomen-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select Operation ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="hemoabdomen-ops-empty-msg">No hemoabdomen triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/hemoabdomen-autotransfusion-triage.js" defer></script>
+</body>
+</html>

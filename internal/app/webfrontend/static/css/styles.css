@@ -16368,4 +16368,153 @@ textarea:focus-visible,
   margin: 0.5rem 0;
 }
 
+/* ============================================================================
+   Milestone 20.2: Acute Traumatic Hemoabdomen, Autotransfusion, Centesis Non-Clotting
+   & Norepinephrine/TXA Resuscitation Cockpit UI (/hemoabdomen-autotransfusion-triage)
+   WCAG AAA High-Contrast Status Pills, Pitfall Alerts & Clearance Banners (> 7.1:1)
+   ============================================================================ */
+
+.hemoabdomen-filter-bar {
+  margin-bottom: 0.85rem;
+}
+
+.hemoabdomen-active-workspace {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .hemoabdomen-active-workspace {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.hemoabdomen-vitals-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.1rem;
+  margin: 0.55rem 0;
+  font-size: 0.8125rem;
+}
+
+.hemoabdomen-plan-box,
+.hemoabdomen-checks-box {
+  margin: 0.6rem 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border-color);
+  font-size: 0.8125rem;
+}
+
+[data-theme="light"] .hemoabdomen-plan-box,
+[data-theme="light"] .hemoabdomen-checks-box {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.hemoabdomen-doses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.4rem 0.75rem;
+  margin: 0.45rem 0;
+}
+
+.hemoabdomen-rationale-text {
+  margin: 0.45rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.hemoabdomen-checks-list {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hemoabdomen-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.5rem 0;
+}
+
+.hemoabdomen-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.hemoabdomen-divider {
+  margin: 1rem 0;
+  border: 0;
+  border-top: 1px solid var(--border-color);
+}
+
+:root .status-pill-species,
+[data-theme="dark"] .status-pill-species {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #94a3b8;
+}
+
+:root .hemoabdomen-alert-banner,
+[data-theme="dark"] .hemoabdomen-alert-banner {
+  background-color: #450a0a;
+  color: #fef2f2;
+  border: 2px solid #f87171;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+:root .hemoabdomen-clearance-banner,
+[data-theme="dark"] .hemoabdomen-clearance-banner {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .status-pill-species {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #475569;
+}
+
+[data-theme="light"] .hemoabdomen-alert-banner {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 2px solid #b91c1c;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .hemoabdomen-clearance-banner {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
 
