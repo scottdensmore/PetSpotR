@@ -30,6 +30,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/avianrecovery"
 	"github.com/scottdensmore/petspotr/pkg/biosecurityiso"
 	"github.com/scottdensmore/petspotr/pkg/blob"
+	"github.com/scottdensmore/petspotr/pkg/cardiogenicedema"
 	"github.com/scottdensmore/petspotr/pkg/confinedspace"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/dystociaeclampsia"
@@ -108,6 +109,7 @@ type Server struct {
 	toxicologyPoisonStore     *toxicologypoison.Store
 	epilepticusService        *statusepilepticus.EpilepticusService
 	airwayService             *airwaytracheostomy.AirwayService
+	cardiogenicService        *cardiogenicedema.CardiogenicService
 	handler                   http.Handler
 }
 
@@ -611,6 +613,8 @@ func (s *Server) routes() {
 	s.registerStatusEpilepticusRoutes()
 	// Brachycephalic Obstructive Airway Syndrome (BOAS), Laryngeal Paralysis & Temporary Tracheostomy Triage Cockpit routes (Milestone 19.3)
 	s.registerAirwayTracheostomyRoutes()
+	// Acute Cardiogenic Pulmonary Edema, Mitral Valve Chordae Rupture, Furosemide/Pimobendan & Oxygen Cage Cockpit routes (Milestone 19.4)
+	s.registerCardiogenicEdemaRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

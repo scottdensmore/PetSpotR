@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Cardiogenic Pulmonary Edema, Mitral Valve Chordae Rupture, Furosemide/Pimobendan &amp; Oxygen Cage Cockpit.">
+  <title>Acute Cardiogenic Pulmonary Edema, Mitral Valve Chordae Rupture, Furosemide/Pimobendan &amp; Oxygen Cage Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#cardiogenic-edema-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/cardiogenic-edema-triage" class="nav-link active nav-link-emergency" id="nav-cardiogenic-edema-triage">🫀 Cardiogenic Edema Cockpit</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="cardiogenic-edema-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header cardiogenic-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🫀 ACUTE CARDIOGENIC PULMONARY EDEMA, MITRAL VALVE CHORDAE RUPTURE, FUROSEMIDE/PIMOBENDAN &amp; OXYGEN CAGE COCKPIT</span>
+        </div>
+        <h1>Acute Cardiogenic Pulmonary Edema, Mitral Valve Chordae Rupture, Furosemide/Pimobendan &amp; Oxygen Cage Cockpit</h1>
+        <p class="text-secondary">
+          ACVIM Stage C/D Myxomatous Mitral Valve Disease (MMVD) &amp; Chordae Tendineae Rupture, Feline Hypertrophic Cardiomyopathy (HCM) Conservative Diuresis, Furosemide IV Bolus + 0.66 mg/kg/hr CRI, Pimobendan 0.25 mg/kg Inodilator, Butorphanol Anxiolysis, 50–60% FiO2 Oxygen Cage, TFAST B-Line Resolution &amp; Strict Zero-IV-Crystalloid Fluid Guard.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid cardiogenic-kpi-grid" aria-label="Cardiogenic Edema Triage KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Cardiogenic Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Fulminant Edema Critical</span>
+        <strong class="kpi-value" id="kpi-fulminant-critical">{{ .FulminantCritical }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Furosemide / Pimobendan / O2 Staged</span>
+        <strong class="kpi-value" id="kpi-furosemide-staged">{{ .FurosemideStaged }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Eupneic &amp; B-Lines Resolved</span>
+        <strong class="kpi-value" id="kpi-eupneic-cleared">{{ .EupneicCleared }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Zero IV Crystalloid Fluid Locks</span>
+        <strong class="kpi-value" id="kpi-fluid-guard-locks">{{ .FluidGuardLocks }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="cardiogenic-live-status" class="humane-traps-live-status cardiogenic-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} acute cardiogenic pulmonary edema, mitral chordae rupture &amp; oxygen cage triage operations.
+    </div>
+
+    <!-- Top-Level Active Operation Alert & Clearance Banners -->
+    {{ if .ActiveOperation }}
+    {{ $active := .ActiveOperation }}
+    <div id="cardiogenic-alert-banner" class="cardiogenic-alert-banner" role="alert" {{ if not $active.FluidOverloadContraindicationAlert }}hidden{{ end }}>
+      ⚠️ ZERO IV CRYSTALLOID FLUID CONTRAINDICATION GUARD ACTIVE ({{ $active.PetName }} · {{ $active.ID }}): {{ if $active.DiureticRegimen }}{{ $active.DiureticRegimen.CardiogenicPitfallAlert }}{{ else }}STRICT ZERO IV CRYSTALLOID FLUID BOLUS CONTRAINDICATION — Never administer isotonic IV crystalloids or force dorsal recumbency radiographs in acute congestive heart failure prior to oxygen cage, furosemide, and butorphanol stabilization.{{ end }}
+    </div>
+    <div id="cardiogenic-clearance-banner" class="cardiogenic-clearance-banner" role="status" {{ if not $active.DischargeClearance }}hidden{{ end }}>
+      {{ if $active.DischargeClearance }}✅ EUPNEIC &amp; TFAST B-LINES RESOLVED DISCHARGE CLEARANCE ISSUED ({{ $active.PetName }} · {{ $active.ID }} · Vet {{ $active.DischargeClearance.VetLicense }}): Sleeping RR {{ $active.DischargeClearance.FinalSleepingRespRateBpm }} bpm · B-Lines {{ $active.DischargeClearance.FinalTfastBLinesCount }}/site · Room Air SpO2 {{ printf "%.1f" $active.DischargeClearance.RoomAirSpO2Percent }}% — {{ $active.DischargeClearance.Summary }}{{ end }}
+    </div>
+    {{ else }}
+    <div id="cardiogenic-alert-banner" class="cardiogenic-alert-banner" role="alert" hidden></div>
+    <div id="cardiogenic-clearance-banner" class="cardiogenic-clearance-banner" role="status" hidden></div>
+    {{ end }}
+
+    <div id="cardiogenic-error-banner" class="cardiogenic-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <div class="trust-cockpit-grid cardiogenic-cockpit-grid">
+      <!-- Left Column: Intake, Stage Diuretic Regimen, Diuresis Telemetry & Discharge Clearance Forms -->
+      <section class="glass-card trust-panel" id="cardiogenic-controls-panel" aria-labelledby="heading-cardiogenic-controls">
+        <div class="trust-panel-header">
+          <h2 id="heading-cardiogenic-controls">Cardiogenic Edema Intake, Regimen Staging &amp; Diuresis Controls</h2>
+          <span class="status-pill status-pill-staged">Furosemide · Pimobendan · O2 Cage</span>
+        </div>
+
+        <!-- 1. Create New Cardiogenic Edema Operation Form -->
+        <div class="trust-subsection">
+          <h3>1. New Cardiogenic Pulmonary Edema Intake</h3>
+          <form id="cardiogenic-create-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-incident-id">Incident ID</label>
+                <input type="text" id="create-incident-id" name="incident_id" class="form-control" value="INC-CE-9104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name">Pet Name</label>
+                <input type="text" id="create-pet-name" name="pet_name" class="form-control" value="Darcy" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species">Species &amp; Cardiac Pathology</label>
+                <select id="create-species" name="species" class="form-control" required>
+                  <option value="CANINE_MMVD_STAGE_C_D" selected>CANINE_MMVD_STAGE_C_D (Canine ACVIM Stage C/D MMVD)</option>
+                  <option value="CANINE_DCM_CONGESTIVE">CANINE_DCM_CONGESTIVE (Canine Congestive Dilated Cardiomyopathy)</option>
+                  <option value="FELINE_HCM_PLEURAL_EDEMA">FELINE_HCM_PLEURAL_EDEMA (Feline HCM Pulmonary/Pleural Edema)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-weight-kg">Weight (kg)</label>
+                <input type="number" id="create-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="8.5" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-resp-rate">Respiratory Rate (bpm)</label>
+                <input type="number" id="create-resp-rate" name="respiratory_rate_bpm" class="form-control" min="8" max="180" step="1" value="82" required>
+              </div>
+              <div class="form-group">
+                <label for="create-heart-rate">Heart Rate (bpm)</label>
+                <input type="number" id="create-heart-rate" name="heart_rate_bpm" class="form-control" min="40" max="320" step="1" value="185" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-murmur-grade">Auscultation Murmur / Gallop Grade</label>
+                <select id="create-murmur-grade" name="murmur_grade" class="form-control" required>
+                  <option value="GRADE_VI_THRILL_CHORDAE_RUPTURE" selected>GRADE_VI_THRILL_CHORDAE_RUPTURE (Grade VI/VI Thrill · Chordae Rupture)</option>
+                  <option value="GRADE_V_SYSTOLIC_APICAL">GRADE_V_SYSTOLIC_APICAL (Grade V/VI Left Apical Systolic)</option>
+                  <option value="GRADE_IV_GALLOP_RHYTHM">GRADE_IV_GALLOP_RHYTHM (Grade IV Murmur / Feline S3/S4 Gallop)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-tfast-blines">TFAST B-Lines ("Lung Rockets" / Site)</label>
+                <input type="number" id="create-tfast-blines" name="tfast_b_lines_per_site" class="form-control" min="0" max="20" step="1" value="7" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-la-ao-ratio">Echocardiographic La:Ao Ratio</label>
+                <input type="number" id="create-la-ao-ratio" name="la_ao_ratio" class="form-control" min="1.0" max="4.0" step="0.05" value="2.35" required>
+              </div>
+              <div class="form-group cardiogenic-checkbox-inline">
+                <label class="poison-step-item">
+                  <input type="checkbox" id="create-pleural-effusion" name="pleural_effusion_present">
+                  <span>Concurrent Pleural Effusion Present (Thoracocentesis Indicated)</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" id="btn-create-cardiogenic-op" class="btn btn-primary">Admit Cardiogenic Pulmonary Edema Patient</button>
+          </form>
+        </div>
+
+        <!-- 2. Stage Diuretic, Pimobendan & Oxygen Cage Regimen on Selected Operation -->
+        <div class="trust-subsection">
+          <h3>2. Stage Furosemide Bolus/CRI, Pimobendan &amp; O2 Cage Regimen (<span id="stage-target-op-label">{{ if .ActiveOperation }}{{ .ActiveOperation.ID }}{{ else }}CE-OP-101{{ end }}</span>)</h3>
+          <form id="cardiogenic-stage-regimen-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-species">Species &amp; Cardiac Pathology</label>
+                <select id="stage-species" name="species" class="form-control" required>
+                  <option value="CANINE_MMVD_STAGE_C_D" selected>CANINE_MMVD_STAGE_C_D</option>
+                  <option value="CANINE_DCM_CONGESTIVE">CANINE_DCM_CONGESTIVE</option>
+                  <option value="FELINE_HCM_PLEURAL_EDEMA">FELINE_HCM_PLEURAL_EDEMA</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="stage-weight-kg">Weight (kg)</label>
+                <input type="number" id="stage-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="9.2" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-resp-rate">Respiratory Rate (bpm)</label>
+                <input type="number" id="stage-resp-rate" name="respiratory_rate_bpm" class="form-control" min="8" max="180" step="1" value="88" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-heart-rate">Heart Rate (bpm)</label>
+                <input type="number" id="stage-heart-rate" name="heart_rate_bpm" class="form-control" min="40" max="320" step="1" value="190" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-murmur-grade">Murmur / Gallop Grade</label>
+                <select id="stage-murmur-grade" name="murmur_grade" class="form-control" required>
+                  <option value="GRADE_VI_THRILL_CHORDAE_RUPTURE" selected>GRADE_VI_THRILL_CHORDAE_RUPTURE</option>
+                  <option value="GRADE_V_SYSTOLIC_APICAL">GRADE_V_SYSTOLIC_APICAL</option>
+                  <option value="GRADE_IV_GALLOP_RHYTHM">GRADE_IV_GALLOP_RHYTHM</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="stage-tfast-blines">TFAST B-Lines / Site</label>
+                <input type="number" id="stage-tfast-blines" name="tfast_b_lines_per_site" class="form-control" min="0" max="20" step="1" value="8" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-la-ao-ratio">La:Ao Ratio</label>
+                <input type="number" id="stage-la-ao-ratio" name="la_ao_ratio" class="form-control" min="1.0" max="4.0" step="0.05" value="2.45" required>
+              </div>
+              <div class="form-group cardiogenic-checkbox-inline">
+                <label class="poison-step-item">
+                  <input type="checkbox" id="stage-pleural-effusion" name="pleural_effusion_present">
+                  <span>Pleural Effusion Present</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" id="btn-stage-regimen" class="btn btn-secondary">Stage Furosemide / Pimobendan / O2 Cage Regimen</button>
+          </form>
+        </div>
+
+        <!-- 3. Record Serial Diuresis Telemetry Check -->
+        <div class="trust-subsection">
+          <h3>3. Log Diuresis &amp; TFAST B-Line Telemetry Check</h3>
+          <form id="cardiogenic-diuresis-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-resp-rate">Resting Respiratory Rate (bpm)</label>
+                <input type="number" id="check-resp-rate" name="resting_respiratory_rate_bpm" class="form-control" min="8" max="180" step="1" value="34" required>
+              </div>
+              <div class="form-group">
+                <label for="check-urine-output">Urine Output (mL/kg/hr)</label>
+                <input type="number" id="check-urine-output" name="urine_output_ml_kg_hr" class="form-control" min="0" max="30.0" step="0.1" value="4.2" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-tfast-blines">TFAST B-Lines Remaining / Site</label>
+                <input type="number" id="check-tfast-blines" name="tfast_b_lines_remaining" class="form-control" min="0" max="20" step="1" value="2" required>
+              </div>
+              <div class="form-group">
+                <label for="check-sbp">Systolic Blood Pressure (mmHg)</label>
+                <input type="number" id="check-sbp" name="systolic_blood_pressure_mmhg" class="form-control" min="50" max="260" step="1" value="116" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-creatinine">Serum Creatinine (mg/dL)</label>
+                <input type="number" id="check-creatinine" name="creatinine_mg_dl" class="form-control" min="0.2" max="15.0" step="0.1" value="1.3" required>
+              </div>
+              <div class="form-group">
+                <label for="check-potassium">Serum Potassium (mEq/L)</label>
+                <input type="number" id="check-potassium" name="potassium_meq_l" class="form-control" min="1.5" max="10.0" step="0.1" value="3.9" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-clinician">Clinician Callsign</label>
+                <input type="text" id="check-clinician" name="clinician_callsign" class="form-control" value="DR-CARDIO-18" required>
+              </div>
+              <div class="form-group">
+                <label for="check-notes">Diuresis &amp; Auscultation Notes</label>
+                <input type="text" id="check-notes" name="notes" class="form-control" value="Robust natriuresis on furosemide 0.66 mg/kg/hr CRI; crackles resolving." required>
+              </div>
+            </div>
+
+            <button type="submit" id="btn-record-diuresis-check" class="btn btn-secondary">Record Diuresis Telemetry Check</button>
+          </form>
+        </div>
+
+        <!-- 4. Issue Eupneic & B-Line Resolved Discharge Clearance -->
+        <div class="trust-subsection">
+          <h3>4. Issue Eupneic &amp; B-Line Resolved Discharge Clearance</h3>
+          <form id="cardiogenic-discharge-clearance-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-final-srr">Final Sleeping Resp Rate (&le; 30 bpm)</label>
+                <input type="number" id="clearance-final-srr" name="final_sleeping_resp_rate_bpm" class="form-control" min="6" max="30" step="1" value="22" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-final-blines">Final TFAST B-Lines (&le; 1 / Site)</label>
+                <input type="number" id="clearance-final-blines" name="final_tfast_b_lines_count" class="form-control" min="0" max="1" step="1" value="0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-spo2">Room Air SpO2 (&ge; 95.0%)</label>
+                <input type="number" id="clearance-spo2" name="room_air_spo2_percent" class="form-control" min="95.0" max="100.0" step="0.5" value="98.0" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-vet-license">Attending Veterinarian License</label>
+                <input type="text" id="clearance-vet-license" name="vet_license" class="form-control" value="VET-CARDIO-99201" required>
+              </div>
+            </div>
+
+            <div class="poison-checkbox-group">
+              <label class="poison-step-item">
+                <input type="checkbox" id="clearance-renal-stable" name="renal_azotemia_stable" checked>
+                <span>Renal Azotemia &amp; Electrolytes (Creatinine / BUN / K+) Verified Stable Post-Diuresis</span>
+              </label>
+              <label class="poison-step-item">
+                <input type="checkbox" id="clearance-srr-educated" name="home_srr_monitoring_educated" checked>
+                <span>Owner Educated on Daily Home Sleeping Respiratory Rate (SRR &lt; 30 bpm) &amp; Oral Furosemide/Pimobendan Schedule</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label for="clearance-summary">Discharge Summary &amp; Chronic CHF Regimen</label>
+              <input type="text" id="clearance-summary" name="summary" class="form-control" value="Eupneic on room air, TFAST B-lines resolved (0/site), discharged on oral furosemide, pimobendan, benazepril, and spironolactone with daily SRR < 30 bpm tracking." required>
+            </div>
+
+            <button type="submit" id="btn-issue-discharge-clearance" class="btn btn-primary">Issue Eupneic &amp; B-Line Resolved Clearance</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Queue -->
+      <section class="glass-card trust-panel" id="cardiogenic-ops-panel" aria-labelledby="heading-cardiogenic-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-cardiogenic-ops">Active Cardiogenic Pulmonary Edema Operations</h2>
+          <span id="cardiogenic-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col poison-filter-bar" role="region" aria-label="Filter Cardiogenic Edema Triage Operations">
+          <div class="form-group">
+            <label for="filter-status">Filter by Cardiogenic Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Cardiogenic Statuses</option>
+              <option value="FULMINANT_PULMONARY_EDEMA_CRITICAL">FULMINANT_PULMONARY_EDEMA_CRITICAL</option>
+              <option value="FUROSEMIDE_PIMOBENDAN_O2_CAGE_STAGED">FUROSEMIDE_PIMOBENDAN_O2_CAGE_STAGED</option>
+              <option value="EUPNEIC_BLINES_RESOLVED_CLEARED">EUPNEIC_BLINES_RESOLVED_CLEARED</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="cardiogenic-active-workspace" role="region" aria-label="Active Cardiogenic Edema Triage Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="cardiogenic-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-pet-title">Active Workspace: {{ $active.PetName }} ({{ $active.PatientProfile.Species }} · {{ printf "%.1f" $active.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $active.ID }} · {{ $active.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill {{ if eq (printf "%s" $active.Status) "FULMINANT_PULMONARY_EDEMA_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $active.Status) "FUROSEMIDE_PIMOBENDAN_O2_CAGE_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row">
+              <span class="status-pill status-pill-staged">RR: {{ $active.PatientProfile.RespiratoryRateBpm }} bpm · HR: {{ $active.PatientProfile.HeartRateBpm }} bpm · Murmur: {{ $active.PatientProfile.MurmurGrade }} · TFAST B-Lines: {{ $active.PatientProfile.TfastBLinesPerSite }}/site · La:Ao: {{ printf "%.2f" $active.PatientProfile.LaAoRatio }}</span>
+            </div>
+
+            {{ if $active.DiureticRegimen }}
+            <div class="cardiogenic-regimen-box" id="workspace-regimen-box">
+              <div><strong>Furosemide IV Bolus:</strong> {{ printf "%.2f" $active.DiureticRegimen.FurosemideInitialBolusMg }} mg | <strong>Furosemide CRI (0.66 mg/kg/hr):</strong> {{ printf "%.2f" $active.DiureticRegimen.FurosemideCRI066MgKgHrMgHr }} mg/hr | <strong>Pimobendan (0.25 mg/kg):</strong> {{ printf "%.2f" $active.DiureticRegimen.Pimobendan025MgKgDoseMg }} mg | <strong>Butorphanol (0.2 mg/kg):</strong> {{ printf "%.2f" $active.DiureticRegimen.ButorphanolAnxiolyticDoseMg }} mg | <strong>Oxygen Cage FiO2:</strong> {{ $active.DiureticRegimen.OxygenCageFiO2Percent }}%</div>
+              <div><strong>Clinical Rationale:</strong> {{ $active.DiureticRegimen.ClinicalRationale }}</div>
+            </div>
+            {{ end }}
+
+            <div class="cardiogenic-checks-list" id="workspace-checks-list">
+              <strong>Diuresis &amp; TFAST B-Line Telemetry Checks ({{ len $active.DiuresisChecks }}):</strong>
+              {{ range $chk := $active.DiuresisChecks }}
+              <div class="cardiogenic-check-item">
+                <span>RR {{ $chk.RestingRespiratoryRateBpm }} bpm · UOP {{ printf "%.1f" $chk.UrineOutputMlKgHr }} mL/kg/hr · B-Lines {{ $chk.TfastBLinesRemaining }}/site · SBP {{ $chk.SystolicBloodPressureMmHg }} mmHg · Creat {{ printf "%.1f" $chk.CreatinineMgDl }} mg/dL · K+ {{ printf "%.1f" $chk.PotassiumMeqL }} mEq/L ({{ $chk.ClinicianCallsign }}) — {{ $chk.Notes }}</span>
+              </div>
+              {{ end }}
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="cardiogenic-operations-list" class="trust-screenings-list cardiogenic-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card cardiogenic-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.PatientProfile.Species }} · {{ printf "%.1f" $op.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill {{ if eq (printf "%s" $op.Status) "FULMINANT_PULMONARY_EDEMA_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $op.Status) "FUROSEMIDE_PIMOBENDAN_O2_CAGE_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row">
+              <span class="status-pill status-pill-staged">RR: {{ $op.PatientProfile.RespiratoryRateBpm }} bpm • HR: {{ $op.PatientProfile.HeartRateBpm }} bpm • {{ $op.PatientProfile.MurmurGrade }} • TFAST B-Lines: {{ $op.PatientProfile.TfastBLinesPerSite }}/site • La:Ao: {{ printf "%.2f" $op.PatientProfile.LaAoRatio }}</span>
+            </div>
+
+            {{ if $op.FluidOverloadContraindicationAlert }}
+            <div class="cardiogenic-alert-banner">
+              ⚠️ ZERO IV CRYSTALLOID FLUID GUARD ACTIVE: {{ if $op.DiureticRegimen }}{{ $op.DiureticRegimen.CardiogenicPitfallAlert }}{{ else }}Avoid IV crystalloid fluid boluses and dorsal recumbency radiographs prior to stabilization.{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if $op.DischargeClearance }}
+            <div class="cardiogenic-clearance-banner">
+              ✅ EUPNEIC &amp; B-LINES RESOLVED CLEARANCE ({{ $op.DischargeClearance.VetLicense }}): SRR {{ $op.DischargeClearance.FinalSleepingRespRateBpm }} bpm · B-Lines {{ $op.DischargeClearance.FinalTfastBLinesCount }}/site · SpO2 {{ printf "%.1f" $op.DischargeClearance.RoomAirSpO2Percent }}% — {{ $op.DischargeClearance.Summary }}
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary cardiogenic-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select Operation ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="cardiogenic-ops-empty-msg">No cardiogenic pulmonary edema operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/cardiogenic-edema-triage.js" defer></script>
+</body>
+</html>

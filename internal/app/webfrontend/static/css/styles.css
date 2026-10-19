@@ -16064,3 +16064,166 @@ textarea:focus-visible,
   margin: 0.5rem 0;
 }
 
+/* ============================================================================
+   Milestone 19.4: Acute Cardiogenic Pulmonary Edema, Mitral Valve Chordae Rupture,
+   Furosemide/Pimobendan & Oxygen Cage Cockpit UI (/cardiogenic-edema-triage)
+   WCAG AAA High-Contrast Status Pills, Fluid Guard Alerts & Clearance Banners (> 7.1:1)
+   ============================================================================ */
+
+.status-pill,
+.status-pill-critical,
+.status-pill-staged,
+.status-pill-cleared {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.cardiogenic-active-workspace {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .cardiogenic-active-workspace {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.cardiogenic-regimen-box,
+.cardiogenic-checks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  margin: 0.5rem 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .cardiogenic-regimen-box,
+[data-theme="light"] .cardiogenic-checks-list {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.cardiogenic-check-item {
+  font-size: 0.8rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.25);
+}
+
+.cardiogenic-checkbox-inline {
+  display: flex;
+  align-items: center;
+  padding-top: 1.25rem;
+}
+
+:root .status-pill,
+[data-theme="dark"] .status-pill {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #94a3b8;
+}
+
+:root .status-pill-critical,
+[data-theme="dark"] .status-pill-critical {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid #f87171;
+}
+
+:root .status-pill-staged,
+[data-theme="dark"] .status-pill-staged {
+  background-color: #78350f;
+  color: #fffbeb;
+  border: 1px solid #f59e0b;
+}
+
+:root .status-pill-cleared,
+[data-theme="dark"] .status-pill-cleared {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+}
+
+:root .cardiogenic-alert-banner,
+[data-theme="dark"] .cardiogenic-alert-banner {
+  background-color: #450a0a;
+  color: #fef2f2;
+  border: 2px solid #f87171;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+:root .cardiogenic-clearance-banner,
+[data-theme="dark"] .cardiogenic-clearance-banner {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .status-pill {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #475569;
+}
+
+[data-theme="light"] .status-pill-critical {
+  background-color: #fee2e2;
+  color: #7f1d1d;
+  border: 1px solid #b91c1c;
+}
+
+[data-theme="light"] .status-pill-staged {
+  background-color: #fef3c7;
+  color: #78350f;
+  border: 1px solid #b45309;
+}
+
+[data-theme="light"] .status-pill-cleared {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+}
+
+[data-theme="light"] .cardiogenic-alert-banner {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 2px solid #b91c1c;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .cardiogenic-clearance-banner {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
