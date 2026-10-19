@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Tetanus (Clostridium tetani) &amp; Botulism (Clostridium botulinum), Risus Sardonicus / Sawhorse Stance vs. Ascending Flaccid Lower Motor Neuron Paralysis, Equine Tetanus Antitoxin (TAT) Intradermal Test, Metronidazole (vs. Penicillin GABA Antagonism) &amp; Dark/Quiet Sensory-Isolation Cockpit.">
+  <title>Acute Tetanus (Clostridium tetani) &amp; Botulism (Clostridium botulinum), Risus Sardonicus / Sawhorse Stance vs. Ascending Flaccid Lower Motor Neuron Paralysis, Equine Tetanus Antitoxin (TAT) Intradermal Test, Metronidazole (vs. Penicillin GABA Antagonism) &amp; Dark/Quiet Sensory-Isolation Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#tetanus-botulism-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/status-epilepticus-triage" class="nav-link nav-link-emergency" id="nav-status-epilepticus-triage">⚡ Status Epilepticus ICU</a></li>
+          <li><a href="/tetanus-botulism-triage" class="nav-link active nav-link-emergency" id="nav-tetanus-botulism-triage">🦠 Tetanus &amp; Botulism ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="tetanus-botulism-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header clb-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🦠 ACUTE TETANUS (CLOSTRIDIUM TETANI) &amp; BOTULISM (CLOSTRIDIUM BOTULINUM) NEUROTOXIN ICU COCKPIT</span>
+        </div>
+        <h1>Acute Tetanus (Clostridium tetani) &amp; Botulism (Clostridium botulinum), Risus Sardonicus / Sawhorse Stance vs. Ascending Flaccid Lower Motor Neuron Paralysis, Equine Tetanus Antitoxin (TAT) Intradermal Test, Metronidazole (vs. Penicillin GABA Antagonism) &amp; Dark/Quiet Sensory-Isolation Cockpit</h1>
+        <p class="text-secondary">
+          Burkitt Tetanus Severity Class I–IV (Facial Risus Sardonicus, Trismus, Prolapsed Nictitans, Sawhorse Extensor Rigidity &amp; Opisthotonos via Renshaw Cell Glycine/GABA Blockade) vs. Botulism Type C Presynaptic SNARE Acetylcholine Blockade &amp; Ascending Flaccid LMN Quadriplegia, Equine Tetanus Antitoxin (100–1,000 IU/kg IV, max 20,000 IU after Mandatory 0.1–0.2 mL Intradermal Skin Test), Metronidazole 10 mg/kg IV q12h (Superior to Penicillin G GABA-A Antagonism), Methocarbamol / Midazolam / Acepromazine CRI &amp; Dark/Quiet Cotton-Earplug Sensory Isolation.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid clb-kpi-grid" aria-label="Tetanus &amp; Botulism KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Clostridial Neuro Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Metronidazole / Equine TAT / Methocarbamol Staged</span>
+        <strong class="kpi-value" id="kpi-tat-staged">{{ .MetronidazoleTATStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Sensory Isolation &amp; Ventilation Monitored</span>
+        <strong class="kpi-value" id="kpi-isolation-monitored">{{ .SensoryIsolationMonitoredCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Normoreflexic &amp; Swallowing Intact Cleared</span>
+        <strong class="kpi-value" id="kpi-normoreflexic-cleared">{{ .NormoreflexicClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Severe Burkitt Class III–IV Cases</span>
+        <strong class="kpi-value" id="kpi-severe-burkitt">{{ .SevereBurkittClassIIIIVCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Botulism Ascending Flaccid LMN Paralysis</span>
+        <strong class="kpi-value" id="kpi-botulism-lmn">{{ .BotulismLMNParalysisCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="clb-live-status" class="humane-traps-live-status clb-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Acute Tetanus (Clostridium tetani) &amp; Botulism (Clostridium botulinum) ICU operations.
+    </div>
+
+    <!-- Global Equine TAT Intradermal Test, Metronidazole vs. Penicillin G GABA-A Antagonism, Aminoglycoside Contraindication & Dark/Quiet Cotton Earplug Alert Banner -->
+    <div id="clb-alert-banner" class="clb-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL CLOSTRIDIAL NEUROTOXIN ICU GUARD: (1) Equine Tetanus Antitoxin (TAT 100–1,000 IU/kg IV, max 20,000 IU) ONLY neutralizes unbound circulating tetanospasmin and MUST be preceded by a 0.1–0.2 mL Intradermal Skin Test observed for 20–30 minutes for wheal/flare anaphylaxis (with local perilesional infiltration PRIOR to surgical wound debridement); (2) Metronidazole (10 mg/kg IV q12h) is superior to Penicillin G because Penicillin G is a structural GABA-A antagonist that potentiates tetanospasmin disinhibition and worsens tetanic spasms; (3) STRICT CONTRAINDICATION of Aminoglycosides (Gentamicin/Amikacin) in Botulism LMN Quadriplegia (blocks presynaptic acetylcholine release and precipitates fatal respiratory arrest); (4) Maintain Dark, Quiet Sensory-Isolation Cockpit with Sterile Cotton Earplugs to prevent stimulus-evoked reflex spasms.
+    </div>
+
+    <!-- Global Normoreflexic & Swallowing Intact Clearance Banner -->
+    <div id="clb-clearance-banner" class="clb-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "NORMOREFLEXIC_SWALLOWING_INTACT_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ NORMOREFLEXIC, SWALLOWING INTACT &amp; NORMOCAPNIC CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "NORMOREFLEXIC_SWALLOWING_INTACT_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Cleared by {{ .ActiveOperation.ClearedBy }}: {{ .ActiveOperation.ClearanceSummary }}{{ else }}Awaiting 0 spasms/hr, intact pharyngeal gag reflex, normocapnia (PaCO2 &lt;= 45 mmHg) &amp; ambulatory normothermia.{{ end }}</span>
+    </div>
+
+    <div id="clb-error-banner" class="clb-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card clb-toolbar-card" aria-label="Tetanus &amp; Botulism Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col clb-toolbar-row">
+        <div class="form-group">
+          <label for="clb-status-filter">Filter by Tetanus &amp; Botulism Status</label>
+          <select id="clb-status-filter" class="form-control">
+            <option value="">All Tetanus &amp; Botulism Statuses</option>
+            <option value="METRONIDAZOLE_TAT_METHOCARBAMOL_STAGED">METRONIDAZOLE_TAT_METHOCARBAMOL_STAGED (Metronidazole / Equine TAT / Methocarbamol Staged)</option>
+            <option value="SENSORY_ISOLATION_VENTILATION_MONITORED">SENSORY_ISOLATION_VENTILATION_MONITORED (Dark/Quiet Sensory Isolation &amp; Ventilation Monitored)</option>
+            <option value="NORMOREFLEXIC_SWALLOWING_INTACT_CLEARED">NORMOREFLEXIC_SWALLOWING_INTACT_CLEARED (Normoreflexic &amp; Swallowing Intact Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group clb-sse-controls">
+          <span class="kpi-label">Live ICU Telemetry Stream</span>
+          <div class="clb-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live Tetanus &amp; Botulism SSE Stream</button>
+            <span id="sse-status-badge" class="clb-status-badge clb-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid clb-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="clb-operations-panel" aria-labelledby="heading-clb-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-clb-ops">Active Tetanus &amp; Botulism ICU Operations</h2>
+          <span id="clb-ops-count-badge" class="clb-status-badge clb-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="clb-operations-grid" class="trust-screenings-list clb-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card clb-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-syndrome="{{ $op.Syndrome }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="clb-status-badge {{ if eq (printf "%s" $op.Status) "METRONIDAZOLE_TAT_METHOCARBAMOL_STAGED" }}clb-status-critical{{ else if eq (printf "%s" $op.Status) "SENSORY_ISOLATION_VENTILATION_MONITORED" }}clb-status-staged{{ else }}clb-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="clb-card-metrics">
+              <span><strong>Syndrome:</strong> {{ $op.Syndrome }}</span>
+              <span><strong>Burkitt Class:</strong> Class {{ $op.BurkittSeverityClass }}/4</span>
+              <span><strong>Spasms:</strong> {{ $op.SpasmFrequencyPerHr }}/hr</span>
+              <span><strong>Gag Reflex:</strong> {{ if $op.GagReflexIntact }}INTACT{{ else }}ABSENT{{ end }}</span>
+              <span><strong>Core Temp:</strong> {{ printf "%.1f" $op.CoreTempCelsius }}°C</span>
+              <span><strong>PaCO2:</strong> {{ printf "%.1f" $op.PaCO2mmHg }} mmHg</span>
+              <span><strong>Metronidazole:</strong> {{ printf "%.1f" $op.MetronidazoleMgKgBID }} mg/kg BID</span>
+              <span><strong>Equine TAT:</strong> {{ printf "%.0f" $op.EquineTATUnitsKg }} IU/kg</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary clb-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open Neurotoxin Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="clb-ops-empty-msg">No Tetanus &amp; Botulism operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="clb-divider">
+
+        <!-- Admit New Tetanus / Botulism Patient Form -->
+        <div class="trust-subsection" id="create-clb-section">
+          <h3 id="heading-create-clb">Admit New Acute Tetanus / Botulism Neurotoxin Patient</h3>
+          <form id="create-clb-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-CLB-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Apollo" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species-input">Species</label>
+                <select id="create-species-input" name="species" class="form-control" required>
+                  <option value="Canine" selected>Canine</option>
+                  <option value="Feline">Feline</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed-input">Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="Rottweiler" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="34.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-syndrome-input">Clostridial Syndrome / Burkitt Classification</label>
+                <select id="create-syndrome-input" name="syndrome" class="form-control" required>
+                  <option value="TETANUS_CLASS_II_GENERALIZED_SAWHORSE" selected>TETANUS_CLASS_II_GENERALIZED_SAWHORSE (Burkitt Class II Generalized Sawhorse Stance)</option>
+                  <option value="TETANUS_CLASS_I_FACIAL_RISUS_SARDONICUS">TETANUS_CLASS_I_FACIAL_RISUS_SARDONICUS (Burkitt Class I Facial Risus Sardonicus / Trismus)</option>
+                  <option value="TETANUS_CLASS_III_RECUMBENT_OPISTHOTONOS">TETANUS_CLASS_III_RECUMBENT_OPISTHOTONOS (Burkitt Class III Recumbent Opisthotonos &amp; Spasms)</option>
+                  <option value="TETANUS_CLASS_IV_AUTONOMIC_STORM_APNEA">TETANUS_CLASS_IV_AUTONOMIC_STORM_APNEA (Burkitt Class IV Autonomic Storm &amp; Apnea)</option>
+                  <option value="BOTULISM_ASCENDING_FLACCID_LMN_QUADRIPLEGIA">BOTULISM_ASCENDING_FLACCID_LMN_QUADRIPLEGIA (Botulism Ascending Flaccid LMN Quadriplegia)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-protocol-input">Initial Clostridial Protocol</label>
+                <select id="create-protocol-input" name="protocol" class="form-control" required>
+                  <option value="EQUINE_TAT_100_1000_IU_KG_AFTER_ID_TEST" selected>EQUINE_TAT_100_1000_IU_KG_AFTER_ID_TEST (Equine TAT 100–1,000 IU/kg After ID Test)</option>
+                  <option value="METRONIDAZOLE_10MG_KG_BID_DEBRIDEMENT">METRONIDAZOLE_10MG_KG_BID_DEBRIDEMENT (Metronidazole 10 mg/kg IV BID &amp; Wound Debridement)</option>
+                  <option value="METHOCARBAMOL_MIDAZOLAM_ACEPROMAZINE_CRI">METHOCARBAMOL_MIDAZOLAM_ACEPROMAZINE_CRI (Methocarbamol + Midazolam + Acepromazine CRI)</option>
+                  <option value="DARK_QUIET_COTTON_EARPLUG_ISOLATION">DARK_QUIET_COTTON_EARPLUG_ISOLATION (Dark/Quiet Sensory Isolation &amp; Cotton Earplugs)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-burkitt-class-input">Burkitt Tetanus Severity Class (1–4)</label>
+                <input type="number" id="create-burkitt-class-input" name="burkitt_severity_class" class="form-control" min="1" max="4" step="1" value="2" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-spasm-freq-input">Tetanic Spasm Frequency (spasms/hr)</label>
+                <input type="number" id="create-spasm-freq-input" name="spasm_frequency_per_hr" class="form-control" min="0" max="60" step="1" value="4" required>
+              </div>
+              <div class="form-group">
+                <label for="create-core-temp-input">Core Temperature (°C)</label>
+                <input type="number" id="create-core-temp-input" name="core_temp_celsius" class="form-control" min="34.0" max="43.5" step="0.1" value="39.6" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-paco2-input">PaCO2 (mmHg)</label>
+                <input type="number" id="create-paco2-input" name="paco2_mmhg" class="form-control" min="15.0" max="110.0" step="0.5" value="46.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-hr-input">Heart Rate (bpm)</label>
+                <input type="number" id="create-hr-input" name="heart_rate_bpm" class="form-control" min="20" max="300" step="1" value="136" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-metronidazole-input">Metronidazole Dose (mg/kg IV q12h)</label>
+                <input type="number" id="create-metronidazole-input" name="metronidazole_mg_kg_bid" class="form-control" min="1.0" max="25.0" step="0.5" value="10.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-tat-units-input">Equine TAT Dose (IU/kg IV, max 20,000 IU total)</label>
+                <input type="number" id="create-tat-units-input" name="equine_tat_units_kg" class="form-control" min="0" max="1000" step="50" value="400" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="create-methocarbamol-input">Methocarbamol Dose (mg/kg IV q8h)</label>
+              <input type="number" id="create-methocarbamol-input" name="methocarbamol_mg_kg_iv" class="form-control" min="0" max="150" step="5" value="50" required>
+            </div>
+
+            <div class="form-group clb-checkbox-group">
+              <label class="clb-checkbox-item">
+                <input type="checkbox" id="create-gag-reflex-checkbox" name="gag_reflex_intact">
+                <span>Pharyngeal Gag &amp; Swallowing Reflex Intact</span>
+              </label>
+              <label class="clb-checkbox-item">
+                <input type="checkbox" id="create-id-test-checkbox" name="intradermal_skin_test_negative_verified" checked>
+                <span>Equine TAT 0.1–0.2 mL Intradermal Skin Test Negative Verified (20–30 min Wheal/Flare Guard)</span>
+              </label>
+              <label class="clb-checkbox-item">
+                <input type="checkbox" id="create-penicillin-gaba-checkbox" name="penicillin_gaba_warning_acknowledged" checked>
+                <span>Penicillin G GABA-A Antagonism Warning Acknowledged (Use Metronidazole 10 mg/kg IV q12h)</span>
+              </label>
+              <label class="clb-checkbox-item">
+                <input type="checkbox" id="create-earplugs-checkbox" name="dark_quiet_cotton_earplugs_active" checked>
+                <span>Dark, Quiet Sensory-Isolation Room &amp; Sterile Cotton Earplugs Active</span>
+              </label>
+              <label class="clb-checkbox-item">
+                <input type="checkbox" id="create-aminoglycoside-checkbox" name="aminoglycoside_contraindicated_in_botulism" checked>
+                <span>Aminoglycoside (Gentamicin/Amikacin) Neuromuscular Blockade Contraindication Verified</span>
+              </label>
+            </div>
+
+            <button type="submit" id="create-clb-op-btn" class="btn btn-primary">➕ Admit Tetanus / Botulism Patient</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active Tetanus & Botulism Workspace & Therapy / Neuro Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="clb-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="clb-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · Syndrome: <strong id="active-syndrome">{{ $active.Syndrome }}</strong> · Protocol: <strong id="active-protocol">{{ $active.Protocol }}</strong> · Gag Reflex: <strong id="active-gag-reflex">{{ if $active.GagReflexIntact }}INTACT{{ else }}ABSENT{{ end }}</strong></p>
+          </div>
+          <span id="active-op-status-badge" class="clb-status-badge {{ if eq (printf "%s" $active.Status) "METRONIDAZOLE_TAT_METHOCARBAMOL_STAGED" }}clb-status-critical{{ else if eq (printf "%s" $active.Status) "SENSORY_ISOLATION_VENTILATION_MONITORED" }}clb-status-staged{{ else }}clb-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- Tetanus & Botulism Vitals Telemetry Bar -->
+        <div class="clb-vitals-summary" id="active-vitals-summary">
+          <div class="clb-vital-chip">
+            <span class="kpi-label">Burkitt Severity Class</span>
+            <strong id="active-burkitt-class">Class {{ $active.BurkittSeverityClass }}/4</strong>
+          </div>
+          <div class="clb-vital-chip">
+            <span class="kpi-label">Spasm Frequency</span>
+            <strong id="active-spasm-frequency">{{ $active.SpasmFrequencyPerHr }} spasms/hr</strong>
+          </div>
+          <div class="clb-vital-chip">
+            <span class="kpi-label">PaCO2 / Core Temp</span>
+            <strong id="active-paco2-temp">{{ printf "%.1f" $active.PaCO2mmHg }} mmHg / {{ printf "%.1f" $active.CoreTempCelsius }}°C</strong>
+          </div>
+          <div class="clb-vital-chip">
+            <span class="kpi-label">Metronidazole / Equine TAT</span>
+            <strong id="active-metro-tat">{{ printf "%.1f" $active.MetronidazoleMgKgBID }} mg/kg BID / {{ printf "%.0f" $active.EquineTATUnitsKg }} IU/kg</strong>
+          </div>
+        </div>
+
+        <!-- Clostridial Pathophysiology & Safety Guards Box -->
+        <div class="clb-plan-box" id="active-clinical-guards-box">
+          <h3>Clostridial Pathophysiology, Equine TAT Intradermal Guard &amp; Penicillin G GABA-A Antagonism Profile</h3>
+          <div class="clb-plan-grid">
+            <div><strong>Syndrome Pathophysiology:</strong> <span id="plan-pathophysiology">{{ $active.PathophysiologySummary }}</span></div>
+            <div><strong>Metronidazole vs. Penicillin G GABA-A Alert:</strong> <span id="plan-penicillin-gaba">{{ $active.PenicillinGABAAntagonismAlert }}</span></div>
+            <div><strong>Equine TAT Intradermal Skin Test Guard:</strong> <span id="plan-tat-guard">{{ $active.EquineTATIntradermalTestGuard }}</span></div>
+            <div><strong>Aminoglycoside Botulism Contraindication:</strong> <span id="plan-aminoglycoside-guard">{{ $active.AminoglycosideBotulismAlert }}</span></div>
+            <div><strong>Dark/Quiet Cotton-Earplug Sensory Isolation Plan:</strong> <span id="plan-sensory-isolation">{{ $active.SensoryIsolationCockpitPlan }}</span></div>
+          </div>
+        </div>
+        {{ end }}
+
+        <hr class="clb-divider">
+
+        <!-- 1. Stage Metronidazole, Equine TAT (After ID Test), Methocarbamol & Dark/Quiet Isolation Form -->
+        <div class="trust-subsection" id="stage-therapy-section">
+          <h3>1. Stage Metronidazole (10 mg/kg BID), Equine TAT (After ID Skin Test), Methocarbamol CRI &amp; Sensory Isolation</h3>
+          <form id="stage-therapy-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-protocol-input">Therapeutic Clostridial Protocol</label>
+                <select id="stage-protocol-input" name="protocol" class="form-control" required>
+                  <option value="EQUINE_TAT_100_1000_IU_KG_AFTER_ID_TEST" selected>EQUINE_TAT_100_1000_IU_KG_AFTER_ID_TEST (Equine TAT 100–1,000 IU/kg After ID Test)</option>
+                  <option value="METRONIDAZOLE_10MG_KG_BID_DEBRIDEMENT">METRONIDAZOLE_10MG_KG_BID_DEBRIDEMENT (Metronidazole 10 mg/kg IV BID &amp; Debridement)</option>
+                  <option value="METHOCARBAMOL_MIDAZOLAM_ACEPROMAZINE_CRI">METHOCARBAMOL_MIDAZOLAM_ACEPROMAZINE_CRI (Methocarbamol + Midazolam + Acepromazine CRI)</option>
+                  <option value="DARK_QUIET_COTTON_EARPLUG_ISOLATION">DARK_QUIET_COTTON_EARPLUG_ISOLATION (Dark/Quiet Sensory Isolation &amp; Cotton Earplugs)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="stage-metronidazole-input">Metronidazole Dose (mg/kg IV q12h)</label>
+                <input type="number" id="stage-metronidazole-input" name="metronidazole_mg_kg_bid" class="form-control" min="1.0" max="25.0" step="0.5" value="10.0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-tat-units-input">Equine TAT Dose (IU/kg IV, max 20,000 IU)</label>
+                <input type="number" id="stage-tat-units-input" name="equine_tat_units_kg" class="form-control" min="0" max="1000" step="50" value="500" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-methocarbamol-input">Methocarbamol Dose (mg/kg IV)</label>
+                <input type="number" id="stage-methocarbamol-input" name="methocarbamol_mg_kg_iv" class="form-control" min="0" max="150" step="5" value="55" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-wound-note-input">Perilesional TAT Infiltration Prior to Debridement Note</label>
+                <input
+                  type="text"
+                  id="stage-wound-note-input"
+                  name="wound_infiltration_prior_to_debridement_note"
+                  class="form-control"
+                  value="0.2 mL Equine TAT intradermal skin test negative at 30 min; local perilesional TAT infiltrated 45 min prior to surgical wound debridement + Metronidazole 10 mg/kg IV q12h"
+                  required
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-staged-by-input">Staged By (Neurologist / Criticalist)</label>
+                <input type="text" id="stage-staged-by-input" name="staged_by" class="form-control" value="Dr. Ingrid Vance, DACVIM (Neurology)" required>
+              </div>
+            </div>
+
+            <div class="form-group clb-checkbox-group">
+              <label class="clb-checkbox-item">
+                <input type="checkbox" id="stage-id-test-checkbox" name="intradermal_skin_test_negative_verified" checked>
+                <span>Equine TAT 0.1–0.2 mL Intradermal Skin Test Negative Verified (20–30 min Wheal/Flare Guard)</span>
+              </label>
+              <label class="clb-checkbox-item">
+                <input type="checkbox" id="stage-penicillin-gaba-checkbox" name="penicillin_gaba_warning_acknowledged" checked>
+                <span>Penicillin G GABA-A Antagonism Warning Acknowledged (Metronidazole 10 mg/kg IV q12h Selected)</span>
+              </label>
+              <label class="clb-checkbox-item">
+                <input type="checkbox" id="stage-earplugs-checkbox" name="dark_quiet_cotton_earplugs_active" checked>
+                <span>Dark, Quiet Sensory-Isolation Room &amp; Sterile Cotton Earplugs Active</span>
+              </label>
+              <label class="clb-checkbox-item">
+                <input type="checkbox" id="stage-aminoglycoside-checkbox" name="aminoglycoside_contraindicated_in_botulism" checked>
+                <span>Aminoglycoside Neuromuscular Blockade Contraindication Verified</span>
+              </label>
+            </div>
+
+            <button type="submit" id="stage-therapy-btn" class="btn btn-secondary">💉 Stage Metronidazole / Equine TAT / Methocarbamol &amp; Isolation Protocol</button>
+          </form>
+        </div>
+
+        <hr class="clb-divider">
+
+        <!-- 2. Record Serial Neurological, Autonomic & Respiratory Ventilation Check Form -->
+        <div class="trust-subsection" id="record-neuro-check-section">
+          <h3>2. Record Serial Neurological, Spasm Frequency, Gag Reflex &amp; PaCO2 Ventilation Check</h3>
+          <form id="record-neuro-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-burkitt-class-input">Burkitt Tetanus Severity Class (1–4)</label>
+                <input type="number" id="check-burkitt-class-input" name="burkitt_severity_class" class="form-control" min="1" max="4" step="1" value="1" required>
+              </div>
+              <div class="form-group">
+                <label for="check-spasm-freq-input">Tetanic Spasm Frequency (spasms/hr)</label>
+                <input type="number" id="check-spasm-freq-input" name="spasm_frequency_per_hr" class="form-control" min="0" max="60" step="1" value="0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-core-temp-input">Core Temperature (°C)</label>
+                <input type="number" id="check-core-temp-input" name="core_temp_celsius" class="form-control" min="34.0" max="43.5" step="0.1" value="38.5" required>
+              </div>
+              <div class="form-group">
+                <label for="check-paco2-input">PaCO2 (mmHg)</label>
+                <input type="number" id="check-paco2-input" name="paco2_mmhg" class="form-control" min="15.0" max="110.0" step="0.5" value="38.0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-hr-input">Heart Rate (bpm)</label>
+                <input type="number" id="check-hr-input" name="heart_rate_bpm" class="form-control" min="20" max="300" step="1" value="88" required>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (Neurologist / ICU Clinician)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Ingrid Vance, DACVIM (Neurology)" required>
+              </div>
+            </div>
+
+            <div class="form-group clb-checkbox-group">
+              <label class="clb-checkbox-item">
+                <input type="checkbox" id="check-gag-reflex-checkbox" name="gag_reflex_intact" checked>
+                <span>Pharyngeal Gag &amp; Swallowing Reflex Intact</span>
+              </label>
+              <label class="clb-checkbox-item">
+                <input type="checkbox" id="check-earplugs-checkbox" name="dark_quiet_cotton_earplugs_active" checked>
+                <span>Dark, Quiet Sensory-Isolation Room &amp; Sterile Cotton Earplugs Active</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label for="check-note-input">Clinical Neurological, Autonomic &amp; Respiratory Ventilation Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="Day 14 sensory-isolation check: Risus sardonicus and sawhorse rigidity resolved, 0 spasms/hr, intact pharyngeal gag reflex, normocapnic PaCO2 38.0 mmHg, core temp 38.5°C." required>
+            </div>
+
+            <button type="submit" id="record-neuro-check-btn" class="btn btn-secondary">🩺 Record Neurological &amp; Ventilation Check</button>
+          </form>
+
+          <div class="clb-checks-box">
+            <h4>Serial Neurological &amp; Ventilation Checks (<span id="neuro-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.NeuroChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="neuro-checks-list" class="clb-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.NeuroChecks }}
+              <li class="clb-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · Burkitt Class {{ $chk.BurkittSeverityClass }}/4 · Spasms {{ $chk.SpasmFrequencyPerHr }}/hr · Gag {{ if $chk.GagReflexIntact }}INTACT{{ else }}ABSENT{{ end }} · Temp {{ printf "%.1f" $chk.CoreTempCelsius }}°C · PaCO2 {{ printf "%.1f" $chk.PaCO2mmHg }} mmHg — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="clb-divider">
+
+        <!-- 3. Clear Tetanus / Botulism Patient for Normoreflexic & Swallowing Intact Discharge Form -->
+        <div class="trust-subsection" id="clear-clb-section">
+          <h3>3. Clear Normoreflexic, Swallowing-Intact &amp; Normocapnic Patient for ICU Step-Down / Discharge</h3>
+          <form id="clear-clb-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clear-spasm-freq-input">Final Spasm Frequency (must be 0/hr)</label>
+                <input type="number" id="clear-spasm-freq-input" name="spasm_frequency_per_hr" class="form-control" min="0" max="60" step="1" value="0" required>
+              </div>
+              <div class="form-group">
+                <label for="clear-paco2-input">Final PaCO2 (mmHg, must be &lt;= 45.0)</label>
+                <input type="number" id="clear-paco2-input" name="paco2_mmhg" class="form-control" min="15.0" max="45.0" step="0.5" value="38.0" required>
+              </div>
+            </div>
+
+            <div class="form-group clb-checkbox-group">
+              <label class="clb-checkbox-item">
+                <input type="checkbox" id="clear-gag-reflex-checkbox" name="gag_reflex_intact" checked>
+                <span>Pharyngeal Gag &amp; Voluntary Swallowing Reflex Intact Verified</span>
+              </label>
+              <label class="clb-checkbox-item">
+                <input type="checkbox" id="clear-ambulatory-checkbox" name="ambulatory_normothermic_verified" checked>
+                <span>Ambulatory Normothermia &amp; Spontaneous Normocapnic Ventilation Verified</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label for="clear-cleared-by-input">Clearing Veterinary Neurologist / Criticalist</label>
+              <input type="text" id="clear-cleared-by-input" name="cleared_by" class="form-control" value="Dr. Ingrid Vance, DACVIM (Neurology)" required>
+            </div>
+            <div class="form-group">
+              <label for="clear-summary-input">Normoreflexic, Swallowing-Intact &amp; Normocapnic Clearance Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="clearance_summary"
+                class="form-control"
+                value="Completed Metronidazole 10 mg/kg IV q12h, Equine TAT after negative ID skin test, and dark/quiet sensory-isolation protocol; 0 spasms/hr, intact pharyngeal gag reflex, PaCO2 38.0 mmHg, and ambulatory normothermia verified."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-clb-btn" class="btn btn-primary">🛡️ Clear Patient for Normoreflexic &amp; Swallowing-Intact Discharge</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/tetanus-botulism-triage.js" defer></script>
+</body>
+</html>
