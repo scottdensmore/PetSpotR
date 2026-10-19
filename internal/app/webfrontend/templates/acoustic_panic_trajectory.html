@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Fireworks/Thunderstorm Acoustic Panic, Bolt-Trajectory Vectoring &amp; Calming Pheromone SAR Cockpit.">
+  <title>Fireworks/Thunderstorm Acoustic Panic, Bolt-Trajectory Vectoring &amp; Calming Pheromone SAR Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#7c3aed">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#acoustic-panic-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/hyperthermia-heat-triage" class="nav-link nav-link-emergency" id="nav-hyperthermia-heat-triage">🌡️ Hyperthermia &amp; Heat Triage</a></li>
+          <li><a href="/acoustic-panic-trajectory" class="nav-link active nav-link-emergency" id="nav-acoustic-panic-trajectory">🎆 Acoustic Panic &amp; Bolt SAR</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="acoustic-panic-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header acoustic-panic-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🎆 FIREWORKS/THUNDERSTORM ACOUSTIC PANIC, BOLT-TRAJECTORY VECTORING &amp; CALMING PHEROMONE SAR COCKPIT</span>
+        </div>
+        <h1>Fireworks/Thunderstorm Acoustic Panic, Bolt-Trajectory Vectoring &amp; Calming Pheromone SAR Cockpit</h1>
+        <p class="text-secondary">
+          July 4th / NYE Fireworks Barrage &amp; Severe Thunderstorm Barometric Drop Vectoring, Straight-Line Adrenal Flight Corridor Modeling, Strict No-Chase Silent Perimeter Enforcement, Adaptil/Feliway Pheromone &amp; Scent-Article Lure Triangulation, Barrier-Breach Claw/Dental Laceration Triage &amp; Thundershirt Acoustic Decompression.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid acoustic-panic-kpi-grid" aria-label="Acoustic Panic &amp; Bolt-Trajectory SAR KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Acoustic Panic Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Adrenal Flight Bolt Critical</span>
+        <strong class="kpi-value" id="kpi-critical-bolt">{{ .CriticalBoltCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Calming Perimeter Sniff Staged</span>
+        <strong class="kpi-value" id="kpi-staged-lure">{{ .StagedLureCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Decompressed Contained Safe</span>
+        <strong class="kpi-value" id="kpi-decompressed-safe">{{ .DecompressedSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="acoustic-panic-live-status" class="humane-traps-live-status acoustic-panic-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} fireworks/thunderstorm acoustic panic &amp; bolt-trajectory SAR operations.
+    </div>
+
+    <div class="trust-cockpit-grid acoustic-panic-cockpit-grid">
+      <!-- Left Column: Evaluate Acoustic Panic & Bolt-Trajectory Form -->
+      <section class="glass-card trust-panel" id="acoustic-evaluate-panel" aria-labelledby="heading-evaluate-acoustic-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-acoustic-op">Evaluate Acoustic Panic &amp; Bolt-Trajectory Vector</h2>
+          <span class="badge badge-acoustic-trigger">Silent No-Chase Protocol</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Acoustic Startle &amp; Barometric Scenario Presets</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary acoustic-scenario-btn" data-scenario="july4-fireworks-breach" id="btn-sim-july4-fireworks-breach">
+              🎆 Simulate July 4th Fireworks Mortar Barrage &amp; Glass-Window Breach (136.0 dB · 225° Vector)
+            </button>
+            <button type="button" class="btn btn-secondary acoustic-scenario-btn" data-scenario="thunderstorm-barometric-drop" id="btn-sim-thunderstorm-barometric-drop">
+              ⛈️ Simulate Severe Supercell Barometric Drop &amp; Electrostatic Panic (14.2 hPa Drop · 112.0 dB)
+            </button>
+          </div>
+        </div>
+
+        <div id="eval-error-banner" class="acoustic-eval-error-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="acoustic-eval-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-pet-name">Pet Name</label>
+              <input type="text" id="eval-pet-name" name="pet_name" class="form-control" value="Ranger" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-species">Species / Breed</label>
+              <input type="text" id="eval-species" name="species" class="form-control" value="Dog - Belgian Malinois" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-weight-kg">Estimated Weight (kg)</label>
+              <input type="number" id="eval-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120" step="0.1" value="28.4" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-trigger-type">Acoustic / Barometric Trigger Classification</label>
+              <select id="eval-trigger-type" name="trigger_type" class="form-control" required>
+                <option value="JULY4_NYE_FIREWORKS_BARRAGE" selected>JULY4_NYE_FIREWORKS_BARRAGE (Mortar Salutes &amp; Aerial Shells)</option>
+                <option value="SEVERE_THUNDERSTORM_BAROMETRIC_DROP">SEVERE_THUNDERSTORM_BAROMETRIC_DROP (Thunderclap &amp; Barometric Drop)</option>
+                <option value="GUNSHOT_CONSTRUCTION_BLASTING">GUNSHOT_CONSTRUCTION_BLASTING (Ballistic / Quarry Concussion Impulse)</option>
+                <option value="HIGH_VOLTAGE_TRANSFORMER_ARC">HIGH_VOLTAGE_TRANSFORMER_ARC (Substation Arc Flash &amp; Ozone Plume)</option>
+                <option value="SIREN_SONIC_BOOM_STARTLE">SIREN_SONIC_BOOM_STARTLE (Emergency Siren / Low-Altitude Sonic Boom)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-peak-db">Peak Acoustic Impulse (dB SPL)</label>
+              <input type="number" id="eval-peak-db" name="peak_decibels_db" class="form-control" min="60.0" max="180.0" step="0.5" value="134.0" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-barometric-hpa">Barometric Pressure Drop (hPa)</label>
+              <input type="number" id="eval-barometric-hpa" name="barometric_drop_hpa" class="form-control" min="0.0" max="60.0" step="0.5" value="3.5" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-heading-deg">Initial Bolt Trajectory Heading (0–359°)</label>
+              <input type="number" id="eval-heading-deg" name="bolt_heading_degrees" class="form-control" min="0" max="359" step="1" value="225" required>
+            </div>
+          </div>
+
+          <div class="acoustic-checkbox-group">
+            <label class="acoustic-step-item">
+              <input type="checkbox" id="eval-barrier-breach" name="barrier_breach_injury_suspected" checked>
+              <span>Window / Screen / Chain-Link Fence Barrier Breach &amp; Claw/Dental Laceration Suspected</span>
+            </label>
+            <label class="acoustic-step-item">
+              <input type="checkbox" id="eval-no-chase-enforced" name="no_chase_passive_lure_enforced" checked>
+              <span>Silent No-Chase Passive Lure Perimeter Enforced (Zero Loud Calling or Foot Pursuit)</span>
+            </label>
+            <label class="acoustic-step-item">
+              <input type="checkbox" id="eval-pheromone-staged" name="adaptil_feliway_station_staged" checked>
+              <span>Adaptil (DAP) / Feliway Pheromone &amp; Unwashed Owner Scent-Article Station Staged</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-submit-acoustic-eval" class="btn btn-primary">Evaluate Acoustic Panic &amp; Bolt Trajectory</button>
+        </form>
+      </section>
+
+      <!-- Right Column: Filter Bar, Operations Queue & Active Workspace -->
+      <section class="glass-card trust-panel" id="acoustic-ops-panel" aria-labelledby="heading-acoustic-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-acoustic-ops">Active Acoustic Panic &amp; Bolt-Trajectory Operations</h2>
+          <span id="acoustic-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col acoustic-filter-bar" role="region" aria-label="Filter Acoustic Panic Operations">
+          <div class="form-group">
+            <label for="filter-trigger-type">Filter by Acoustic Trigger</label>
+            <select id="filter-trigger-type" class="form-control">
+              <option value="">All Acoustic Triggers</option>
+              <option value="JULY4_NYE_FIREWORKS_BARRAGE">JULY4_NYE_FIREWORKS_BARRAGE</option>
+              <option value="SEVERE_THUNDERSTORM_BAROMETRIC_DROP">SEVERE_THUNDERSTORM_BAROMETRIC_DROP</option>
+              <option value="GUNSHOT_CONSTRUCTION_BLASTING">GUNSHOT_CONSTRUCTION_BLASTING</option>
+              <option value="HIGH_VOLTAGE_TRANSFORMER_ARC">HIGH_VOLTAGE_TRANSFORMER_ARC</option>
+              <option value="SIREN_SONIC_BOOM_STARTLE">SIREN_SONIC_BOOM_STARTLE</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-status">Filter by SAR Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All SAR Statuses</option>
+              <option value="ADRENAL_FLIGHT_BOLT_CRITICAL">ADRENAL_FLIGHT_BOLT_CRITICAL</option>
+              <option value="CALMING_PERIMETER_SNIFF_STAGED">CALMING_PERIMETER_SNIFF_STAGED</option>
+              <option value="DECOMPRESSED_CONTAINED_SAFE">DECOMPRESSED_CONTAINED_SAFE</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="acoustic-active-workspace" role="region" aria-label="Active Acoustic Panic Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="acoustic-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">Active Workspace: {{ $active.PetName }} ({{ $active.Species }} · {{ printf "%.1f" $active.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $active.ID }} · {{ $active.PetID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-acoustic-trigger">{{ $active.TriggerType }}</span>
+                <span class="badge badge-acoustic-status {{ if eq (printf "%s" $active.Status) "ADRENAL_FLIGHT_BOLT_CRITICAL" }}badge-acoustic-critical{{ else if eq (printf "%s" $active.Status) "CALMING_PERIMETER_SNIFF_STAGED" }}badge-acoustic-staged{{ else }}badge-acoustic-safe{{ end }}">{{ $active.Status }}</span>
+              </div>
+            </div>
+            <div class="acoustic-advisory-alert-banner">
+              🔇 {{ $active.AdrenalNoChaseAdvisory }}
+            </div>
+            <div class="acoustic-corridor-recommendations">
+              <div><strong>Predicted Acoustic-Shadow Refuge Corridor:</strong> {{ $active.PredictedRefugeCorridor }}</div>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="acoustic-operations-list" class="trust-screenings-list acoustic-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card acoustic-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-trigger-type="{{ $op.TriggerType }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-acoustic-trigger">{{ $op.TriggerType }}</span>
+                <span class="badge badge-acoustic-status {{ if eq (printf "%s" $op.Status) "ADRENAL_FLIGHT_BOLT_CRITICAL" }}badge-acoustic-critical{{ else if eq (printf "%s" $op.Status) "CALMING_PERIMETER_SNIFF_STAGED" }}badge-acoustic-staged{{ else }}badge-acoustic-safe{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row acoustic-metrics-row">
+              <span class="badge badge-acoustic-trigger">Peak Impulse: {{ printf "%.1f" $op.PeakDecibelsDb }} dB • Barometric Drop: {{ printf "%.1f" $op.BarometricDropHpa }} hPa • Bolt Heading: {{ $op.BoltHeadingDegrees }}°</span>
+            </div>
+
+            <div class="acoustic-flags-row">
+              {{ if $op.BarrierBreachInjurySuspected }}
+              <span class="badge badge-acoustic-flag">BARRIER_BREACH_CLAW_DENTAL_LACERATION</span>
+              {{ end }}
+              {{ if not $op.NoChasePassiveLureEnforced }}
+              <span class="badge badge-acoustic-flag">ACTIVE_CHASE_TRAFFIC_BOLT_HAZARD</span>
+              {{ end }}
+              {{ if ge $op.PeakDecibelsDb 115.0 }}
+              <span class="badge badge-acoustic-flag">EXTREME_ACOUSTIC_DECIBEL_SHOCK</span>
+              {{ end }}
+              {{ if ge $op.BarometricDropHpa 12.0 }}
+              <span class="badge badge-acoustic-flag">RAPID_BAROMETRIC_ELECTROSTATIC_PANIC</span>
+              {{ end }}
+            </div>
+
+            <div class="acoustic-advisory-alert-banner">
+              ⚠️ {{ $op.AdrenalNoChaseAdvisory }}
+            </div>
+
+            {{ if $op.ClearanceToken }}
+            <div class="acoustic-clearance-banner">
+              ✅ ACOUSTIC DECOMPRESSION &amp; CONTAINMENT CLEARANCE VERIFIED: {{ $op.ClearanceToken }}
+            </div>
+            {{ end }}
+
+            <div class="acoustic-corridor-recommendations">
+              <div><strong>Predicted Refuge Corridor:</strong> {{ $op.PredictedRefugeCorridor }}</div>
+            </div>
+
+            <div class="acoustic-steps-list" aria-label="Silent No-Chase, Calming Pheromone Lure &amp; Acoustic Decompression Protocol Steps">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="acoustic-step-item">
+                <input
+                  type="checkbox"
+                  class="acoustic-step-checkbox"
+                  data-op-id="{{ $op.ID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "DECOMPRESSED_CONTAINED_SAFE" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-acoustic-safe{{ else }}badge-acoustic-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="acoustic-step-title">{{ $step.Title }}</strong>
+                <span class="acoustic-step-desc">{{ $step.Description }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary acoustic-select-workspace-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Inspect in Active Workspace
+              </button>
+              {{ if ne (printf "%s" $op.Status) "DECOMPRESSED_CONTAINED_SAFE" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary acoustic-issue-clearance-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🛡️ Issue Acoustic Containment Clearance ({{ $op.ID }})
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="acoustic-ops-empty-msg">No acoustic panic trajectory operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/acoustic-panic-trajectory.js" defer></script>
+</body>
+</html>

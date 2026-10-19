@@ -24,6 +24,7 @@ import (
 
 	"github.com/scottdensmore/petspotr/internal/app/foundpet"
 	"github.com/scottdensmore/petspotr/internal/app/lostpet"
+	"github.com/scottdensmore/petspotr/pkg/acousticpanic"
 	"github.com/scottdensmore/petspotr/pkg/avalanchewinter"
 	"github.com/scottdensmore/petspotr/pkg/avianrecovery"
 	"github.com/scottdensmore/petspotr/pkg/blob"
@@ -88,6 +89,7 @@ type Server struct {
 	maritimeRescueStore      *maritimecoastal.Store
 	neonatalIncubatorStore   *neonatalincubator.Store
 	envenomationToxinStore   *envenomationtoxin.Store
+	acousticPanicStore       *acousticpanic.Store
 	handler                  http.Handler
 }
 
@@ -258,6 +260,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		maritimeRescueStore:      maritimecoastal.NewStore(),
 		neonatalIncubatorStore:   neonatalincubator.NewStore(),
 		envenomationToxinStore:   envenomationtoxin.NewStore(),
+		acousticPanicStore:       acousticpanic.NewStore(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -562,6 +565,8 @@ func (s *Server) routes() {
 	s.registerNeonatalIncubatorRoutes()
 	// Pit-Viper Envenomation, Bufo Toad Bufotoxin, Porcupine Quill & Toxic Flora Triage Cockpit routes (Milestone 17.4)
 	s.registerEnvenomationToxinRoutes()
+	// Fireworks/Thunderstorm Acoustic Panic, Bolt-Trajectory Vectoring & Calming Pheromone SAR Cockpit routes (Milestone 17.5)
+	s.registerAcousticPanicRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
