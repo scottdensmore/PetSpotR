@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Tension Pneumothorax, Flail Chest, 7th–9th ICS Thoracocentesis &amp; Heimlich/Pleural Seal Chest Tube Cockpit.">
+  <title>Tension Pneumothorax, Flail Chest, 7th–9th ICS Thoracocentesis &amp; Heimlich/Pleural Seal Chest Tube Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#pneumothorax-thoracocentesis-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/addisonian-crisis-triage" class="nav-link nav-link-emergency" id="nav-addisonian-crisis-triage">🧪 Addisonian Crisis &amp; DOCP ICU</a></li>
+          <li><a href="/pneumothorax-thoracocentesis-triage" class="nav-link active nav-link-emergency" id="nav-pneumothorax-thoracocentesis-triage">🫁 Pneumothorax &amp; Chest Tube ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="pneumothorax-thoracocentesis-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header pneumothorax-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🫁 TENSION PNEUMOTHORAX, FLAIL CHEST, 7TH–9TH ICS THORACOCENTESIS &amp; HEIMLICH/PLEURAL SEAL CHEST TUBE COCKPIT</span>
+        </div>
+        <h1>Tension Pneumothorax, Flail Chest, 7th–9th ICS Thoracocentesis &amp; Heimlich/Pleural Seal Chest Tube Cockpit</h1>
+        <p class="text-secondary">
+          TFAST Absent Glide Sign Detection, 7th–9th Intercostal Space (Dorsal Third) Needle Thoracocentesis along the CRANIAL Rib Margin (Zero Intercostal Vessel Laceration), Expected Negative-Pressure Tap Volume (30 mL/kg), MILA Guidewire Thoracostomy Tube &amp; Continuous Pleural Suction (-15 cmH2O), Autologous Blood Patch Pleurodesis (5.0 mL/kg for Spontaneous Bullae) &amp; Zero Pre-Decompression Radiograph Guard.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid pneumothorax-kpi-grid" aria-label="Tension Pneumothorax &amp; Thoracocentesis KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Pleural Space ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Tension Pneumothorax / Absent Glide Critical</span>
+        <strong class="kpi-value" id="kpi-critical-tension">{{ .CriticalTensionCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">7th–9th ICS Thoracocentesis / Chest Tube Staged</span>
+        <strong class="kpi-value" id="kpi-staged-thoracocentesis">{{ .ThoracocentesisTubeStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Pleural Seal Restored / Tube Removed</span>
+        <strong class="kpi-value" id="kpi-cleared-pleural-seal">{{ .PleuralSealRemovedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Tension Radiograph &amp; Rib Vessel Alerts</span>
+        <strong class="kpi-value" id="kpi-tension-radiograph-alerts">{{ .TensionRadiographAlertCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="pneumothorax-live-status" class="humane-traps-live-status pneumothorax-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} tension pneumothorax, 7th–9th ICS thoracocentesis &amp; chest tube operations.
+    </div>
+
+    <!-- Global Tension Radiograph Delay & Caudal Rib Margin Vessel Laceration Pitfall Alert Banner -->
+    <div id="pneumothorax-alert-banner" class="pneumothorax-alert-banner" role="alert" aria-live="assertive">
+      {{ if and .ActiveOperation .ActiveOperation.DecompressionPlan }}
+      ⚠️ TENSION PNEUMOTHORAX, CRANIAL RIB MARGIN &amp; ZERO RADIOGRAPH DELAY GUARD ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }} · {{ .ActiveOperation.DecompressionPlan.NeedleLandmarkIntercostalSpace }} · SpO2 {{ printf "%.1f" .ActiveOperation.PatientProfile.SpO2Percent }}% · Air {{ printf "%.1f" .ActiveOperation.PatientProfile.CumulativeAirAspiratedMlKg }} mL/kg · Suction {{ .ActiveOperation.DecompressionPlan.ContinuousSuctionCmH2O }} cmH2O): {{ .ActiveOperation.DecompressionPlan.PneumothoraxPitfallAlert }}
+      {{ else }}
+      ⚠️ CRITICAL TENSION PNEUMOTHORAX &amp; INTERCOSTAL VESSEL PITFALL ALERT: NEVER take thoracic radiographs before needle thoracocentesis in tension pneumothorax (causes fatal obstructive shock cardiac arrest on the X-ray table); NEVER insert the needle along the caudal margin of the rib (always advance along the CRANIAL rib margin at the 7th–9th ICS dorsal third); and NEVER initiate positive-pressure ventilation before pleural decompression.
+      {{ end }}
+    </div>
+
+    <!-- Global Pleural Seal & Aseptic Chest Tube Removal Clearance Banner -->
+    <div id="pneumothorax-clearance-banner" class="pneumothorax-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation .ActiveOperation.RemovalClearance) }}hidden{{ end }}>
+      {{ if and .ActiveOperation .ActiveOperation.RemovalClearance }}
+      ✅ PLEURAL SEAL &amp; ASEPTIC CHEST TUBE REMOVAL CLEARANCE VERIFIED ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }}): Zero Air {{ .ActiveOperation.RemovalClearance.ZeroAirProductionHours }}h · Fluid {{ printf "%.1f" .ActiveOperation.RemovalClearance.FinalFluidOutputMlKgDay }} mL/kg/day · Room-Air SpO2 {{ printf "%.1f" .ActiveOperation.RemovalClearance.RoomAirSpO2Percent }}% · Vet License {{ .ActiveOperation.RemovalClearance.VetLicense }} — {{ .ActiveOperation.RemovalClearance.Summary }}
+      {{ else }}
+      ✅ PLEURAL SEAL &amp; ASEPTIC CHEST TUBE REMOVAL CLEARANCE VERIFIED
+      {{ end }}
+    </div>
+
+    <div class="trust-cockpit-grid pneumothorax-cockpit-grid">
+      <!-- Left Column: Intake Form & Active Operation Decompression Plan / Drainage Check / Removal Clearance Forms -->
+      <section class="glass-card trust-panel" id="pneumothorax-forms-panel" aria-labelledby="heading-pneumothorax-intake">
+        <div class="trust-panel-header">
+          <h2 id="heading-pneumothorax-intake">1. Tension Pneumothorax &amp; Flail Chest Intake</h2>
+          <span class="status-pill status-pill-staged">7th–9th ICS · Cranial Rib · -15 cmH2O</span>
+        </div>
+
+        <div id="pneumothorax-error-banner" class="pneumothorax-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="create-pneumothorax-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-incident-id">Incident ID</label>
+              <input type="text" id="create-incident-id" name="incident_id" class="form-control" value="INC-PTX-9914" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pet-name">Pet Name</label>
+              <input type="text" id="create-pet-name" name="pet_name" class="form-control" value="Goose" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-species">Pleural Space / Pneumothorax Classification</label>
+              <select id="create-species" name="species" class="form-control" required>
+                <option value="CANINE_SPONTANEOUS_BULLAE" selected>CANINE_SPONTANEOUS_BULLAE (Spontaneous Pulmonary Bullae / Bleb Rupture)</option>
+                <option value="CANINE_TRAUMATIC_FLAIL_CHEST">CANINE_TRAUMATIC_FLAIL_CHEST (Traumatic Pneumothorax &amp; Paradoxical Flail Segment)</option>
+                <option value="FELINE_TRAUMATIC_PNEUMOTHORAX">FELINE_TRAUMATIC_PNEUMOTHORAX (Feline Blunt/Penetrating Thoracic Trauma)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-breed">Breed</label>
+              <input type="text" id="create-breed" name="breed" class="form-control" value="Alaskan Malamute">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-weight-kg">Weight (kg)</label>
+              <input type="number" id="create-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="34.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-resp-rate">Respiratory Rate (bpm)</label>
+              <input type="number" id="create-resp-rate" name="respiratory_rate_bpm" class="form-control" min="6" max="180" step="1" value="68" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-spo2">Pulse Oximetry SpO2 (%)</label>
+              <input type="number" id="create-spo2" name="spo2_percent" class="form-control" min="50.0" max="100.0" step="0.5" value="85.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-cumulative-air">Cumulative Air Aspirated (mL/kg)</label>
+              <input type="number" id="create-cumulative-air" name="cumulative_air_aspirated_ml_kg" class="form-control" min="0.0" max="500.0" step="1.0" value="54.0" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="create-tap-count">Thoracocentesis Tap Count (Last 24h)</label>
+            <input type="number" id="create-tap-count" name="tap_count_last_24hr" class="form-control" min="0" max="30" step="1" value="3" required>
+          </div>
+
+          <div class="pneumothorax-checkbox-group">
+            <label class="pneumothorax-checkbox-item">
+              <input type="checkbox" id="create-glide-sign" name="tfast_glide_sign_present">
+              <span>TFAST Pleural Glide Sign Present (Unchecked = Absent Glide Sign / Pneumothorax)</span>
+            </label>
+            <label class="pneumothorax-checkbox-item">
+              <input type="checkbox" id="create-open-wound" name="open_sucking_chest_wound">
+              <span>Open Sucking Chest Wound Present (Immediate Occlusive Seal + Chest Tube Required)</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-create-pneumothorax-op" class="btn btn-primary">Create Pneumothorax Operation</button>
+        </form>
+
+        <hr class="pneumothorax-divider">
+
+        <!-- Stage 7th–9th ICS Thoracocentesis & Chest Tube Decompression Plan Form -->
+        <div class="trust-subsection" id="stage-plan-section">
+          <h3 id="heading-stage-plan">2. Stage 7th–9th ICS Thoracocentesis &amp; Chest Tube Decompression Plan</h3>
+          <form id="stage-plan-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-weight-kg">Weight (kg)</label>
+                <input type="number" id="stage-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.WeightKg }}{{ else }}25.0{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-species">Pneumothorax Classification</label>
+                <select id="stage-species" name="species" class="form-control" required>
+                  <option value="CANINE_SPONTANEOUS_BULLAE">CANINE_SPONTANEOUS_BULLAE (Spontaneous Bullae)</option>
+                  <option value="CANINE_TRAUMATIC_FLAIL_CHEST">CANINE_TRAUMATIC_FLAIL_CHEST (Traumatic Flail Chest)</option>
+                  <option value="FELINE_TRAUMATIC_PNEUMOTHORAX">FELINE_TRAUMATIC_PNEUMOTHORAX (Feline Traumatic)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-resp-rate">Respiratory Rate (bpm)</label>
+                <input type="number" id="stage-resp-rate" name="respiratory_rate_bpm" class="form-control" min="6" max="180" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.RespiratoryRateBpm }}{{ else }}76{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-spo2">SpO2 (%)</label>
+                <input type="number" id="stage-spo2" name="spo2_percent" class="form-control" min="50.0" max="100.0" step="0.5" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.SpO2Percent }}{{ else }}83.0{{ end }}" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-cumulative-air">Cumulative Air Aspirated (mL/kg)</label>
+                <input type="number" id="stage-cumulative-air" name="cumulative_air_aspirated_ml_kg" class="form-control" min="0.0" max="500.0" step="1.0" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.CumulativeAirAspiratedMlKg }}{{ else }}62.0{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-tap-count">Tap Count (Last 24h)</label>
+                <input type="number" id="stage-tap-count" name="tap_count_last_24hr" class="form-control" min="0" max="30" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.TapCountLast24Hr }}{{ else }}3{{ end }}" required>
+              </div>
+            </div>
+            <div class="pneumothorax-checkbox-group">
+              <label class="pneumothorax-checkbox-item">
+                <input type="checkbox" id="stage-glide-sign" name="tfast_glide_sign_present" {{ if and .ActiveOperation .ActiveOperation.PatientProfile.TfastGlideSignPresent }}checked{{ end }}>
+                <span>TFAST Glide Sign Restored Post-Needle Decompression</span>
+              </label>
+              <label class="pneumothorax-checkbox-item">
+                <input type="checkbox" id="stage-open-wound" name="open_sucking_chest_wound" {{ if and .ActiveOperation .ActiveOperation.PatientProfile.OpenSuckingChestWound }}checked{{ end }}>
+                <span>Open Sucking Chest Wound Present</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-stage-plan" class="btn btn-secondary">🫁 Stage 7th–9th ICS Thoracocentesis &amp; Chest Tube Plan</button>
+          </form>
+        </div>
+
+        <hr class="pneumothorax-divider">
+
+        <!-- Serial Pleural Drainage & TFAST Glide Sign Check Form -->
+        <div class="trust-subsection" id="drainage-check-section">
+          <h3 id="heading-drainage-check">3. Record Serial Pleural Air/Fluid Drainage &amp; TFAST Glide Sign Check</h3>
+          <form id="drainage-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-air-rate">Air Production Rate (mL/kg/hr)</label>
+                <input type="number" id="check-air-rate" name="air_aspirated_rate_ml_kg_hr" class="form-control" min="0.0" max="200.0" step="0.5" value="0.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-fluid-rate">Fluid Output Rate (mL/kg/day)</label>
+                <input type="number" id="check-fluid-rate" name="fluid_aspirated_rate_ml_kg_day" class="form-control" min="0.0" max="100.0" step="0.1" value="1.4" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-spo2">Pulse Oximetry SpO2 (%)</label>
+                <input type="number" id="check-spo2" name="spo2_percent" class="form-control" min="50.0" max="100.0" step="0.5" value="97.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-callsign">Clinician Callsign</label>
+                <input type="text" id="check-callsign" name="clinician_callsign" class="form-control" value="DR-PULM-11" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-notes">Serial Pleural Suction, Heimlich Valve &amp; TFAST Notes</label>
+              <input type="text" id="check-notes" name="notes" class="form-control" value="Zero air production on -15 cmH2O continuous suction; bilateral TFAST glide sign restored; SpO2 97%.">
+            </div>
+            <div class="pneumothorax-checkbox-group">
+              <label class="pneumothorax-checkbox-item">
+                <input type="checkbox" id="check-glide-restored" name="tfast_glide_sign_restored" checked>
+                <span>Bilateral TFAST Pleural Glide Sign Restored</span>
+              </label>
+              <label class="pneumothorax-checkbox-item">
+                <input type="checkbox" id="check-subq-emphysema" name="subcutaneous_emphysema_present">
+                <span>Subcutaneous Emphysema Present</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-record-drainage-check" class="btn btn-secondary">🩺 Log Pleural Drainage &amp; TFAST Glide Check</button>
+          </form>
+        </div>
+
+        <hr class="pneumothorax-divider">
+
+        <!-- Chest Tube Removal Clearance Form -->
+        <div class="trust-subsection" id="removal-clearance-section">
+          <h3 id="heading-removal-clearance">4. Issue Pleural Seal &amp; Aseptic Chest Tube Removal Clearance</h3>
+          <form id="removal-clearance-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-zero-air-hours">Zero Air Production Duration (hours, &ge; 24)</label>
+                <input type="number" id="clearance-zero-air-hours" name="zero_air_production_hours" class="form-control" min="24" max="240" step="1" value="26" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-final-fluid">Final Fluid Output (mL/kg/day, &le; 2.0)</label>
+                <input type="number" id="clearance-final-fluid" name="final_fluid_output_ml_kg_day" class="form-control" min="0.0" max="2.0" step="0.1" value="1.2" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-room-air-spo2">Room-Air SpO2 (%, &ge; 95.0)</label>
+                <input type="number" id="clearance-room-air-spo2" name="room_air_spo2_percent" class="form-control" min="95.0" max="100.0" step="0.5" value="97.5" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-vet-license">Attending Veterinarian License</label>
+                <input type="text" id="clearance-vet-license" name="vet_license" class="form-control" value="VET-PULM-99140" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="clearance-summary">Pleural Seal &amp; Chest Tube Removal Summary</label>
+              <input type="text" id="clearance-summary" name="summary" class="form-control" value="Zero air production for 26 hours; fluid output 1.2 mL/kg/day (<= 2.0 mL/kg/day); bilateral TFAST glide sign confirmed; room-air SpO2 97.5%; chest tube aseptically removed.">
+            </div>
+            <div class="pneumothorax-checkbox-group">
+              <label class="pneumothorax-checkbox-item">
+                <input type="checkbox" id="clearance-glide-confirmed" name="bilateral_glide_sign_confirmed" checked>
+                <span>Bilateral TFAST Pleural Glide Sign &amp; Lung Re-Expansion Confirmed</span>
+              </label>
+              <label class="pneumothorax-checkbox-item">
+                <input type="checkbox" id="clearance-tube-removed" name="chest_tube_aseptically_removed" checked>
+                <span>Thoracostomy Chest Tube Aseptically Removed with Occlusive Purse-String Closure</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-issue-removal-clearance" class="btn btn-primary">🛡️ Issue Pleural Seal &amp; Chest Tube Removal Clearance</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Queue -->
+      <section class="glass-card trust-panel" id="pneumothorax-ops-panel" aria-labelledby="heading-pneumothorax-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-pneumothorax-ops">Active Pneumothorax &amp; Thoracocentesis Operations</h2>
+          <span id="pneumothorax-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col pneumothorax-filter-bar" role="region" aria-label="Filter Pneumothorax Operations">
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="TENSION_PNEUMOTHORAX_ABSENT_GLIDE_CRITICAL">TENSION_PNEUMOTHORAX_ABSENT_GLIDE_CRITICAL</option>
+              <option value="ICS_7_9_THORACOCENTESIS_CHEST_TUBE_STAGED">ICS_7_9_THORACOCENTESIS_CHEST_TUBE_STAGED</option>
+              <option value="PLEURAL_SEAL_GLIDE_RESTORED_TUBE_REMOVED">PLEURAL_SEAL_GLIDE_RESTORED_TUBE_REMOVED</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-species">Filter by Pleural Classification</label>
+            <select id="filter-species" class="form-control">
+              <option value="">All Pleural Classifications</option>
+              <option value="CANINE_SPONTANEOUS_BULLAE">CANINE_SPONTANEOUS_BULLAE</option>
+              <option value="CANINE_TRAUMATIC_FLAIL_CHEST">CANINE_TRAUMATIC_FLAIL_CHEST</option>
+              <option value="FELINE_TRAUMATIC_PNEUMOTHORAX">FELINE_TRAUMATIC_PNEUMOTHORAX</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="pneumothorax-active-workspace" role="region" aria-label="Active Pneumothorax Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="pneumothorax-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-pet-title">Active Workspace: {{ $active.PetName }} ({{ $active.PatientProfile.Species }}{{ if $active.PatientProfile.Breed }} · {{ $active.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $active.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id" id="workspace-op-code">{{ $active.ID }} · {{ $active.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species" id="workspace-species-pill">{{ $active.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $active.Status) "TENSION_PNEUMOTHORAX_ABSENT_GLIDE_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $active.Status) "ICS_7_9_THORACOCENTESIS_CHEST_TUBE_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}" id="workspace-status-pill">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="pneumothorax-vitals-summary" id="workspace-vitals-summary">
+              <span><strong>Resp Rate:</strong> {{ $active.PatientProfile.RespiratoryRateBpm }} bpm</span>
+              <span><strong>SpO2:</strong> {{ printf "%.1f" $active.PatientProfile.SpO2Percent }}%</span>
+              <span><strong>TFAST Glide Sign:</strong> {{ if $active.PatientProfile.TfastGlideSignPresent }}PRESENT{{ else }}ABSENT{{ end }}</span>
+              <span><strong>Cumulative Air:</strong> {{ printf "%.1f" $active.PatientProfile.CumulativeAirAspiratedMlKg }} mL/kg</span>
+              <span><strong>24h Taps:</strong> {{ $active.PatientProfile.TapCountLast24Hr }}</span>
+              <span><strong>Open Chest Wound:</strong> {{ if $active.PatientProfile.OpenSuckingChestWound }}YES{{ else }}NO{{ end }}</span>
+            </div>
+
+            {{ if $active.DecompressionPlan }}
+            <div class="pneumothorax-plan-box" id="workspace-plan-box">
+              <h4>Calculated 7th–9th ICS Thoracocentesis, Cranial Rib Margin &amp; Pleural Suction Plan</h4>
+              <div class="pneumothorax-doses-grid">
+                <div><strong>Needle Landmark:</strong> <span id="plan-needle-landmark">{{ $active.DecompressionPlan.NeedleLandmarkIntercostalSpace }}</span></div>
+                <div><strong>Cranial Rib Margin Guard:</strong> <span id="plan-cranial-rib-guard">{{ if $active.DecompressionPlan.CranialRibMarginVesselGuard }}ENFORCED{{ else }}OFF{{ end }}</span></div>
+                <div><strong>Expected Tap Volume (30 mL/kg):</strong> <span id="plan-expected-tap">{{ printf "%.1f" $active.DecompressionPlan.ExpectedNegativePressureTapMl }} mL</span></div>
+                <div><strong>Thoracostomy Tube Indicated:</strong> <span id="plan-chest-tube-indicated">{{ if $active.DecompressionPlan.ThoracostomyTubeIndicated }}YES{{ else }}NO{{ end }}</span></div>
+                <div><strong>Continuous Suction:</strong> <span id="plan-continuous-suction">{{ $active.DecompressionPlan.ContinuousSuctionCmH2O }} cmH2O</span></div>
+                <div><strong>Autologous Blood Patch:</strong> <span id="plan-blood-patch">{{ printf "%.1f" $active.DecompressionPlan.AutologousBloodPatchMlKg }} mL/kg</span></div>
+                <div><strong>Zero Radiograph Delay Guard:</strong> <span id="plan-radiograph-guard">{{ if $active.DecompressionPlan.ZeroPreDecompressionRadiographGuard }}ENFORCED{{ else }}OFF{{ end }}</span></div>
+              </div>
+              <p class="pneumothorax-rationale-text" id="workspace-clinical-rationale">{{ $active.DecompressionPlan.ClinicalRationale }}</p>
+            </div>
+            {{ end }}
+
+            <div class="pneumothorax-drainage-checks-box">
+              <h4>Serial Pleural Air/Fluid Drainage &amp; TFAST Glide Sign Checks (<span id="workspace-checks-count">{{ len $active.DrainageChecks }}</span>)</h4>
+              <ul id="drainage-checks-list" class="pneumothorax-checks-list">
+                {{ range $chk := $active.DrainageChecks }}
+                <li class="pneumothorax-check-item">
+                  <strong>{{ $chk.ClinicianCallsign }}</strong> · Air {{ printf "%.1f" $chk.AirAspiratedRateMlKgHr }} mL/kg/hr · Fluid {{ printf "%.1f" $chk.FluidAspiratedRateMlKgDay }} mL/kg/day · Glide {{ if $chk.TfastGlideSignRestored }}RESTORED{{ else }}ABSENT{{ end }} · SpO2 {{ printf "%.1f" $chk.SpO2Percent }}% — {{ $chk.Notes }}
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="pneumothorax-operations-list" class="trust-screenings-list pneumothorax-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card pneumothorax-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-species="{{ $op.PatientProfile.Species }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.PatientProfile.Species }}{{ if $op.PatientProfile.Breed }} · {{ $op.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $op.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species">{{ $op.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $op.Status) "TENSION_PNEUMOTHORAX_ABSENT_GLIDE_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $op.Status) "ICS_7_9_THORACOCENTESIS_CHEST_TUBE_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row pneumothorax-metrics-row">
+              <span class="status-pill status-pill-species">RR: {{ $op.PatientProfile.RespiratoryRateBpm }} bpm • SpO2: {{ printf "%.1f" $op.PatientProfile.SpO2Percent }}% • Glide: {{ if $op.PatientProfile.TfastGlideSignPresent }}PRESENT{{ else }}ABSENT{{ end }} • Air: {{ printf "%.1f" $op.PatientProfile.CumulativeAirAspiratedMlKg }} mL/kg • Taps: {{ $op.PatientProfile.TapCountLast24Hr }}</span>
+            </div>
+
+            {{ if $op.TensionRadiographDelayAlert }}
+            <div class="pneumothorax-alert-banner">
+              ⚠️ TENSION PNEUMOTHORAX &amp; CRANIAL RIB MARGIN GUARD (SpO2 {{ printf "%.1f" $op.PatientProfile.SpO2Percent }}% · Air {{ printf "%.1f" $op.PatientProfile.CumulativeAirAspiratedMlKg }} mL/kg · 7th–9th ICS Dorsal Third): {{ if $op.DecompressionPlan }}{{ $op.DecompressionPlan.PneumothoraxPitfallAlert }}{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if $op.RemovalClearance }}
+            <div class="pneumothorax-clearance-banner">
+              ✅ PLEURAL SEAL &amp; TUBE REMOVED ({{ $op.RemovalClearance.VetLicense }}): Zero Air {{ $op.RemovalClearance.ZeroAirProductionHours }}h · Fluid {{ printf "%.1f" $op.RemovalClearance.FinalFluidOutputMlKgDay }} mL/kg/day · SpO2 {{ printf "%.1f" $op.RemovalClearance.RoomAirSpO2Percent }}%
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary pneumothorax-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select Operation ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="pneumothorax-ops-empty-msg">No Pneumothorax &amp; Thoracocentesis triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/pneumothorax-thoracocentesis-triage.js" defer></script>
+</body>
+</html>

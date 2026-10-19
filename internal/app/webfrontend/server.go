@@ -49,6 +49,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/neonatalincubator"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/pericardialtamponade"
+	"github.com/scottdensmore/petspotr/pkg/pneumothorax"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/ratelimit"
 	"github.com/scottdensmore/petspotr/pkg/reptileectotherm"
@@ -124,6 +125,7 @@ type Server struct {
 	tbiService                *traumaticbrain.TBIService
 	addisonianService         *addisoniancrisis.AddisonianService
 	tamponadeService          *pericardialtamponade.TamponadeService
+	pneumothoraxService       *pneumothorax.PneumothoraxService
 	handler                   http.Handler
 }
 
@@ -307,6 +309,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		dkaService:                dkainsulin.NewDKAService(),
 		tbiService:                traumaticbrain.NewTBIService(),
 		addisonianService:         addisoniancrisis.NewAddisonianService(),
+		pneumothoraxService:       pneumothorax.NewPneumothoraxService(),
 		tamponadeService:          pericardialtamponade.NewTamponadeService(),
 		imhaService:               imhathrombosis.NewIMHAService(),
 		peritonitisService:        septicperitonitis.NewPeritonitisService(),
@@ -650,6 +653,8 @@ func (s *Server) routes() {
 	s.registerAddisonianCrisisRoutes()
 	// Pericardial Effusion, Cardiac Tamponade, Electrical Alternans & Right-Sided 4th–5th ICS Pericardiocentesis Cockpit routes (Milestone 21.4)
 	s.registerPericardialTamponadeRoutes()
+	// Tension Pneumothorax, Flail Chest, 7th–9th ICS Thoracocentesis & Heimlich/Pleural Seal Chest Tube Cockpit routes (Milestone 21.3)
+	s.registerPneumothoraxRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
