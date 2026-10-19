@@ -47,6 +47,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/reptileectotherm"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/sms"
+	"github.com/scottdensmore/petspotr/pkg/statusepilepticus"
 	"github.com/scottdensmore/petspotr/pkg/store"
 	"github.com/scottdensmore/petspotr/pkg/telemetry"
 	"github.com/scottdensmore/petspotr/pkg/toxicologypoison"
@@ -104,6 +105,7 @@ type Server struct {
 	urethralObstructionStore  *urethralobstruction.Store
 	transfusionBloodbankStore *transfusionbloodbank.Store
 	toxicologyPoisonStore     *toxicologypoison.Store
+	epilepticusService        *statusepilepticus.EpilepticusService
 	handler                   http.Handler
 }
 
@@ -282,6 +284,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		urethralObstructionStore:  urethralobstruction.NewStore(),
 		transfusionBloodbankStore: transfusionbloodbank.NewStore(),
 		toxicologyPoisonStore:     toxicologypoison.NewStore(),
+		epilepticusService:        statusepilepticus.NewEpilepticusService(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -602,6 +605,8 @@ func (s *Server) routes() {
 	s.registerTransfusionBloodbankRoutes()
 	// Anticoagulant Rodenticide, Xylitol Hypoglycemia/Hepatotoxicity & Lipid Emulsion (ILE) Poison Control Cockpit routes (Milestone 19.2)
 	s.registerToxicologyPoisonRoutes()
+	// Status Epilepticus, Cluster Seizures, Bromethalin/Metaldehyde Neuro-Tremor & Levetiracetam/Propofol CRI Cockpit routes (Milestone 19.5)
+	s.registerStatusEpilepticusRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
