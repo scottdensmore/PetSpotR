@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Vector-Borne &amp; Rickettsial Emergencies (Lyme Nephritis, Anaplasmosis, Ehrlichiosis, Rocky Mountain Spotted Fever, Babesiosis &amp; Cytauxzoonosis), SNAP 4Dx Plus / PCR Triage, Doxycycline, Atovaquone + Azithromycin &amp; Imidocarb Dipropionate Cockpit.">
+  <title>Acute Vector-Borne &amp; Rickettsial Emergencies (Lyme Nephritis, Anaplasmosis, Ehrlichiosis, Rocky Mountain Spotted Fever, Babesiosis &amp; Cytauxzoonosis), SNAP 4Dx Plus / PCR Triage, Doxycycline, Atovaquone + Azithromycin &amp; Imidocarb Dipropionate Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#vbr-triage-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/fip-gs441524-triage" class="nav-link nav-link-emergency" id="nav-fip-gs441524-triage">🐈 FIP &amp; GS-441524 ICU</a></li>
+          <li><a href="/vector-borne-rickettsial-triage" class="nav-link active nav-link-emergency" id="nav-vector-borne-rickettsial-triage">🕷️ Vector-Borne &amp; Rickettsial ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="vbr-triage-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header vbr-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🕷️ ACUTE VECTOR-BORNE &amp; RICKETTSIAL EMERGENCIES, SNAP 4DX PLUS / PCR &amp; ANTIMICROBIAL COCKPIT</span>
+        </div>
+        <h1>Acute Vector-Borne &amp; Rickettsial Emergencies (Lyme Nephritis, Anaplasmosis, Ehrlichiosis, Rocky Mountain Spotted Fever, Babesiosis &amp; Cytauxzoonosis), SNAP 4Dx Plus / PCR Triage, Doxycycline, Atovaquone + Azithromycin &amp; Imidocarb Dipropionate Cockpit</h1>
+        <p class="text-secondary">
+          Tick-Borne Spirochetal, Rickettsial &amp; Protozoal Hemoparasitic Triage, SNAP 4Dx Plus C6 Peptide &amp; Quantitative PCR Stratification, Feline Oral Doxycycline 5–6 mL Water Chase Esophageal Stricture Guard, Atovaquone (13.5–15 mg/kg PO TID with Fatty Meal) + Azithromycin Protozoal Protocol, Imidocarb Dipropionate (6.6 mg/kg IM) with Mandatory Atropine (0.02–0.04 mg/kg SC) Cholinergic Toxicity Guard &amp; Lyme Nephritis (UPC &ge; 0.5) Telmisartan/Mycophenolate Immunomodulation.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid vbr-kpi-grid" aria-label="Vector-Borne &amp; Rickettsial KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Vector-Borne Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Doxycycline / Atovaquone / Imidocarb Staged</span>
+        <strong class="kpi-value" id="kpi-antimicrobial-staged">{{ .AntimicrobialStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Thrombocytopenia &amp; Proteinuria Monitored</span>
+        <strong class="kpi-value" id="kpi-thrombocytopenia-monitored">{{ .ThrombocytopeniaMonitoredCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">PCR Negative &amp; Platelets/Renal Cleared</span>
+        <strong class="kpi-value" id="kpi-pcr-cleared">{{ .PCRNegativeClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Lyme Nephritis Proteinuria (UPC &ge; 0.5)</span>
+        <strong class="kpi-value" id="kpi-lyme-proteinuria">{{ .LymeNephritisProteinuriaCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Babesia / Cytauxzoon Protozoal Ops</span>
+        <strong class="kpi-value" id="kpi-protozoal-ops">{{ .BabesiaCytauxzoonProtozoalCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="vbr-live-status" class="humane-traps-live-status vbr-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Acute Vector-Borne &amp; Rickettsial Emergency ICU operations.
+    </div>
+
+    <!-- Global Safety Guard Alert Banner -->
+    <div id="vbr-alert-banner" class="vbr-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL VECTOR-BORNE &amp; RICKETTSIAL SAFETY GUARDS: (1) Feline Esophagitis &amp; Stricture Guard: Oral Doxycycline Hyclate (10 mg/kg/day) in cats MUST be followed immediately by a 5–6 mL syringe water bolus or administered as compounded suspension; (2) Imidocarb Dipropionate (6.6 mg/kg IM repeated in 14 days for Babesia canis) Cholinergic Toxicity Guard: Pre-medicate with Atropine 0.02–0.04 mg/kg SC 15 min prior to prevent profuse salivation, lacrimation, vomiting &amp; bradycardia; (3) Atovaquone (13.5–15 mg/kg PO TID) + Azithromycin (10 mg/kg PO q24h) for Babesia gibsoni &amp; Cytauxzoon felis MUST be given with a fatty meal to maximize bioavailability; (4) Lyme Nephritis (Borrelia C6+ with UPC &ge; 0.5) requires Doxycycline + Telmisartan/Benazepril + Mycophenolate Mofetil immunomodulation.
+    </div>
+
+    <!-- Global PCR-Negative & Platelet/Renal Clearance Banner -->
+    <div id="vbr-clearance-banner" class="vbr-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "PCR_NEGATIVE_PLATELETS_RENAL_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ PCR-NEGATIVE, PLATELET (&ge; 150 K/&micro;L) &amp; RENAL (UPC &lt; 0.5) CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "PCR_NEGATIVE_PLATELETS_RENAL_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Cleared by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting quantitative PCR negative verification, platelet recovery (&ge; 150 K/&micro;L), PCV &ge; 35%, and UPC &lt; 0.5.{{ end }}</span>
+    </div>
+
+    <div id="vbr-error-banner" class="vbr-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card vbr-toolbar-card" aria-label="Vector-Borne &amp; Rickettsial Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col vbr-toolbar-row">
+        <div class="form-group">
+          <label for="vbr-status-filter">Filter by Vector-Borne &amp; Rickettsial Status</label>
+          <select id="vbr-status-filter" class="form-control">
+            <option value="">All Vector-Borne &amp; Rickettsial Statuses</option>
+            <option value="DOXYCYCLINE_ATOVAQUONE_IMIDOCARB_STAGED">DOXYCYCLINE_ATOVAQUONE_IMIDOCARB_STAGED (Antimicrobial Staged)</option>
+            <option value="THROMBOCYTOPENIA_PROTEINURIA_MONITORED">THROMBOCYTOPENIA_PROTEINURIA_MONITORED (Thrombocytopenia &amp; Proteinuria Monitored)</option>
+            <option value="PCR_NEGATIVE_PLATELETS_RENAL_CLEARED">PCR_NEGATIVE_PLATELETS_RENAL_CLEARED (PCR Negative &amp; Platelets/Renal Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group vbr-sse-controls">
+          <span class="kpi-label">Live ICU Telemetry Stream</span>
+          <div class="vbr-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live Vector-Borne SSE Stream</button>
+            <span id="sse-status-badge" class="vbr-status-badge vbr-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid vbr-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="vbr-operations-panel" aria-labelledby="heading-vbr-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-vbr-ops">Active Vector-Borne &amp; Rickettsial Operations</h2>
+          <span id="vbr-ops-count-badge" class="vbr-status-badge vbr-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="vbr-operations-grid" class="trust-screenings-list vbr-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card vbr-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-syndrome="{{ $op.Syndrome }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="vbr-status-badge {{ if eq (printf "%s" $op.Status) "DOXYCYCLINE_ATOVAQUONE_IMIDOCARB_STAGED" }}vbr-status-critical{{ else if eq (printf "%s" $op.Status) "THROMBOCYTOPENIA_PROTEINURIA_MONITORED" }}vbr-status-staged{{ else }}vbr-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="vbr-card-metrics">
+              <span><strong>Syndrome:</strong> {{ $op.Syndrome }}</span>
+              <span><strong>Assay:</strong> {{ $op.Assay }}</span>
+              <span><strong>Protocol:</strong> {{ $op.AntimicrobialProtocol }}</span>
+              <span><strong>Platelets:</strong> {{ printf "%.1f" $op.PlateletCountKUL }} K/&micro;L</span>
+              <span><strong>PCV:</strong> {{ printf "%.1f" $op.PCVPercent }}%</span>
+              <span><strong>UPC Ratio:</strong> {{ printf "%.2f" $op.UrinePCRatio }}</span>
+              <span><strong>Albumin:</strong> {{ printf "%.1f" $op.SerumAlbuminGDL }} g/dL</span>
+              <span><strong>Water Chase:</strong> {{ if $op.EsophagealWaterChaseVerified }}VERIFIED{{ else }}Pending{{ end }}</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary vbr-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open Vector-Borne Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="vbr-ops-empty-msg">No Vector-Borne &amp; Rickettsial operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="vbr-divider">
+
+        <!-- Admit New Vector-Borne & Rickettsial Patient Form -->
+        <div class="trust-subsection" id="create-vbr-section">
+          <h3 id="heading-create-vbr">Admit New Vector-Borne &amp; Rickettsial Emergency Patient</h3>
+          <form id="create-vbr-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-VBR-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Scout" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species-input">Species</label>
+                <select id="create-species-input" name="species" class="form-control" required>
+                  <option value="Canine" selected>Canine</option>
+                  <option value="Feline">Feline</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed-input">Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="Australian Shepherd" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="100.0" step="0.1" value="22.5" required>
+              </div>
+              <div class="form-group">
+                <label for="create-syndrome-input">Pathogen / Clinical Syndrome</label>
+                <select id="create-syndrome-input" name="syndrome" class="form-control" required>
+                  <option value="EHRLICHIOSIS_ANAPLASMOSIS_MORULAE" selected>EHRLICHIOSIS_ANAPLASMOSIS_MORULAE (Ehrlichiosis / Anaplasmosis Morulae)</option>
+                  <option value="LYME_NEPHRITIS_BORRELIA_UPC">LYME_NEPHRITIS_BORRELIA_UPC (Lyme Nephritis — Borrelia C6+ &amp; UPC &ge; 0.5)</option>
+                  <option value="RMSF_RICKETTSIA_VASCULITIS">RMSF_RICKETTSIA_VASCULITIS (Rocky Mountain Spotted Fever Vasculitis)</option>
+                  <option value="BABESIOSIS_GIBSONI_CANIS">BABESIOSIS_GIBSONI_CANIS (Babesiosis — B. gibsoni / B. canis)</option>
+                  <option value="CYTAUXZOONOSIS_FELIS_SCHIZONTS">CYTAUXZOONOSIS_FELIS_SCHIZONTS (Feline Cytauxzoonosis — C. felis)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-assay-input">Primary Diagnostic Assay</label>
+                <select id="create-assay-input" name="assay" class="form-control" required>
+                  <option value="SNAP_4DX_PLUS_C6_PEPTIDE" selected>SNAP_4DX_PLUS_C6_PEPTIDE (SNAP 4Dx Plus C6 Peptide)</option>
+                  <option value="QUANTITATIVE_PCR_PANEL">QUANTITATIVE_PCR_PANEL (Quantitative PCR Panel)</option>
+                  <option value="BUFFY_COAT_MORULAE_PIROPLASM_SMEAR">BUFFY_COAT_MORULAE_PIROPLASM_SMEAR (Buffy Coat Morulae / Piroplasm Smear)</option>
+                  <option value="URINE_PROTEIN_CREATININE_RATIO">URINE_PROTEIN_CREATININE_RATIO (Urine Protein:Creatinine Ratio)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-protocol-input">Antimicrobial Protocol</label>
+                <select id="create-protocol-input" name="antimicrobial_protocol" class="form-control" required>
+                  <option value="DOXYCYCLINE_10MG_KG_WATER_CHASE" selected>DOXYCYCLINE_10MG_KG_WATER_CHASE (Doxycycline 10 mg/kg/day + Water Chase)</option>
+                  <option value="ATOVAQUONE_15MG_KG_TID_AZITHROMYCIN">ATOVAQUONE_15MG_KG_TID_AZITHROMYCIN (Atovaquone 15 mg/kg TID + Azithromycin)</option>
+                  <option value="IMIDOCARB_6_6MG_KG_ATROPINE_PREMED">IMIDOCARB_6_6MG_KG_ATROPINE_PREMED (Imidocarb 6.6 mg/kg IM + Atropine Pre-Med)</option>
+                  <option value="MYCOPHENOLATE_TELMISARTAN_LYME_PLN">MYCOPHENOLATE_TELMISARTAN_LYME_PLN (Doxycycline + Mycophenolate + Telmisartan PLN)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-platelets-input">Platelet Count (K/&micro;L)</label>
+                <input type="number" id="create-platelets-input" name="platelet_count_kul" class="form-control" min="1.0" max="800.0" step="1.0" value="38.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pcv-input">Packed Cell Volume PCV (%)</label>
+                <input type="number" id="create-pcv-input" name="pcv_percent" class="form-control" min="5.0" max="70.0" step="0.5" value="28.0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-upc-input">Urine Protein:Creatinine (UPC) Ratio</label>
+                <input type="number" id="create-upc-input" name="urine_pc_ratio" class="form-control" min="0.0" max="30.0" step="0.1" value="0.4" required>
+              </div>
+              <div class="form-group">
+                <label for="create-albumin-input">Serum Albumin (g/dL)</label>
+                <input type="number" id="create-albumin-input" name="serum_albumin_g_dl" class="form-control" min="0.5" max="5.5" step="0.1" value="2.6" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-doxy-input">Doxycycline Dose (mg/kg/day)</label>
+                <input type="number" id="create-doxy-input" name="doxycycline_mg_kg_day" class="form-control" min="0.0" max="25.0" step="0.5" value="10.0" required>
+              </div>
+              <div class="form-group vbr-checkbox-group">
+                <label class="vbr-checkbox-item">
+                  <input type="checkbox" id="create-water-chase-checkbox" name="esophageal_water_chase_verified" checked>
+                  <span>5–6 mL Esophageal Water Chase / Suspension Verified</span>
+                </label>
+                <label class="vbr-checkbox-item">
+                  <input type="checkbox" id="create-atropine-checkbox" name="atropine_premed_verified" checked>
+                  <span>Atropine 0.02–0.04 mg/kg SC Pre-Med Verified (Imidocarb)</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" id="create-vbr-op-btn" class="btn btn-primary">➕ Admit Vector-Borne Patient to Cockpit</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active Vector-Borne Workspace & Clinical Staging / Hematology Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="vbr-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="vbr-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · Syndrome: <strong id="active-syndrome">{{ $active.Syndrome }}</strong> · Assay: <strong id="active-assay">{{ $active.Assay }}</strong> · Protocol: <strong id="active-protocol">{{ $active.AntimicrobialProtocol }}</strong></p>
+          </div>
+          <span id="active-op-status-badge" class="vbr-status-badge {{ if eq (printf "%s" $active.Status) "DOXYCYCLINE_ATOVAQUONE_IMIDOCARB_STAGED" }}vbr-status-critical{{ else if eq (printf "%s" $active.Status) "THROMBOCYTOPENIA_PROTEINURIA_MONITORED" }}vbr-status-staged{{ else }}vbr-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- Hematology & Renal Vitals Telemetry Bar -->
+        <div class="vbr-vitals-summary" id="active-vitals-summary">
+          <div class="vbr-vital-chip">
+            <span class="kpi-label">Platelet Count</span>
+            <strong id="active-platelets">{{ printf "%.1f" $active.PlateletCountKUL }} K/&micro;L</strong>
+          </div>
+          <div class="vbr-vital-chip">
+            <span class="kpi-label">Packed Cell Volume (PCV)</span>
+            <strong id="active-pcv">{{ printf "%.1f" $active.PCVPercent }}%</strong>
+          </div>
+          <div class="vbr-vital-chip">
+            <span class="kpi-label">Urine Protein:Creatinine (UPC)</span>
+            <strong id="active-upc">{{ printf "%.2f" $active.UrinePCRatio }}</strong>
+          </div>
+          <div class="vbr-vital-chip">
+            <span class="kpi-label">Serum Albumin</span>
+            <strong id="active-albumin">{{ printf "%.1f" $active.SerumAlbuminGDL }} g/dL</strong>
+          </div>
+        </div>
+
+        <!-- Pathophysiology & Safety Guard Alerts Box -->
+        <div class="vbr-plan-box" id="active-pathophysiology-box">
+          <h3>Vector-Borne Pathophysiology &amp; Active Clinical Safety Guards</h3>
+          <div class="vbr-plan-grid">
+            <div><strong>Pathophysiology Summary:</strong> <span id="plan-pathophysiology">{{ $active.PathophysiologySummary }}</span></div>
+            {{ if $active.AntimicrobialStaging }}
+            <div><strong>Esophageal Stricture Water Chase Guard:</strong> <span id="plan-stricture-guard">{{ $active.AntimicrobialStaging.EsophagealStrictureGuardNote }}</span></div>
+            <div><strong>Atovaquone Fatty Meal Bioavailability Guard:</strong> <span id="plan-fatty-meal-guard">{{ $active.AntimicrobialStaging.FattyMealBioavailabilityNote }}</span></div>
+            <div><strong>Imidocarb Atropine Cholinergic Guard:</strong> <span id="plan-atropine-guard">{{ $active.AntimicrobialStaging.CholinergicAtropineGuardNote }}</span></div>
+            <div><strong>Lyme Nephritis PLN Immunomodulation Note:</strong> <span id="plan-lyme-pln-guard">{{ $active.AntimicrobialStaging.LymeNephritisImmunomodulationNote }}</span></div>
+            {{ end }}
+          </div>
+          <ul id="active-safety-alerts-list" class="vbr-checks-list">
+            {{ range $alert := $active.SafetyGuardAlerts }}
+            <li class="vbr-check-item">{{ $alert }}</li>
+            {{ end }}
+          </ul>
+        </div>
+        {{ end }}
+
+        <hr class="vbr-divider">
+
+        <!-- 1. Stage Antimicrobial & Organ-Protection Protocol Form -->
+        <div class="trust-subsection" id="stage-antimicrobial-section">
+          <h3>1. Stage Doxycycline, Atovaquone + Azithromycin, Imidocarb Dipropionate or Lyme PLN Protocol</h3>
+          <form id="stage-antimicrobial-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-protocol-input">Antimicrobial &amp; Immunomodulation Protocol</label>
+                <select id="stage-protocol-input" name="protocol" class="form-control" required>
+                  <option value="DOXYCYCLINE_10MG_KG_WATER_CHASE">DOXYCYCLINE_10MG_KG_WATER_CHASE (Doxycycline 10 mg/kg/day + 5–6 mL Water Chase)</option>
+                  <option value="ATOVAQUONE_15MG_KG_TID_AZITHROMYCIN">ATOVAQUONE_15MG_KG_TID_AZITHROMYCIN (Atovaquone 15 mg/kg TID Fatty Meal + Azithromycin)</option>
+                  <option value="IMIDOCARB_6_6MG_KG_ATROPINE_PREMED">IMIDOCARB_6_6MG_KG_ATROPINE_PREMED (Imidocarb 6.6 mg/kg IM + Atropine Pre-Med)</option>
+                  <option value="MYCOPHENOLATE_TELMISARTAN_LYME_PLN">MYCOPHENOLATE_TELMISARTAN_LYME_PLN (Doxycycline + Telmisartan + Mycophenolate PLN)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="stage-doxy-input">Doxycycline Dose (mg/kg/day)</label>
+                <input type="number" id="stage-doxy-input" name="doxycycline_mg_kg_day" class="form-control" min="0.0" max="25.0" step="0.5" value="10.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-atovaquone-input">Atovaquone Dose (mg/kg PO TID q8h with Fatty Meal)</label>
+                <input type="number" id="stage-atovaquone-input" name="atovaquone_mg_kg_tid" class="form-control" min="0.0" max="30.0" step="0.5" value="15.0" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-imidocarb-input">Imidocarb Dipropionate Dose (mg/kg IM)</label>
+                <input type="number" id="stage-imidocarb-input" name="imidocarb_mg_kg_im" class="form-control" min="0.0" max="12.0" step="0.1" value="0.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group vbr-checkbox-group">
+                <label class="vbr-checkbox-item">
+                  <input type="checkbox" id="stage-water-chase-checkbox" name="esophageal_water_chase_verified" checked>
+                  <span>Esophageal 5–6 mL Water Bolus / Compounded Suspension Verified</span>
+                </label>
+                <label class="vbr-checkbox-item">
+                  <input type="checkbox" id="stage-atropine-checkbox" name="atropine_premed_verified" checked>
+                  <span>Atropine 0.02–0.04 mg/kg SC Pre-Med Verified (15 min prior to Imidocarb)</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="stage-by-input">Staged By (Clinician)</label>
+                <input type="text" id="stage-by-input" name="staged_by" class="form-control" value="Dr. Mara Vance, DACVIM (Infectious Disease)" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="stage-rationale-input">Clinical Antimicrobial &amp; Safety Guard Rationale</label>
+              <input
+                type="text"
+                id="stage-rationale-input"
+                name="clinical_rationale"
+                class="form-control"
+                value="Doxycycline 10 mg/kg/day PO with mandatory 6 mL water bolus chase + Telmisartan 1 mg/kg/day &amp; Mycophenolate Mofetil staged."
+                required
+              >
+            </div>
+            <button type="submit" id="stage-antimicrobial-btn" class="btn btn-secondary">💊 Stage Antimicrobial &amp; Safety Guard Regimen</button>
+          </form>
+        </div>
+
+        <hr class="vbr-divider">
+
+        <!-- 2. Record Serial Hematology, Platelet & Renal Proteinuria (UPC) Check Form -->
+        <div class="trust-subsection" id="record-hematology-check-section">
+          <h3>2. Record Serial Hematology (Platelets, PCV%, Buffy Coat) &amp; Renal Proteinuria (UPC, Albumin) Check</h3>
+          <form id="record-hematology-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-platelets-input">Platelet Count (K/&micro;L)</label>
+                <input type="number" id="check-platelets-input" name="platelet_count_kul" class="form-control" min="1.0" max="800.0" step="1.0" value="185.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-pcv-input">Packed Cell Volume PCV (%)</label>
+                <input type="number" id="check-pcv-input" name="pcv_percent" class="form-control" min="5.0" max="70.0" step="0.5" value="39.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-upc-input">Urine Protein:Creatinine (UPC) Ratio</label>
+                <input type="number" id="check-upc-input" name="urine_pc_ratio" class="form-control" min="0.0" max="30.0" step="0.05" value="0.25" required>
+              </div>
+              <div class="form-group">
+                <label for="check-albumin-input">Serum Albumin (g/dL)</label>
+                <input type="number" id="check-albumin-input" name="serum_albumin_g_dl" class="form-control" min="0.5" max="5.5" step="0.1" value="3.2" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group vbr-checkbox-group">
+                <label class="vbr-checkbox-item">
+                  <input type="checkbox" id="check-morulae-cleared-checkbox" name="morulae_or_piroplasms_cleared" checked>
+                  <span>Buffy Coat Morulae / Intraerythrocytic Piroplasms Cleared</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (Clinician)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Mara Vance, DACVIM (Infectious Disease)" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-note-input">Clinical Hematology &amp; Renal Proteinuria Progress Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="Platelets rebounded to 185.0 K/µL, PCV 39.0%, UPC improved to 0.25 (< 0.5), Serum Albumin 3.2 g/dL, buffy coat smear negative for morulae/piroplasms." required>
+            </div>
+            <button type="submit" id="record-hematology-check-btn" class="btn btn-secondary">🧪 Record Hematology &amp; Renal UPC Check</button>
+          </form>
+
+          <div class="vbr-checks-box">
+            <h4>Serial Hematology &amp; Renal Proteinuria Checks (<span id="hematology-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.HematologyChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="hematology-checks-list" class="vbr-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.HematologyChecks }}
+              <li class="vbr-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · Platelets {{ printf "%.1f" $chk.PlateletCountKUL }} K/&micro;L · PCV {{ printf "%.1f" $chk.PCVPercent }}% · UPC {{ printf "%.2f" $chk.UrinePCRatio }} · Albumin {{ printf "%.1f" $chk.SerumAlbuminGDL }} g/dL — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="vbr-divider">
+
+        <!-- 3. Clear Vector-Borne Operation for PCR-Negative & Platelet/Renal Recovery Discharge Form -->
+        <div class="trust-subsection" id="clear-vbr-section">
+          <h3>3. Clear PCR-Negative, Platelet (&ge; 150 K/&micro;L), PCV (&ge; 35%) &amp; Renal (UPC &lt; 0.5) Patient for Discharge</h3>
+          <form id="clear-vbr-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clear-platelets-input">Final Platelet Count (&ge; 150 K/&micro;L)</label>
+                <input type="number" id="clear-platelets-input" name="platelet_count_kul" class="form-control" min="150.0" max="800.0" step="1.0" value="195.0" required>
+              </div>
+              <div class="form-group">
+                <label for="clear-pcv-input">Final PCV (&ge; 35%)</label>
+                <input type="number" id="clear-pcv-input" name="pcv_percent" class="form-control" min="35.0" max="70.0" step="0.5" value="40.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clear-upc-input">Final Urine Protein:Creatinine Ratio (&lt; 0.5)</label>
+                <input type="number" id="clear-upc-input" name="urine_pc_ratio" class="form-control" min="0.0" max="0.49" step="0.05" value="0.20" required>
+              </div>
+              <div class="form-group vbr-checkbox-group">
+                <label class="vbr-checkbox-item">
+                  <input type="checkbox" id="clear-pcr-negative-checkbox" name="pcr_negative_verified" checked>
+                  <span>Quantitative PCR Panel Negative Verified</span>
+                </label>
+                <label class="vbr-checkbox-item">
+                  <input type="checkbox" id="clear-normothermic-checkbox" name="normothermic_eating_verified" checked>
+                  <span>Normothermic &amp; Eating Voluntarily Verified</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="clear-cleared-by-input">Clearing Infectious Disease Specialist / Criticalist</label>
+              <input type="text" id="clear-cleared-by-input" name="cleared_by" class="form-control" value="Dr. Mara Vance, DACVIM (Infectious Disease)" required>
+            </div>
+            <div class="form-group">
+              <label for="clear-summary-input">PCR-Negative, Platelet &amp; Renal Proteinuria Clearance Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="clearance_summary"
+                class="form-control"
+                value="Quantitative PCR panel negative, platelets normalized to 195.0 K/µL (>= 150 K/µL), PCV 40.0% (>= 35%), UPC 0.20 (< 0.5), normothermic and eating; cleared for discharge."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-vbr-btn" class="btn btn-primary">🛡️ Clear Vector-Borne Patient for PCR-Negative Discharge</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/vector-borne-rickettsial-triage.js" defer></script>
+</body>
+</html>

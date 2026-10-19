@@ -82,6 +82,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/traumaticbrain"
 	"github.com/scottdensmore/petspotr/pkg/urethralobstruction"
 	"github.com/scottdensmore/petspotr/pkg/usarcollapse"
+	"github.com/scottdensmore/petspotr/pkg/vectorbornerickettsial"
 	"github.com/scottdensmore/petspotr/pkg/verticalrescue"
 	"github.com/scottdensmore/petspotr/pkg/webhook"
 )
@@ -162,6 +163,7 @@ type Server struct {
 	fipService                *fipgs441524.FIPService
 	tetanusBotulismService    *tetanusbotulism.TetanusBotulismService
 	heartwormService          *heartwormcaval.HeartwormService
+	vectorBorneService        *vectorbornerickettsial.VectorBorneService
 	handler                   http.Handler
 }
 
@@ -364,6 +366,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		tlsService:                oncologictls.NewTLSService(),
 		orthoService:              polytraumaortho.NewOrthoService(),
 		heartwormService:          heartwormcaval.NewHeartwormService(),
+		vectorBorneService:        vectorbornerickettsial.NewVectorBorneService(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -742,6 +745,8 @@ func (s *Server) routes() {
 	s.registerTetanusBotulismRoutes()
 	// Acute Heartworm Caval Syndrome (Dirofilaria immitis), Vena Cava Worm Burden Echocardiography, Intravascular Hemolysis (Hemoglobinuria), Jugular Venotomy Extraction & Melarsomine Split-Dose / Doxycycline / Macrocyclic Lactone Thromboembolism Prevention Cockpit routes (Milestone 25.1)
 	s.registerHeartwormCavalRoutes()
+	// Acute Vector-Borne & Rickettsial Emergencies (Lyme Nephritis, Anaplasmosis, Ehrlichiosis, Rocky Mountain Spotted Fever, Babesiosis & Cytauxzoonosis), SNAP 4Dx Plus / PCR Triage, Doxycycline, Atovaquone + Azithromycin & Imidocarb Dipropionate Cockpit routes (Milestone 24.5)
+	s.registerVectorBorneRickettsialRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
