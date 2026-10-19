@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Pit-Viper Envenomation, Bufo Toad Bufotoxin, Porcupine Quill &amp; Toxic Flora Triage Cockpit.">
+  <title>Pit-Viper Envenomation, Bufo Toad Bufotoxin, Porcupine Quill &amp; Toxic Flora Triage Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#7f1d1d">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#envenomation-toxin-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/hyperthermia-heat-triage" class="nav-link nav-link-emergency" id="nav-hyperthermia-heat-triage">🌡️ Hyperthermia &amp; Heat Triage</a></li>
+          <li><a href="/envenomation-toxin-triage" class="nav-link active nav-link-emergency" id="nav-envenomation-toxin-triage">🐍 Envenomation &amp; Toxin Triage</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="envenomation-toxin-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header toxin-triage-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🐍 PIT-VIPER ENVENOMATION, BUFO TOAD BUFOTOXIN, PORCUPINE QUILL &amp; TOXIC FLORA TRIAGE COCKPIT</span>
+        </div>
+        <h1>Pit-Viper Envenomation, Bufo Toad Bufotoxin, Porcupine Quill &amp; Toxic Flora Triage Cockpit</h1>
+        <p class="text-secondary">
+          Crotalid Hemotoxic Edema Perimeter Tracking, Peripheral Smear Echinocyte Quantification, Polyvalent &amp; Elapid Antivenom Staging, Forward-Angled Bufo Toad Oral Mucosal Lavage, Sedated Intact-Shaft Porcupine Quill Extraction (Never Cut Quills Prior to Pull) &amp; Blue-Green Algae Cyanotoxin Decontamination.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid toxin-triage-kpi-grid" aria-label="Envenomation &amp; Toxin Triage KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Envenomation / Toxin Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Coagulopathy / Neurotoxic</span>
+        <strong class="kpi-value" id="kpi-critical-toxin">{{ .CriticalToxinCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Antivenom / Lavage / Sedation Staged</span>
+        <strong class="kpi-value" id="kpi-staged-antivenom">{{ .StagedAntivenomCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Stabilized Neutralized Cleared</span>
+        <strong class="kpi-value" id="kpi-stabilized-safe">{{ .StabilizedSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="toxin-triage-live-status" class="humane-traps-live-status toxin-triage-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} pit-viper envenomation, Bufo toad bufotoxin, porcupine quill &amp; toxic flora triage operations.
+    </div>
+
+    <div class="trust-cockpit-grid toxin-triage-cockpit-grid">
+      <!-- Left Column: Evaluate Envenomation / Toxin Form -->
+      <section class="glass-card trust-panel" id="toxin-evaluate-panel" aria-labelledby="heading-evaluate-toxin-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-toxin-op">Evaluate Envenomation, Bufotoxin, Quill &amp; Cyanotoxin Triage</h2>
+          <span class="badge badge-toxin-type">No Cut Quills · Forward Oral Lavage</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Wildlife Envenomation &amp; Toxin Scenario Presets</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary toxin-scenario-btn" data-scenario="rattlesnake-hemotoxic" id="btn-sim-rattlesnake-hemotoxic">
+              🐍 Simulate Rattlesnake Crotalid Strike (7.2 cm/hr Edema · 42% Echinocytes · 3 Antivenom Vials)
+            </button>
+            <button type="button" class="btn btn-secondary toxin-scenario-btn" data-scenario="porcupine-muzzle-quills" id="btn-sim-porcupine-muzzle-quills">
+              🦔 Simulate Porcupine Muzzle &amp; Thorax Retrograde Quills (26 Quills · Sedated Intact-Shaft Extraction)
+            </button>
+          </div>
+        </div>
+
+        <div id="eval-error-banner" class="toxin-eval-error-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="toxin-eval-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-pet-name">Pet Name</label>
+              <input type="text" id="eval-pet-name" name="pet_name" class="form-control" value="Ranger" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-species">Species / Breed</label>
+              <input type="text" id="eval-species" name="species" class="form-control" value="Dog - Blue Lacy" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-weight-kg">Estimated Weight (kg)</label>
+              <input type="number" id="eval-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120" step="0.1" value="22.5" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-toxin-type">Toxin / Envenomation Classification</label>
+              <select id="eval-toxin-type" name="toxin_type" class="form-control" required>
+                <option value="PIT_VIPER_CROTALID_HEI" selected>PIT_VIPER_CROTALID_HEI (Rattlesnake / Copperhead / Cottonmouth Hemotoxin)</option>
+                <option value="ELAPID_CORAL_NEUROTOXIN">ELAPID_CORAL_NEUROTOXIN (Coral Snake / Elapid Ascending Bulbar Neurotoxin)</option>
+                <option value="BUFO_MARINUS_CARDIOTOXIN">BUFO_MARINUS_CARDIOTOXIN (Cane / Sonoran Desert Toad Bufotoxin)</option>
+                <option value="PORCUPINE_RETROGRADE_QUILLS">PORCUPINE_RETROGRADE_QUILLS (Erethizon Dorsatum Barbed Retrograde Quills)</option>
+                <option value="BLUE_GREEN_ALGAE_CYANOTOXIN">BLUE_GREEN_ALGAE_CYANOTOXIN (Microcystin / Anatoxin-a Algal Bloom)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-edema-spread">Edema Perimeter Spread (cm/hr)</label>
+              <input type="number" id="eval-edema-spread" name="edema_spread_cm_hr" class="form-control" min="0" max="50" step="0.1" value="5.8" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-echinocyte-pct">Peripheral Smear Echinocytes (%)</label>
+              <input type="number" id="eval-echinocyte-pct" name="echinocyte_pct" class="form-control" min="0" max="100" step="0.5" value="34.0" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-quill-count">Muzzle &amp; Thorax Quill Count</label>
+              <input type="number" id="eval-quill-count" name="quill_count_muzzle_thorax" class="form-control" min="0" max="500" step="1" value="0" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-antivenom-vials">Antivenom Vials Staged (0–20)</label>
+              <input type="number" id="eval-antivenom-vials" name="antivenom_vials_staged" class="form-control" min="0" max="20" step="1" value="2" required>
+            </div>
+          </div>
+
+          <div class="toxin-checkbox-group">
+            <label class="toxin-step-item">
+              <input type="checkbox" id="eval-oral-flushed" name="oral_mucosa_flushed_forward" checked>
+              <span>Oral Mucosa Wiped &amp; Flushed Rostral-Forward Out of Mouth (Never Hose Down Throat)</span>
+            </label>
+            <label class="toxin-step-item">
+              <input type="checkbox" id="eval-quills-cut-avoided" name="quills_cut_or_pulled_awake_avoided" checked>
+              <span>Cutting Quills or Awake Traction Strictly Avoided (Prevents Splintering &amp; Retrograde Migration)</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-submit-toxin-eval" class="btn btn-primary">Evaluate Envenomation &amp; Toxin Triage</button>
+        </form>
+      </section>
+
+      <!-- Right Column: Filter Bar, Operations Queue & Active Workspace -->
+      <section class="glass-card trust-panel" id="toxin-ops-panel" aria-labelledby="heading-toxin-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-toxin-ops">Active Envenomation, Bufotoxin, Quill &amp; Cyanotoxin Operations</h2>
+          <span id="toxin-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col toxin-filter-bar" role="region" aria-label="Filter Envenomation &amp; Toxin Triage Operations">
+          <div class="form-group">
+            <label for="filter-toxin-type">Filter by Toxin Vector</label>
+            <select id="filter-toxin-type" class="form-control">
+              <option value="">All Toxin Vectors</option>
+              <option value="PIT_VIPER_CROTALID_HEI">PIT_VIPER_CROTALID_HEI</option>
+              <option value="ELAPID_CORAL_NEUROTOXIN">ELAPID_CORAL_NEUROTOXIN</option>
+              <option value="BUFO_MARINUS_CARDIOTOXIN">BUFO_MARINUS_CARDIOTOXIN</option>
+              <option value="PORCUPINE_RETROGRADE_QUILLS">PORCUPINE_RETROGRADE_QUILLS</option>
+              <option value="BLUE_GREEN_ALGAE_CYANOTOXIN">BLUE_GREEN_ALGAE_CYANOTOXIN</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="COAGULOPATHY_NEUROTOXIC_CRITICAL">COAGULOPATHY_NEUROTOXIC_CRITICAL</option>
+              <option value="ANTIVENOM_LAVAGE_SEDATION_STAGED">ANTIVENOM_LAVAGE_SEDATION_STAGED</option>
+              <option value="STABILIZED_NEUTRALIZED_CLEARED">STABILIZED_NEUTRALIZED_CLEARED</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="toxin-active-workspace" role="region" aria-label="Active Envenomation &amp; Toxin Triage Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="toxin-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">Active Workspace: {{ $active.PetName }} ({{ $active.Species }} · {{ printf "%.1f" $active.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $active.ID }} · {{ $active.PetID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-toxin-type">{{ $active.ToxinType }}</span>
+                <span class="badge badge-toxin-status {{ if eq (printf "%s" $active.Status) "COAGULOPATHY_NEUROTOXIC_CRITICAL" }}badge-toxin-critical{{ else if eq (printf "%s" $active.Status) "ANTIVENOM_LAVAGE_SEDATION_STAGED" }}badge-toxin-staged{{ else }}badge-toxin-safe{{ end }}">{{ $active.Status }}</span>
+              </div>
+            </div>
+            <div class="toxin-contraindication-banner">
+              ⚠️ {{ $active.ContraindicationWarningNote }}
+            </div>
+            <div class="toxin-gear-recommendations">
+              <div><strong>Required Antidote &amp; Extraction Protocol:</strong> {{ $active.RequiredAntidoteProtocol }}</div>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="toxin-operations-list" class="trust-screenings-list toxin-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card toxin-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-toxin-type="{{ $op.ToxinType }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-toxin-type">{{ $op.ToxinType }}</span>
+                <span class="badge badge-toxin-status {{ if eq (printf "%s" $op.Status) "COAGULOPATHY_NEUROTOXIC_CRITICAL" }}badge-toxin-critical{{ else if eq (printf "%s" $op.Status) "ANTIVENOM_LAVAGE_SEDATION_STAGED" }}badge-toxin-staged{{ else }}badge-toxin-safe{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row toxin-metrics-row">
+              <span class="badge badge-toxin-type">Edema Spread: {{ printf "%.1f" $op.EdemaSpreadCmHr }} cm/hr • Echinocytes: {{ printf "%.1f" $op.EchinocytePct }}% • Quills: {{ $op.QuillCountMuzzleThorax }} • Antivenom Vials: {{ $op.AntivenomVialsStaged }}</span>
+            </div>
+
+            <div class="toxin-flags-row">
+              {{ if ge $op.EdemaSpreadCmHr 4.0 }}
+              <span class="badge badge-toxin-flag">RAPID_HEMORRHAGIC_EDEMA_PROGRESSION</span>
+              {{ end }}
+              {{ if ge $op.EchinocytePct 25.0 }}
+              <span class="badge badge-toxin-flag">SEVERE_ECHINOCYTOSIS_COAGULOPATHY</span>
+              {{ end }}
+              {{ if ge $op.QuillCountMuzzleThorax 10 }}
+              <span class="badge badge-toxin-flag">RETROGRADE_QUILL_MIGRATION_RISK_{{ $op.QuillCountMuzzleThorax }}</span>
+              {{ end }}
+            </div>
+
+            <div class="toxin-contraindication-banner">
+              ⚠️ {{ $op.ContraindicationWarningNote }}
+            </div>
+
+            {{ if $op.ClearanceToken }}
+            <div class="toxin-clearance-banner">
+              ✅ ENVENOMATION &amp; TOXIN NEUTRALIZATION CLEARANCE VERIFIED: {{ $op.ClearanceToken }}
+            </div>
+            {{ end }}
+
+            <div class="toxin-gear-recommendations">
+              <div><strong>Required Antidote Protocol:</strong> {{ $op.RequiredAntidoteProtocol }}</div>
+            </div>
+
+            <div class="toxin-steps-list" aria-label="Envenomation, Oral Lavage &amp; Sedated Quill Extraction Protocol Steps">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="toxin-step-item">
+                <input
+                  type="checkbox"
+                  class="toxin-step-checkbox"
+                  data-op-id="{{ $op.ID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "STABILIZED_NEUTRALIZED_CLEARED" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-toxin-safe{{ else }}badge-toxin-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="toxin-step-title">{{ $step.Title }}</strong>
+                <span class="toxin-step-desc">{{ $step.Description }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary toxin-select-workspace-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Inspect in Active Workspace
+              </button>
+              {{ if ne (printf "%s" $op.Status) "STABILIZED_NEUTRALIZED_CLEARED" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary toxin-issue-clearance-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🛡️ Issue Toxin Neutralization Clearance ({{ $op.ID }})
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="toxin-ops-empty-msg">No envenomation or toxin triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/envenomation-toxin-triage.js" defer></script>
+</body>
+</html>

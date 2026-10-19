@@ -29,6 +29,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/confinedspace"
 	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/envenomationtoxin"
 	"github.com/scottdensmore/petspotr/pkg/hazmatdecon"
 	"github.com/scottdensmore/petspotr/pkg/hyperthermiaheat"
 	"github.com/scottdensmore/petspotr/pkg/identity"
@@ -86,6 +87,7 @@ type Server struct {
 	heatTriageStore          *hyperthermiaheat.Store
 	maritimeRescueStore      *maritimecoastal.Store
 	neonatalIncubatorStore   *neonatalincubator.Store
+	envenomationToxinStore   *envenomationtoxin.Store
 	handler                  http.Handler
 }
 
@@ -255,6 +257,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		heatTriageStore:          hyperthermiaheat.NewStore(),
 		maritimeRescueStore:      maritimecoastal.NewStore(),
 		neonatalIncubatorStore:   neonatalincubator.NewStore(),
+		envenomationToxinStore:   envenomationtoxin.NewStore(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -557,6 +560,8 @@ func (s *Server) routes() {
 	s.registerMaritimeCoastalRoutes()
 	// Neonatal Orphan Litter & Incubator Critical Care Triage Cockpit routes (Milestone 17.3)
 	s.registerNeonatalIncubatorRoutes()
+	// Pit-Viper Envenomation, Bufo Toad Bufotoxin, Porcupine Quill & Toxic Flora Triage Cockpit routes (Milestone 17.4)
+	s.registerEnvenomationToxinRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
