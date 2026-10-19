@@ -20725,3 +20725,234 @@ textarea:focus-visible,
   font-weight: 700;
   margin: 0.5rem 0;
 }
+
+/* ============================================================================
+   Milestone 25.1: Acute Heartworm Caval Syndrome (Dirofilaria immitis) & Jugular Venotomy Cockpit
+   ============================================================================ */
+
+.hwc-toolbar-card {
+  margin: 0.75rem 0 1.25rem;
+  padding: 0.85rem 1.1rem;
+}
+
+.hwc-toolbar-row {
+  align-items: flex-end;
+}
+
+.hwc-sse-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hwc-sse-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.hwc-workspace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.hwc-vitals-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.65rem;
+  margin: 0.75rem 0;
+}
+
+.hwc-vital-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .hwc-vital-chip {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.hwc-plan-box,
+.hwc-checks-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  margin: 0.65rem 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .hwc-plan-box,
+[data-theme="light"] .hwc-checks-box {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.hwc-plan-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hwc-card-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.85rem;
+  font-size: 0.8125rem;
+  margin: 0.5rem 0;
+}
+
+.hwc-checks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  list-style: none;
+  padding: 0;
+  margin: 0.35rem 0 0;
+}
+
+.hwc-check-item {
+  font-size: 0.8125rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.25);
+}
+
+.hwc-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0.45rem 0;
+}
+
+.hwc-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.hwc-divider {
+  border: 0;
+  border-top: 1px solid var(--border-color);
+  margin: 1rem 0;
+}
+
+.hwc-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid #f87171;
+}
+
+:root .hwc-status-badge,
+[data-theme="dark"] .hwc-status-badge,
+:root .hwc-status-critical,
+[data-theme="dark"] .hwc-status-critical {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid #f87171;
+}
+
+:root .hwc-status-staged,
+[data-theme="dark"] .hwc-status-staged {
+  background-color: #78350f;
+  color: #fffbeb;
+  border: 1px solid #f59e0b;
+}
+
+:root .hwc-status-cleared,
+[data-theme="dark"] .hwc-status-cleared {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+}
+
+:root .hwc-alert-banner,
+[data-theme="dark"] .hwc-alert-banner {
+  background-color: #450a0a;
+  color: #fef2f2;
+  border: 2px solid #f87171;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+:root .hwc-clearance-banner,
+[data-theme="dark"] .hwc-clearance-banner {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .hwc-status-badge,
+[data-theme="light"] .hwc-status-critical {
+  background-color: #fee2e2;
+  color: #450a0a;
+  border: 1px solid #b91c1c;
+}
+
+[data-theme="light"] .hwc-status-staged {
+  background-color: #fef3c7;
+  color: #451a03;
+  border: 1px solid #b45309;
+}
+
+[data-theme="light"] .hwc-status-cleared {
+  background-color: #d1fae5;
+  color: #022c22;
+  border: 1px solid #047857;
+}
+
+[data-theme="light"] .hwc-alert-banner {
+  background-color: #fef2f2;
+  color: #450a0a;
+  border: 2px solid #b91c1c;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .hwc-clearance-banner {
+  background-color: #d1fae5;
+  color: #022c22;
+  border: 1px solid #047857;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
