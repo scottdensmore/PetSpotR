@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Dystocia, Maternal C-Section, Eclampsia (Hypocalcemia) &amp; Oxytocin Contraindication Triage Cockpit.">
+  <title>Dystocia, Maternal C-Section, Eclampsia (Hypocalcemia) &amp; Oxytocin Contraindication Triage Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#dystocia-eclampsia-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/neonatal-incubator-triage" class="nav-link nav-link-emergency" id="nav-neonatal-incubator-triage">🍼 Neonatal Incubator</a></li>
+          <li><a href="/dystocia-eclampsia-triage" class="nav-link active nav-link-emergency" id="nav-dystocia-eclampsia-triage">🐾 Dystocia &amp; Eclampsia Triage</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="dystocia-eclampsia-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header dystocia-triage-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🐾 DYSTOCIA, MATERNAL C-SECTION, ECLAMPSIA (HYPOCALCEMIA) &amp; OXYTOCIN CONTRAINDICATION TRIAGE COCKPIT</span>
+        </div>
+        <h1>Dystocia, Maternal C-Section, Eclampsia (Hypocalcemia) &amp; Oxytocin Contraindication Triage Cockpit</h1>
+        <p class="text-secondary">
+          Transabdominal Doppler Fetal Heart Rate Surveillance (&lt; 180 bpm Distress Threshold), Obstructive Brachycephalic Pelvic Radiograph Gate (Strict Oxytocin Contraindication to Prevent Uterine Rupture), Continuous ECG-Monitored 10% Calcium Gluconate IV Infusion &amp; Neonatal Colostrum Resuscitation.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid dystocia-triage-kpi-grid" aria-label="Dystocia, Maternal C-Section &amp; Eclampsia Triage KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Obstetric &amp; Eclampsia Ops</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Fetal Distress / Obstructive Critical</span>
+        <strong class="kpi-value" id="kpi-critical-fetal">{{ .CriticalFetalCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Calcium ECG &amp; Whelping Staged</span>
+        <strong class="kpi-value" id="kpi-staged-whelping">{{ .StagedWhelpingCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Delivered Normocalcemic Lactating Safe</span>
+        <strong class="kpi-value" id="kpi-delivered-safe">{{ .DeliveredSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="dystocia-triage-live-status" class="humane-traps-live-status dystocia-triage-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} dystocia, maternal C-section, eclampsia (hypocalcemia) &amp; oxytocin contraindication triage operations.
+    </div>
+
+    <div class="trust-cockpit-grid dystocia-triage-cockpit-grid">
+      <!-- Left Column: Evaluate Dystocia, Maternal C-Section & Eclampsia Form -->
+      <section class="glass-card trust-panel" id="dystocia-evaluate-panel" aria-labelledby="heading-evaluate-dystocia-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-dystocia-op">Evaluate Dystocia, Maternal C-Section &amp; Eclampsia</h2>
+          <span class="badge badge-dystocia-presentation">Doppler Fetal HR &amp; Oxytocin Gate</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Obstetric &amp; Eclampsia Emergency Scenario Presets</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary dystocia-scenario-btn" data-scenario="obstructive-csection" id="btn-sim-obstructive-csection">
+              🚨 Simulate Brachycephalic Obstructive Fetal Distress C-Section (148 bpm · Uteroverdin · 160m Interval)
+            </button>
+            <button type="button" class="btn btn-secondary dystocia-scenario-btn" data-scenario="puerperal-eclampsia" id="btn-sim-puerperal-eclampsia">
+              💉 Simulate Puerperal Eclampsia Hypocalcemic Tetany (iCa 0.68 mmol/L · ECG 10% Ca Gluconate)
+            </button>
+          </div>
+        </div>
+
+        <div id="eval-error-banner" class="dystocia-eval-error-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="dystocia-eval-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-pet-name">Dam / Queen Name</label>
+              <input type="text" id="eval-pet-name" name="pet_name" class="form-control" value="Duchess" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-species">Species / Breed</label>
+              <input type="text" id="eval-species" name="species" class="form-control" value="Dog - French Bulldog Dam" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-weight-kg">Maternal Weight (kg)</label>
+              <input type="number" id="eval-weight-kg" name="weight_kg" class="form-control" min="1.5" max="90.0" step="0.1" value="11.4" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-presentation-type">Obstetric / Eclampsia Presentation</label>
+              <select id="eval-presentation-type" name="presentation_type" class="form-control" required>
+                <option value="OBSTRUCTIVE_BRACHYCEPHALIC_FETAL_OVERSIZE" selected>OBSTRUCTIVE_BRACHYCEPHALIC_FETAL_OVERSIZE (Fetal Oversize / Pelvic Disproportion)</option>
+                <option value="PRIMARY_UTERINE_INERTIA_NORMOCALCEMIC">PRIMARY_UTERINE_INERTIA_NORMOCALCEMIC (Primary Uterine Inertia — Patent Canal)</option>
+                <option value="PUERPERAL_ECLAMPSIA_HYPOCALCEMIA_TETANY">PUERPERAL_ECLAMPSIA_HYPOCALCEMIA_TETANY (Acute Puerperal Hypocalcemic Tetany)</option>
+                <option value="PLACENTAL_DETACHMENT_UTEROVERDIN_DISCHARGE">PLACENTAL_DETACHMENT_UTEROVERDIN_DISCHARGE (Uteroverdin Discharge Without Fetus)</option>
+                <option value="MALPRESENTATION_BREECH_TRANSVERSE">MALPRESENTATION_BREECH_TRANSVERSE (Breech or Transverse Fetal Malpresentation)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-fetal-hr">Lowest Doppler Fetal Heart Rate (bpm)</label>
+              <input type="number" id="eval-fetal-hr" name="lowest_fetal_heart_rate_bpm" class="form-control" min="80" max="280" step="1" value="148" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-ionized-calcium">Ionized Calcium iCa (mmol/L)</label>
+              <input type="number" id="eval-ionized-calcium" name="ionized_calcium_mmol_l" class="form-control" min="0.4" max="1.8" step="0.01" value="0.82" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-interval-mins">Inter-Puppy / Kitten Interval (mins)</label>
+              <input type="number" id="eval-interval-mins" name="inter_puppy_interval_mins" class="form-control" min="0" max="480" step="1" value="160" required>
+            </div>
+          </div>
+
+          <div class="dystocia-checkbox-group">
+            <label class="dystocia-step-item">
+              <input type="checkbox" id="eval-uteroverdin" name="green_black_uteroverdin_no_fetus" checked>
+              <span>Green/Black Uteroverdin Vulvar Discharge Without Expelled Fetus (Placental Separation)</span>
+            </label>
+            <label class="dystocia-step-item">
+              <input type="checkbox" id="eval-obstruction-excluded" name="pelvic_canal_obstruction_excluded">
+              <span>Pelvic Canal Obstruction &amp; Fetal Oversize Excluded on Orthogonal Radiographs (Required Before Oxytocin)</span>
+            </label>
+            <label class="dystocia-step-item">
+              <input type="checkbox" id="eval-ecg-calcium" name="ecg_monitored_calcium_infusion" checked>
+              <span>Continuous Lead-II ECG Monitoring Active for Slow 10% Calcium Gluconate IV Infusion</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-submit-dystocia-eval" class="btn btn-primary">Evaluate Dystocia &amp; Eclampsia Triage</button>
+        </form>
+      </section>
+
+      <!-- Right Column: Filter Bar, Operations Queue & Active Workspace -->
+      <section class="glass-card trust-panel" id="dystocia-ops-panel" aria-labelledby="heading-dystocia-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-dystocia-ops">Active Dystocia, Maternal C-Section &amp; Eclampsia Operations</h2>
+          <span id="dystocia-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col dystocia-filter-bar" role="region" aria-label="Filter Dystocia &amp; Eclampsia Triage Operations">
+          <div class="form-group">
+            <label for="filter-presentation-type">Filter by Presentation Type</label>
+            <select id="filter-presentation-type" class="form-control">
+              <option value="">All Presentation Types</option>
+              <option value="OBSTRUCTIVE_BRACHYCEPHALIC_FETAL_OVERSIZE">OBSTRUCTIVE_BRACHYCEPHALIC_FETAL_OVERSIZE</option>
+              <option value="PRIMARY_UTERINE_INERTIA_NORMOCALCEMIC">PRIMARY_UTERINE_INERTIA_NORMOCALCEMIC</option>
+              <option value="PUERPERAL_ECLAMPSIA_HYPOCALCEMIA_TETANY">PUERPERAL_ECLAMPSIA_HYPOCALCEMIA_TETANY</option>
+              <option value="PLACENTAL_DETACHMENT_UTEROVERDIN_DISCHARGE">PLACENTAL_DETACHMENT_UTEROVERDIN_DISCHARGE</option>
+              <option value="MALPRESENTATION_BREECH_TRANSVERSE">MALPRESENTATION_BREECH_TRANSVERSE</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="FETAL_DISTRESS_OBSTRUCTIVE_CRITICAL">FETAL_DISTRESS_OBSTRUCTIVE_CRITICAL</option>
+              <option value="CALCIUM_ECG_WHELPING_STAGED">CALCIUM_ECG_WHELPING_STAGED</option>
+              <option value="DELIVERED_NORMOCALCEMIC_LACTATING_SAFE">DELIVERED_NORMOCALCEMIC_LACTATING_SAFE</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="dystocia-active-workspace" role="region" aria-label="Active Dystocia &amp; Eclampsia Triage Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="dystocia-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">Active Workspace: {{ $active.PetName }} ({{ $active.Species }} · {{ printf "%.1f" $active.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $active.ID }} · {{ $active.PetID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-dystocia-presentation">{{ $active.PresentationType }}</span>
+                <span class="badge badge-dystocia-status {{ if eq (printf "%s" $active.Status) "FETAL_DISTRESS_OBSTRUCTIVE_CRITICAL" }}badge-dystocia-critical{{ else if eq (printf "%s" $active.Status) "CALCIUM_ECG_WHELPING_STAGED" }}badge-dystocia-staged{{ else }}badge-dystocia-safe{{ end }}">{{ $active.Status }}</span>
+              </div>
+            </div>
+            <div class="dystocia-oxytocin-alert-banner">
+              ⚠️ {{ $active.OxytocinContraindicationNote }}
+            </div>
+            <div class="dystocia-protocol-recommendations">
+              <div><strong>Required Obstetric &amp; Calcium Protocol:</strong> {{ $active.RequiredObstetricProtocol }}</div>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="dystocia-operations-list" class="trust-screenings-list dystocia-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card dystocia-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-presentation-type="{{ $op.PresentationType }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-dystocia-presentation">{{ $op.PresentationType }}</span>
+                <span class="badge badge-dystocia-status {{ if eq (printf "%s" $op.Status) "FETAL_DISTRESS_OBSTRUCTIVE_CRITICAL" }}badge-dystocia-critical{{ else if eq (printf "%s" $op.Status) "CALCIUM_ECG_WHELPING_STAGED" }}badge-dystocia-staged{{ else }}badge-dystocia-safe{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row dystocia-metrics-row">
+              <span class="badge badge-dystocia-presentation">Lowest Fetal HR: {{ $op.LowestFetalHeartRateBpm }} bpm • Ionized Ca (iCa): {{ printf "%.2f" $op.IonizedCalciumMmolL }} mmol/L • Inter-Puppy Interval: {{ $op.InterPuppyIntervalMins }} mins</span>
+            </div>
+
+            <div class="dystocia-flags-row">
+              {{ if $op.GreenBlackUteroverdinNoFetus }}
+              <span class="badge badge-dystocia-flag">UTEROVERDIN_PLACENTAL_DETACHMENT</span>
+              {{ end }}
+              {{ if lt $op.LowestFetalHeartRateBpm 180 }}
+              <span class="badge badge-dystocia-flag">FETAL_BRADYCARDIA_DISTRESS</span>
+              {{ end }}
+              {{ if not $op.PelvicCanalObstructionExcluded }}
+              <span class="badge badge-dystocia-flag">OXYTOCIN_CONTRAINDICATED_OBSTRUCTION</span>
+              {{ end }}
+              {{ if lt $op.IonizedCalciumMmolL 0.9 }}
+              <span class="badge badge-dystocia-flag">ECLAMPSIA_HYPOCALCEMIC_TETANY</span>
+              {{ end }}
+            </div>
+
+            <div class="dystocia-oxytocin-alert-banner">
+              ⚠️ {{ $op.OxytocinContraindicationNote }}
+            </div>
+
+            {{ if $op.ClearanceToken }}
+            <div class="dystocia-clearance-banner">
+              ✅ DELIVERED NORMOCALCEMIC &amp; LACTATING CLEARANCE VERIFIED: {{ $op.ClearanceToken }}
+            </div>
+            {{ end }}
+
+            <div class="dystocia-protocol-recommendations">
+              <div><strong>Required Obstetric Protocol:</strong> {{ $op.RequiredObstetricProtocol }}</div>
+            </div>
+
+            <div class="dystocia-steps-list" aria-label="Doppler Fetal HR, ECG Calcium Gluconate &amp; C-Section Protocol Steps">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="dystocia-step-item">
+                <input
+                  type="checkbox"
+                  class="dystocia-step-checkbox"
+                  data-op-id="{{ $op.ID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "DELIVERED_NORMOCALCEMIC_LACTATING_SAFE" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-dystocia-safe{{ else }}badge-dystocia-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="dystocia-step-title">{{ $step.Title }}</strong>
+                <span class="dystocia-step-desc">{{ $step.Description }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary dystocia-select-workspace-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Inspect in Active Workspace
+              </button>
+              {{ if ne (printf "%s" $op.Status) "DELIVERED_NORMOCALCEMIC_LACTATING_SAFE" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary dystocia-issue-clearance-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🛡️ Issue Delivered Normocalcemic Clearance ({{ $op.ID }})
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="dystocia-ops-empty-msg">No dystocia, maternal C-section, or eclampsia triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/dystocia-eclampsia-triage.js" defer></script>
+</body>
+</html>

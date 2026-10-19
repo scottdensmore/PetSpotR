@@ -31,6 +31,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/confinedspace"
 	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/dystociaeclampsia"
 	"github.com/scottdensmore/petspotr/pkg/envenomationtoxin"
 	"github.com/scottdensmore/petspotr/pkg/hazmatdecon"
 	"github.com/scottdensmore/petspotr/pkg/hyperbaricco"
@@ -94,6 +95,7 @@ type Server struct {
 	acousticPanicStore        *acousticpanic.Store
 	hyperbaricCOStore         *hyperbaricco.Store
 	biosecurityIsolationStore *biosecurityiso.Store
+	dystociaEclampsiaStore    *dystociaeclampsia.Store
 	handler                   http.Handler
 }
 
@@ -267,6 +269,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		acousticPanicStore:        acousticpanic.NewStore(),
 		hyperbaricCOStore:         hyperbaricco.NewStore(),
 		biosecurityIsolationStore: biosecurityiso.NewStore(),
+		dystociaEclampsiaStore:    dystociaeclampsia.NewStore(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -577,6 +580,8 @@ func (s *Server) routes() {
 	s.registerHyperbaricCORoutes()
 	// Canine Parvovirus, Panleukopenia, Distemper & Biosecurity Isolation Cohort Cockpit routes (Milestone 18.3)
 	s.registerBiosecurityIsolationRoutes()
+	// Dystocia, Maternal C-Section, Eclampsia (Hypocalcemia) & Oxytocin Contraindication Triage Cockpit routes (Milestone 18.4)
+	s.registerDystociaEclampsiaRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
