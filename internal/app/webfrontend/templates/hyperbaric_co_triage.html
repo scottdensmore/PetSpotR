@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Hyperbaric Oxygen (HBOT), Carbon Monoxide (CO) Carboxyhemoglobin &amp; Cyanide Smoke Triage Cockpit.">
+  <title>Hyperbaric Oxygen (HBOT), Carbon Monoxide &amp; Cyanide Smoke Triage Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#hyperbaric-co-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/hyperthermia-heat-triage" class="nav-link nav-link-emergency" id="nav-hyperthermia-heat-triage">🌡️ Hyperthermia Triage</a></li>
+          <li><a href="/hyperbaric-co-triage" class="nav-link active nav-link-emergency" id="nav-hyperbaric-co-triage">🫧 Hyperbaric &amp; CO Triage</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="hyperbaric-co-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header hbot-triage-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🫧 HYPERBARIC OXYGEN (HBOT), CARBON MONOXIDE (COHb) &amp; CYANIDE SMOKE TRIAGE COCKPIT</span>
+        </div>
+        <h1>Hyperbaric Oxygen (HBOT), Carbon Monoxide (CO) Carboxyhemoglobin &amp; Cyanide Smoke Triage Cockpit</h1>
+        <p class="text-secondary">
+          Multi-Wavelength CO-Oximetry Verification (Bypassing False-Normal 98–100% 2-Wavelength SpO2), Hydroxocobalamin (Vitamin B12a) IV Cyanide Chelation for Synthetic Structure Fire Lactatemia, Monoplace 2.0 ATA Hyperbaric Oxygen Washout &amp; Delayed Neurological Sequelae (DNS) Surveillance.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid hbot-triage-kpi-grid" aria-label="Hyperbaric Oxygen &amp; CO/Cyanide Triage KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total HBOT &amp; CO Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Carboxyhemoglobin / Cyanide</span>
+        <strong class="kpi-value" id="kpi-critical-cohb">{{ .CriticalCOHbCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">HBOT Chamber &amp; Hydroxocobalamin Staged</span>
+        <strong class="kpi-value" id="kpi-staged-hbot">{{ .StagedHBOTCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Normoxic COHb Cleared Safe</span>
+        <strong class="kpi-value" id="kpi-cleared-safe">{{ .ClearedSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="hbot-triage-live-status" class="humane-traps-live-status hbot-triage-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} hyperbaric oxygen (HBOT), carboxyhemoglobin &amp; cyanide smoke triage operations.
+    </div>
+
+    <div class="trust-cockpit-grid hbot-triage-cockpit-grid">
+      <!-- Left Column: Evaluate Hyperbaric CO & Cyanide Smoke Form -->
+      <section class="glass-card trust-panel" id="hbot-evaluate-panel" aria-labelledby="heading-evaluate-hbot-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-hbot-op">Evaluate Hyperbaric Oxygen (HBOT), COHb &amp; Cyanide Smoke</h2>
+          <span class="badge badge-hbot-source">CO-Oximetry &amp; 2.0 ATA Chamber</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Smoke &amp; Carbon Monoxide Emergency Scenario Presets</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary hbot-scenario-btn" data-scenario="house-fire-cyanide" id="btn-sim-house-fire-cyanide">
+              🔥 Simulate Structure Fire Synthetic Cyanide &amp; COHb Crisis (36.8% COHb · 12.4 mmol/L Lactate · 2.2 ATA)
+            </button>
+            <button type="button" class="btn btn-secondary hbot-scenario-btn" data-scenario="garage-exhaust-co" id="btn-sim-garage-exhaust-co">
+              🚗 Simulate Enclosed Garage Exhaust Carboxyhemoglobin Washout (22.5% COHb · 4.8 mmol/L Lactate · 2.0 ATA)
+            </button>
+          </div>
+        </div>
+
+        <div id="eval-error-banner" class="hbot-eval-error-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="hbot-eval-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-pet-name">Pet Name</label>
+              <input type="text" id="eval-pet-name" name="pet_name" class="form-control" value="Ember" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-species">Species / Breed</label>
+              <input type="text" id="eval-species" name="species" class="form-control" value="Cat - Maine Coon" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-weight-kg">Estimated Weight (kg)</label>
+              <input type="number" id="eval-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="6.4" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-exposure-source">CO &amp; Smoke Exposure Source</label>
+              <select id="eval-exposure-source" name="exposure_source" class="form-control" required>
+                <option value="STRUCTURAL_HOUSE_FIRE_SYNTHETICS" selected>STRUCTURAL_HOUSE_FIRE_SYNTHETICS (Structure Fire Synthetic Polymer / HCN + CO)</option>
+                <option value="ENCLOSED_GARAGE_EXHAUST_CO">ENCLOSED_GARAGE_EXHAUST_CO (Enclosed Garage Vehicle Exhaust Asphyxia)</option>
+                <option value="PORTABLE_GENERATOR_CABIN_LEAK">PORTABLE_GENERATOR_CABIN_LEAK (Portable Generator Backdraft CO Leak)</option>
+                <option value="SMOLDERING_BARN_TORF_SMOKE">SMOLDERING_BARN_TORF_SMOKE (Smoldering Hay / Barn Particulate &amp; CO)</option>
+                <option value="PROPANE_HEATER_RV_ASPHYXIA">PROPANE_HEATER_RV_ASPHYXIA (Unvented Propane Heater Enclosed RV Hypoxia)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-cohb-pct">Carboxyhemoglobin COHb (%)</label>
+              <input type="number" id="eval-cohb-pct" name="carboxyhemoglobin_pct" class="form-control" min="0.0" max="85.0" step="0.1" value="32.0" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-lactate-mmol">Blood Lactate (mmol/L)</label>
+              <input type="number" id="eval-lactate-mmol" name="blood_lactate_mmol_l" class="form-control" min="0.5" max="30.0" step="0.1" value="10.8" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-chamber-ata">Target HBOT Chamber Pressure (ATA)</label>
+              <input type="number" id="eval-chamber-ata" name="chamber_pressure_ata" class="form-control" min="1.0" max="3.0" step="0.1" value="2.0" required>
+            </div>
+          </div>
+
+          <div class="hbot-checkbox-group">
+            <label class="hbot-step-item">
+              <input type="checkbox" id="eval-singe-soot" name="singe_vibrissae_soot_nares" checked>
+              <span>Singed Vibrissae &amp; Carbonaceous Soot in Nares / Oropharynx</span>
+            </label>
+            <label class="hbot-step-item">
+              <input type="checkbox" id="eval-spo2-warning-noted" name="pulse_oximetry_false_normal_noted" checked>
+              <span>False-Normal 2-Wavelength SpO2 (98–100%) Bypassed via Multi-Wavelength CO-Oximetry</span>
+            </label>
+            <label class="hbot-step-item">
+              <input type="checkbox" id="eval-hydroxocobalamin" name="hydroxocobalamin_administered" checked>
+              <span>Hydroxocobalamin (150 mg/kg IV) Cyanide Antidote Infused</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-submit-hbot-eval" class="btn btn-primary">Evaluate Hyperbaric &amp; CO/Cyanide Triage</button>
+        </form>
+      </section>
+
+      <!-- Right Column: Filter Bar, Operations Queue & Active Workspace -->
+      <section class="glass-card trust-panel" id="hbot-ops-panel" aria-labelledby="heading-hbot-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-hbot-ops">Active Hyperbaric Oxygen, COHb &amp; Cyanide Triage Operations</h2>
+          <span id="hbot-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col hbot-filter-bar" role="region" aria-label="Filter Hyperbaric CO Triage Operations">
+          <div class="form-group">
+            <label for="filter-exposure-source">Filter by Exposure Source</label>
+            <select id="filter-exposure-source" class="form-control">
+              <option value="">All Exposure Sources</option>
+              <option value="STRUCTURAL_HOUSE_FIRE_SYNTHETICS">STRUCTURAL_HOUSE_FIRE_SYNTHETICS</option>
+              <option value="ENCLOSED_GARAGE_EXHAUST_CO">ENCLOSED_GARAGE_EXHAUST_CO</option>
+              <option value="PORTABLE_GENERATOR_CABIN_LEAK">PORTABLE_GENERATOR_CABIN_LEAK</option>
+              <option value="SMOLDERING_BARN_TORF_SMOKE">SMOLDERING_BARN_TORF_SMOKE</option>
+              <option value="PROPANE_HEATER_RV_ASPHYXIA">PROPANE_HEATER_RV_ASPHYXIA</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="CARBOXYHEMOGLOBIN_CYANIDE_CRITICAL">CARBOXYHEMOGLOBIN_CYANIDE_CRITICAL</option>
+              <option value="HBOT_CHAMBER_HYDROXOCOBALAMIN_STAGED">HBOT_CHAMBER_HYDROXOCOBALAMIN_STAGED</option>
+              <option value="NORMOXIC_COHB_CLEARED_SAFE">NORMOXIC_COHB_CLEARED_SAFE</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="hbot-active-workspace" role="region" aria-label="Active Hyperbaric CO Triage Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="hbot-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">Active Workspace: {{ $active.PetName }} ({{ $active.Species }} · {{ printf "%.1f" $active.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $active.ID }} · {{ $active.PetID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-hbot-source">{{ $active.ExposureSource }}</span>
+                <span class="badge badge-hbot-status {{ if eq (printf "%s" $active.Status) "CARBOXYHEMOGLOBIN_CYANIDE_CRITICAL" }}badge-hbot-critical{{ else if eq (printf "%s" $active.Status) "HBOT_CHAMBER_HYDROXOCOBALAMIN_STAGED" }}badge-hbot-staged{{ else }}badge-hbot-safe{{ end }}">{{ $active.Status }}</span>
+              </div>
+            </div>
+            <div class="hbot-cooximetry-alert-banner">
+              🫧 {{ $active.CoOximetryWarningNote }}
+            </div>
+            <div class="hbot-regimen-recommendations">
+              <div><strong>Required HBOT &amp; Cyanide Chelation Regimen:</strong> {{ $active.RequiredHBOTRegimen }}</div>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="hbot-operations-list" class="trust-screenings-list hbot-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card hbot-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-exposure-source="{{ $op.ExposureSource }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-hbot-source">{{ $op.ExposureSource }}</span>
+                <span class="badge badge-hbot-status {{ if eq (printf "%s" $op.Status) "CARBOXYHEMOGLOBIN_CYANIDE_CRITICAL" }}badge-hbot-critical{{ else if eq (printf "%s" $op.Status) "HBOT_CHAMBER_HYDROXOCOBALAMIN_STAGED" }}badge-hbot-staged{{ else }}badge-hbot-safe{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row hbot-metrics-row">
+              <span class="badge badge-hbot-source">COHb: {{ printf "%.1f" $op.CarboxyhemoglobinPct }}% • Blood Lactate: {{ printf "%.1f" $op.BloodLactateMmolL }} mmol/L • HBOT Chamber: {{ printf "%.1f" $op.ChamberPressureAta }} ATA</span>
+            </div>
+
+            <div class="hbot-flags-row">
+              {{ if $op.SingeVibrissaeSootNares }}
+              <span class="badge badge-hbot-flag">SINGED_VIBRISSAE_SOOT_NARES</span>
+              {{ end }}
+              {{ if ge $op.CarboxyhemoglobinPct 20.0 }}
+              <span class="badge badge-hbot-flag">SEVERE_CARBOXYHEMOGLOBIN_HYPOXIA</span>
+              {{ end }}
+              {{ if ge $op.BloodLactateMmolL 8.0 }}
+              <span class="badge badge-hbot-flag">CYANIDE_LACTATEMIA_HISTOTOXIC_CRISIS</span>
+              {{ end }}
+            </div>
+
+            <div class="hbot-cooximetry-alert-banner">
+              ⚠️ {{ $op.CoOximetryWarningNote }}
+            </div>
+
+            {{ if $op.ClearanceToken }}
+            <div class="hbot-clearance-banner">
+              ✅ NORMOXIC COHb &amp; HBOT WASHOUT CLEARANCE VERIFIED: {{ $op.ClearanceToken }}
+            </div>
+            {{ end }}
+
+            <div class="hbot-regimen-recommendations">
+              <div><strong>Required HBOT Regimen:</strong> {{ $op.RequiredHBOTRegimen }}</div>
+            </div>
+
+            <div class="hbot-steps-list" aria-label="CO-Oximetry, Hydroxocobalamin &amp; Hyperbaric Chamber Protocol Steps">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="hbot-step-item">
+                <input
+                  type="checkbox"
+                  class="hbot-step-checkbox"
+                  data-op-id="{{ $op.ID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "NORMOXIC_COHB_CLEARED_SAFE" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-hbot-safe{{ else }}badge-hbot-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="hbot-step-title">{{ $step.Title }}</strong>
+                <span class="hbot-step-desc">{{ $step.Description }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary hbot-select-workspace-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Inspect in Active Workspace
+              </button>
+              {{ if ne (printf "%s" $op.Status) "NORMOXIC_COHB_CLEARED_SAFE" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary hbot-issue-clearance-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🛡️ Issue Normoxic COHb Clearance ({{ $op.ID }})
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="hbot-ops-empty-msg">No hyperbaric oxygen or CO/cyanide triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/hyperbaric-co-triage.js" defer></script>
+</body>
+</html>
