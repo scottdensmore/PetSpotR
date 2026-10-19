@@ -32,6 +32,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/hazmatdecon"
 	"github.com/scottdensmore/petspotr/pkg/hyperthermiaheat"
 	"github.com/scottdensmore/petspotr/pkg/identity"
+	"github.com/scottdensmore/petspotr/pkg/maritimecoastal"
 	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
@@ -82,6 +83,7 @@ type Server struct {
 	ectothermRescueStore     *reptileectotherm.Store
 	usarCollapseStore        *usarcollapse.Store
 	heatTriageStore          *hyperthermiaheat.Store
+	maritimeRescueStore      *maritimecoastal.Store
 	handler                  http.Handler
 }
 
@@ -249,6 +251,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		ectothermRescueStore:     reptileectotherm.NewStore(),
 		usarCollapseStore:        usarcollapse.NewStore(),
 		heatTriageStore:          hyperthermiaheat.NewStore(),
+		maritimeRescueStore:      maritimecoastal.NewStore(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -547,6 +550,8 @@ func (s *Server) routes() {
 	s.registerUSARCollapseRoutes()
 	// Hyperthermia, Heatstroke & Hot-Asphalt Pad Burn Triage Cockpit routes (Milestone 17.2)
 	s.registerHyperthermiaHeatRoutes()
+	// Maritime, Coastal & Tidal Mudflat Pet Rescue Operations Cockpit routes (Milestone 17.1)
+	s.registerMaritimeCoastalRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
