@@ -33,6 +33,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/dystociaeclampsia"
 	"github.com/scottdensmore/petspotr/pkg/envenomationtoxin"
+	"github.com/scottdensmore/petspotr/pkg/gdvbloat"
 	"github.com/scottdensmore/petspotr/pkg/hazmatdecon"
 	"github.com/scottdensmore/petspotr/pkg/hyperbaricco"
 	"github.com/scottdensmore/petspotr/pkg/hyperthermiaheat"
@@ -96,6 +97,7 @@ type Server struct {
 	hyperbaricCOStore         *hyperbaricco.Store
 	biosecurityIsolationStore *biosecurityiso.Store
 	dystociaEclampsiaStore    *dystociaeclampsia.Store
+	gdvBloatStore             *gdvbloat.Store
 	handler                   http.Handler
 }
 
@@ -270,6 +272,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		hyperbaricCOStore:         hyperbaricco.NewStore(),
 		biosecurityIsolationStore: biosecurityiso.NewStore(),
 		dystociaEclampsiaStore:    dystociaeclampsia.NewStore(),
+		gdvBloatStore:             gdvbloat.NewStore(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -582,6 +585,8 @@ func (s *Server) routes() {
 	s.registerBiosecurityIsolationRoutes()
 	// Dystocia, Maternal C-Section, Eclampsia (Hypocalcemia) & Oxytocin Contraindication Triage Cockpit routes (Milestone 18.4)
 	s.registerDystociaEclampsiaRoutes()
+	// Gastric Dilatation-Volvulus (GDV / Bloat), Splenic Torsion & Trocar Decompression Triage Cockpit routes (Milestone 18.2)
+	s.registerGDVBloatRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
