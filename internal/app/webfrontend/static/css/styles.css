@@ -15852,3 +15852,215 @@ textarea:focus-visible,
   cursor: pointer;
 }
 
+/* ============================================================================
+   Milestone 19.3: Brachycephalic Obstructive Airway Syndrome (BOAS),
+   Laryngeal Paralysis & Temporary Tracheostomy Triage Cockpit UI (/airway-tracheostomy-triage)
+   WCAG AAA High-Contrast Status Pills, Hazard Alerts & Clearance Banners (> 7.1:1 in Dark & Light Modes)
+   ============================================================================ */
+
+.status-pill,
+.status-pill-critical,
+.status-pill-staged,
+.status-pill-safe,
+.badge-airway-species {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.airway-filter-bar {
+  margin-bottom: 0.85rem;
+}
+
+.airway-active-workspace {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .airway-active-workspace {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.airway-regimen-recommendations,
+.airway-care-logs-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  margin: 0.45rem 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.4);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .airway-regimen-recommendations,
+[data-theme="light"] .airway-care-logs-box {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.airway-care-logs-list {
+  margin: 0.25rem 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.airway-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.6rem 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .airway-checkbox-group {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.airway-checkbox-inline {
+  display: flex;
+  align-items: center;
+}
+
+.airway-check-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.airway-action-subsection {
+  margin-top: 1.15rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-color);
+}
+
+:root .status-pill,
+[data-theme="dark"] .status-pill,
+:root .status-pill-critical,
+[data-theme="dark"] .status-pill-critical,
+:root .status-pill[data-status="STRIDOR_CYANOSIS_DYSPNEA_CRITICAL"],
+[data-theme="dark"] .status-pill[data-status="STRIDOR_CYANOSIS_DYSPNEA_CRITICAL"] {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid #f87171;
+}
+
+:root .status-pill-staged,
+[data-theme="dark"] .status-pill-staged,
+:root .status-pill[data-status="BUTORPHANOL_DEX_INTUBATION_STAGED"],
+[data-theme="dark"] .status-pill[data-status="BUTORPHANOL_DEX_INTUBATION_STAGED"] {
+  background-color: #78350f;
+  color: #fffbeb;
+  border: 1px solid #f59e0b;
+}
+
+:root .status-pill-safe,
+[data-theme="dark"] .status-pill-safe,
+:root .status-pill[data-status="PATENT_AIRWAY_NORMOTHERMIC_EXTUBATED"],
+[data-theme="dark"] .status-pill[data-status="PATENT_AIRWAY_NORMOTHERMIC_EXTUBATED"] {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+}
+
+:root .badge-airway-species,
+[data-theme="dark"] .badge-airway-species {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #94a3b8;
+}
+
+:root .airway-alert-banner,
+[data-theme="dark"] .airway-alert-banner {
+  background-color: #450a0a;
+  color: #fef2f2;
+  border: 2px solid #f87171;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+:root .airway-clearance-banner,
+[data-theme="dark"] .airway-clearance-banner {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .status-pill,
+[data-theme="light"] .status-pill-critical,
+[data-theme="light"] .status-pill[data-status="STRIDOR_CYANOSIS_DYSPNEA_CRITICAL"] {
+  background-color: #fee2e2;
+  color: #7f1d1d;
+  border: 1px solid #b91c1c;
+}
+
+[data-theme="light"] .status-pill-staged,
+[data-theme="light"] .status-pill[data-status="BUTORPHANOL_DEX_INTUBATION_STAGED"] {
+  background-color: #fef3c7;
+  color: #78350f;
+  border: 1px solid #b45309;
+}
+
+[data-theme="light"] .status-pill-safe,
+[data-theme="light"] .status-pill[data-status="PATENT_AIRWAY_NORMOTHERMIC_EXTUBATED"] {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+}
+
+[data-theme="light"] .badge-airway-species {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #475569;
+}
+
+[data-theme="light"] .airway-alert-banner {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 2px solid #b91c1c;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .airway-clearance-banner {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+

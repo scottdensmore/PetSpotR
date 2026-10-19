@@ -25,6 +25,7 @@ import (
 	"github.com/scottdensmore/petspotr/internal/app/foundpet"
 	"github.com/scottdensmore/petspotr/internal/app/lostpet"
 	"github.com/scottdensmore/petspotr/pkg/acousticpanic"
+	"github.com/scottdensmore/petspotr/pkg/airwaytracheostomy"
 	"github.com/scottdensmore/petspotr/pkg/avalanchewinter"
 	"github.com/scottdensmore/petspotr/pkg/avianrecovery"
 	"github.com/scottdensmore/petspotr/pkg/biosecurityiso"
@@ -106,6 +107,7 @@ type Server struct {
 	transfusionBloodbankStore *transfusionbloodbank.Store
 	toxicologyPoisonStore     *toxicologypoison.Store
 	epilepticusService        *statusepilepticus.EpilepticusService
+	airwayService             *airwaytracheostomy.AirwayService
 	handler                   http.Handler
 }
 
@@ -607,6 +609,8 @@ func (s *Server) routes() {
 	s.registerToxicologyPoisonRoutes()
 	// Status Epilepticus, Cluster Seizures, Bromethalin/Metaldehyde Neuro-Tremor & Levetiracetam/Propofol CRI Cockpit routes (Milestone 19.5)
 	s.registerStatusEpilepticusRoutes()
+	// Brachycephalic Obstructive Airway Syndrome (BOAS), Laryngeal Paralysis & Temporary Tracheostomy Triage Cockpit routes (Milestone 19.3)
+	s.registerAirwayTracheostomyRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

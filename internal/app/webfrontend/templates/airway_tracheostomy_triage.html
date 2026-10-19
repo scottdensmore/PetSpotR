@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Brachycephalic Obstructive Airway Syndrome (BOAS), Laryngeal Paralysis &amp; Temporary Tracheostomy Triage Cockpit.">
+  <title>Brachycephalic Obstructive Airway Syndrome (BOAS), Laryngeal Paralysis &amp; Temporary Tracheostomy Triage Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#airway-tracheostomy-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/toxicology-poison-triage" class="nav-link nav-link-emergency" id="nav-toxicology-poison-triage">🧪 Poison Control</a></li>
+          <li><a href="/airway-tracheostomy-triage" class="nav-link active nav-link-emergency" id="nav-airway-tracheostomy-triage">🫁 Airway &amp; Tracheostomy</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="airway-tracheostomy-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header airway-triage-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🫁 BRACHYCEPHALIC OBSTRUCTIVE AIRWAY SYNDROME (BOAS), LARYNGEAL PARALYSIS &amp; TEMPORARY TRACHEOSTOMY TRIAGE COCKPIT</span>
+        </div>
+        <h1>Brachycephalic Obstructive Airway Syndrome (BOAS), Laryngeal Paralysis &amp; Temporary Tracheostomy Triage Cockpit</h1>
+        <p class="text-secondary">
+          Butorphanol (0.2 mg/kg) + Low-Dose Acepromazine Anxiolysis to Break Inspiratory Panic &amp; Negative-Pressure Laryngeal Edema, Dexamethasone-SP (0.15 mg/kg IV) Anti-Inflammatory Therapy, Rapid-Sequence Propofol (2.0 mg/kg IV) Intubation with Downsized Brachycephalic Endotracheal Tubes, Active Cooling Halt at 103.0°F &amp; Pre-Oxygenated (&ge;60s) Aseptic Tracheostomy Suctioning (&le;10s Vagal Guard).
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid airway-triage-kpi-grid" aria-label="Airway &amp; Tracheostomy Triage KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Airway Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .Metrics.TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Stridor / Cyanosis / Dyspnea Critical</span>
+        <strong class="kpi-value" id="kpi-critical-stridor">{{ .Metrics.CriticalStridorCyanosis }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Butorphanol / Dex / Intubation Staged</span>
+        <strong class="kpi-value" id="kpi-staged-intubation">{{ .Metrics.SedationIntubationStaged }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Patent Airway &amp; Normothermic Extubated</span>
+        <strong class="kpi-value" id="kpi-patent-extubated">{{ .Metrics.PatentNormothermicExtubated }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="airway-triage-live-status" class="humane-traps-live-status airway-triage-live-status" role="status" aria-live="polite">
+      Monitoring {{ .Metrics.TotalOperations }} BOAS, geriatric laryngeal paralysis &amp; temporary tracheostomy triage operations ({{ .Metrics.CriticalAirwayAlerts }} critical airway alerts active).
+    </div>
+
+    <div class="trust-cockpit-grid airway-triage-cockpit-grid">
+      <!-- Left Column: Intake & Triage Action Forms -->
+      <section class="glass-card trust-panel" id="airway-intake-panel" aria-labelledby="heading-create-airway-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-create-airway-op">1. Intake Upper-Airway Obstruction &amp; Tracheostomy Operation</h2>
+          <span class="badge badge-airway-species">Zero Neck-Lead Guard</span>
+        </div>
+
+        <div id="airway-form-error-banner" class="airway-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="airway-create-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-incident-id">Incident ID</label>
+              <input type="text" id="create-incident-id" name="incident_id" class="form-control" value="INC-AT-9004" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pet-name">Pet Name</label>
+              <input type="text" id="create-pet-name" name="pet_name" class="form-control" value="Otis" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-species">Airway Syndrome Classification</label>
+              <select id="create-species" name="species" class="form-control" required>
+                <option value="CANINE_BRACHYCEPHALIC_BOAS" selected>CANINE_BRACHYCEPHALIC_BOAS (Brachycephalic Obstructive Airway Syndrome)</option>
+                <option value="CANINE_GERIATRIC_LARPAR">CANINE_GERIATRIC_LARPAR (Geriatric Canine Laryngeal Paralysis / GOLPP)</option>
+                <option value="FELINE_NASOPHARYNGEAL_POLYP">FELINE_NASOPHARYNGEAL_POLYP (Feline Inflammatory Nasopharyngeal Polyp)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-breed">Breed</label>
+              <input type="text" id="create-breed" name="breed" class="form-control" value="English Bulldog" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-weight-kg">Weight (kg)</label>
+              <input type="number" id="create-weight-kg" name="weight_kg" class="form-control" min="0.5" max="100.0" step="0.1" value="24.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-rectal-temp-f">Rectal Temp (°F)</label>
+              <input type="number" id="create-rectal-temp-f" name="rectal_temp_fahrenheit" class="form-control" min="95.0" max="110.0" step="0.1" value="105.4" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-spo2-pct">Pulse Oximetry SpO2 (%)</label>
+              <input type="number" id="create-spo2-pct" name="spo2_percent" class="form-control" min="50.0" max="100.0" step="0.5" value="85.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-inspiratory-effort">Inspiratory Effort &amp; Cyanosis</label>
+              <select id="create-inspiratory-effort" name="inspiratory_effort" class="form-control" required>
+                <option value="SEVERE_PARADOXICAL_CYANOTIC" selected>SEVERE_PARADOXICAL_CYANOTIC (Paradoxical Breathing &amp; Cyanosis)</option>
+                <option value="MODERATE_STRIDOR_ORTHOPNEA">MODERATE_STRIDOR_ORTHOPNEA (Audible Stridor &amp; Orthopnea)</option>
+                <option value="MILD_STERTOR_EUPNEIC">MILD_STERTOR_EUPNEIC (Mild Stertor / Eupneic)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-edema-grade">Laryngeal Collapse / Edema Grade</label>
+              <select id="create-edema-grade" name="laryngeal_edema_grade" class="form-control" required>
+                <option value="GRADE_III_EVERTED_SACCULES_COLLAPSE" selected>GRADE_III_EVERTED_SACCULES_COLLAPSE (Grade III Collapse &amp; Everted Saccules)</option>
+                <option value="GRADE_II_ELONGATED_PALATE_EDEMA">GRADE_II_ELONGATED_PALATE_EDEMA (Grade II Elongated Soft Palate &amp; Edema)</option>
+                <option value="GRADE_I_STENOTIC_NARES_ONLY">GRADE_I_STENOTIC_NARES_ONLY (Grade I Stenotic Nares Only)</option>
+              </select>
+            </div>
+            <div class="form-group airway-checkbox-inline">
+              <label class="airway-check-label">
+                <input type="checkbox" id="create-gag-reflex" name="gag_reflex_present">
+                <span>Gag / Swallow Reflex Present on Intake</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-create-airway-op" class="btn btn-primary">Create Critical Airway Triage Operation</button>
+        </form>
+
+        <!-- Section 2: Stage Butorphanol / Dexamethasone-SP / Intubation Stabilization -->
+        <div class="trust-subsection airway-action-subsection">
+          <h3 id="heading-stage-stabilization">2. Stage Butorphanol + Dexamethasone-SP + Rapid-Sequence Intubation Plan</h3>
+          <form id="airway-stage-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-rectal-temp-f">Stabilized / Cooling Rectal Temp (°F)</label>
+                <input type="number" id="stage-rectal-temp-f" name="rectal_temp_fahrenheit" class="form-control" min="95.0" max="110.0" step="0.1" value="102.8" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-spo2-pct">Pre-Oxygenated SpO2 (%)</label>
+                <input type="number" id="stage-spo2-pct" name="spo2_percent" class="form-control" min="50.0" max="100.0" step="0.5" value="94.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-inspiratory-effort">Post-Sedation Inspiratory Effort</label>
+                <select id="stage-inspiratory-effort" name="inspiratory_effort" class="form-control">
+                  <option value="SEVERE_PARADOXICAL_CYANOTIC">SEVERE_PARADOXICAL_CYANOTIC</option>
+                  <option value="MODERATE_STRIDOR_ORTHOPNEA" selected>MODERATE_STRIDOR_ORTHOPNEA</option>
+                  <option value="MILD_STERTOR_EUPNEIC">MILD_STERTOR_EUPNEIC</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="stage-edema-grade">Laryngeal Edema / Collapse Grade</label>
+                <select id="stage-edema-grade" name="laryngeal_edema_grade" class="form-control">
+                  <option value="GRADE_III_EVERTED_SACCULES_COLLAPSE" selected>GRADE_III_EVERTED_SACCULES_COLLAPSE</option>
+                  <option value="GRADE_II_ELONGATED_PALATE_EDEMA">GRADE_II_ELONGATED_PALATE_EDEMA</option>
+                  <option value="GRADE_I_STENOTIC_NARES_ONLY">GRADE_I_STENOTIC_NARES_ONLY</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" id="btn-stage-stabilization" class="btn btn-secondary">Stage Butorphanol / Dex-SP / Intubation on Selected Operation</button>
+          </form>
+        </div>
+
+        <!-- Section 3: Record Aseptic Tracheostomy Care & Suction Log -->
+        <div class="trust-subsection airway-action-subsection">
+          <h3 id="heading-record-trach-care">3. Record Aseptic Tracheostomy Care &amp; Suction Log (&le;10s Vagal Guard)</h3>
+          <form id="airway-trach-care-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="care-preox-sec">Pre-Oxygenation Duration (sec, &ge;60s)</label>
+                <input type="number" id="care-preox-sec" name="pre_oxygenation_duration_sec" class="form-control" min="60" max="600" step="5" value="90" required>
+              </div>
+              <div class="form-group">
+                <label for="care-suction-sec">Max Suction Duration (sec, &le;10s Limit)</label>
+                <input type="number" id="care-suction-sec" name="suction_duration_max_sec" class="form-control" min="1" max="10" step="1" value="8" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="care-saline-ml">Sterile Saline Instillation (mL)</label>
+                <input type="number" id="care-saline-ml" name="sterile_saline_instillation_ml" class="form-control" min="0.0" max="10.0" step="0.5" value="1.5" required>
+              </div>
+              <div class="form-group">
+                <label for="care-post-spo2">Post-Suction SpO2 (%)</label>
+                <input type="number" id="care-post-spo2" name="post_suction_spo2_percent" class="form-control" min="50.0" max="100.0" step="0.5" value="96.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="care-tech-callsign">Technician Callsign</label>
+                <input type="text" id="care-tech-callsign" name="technician_callsign" class="form-control" value="RVT-LEE-09" required>
+              </div>
+              <div class="form-group">
+                <label for="care-notes">Aseptic Suction &amp; Cannula Notes</label>
+                <input type="text" id="care-notes" name="notes" class="form-control" value="100% O2 pre-oxygenation for 90s; inner cannula scrubbed; 8s atraumatic suction pass." required>
+              </div>
+            </div>
+            <div class="airway-checkbox-group">
+              <label class="airway-check-label">
+                <input type="checkbox" id="care-inner-cannula" name="inner_cannula_cleaned" checked>
+                <span>Inner Cannula Removed &amp; Cleaned with Sterile Saline</span>
+              </label>
+              <label class="airway-check-label">
+                <input type="checkbox" id="care-subcut-emphysema" name="subcutaneous_emphysema_noted">
+                <span>Subcutaneous Emphysema / Cervical Crepitus Noted</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-record-trach-care" class="btn btn-secondary">Record Tracheostomy Care Log</button>
+          </form>
+        </div>
+
+        <!-- Section 4: Issue Extubation & Decannulation Clearance -->
+        <div class="trust-subsection airway-action-subsection">
+          <h3 id="heading-issue-clearance">4. Issue Normothermic Room-Air Extubation &amp; Harness-Only Clearance</h3>
+          <form id="airway-clearance-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-spo2-pct">Final SpO2 on Room Air (%, &ge;95.0%)</label>
+                <input type="number" id="clearance-spo2-pct" name="final_spo2_on_room_air_percent" class="form-control" min="95.0" max="100.0" step="0.5" value="97.5" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-temp-f">Final Normothermic Rectal Temp (°F, 99.0–102.5°F)</label>
+                <input type="number" id="clearance-temp-f" name="final_rectal_temp_fahrenheit" class="form-control" min="99.0" max="102.5" step="0.1" value="101.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-vet-license">Attending Veterinarian License</label>
+                <input type="text" id="clearance-vet-license" name="vet_license" class="form-control" value="DVM-WA-77410" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-summary">Extubation &amp; Discharge Summary</label>
+                <input type="text" id="clearance-summary" name="summary" class="form-control" value="Vigorous gag reflex restored, SpO2 97.5% on room air, normothermic 101.0°F, chest harness only verified." required>
+              </div>
+            </div>
+            <div class="airway-checkbox-group">
+              <label class="airway-check-label">
+                <input type="checkbox" id="clearance-gag-vigorous" name="gag_swallow_reflex_vigorous" checked>
+                <span>Vigorous Gag &amp; Swallow Reflex Verified Prior to Extubation</span>
+              </label>
+              <label class="airway-check-label">
+                <input type="checkbox" id="clearance-trach-occluded" name="trach_tube_occluded_trial_passed" checked>
+                <span>Tracheostomy Tube Occluded Breathing Trial Passed Without Stridor</span>
+              </label>
+              <label class="airway-check-label">
+                <input type="checkbox" id="clearance-harness-only" name="harness_only_discharge_verified" checked>
+                <span>Chest Harness Only Discharge Verified (Strictly Zero Neck Leads / Choke Chains)</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-issue-extubation-clearance" class="btn btn-primary">Issue Extubation &amp; Decannulation Clearance</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Queue -->
+      <section class="glass-card trust-panel" id="airway-ops-panel" aria-labelledby="heading-airway-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-airway-ops">Active Airway &amp; Tracheostomy Triage Operations</h2>
+          <span id="airway-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col airway-filter-bar" role="region" aria-label="Filter Airway &amp; Tracheostomy Operations">
+          <div class="form-group">
+            <label for="filter-species">Filter by Syndrome / Species</label>
+            <select id="filter-species" class="form-control">
+              <option value="">All Airway Syndromes</option>
+              <option value="CANINE_BRACHYCEPHALIC_BOAS">CANINE_BRACHYCEPHALIC_BOAS</option>
+              <option value="CANINE_GERIATRIC_LARPAR">CANINE_GERIATRIC_LARPAR</option>
+              <option value="FELINE_NASOPHARYNGEAL_POLYP">FELINE_NASOPHARYNGEAL_POLYP</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="STRIDOR_CYANOSIS_DYSPNEA_CRITICAL">STRIDOR_CYANOSIS_DYSPNEA_CRITICAL</option>
+              <option value="BUTORPHANOL_DEX_INTUBATION_STAGED">BUTORPHANOL_DEX_INTUBATION_STAGED</option>
+              <option value="PATENT_AIRWAY_NORMOTHERMIC_EXTUBATED">PATENT_AIRWAY_NORMOTHERMIC_EXTUBATED</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="airway-active-workspace" role="region" aria-label="Active Airway &amp; Tracheostomy Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="airway-workspace-card" id="workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-op-title">Active Workspace: {{ $active.PetName }} ({{ $active.PatientProfile.Breed }} · {{ printf "%.1f" $active.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id" id="workspace-op-id">{{ $active.ID }} · {{ $active.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-airway-species" id="workspace-species-badge">{{ $active.PatientProfile.Species }}</span>
+                <span id="workspace-status-pill" class="status-pill {{ if eq (printf "%s" $active.Status) "STRIDOR_CYANOSIS_DYSPNEA_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $active.Status) "BUTORPHANOL_DEX_INTUBATION_STAGED" }}status-pill-staged{{ else }}status-pill-safe{{ end }}" data-status="{{ $active.Status }}">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div id="airway-alert-banner" class="airway-alert-banner">
+              ⚠️ {{ if $active.StabilizationPlan }}{{ $active.StabilizationPlan.AirwayHazardAlert }}{{ else }}CRITICAL AIRWAY &amp; TRACHEOSTOMY HAZARD: Never apply forceful physical restraint without Butorphanol sedation, use downsized ET tubes in brachycephalics, and limit tracheal suctioning to &le;10 seconds after &ge;60s pre-oxygenation.{{ end }}
+            </div>
+
+            <div id="airway-clearance-banner" class="airway-clearance-banner" {{ if not $active.ExtubationClearance }}hidden{{ end }}>
+              {{ if $active.ExtubationClearance }}
+              ✅ PATENT AIRWAY &amp; NORMOTHERMIC EXTUBATION CLEARANCE VERIFIED ({{ $active.ExtubationClearance.VetLicense }}): Room-Air SpO2 {{ printf "%.1f" $active.ExtubationClearance.FinalSpO2OnRoomAirPercent }}% · Temp {{ printf "%.1f" $active.ExtubationClearance.FinalRectalTempFahrenheit }}°F · Harness-Only Verified — {{ $active.ExtubationClearance.Summary }}
+              {{ end }}
+            </div>
+
+            {{ if $active.StabilizationPlan }}
+            <div id="workspace-stabilization-summary" class="airway-regimen-recommendations">
+              <div><strong>Butorphanol + Acepromazine Anxiolysis:</strong> <span id="ws-butorphanol-mg">{{ printf "%.2f" $active.StabilizationPlan.ButorphanolAcepromazineDoseMg }} mg</span> • <strong>Dexamethasone-SP (0.15 mg/kg IV):</strong> <span id="ws-dex-mg">{{ printf "%.2f" $active.StabilizationPlan.DexamethasoneSP015MgKgDoseMg }} mg</span> • <strong>Propofol (2.0 mg/kg IV):</strong> <span id="ws-propofol-mg">{{ printf "%.2f" $active.StabilizationPlan.PropofolInduction2MgKgDoseMg }} mg</span></div>
+              <div><strong>Downsized Endotracheal Tube:</strong> <span id="ws-et-tube-mm">{{ printf "%.1f" $active.StabilizationPlan.EndotrachealTubeSizeMm }} mm</span> • <strong>Active Cooling Ceiling:</strong> <span id="ws-cooling-target">{{ printf "%.1f" $active.StabilizationPlan.ActiveCoolingTargetMaxTempF }}°F</span> • <strong>Temp Tracheostomy Indicated:</strong> <span id="ws-trach-indicated">{{ if $active.StabilizationPlan.TemporaryTracheostomyIndicated }}YES (Staged){{ else }}NO{{ end }}</span></div>
+              <div><strong>Clinical Rationale:</strong> <span id="ws-clinical-rationale">{{ $active.StabilizationPlan.ClinicalRationale }}</span></div>
+            </div>
+            {{ end }}
+
+            <div id="workspace-trach-care-logs" class="airway-care-logs-box">
+              <strong>Aseptic Tracheostomy &amp; Suction Care Logs ({{ len $active.TrachCareLogs }}):</strong>
+              <ul id="workspace-care-logs-list" class="airway-care-logs-list">
+                {{ range $log := $active.TrachCareLogs }}
+                <li class="airway-care-log-item">
+                  <span class="badge badge-airway-species">{{ $log.TechnicianCallsign }}</span>
+                  Pre-O2: {{ $log.PreOxygenationDurationSec }}s · Suction: {{ $log.SuctionDurationMaxSec }}s (&le;10s) · Saline: {{ printf "%.1f" $log.SterileSalineInstillationMl }} mL · Post-Suction SpO2: {{ printf "%.1f" $log.PostSuctionSpO2Percent }}% — {{ $log.Notes }}
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="airway-operations-list" class="trust-screenings-list airway-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card airway-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-species="{{ $op.PatientProfile.Species }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.PatientProfile.Breed }} · {{ printf "%.1f" $op.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-airway-species">{{ $op.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $op.Status) "STRIDOR_CYANOSIS_DYSPNEA_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $op.Status) "BUTORPHANOL_DEX_INTUBATION_STAGED" }}status-pill-staged{{ else }}status-pill-safe{{ end }}" data-status="{{ $op.Status }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row airway-metrics-row">
+              <span class="badge badge-airway-species">Temp: {{ printf "%.1f" $op.PatientProfile.RectalTempFahrenheit }}°F • SpO2: {{ printf "%.1f" $op.PatientProfile.SpO2Percent }}% • Effort: {{ $op.PatientProfile.InspiratoryEffort }} • Grade: {{ $op.PatientProfile.LaryngealEdemaGrade }}</span>
+            </div>
+
+            {{ if $op.StabilizationPlan }}
+            <div class="airway-alert-banner">
+              ⚠️ {{ $op.StabilizationPlan.AirwayHazardAlert }}
+            </div>
+            <div class="airway-regimen-recommendations">
+              <div><strong>Stabilization Dosing:</strong> Butorphanol/Ace {{ printf "%.2f" $op.StabilizationPlan.ButorphanolAcepromazineDoseMg }} mg · Dex-SP {{ printf "%.2f" $op.StabilizationPlan.DexamethasoneSP015MgKgDoseMg }} mg · Propofol {{ printf "%.2f" $op.StabilizationPlan.PropofolInduction2MgKgDoseMg }} mg · ET Tube {{ printf "%.1f" $op.StabilizationPlan.EndotrachealTubeSizeMm }} mm · Cooling Stop {{ printf "%.1f" $op.StabilizationPlan.ActiveCoolingTargetMaxTempF }}°F</div>
+            </div>
+            {{ end }}
+
+            {{ if $op.ExtubationClearance }}
+            <div class="airway-clearance-banner">
+              ✅ PATENT AIRWAY &amp; NORMOTHERMIC EXTUBATED ({{ $op.ExtubationClearance.VetLicense }}): Room-Air SpO2 {{ printf "%.1f" $op.ExtubationClearance.FinalSpO2OnRoomAirPercent }}% · Temp {{ printf "%.1f" $op.ExtubationClearance.FinalRectalTempFahrenheit }}°F — {{ $op.ExtubationClearance.Summary }}
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary airway-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select in Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="airway-ops-empty-msg">No airway or tracheostomy triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/airway-tracheostomy-triage.js" defer></script>
+</body>
+</html>
