@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Esophageal Foreign Body, Megaesophagus, Myasthenia Gravis (AChR Antibody / Edrophonium-Neostigmine), Aspiration Pneumonia &amp; Pyridostigmine/Bailey Chair Cockpit.">
+  <title>Acute Esophageal Foreign Body, Megaesophagus, Myasthenia Gravis (AChR Antibody / Edrophonium-Neostigmine), Aspiration Pneumonia &amp; Pyridostigmine/Bailey Chair Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#megaesophagus-foreignbody-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/dic-coagulopathy-triage" class="nav-link nav-link-emergency" id="nav-dic-coagulopathy-triage">🧪 DIC &amp; Coagulopathy ICU</a></li>
+          <li><a href="/megaesophagus-foreignbody-triage" class="nav-link active nav-link-emergency" id="nav-megaesophagus-foreignbody-triage">🪑 Megaesophagus &amp; FB ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="megaesophagus-foreignbody-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header mega-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🪑 ACUTE ESOPHAGEAL FOREIGN BODY, MEGAESOPHAGUS, MYASTHENIA GRAVIS &amp; BAILEY CHAIR COCKPIT</span>
+        </div>
+        <h1>Acute Esophageal Foreign Body, Megaesophagus, Myasthenia Gravis (AChR Antibody / Edrophonium-Neostigmine), Aspiration Pneumonia &amp; Pyridostigmine/Bailey Chair Cockpit</h1>
+        <p class="text-secondary">
+          Passive Regurgitation vs. Active Vomiting Differentiation, 3-View Thoracic Radiography &amp; Cranioventral Aspiration Pneumonia Triage, Flexible Esophagoscopy Foreign Body Retrieval &amp; Mucosal Esophagitis Grading, Acetylcholine Receptor (AChR) Antibody Titer (&gt; 0.6 nmol/L) &amp; Pyridostigmine Bromide (1–3 mg/kg PO q8–12h) with Cholinergic (SLUDGE) vs. Myasthenic Crisis Atropine Guard, Sildenafil LES Relaxation &amp; Upright Bailey Chair Vertical Feeding Protocol.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid mega-kpi-grid" aria-label="Megaesophagus &amp; Foreign Body KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Esophageal ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Acute Obstruction / Aspiration Triage</span>
+        <strong class="kpi-value" id="kpi-acute-obstruction">{{ .AcuteObstructionTriageCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Endoscopy / Pyridostigmine Staged</span>
+        <strong class="kpi-value" id="kpi-endoscopy-staged">{{ .EndoscopyPyridostigmineStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Upright Bailey Chair Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-bailey">{{ .ClearedBaileyChairCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Bone / Fishhook Foreign Body</span>
+        <strong class="kpi-value" id="kpi-foreign-body-count">{{ .ForeignBodyObstructionCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Active Aspiration Pneumonia</span>
+        <strong class="kpi-value" id="kpi-aspiration-pneumonia">{{ .AspirationPneumoniaActiveCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="mega-live-status" class="humane-traps-live-status mega-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Acute Esophageal Foreign Body, Megaesophagus &amp; Bailey Chair ICU operations.
+    </div>
+
+    <!-- Global Esophageal Foreign Body, Liquid Barium Contraindication, AChR/Pyridostigmine SLUDGE & Upright Bailey Chair Alert Banner -->
+    <div id="mega-alert-banner" class="mega-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL ESOPHAGEAL FOREIGN BODY, MEGAESOPHAGUS, MYASTHENIA GRAVIS &amp; BAILEY CHAIR GUARD: (1) Passive Regurgitation vs. Active Vomiting Distinction — Regurgitation is the passive, gravity-dependent retrograde expulsion of undigested food/tubular mucus without prodromal nausea, retching, abdominal contractions, or bile; (2) STRICT CONTRAINDICATION — NEVER perform Blind Forceful Advancement of Spiculated Bone/Fishhook Foreign Bodies (high risk of thoracic esophageal perforation, pneumomediastinum, aortic erosion &amp; fatal pyothorax) and AVOID Liquid Barium Contrast in Suspected Esophageal Perforation/Aspiration Risk (use non-ionic iodinated Iohexol if contrast is required); (3) Acquired Myasthenia Gravis — Acetylcholine Receptor (AChR) Antibody Titer (&gt; 0.6 nmol/L diagnostic) treated with Pyridostigmine Bromide (1–3 mg/kg PO q8–12h) with Atropine Ready (0.02–0.04 mg/kg IV) for Cholinergic SLUDGE Crisis vs. Myasthenic Crisis differentiation; (4) Upright Bailey Chair Vertical Feeding (20–30 min Post-Prandial Gravity Transit with Knox gelatin / meatball slurry) + Sildenafil 1 mg/kg PO q8–12h LES Relaxation.
+    </div>
+
+    <!-- Global Upright Bailey Chair & Normothermic Clearance Banner -->
+    <div id="mega-clearance-banner" class="mega-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "UPRIGHT_BAILEY_CHAIR_NORMOTHERMIC_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ UPRIGHT BAILEY CHAIR &amp; NORMOTHERMIC CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "UPRIGHT_BAILEY_CHAIR_NORMOTHERMIC_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Discharged by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting foreign body clearance, aspiration pneumonia resolution &amp; 20–30 min Upright Bailey Chair feeding tolerance.{{ end }}</span>
+    </div>
+
+    <div id="mega-error-banner" class="mega-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card mega-toolbar-card" aria-label="Megaesophagus &amp; Foreign Body Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col mega-toolbar-row">
+        <div class="form-group">
+          <label for="mega-status-filter">Filter by Megaesophagus / Foreign Body Triage Status</label>
+          <select id="mega-status-filter" class="form-control">
+            <option value="">All Megaesophagus &amp; Foreign Body Statuses</option>
+            <option value="ACUTE_ESOPHAGEAL_OBSTRUCTION_ASPIRATION_TRIAGE">ACUTE_ESOPHAGEAL_OBSTRUCTION_ASPIRATION_TRIAGE (Acute Esophageal Obstruction / Aspiration Triage)</option>
+            <option value="ENDOSCOPIC_RETRIEVAL_PYRIDOSTIGMINE_STAGED">ENDOSCOPIC_RETRIEVAL_PYRIDOSTIGMINE_STAGED (Endoscopic Retrieval / Pyridostigmine Staged)</option>
+            <option value="UPRIGHT_BAILEY_CHAIR_NORMOTHERMIC_CLEARED">UPRIGHT_BAILEY_CHAIR_NORMOTHERMIC_CLEARED (Upright Bailey Chair Normothermic Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group mega-sse-controls">
+          <span class="kpi-label">Live ICU Telemetry Stream</span>
+          <div class="mega-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live Megaesophagus SSE Stream</button>
+            <span id="sse-status-badge" class="mega-status-badge mega-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid mega-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="mega-operations-panel" aria-labelledby="heading-mega-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-mega-ops">Active Esophageal Foreign Body &amp; Megaesophagus Operations</h2>
+          <span id="mega-ops-count-badge" class="mega-status-badge mega-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="mega-operations-grid" class="trust-screenings-list mega-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card mega-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-pathology="{{ $op.PathologyType }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="mega-status-badge {{ if eq (printf "%s" $op.Status) "ACUTE_ESOPHAGEAL_OBSTRUCTION_ASPIRATION_TRIAGE" }}mega-status-critical{{ else if eq (printf "%s" $op.Status) "ENDOSCOPIC_RETRIEVAL_PYRIDOSTIGMINE_STAGED" }}mega-status-staged{{ else }}mega-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="mega-card-metrics">
+              <span><strong>Pathology:</strong> {{ $op.PathologyType }}</span>
+              <span><strong>SpO2:</strong> {{ printf "%.1f" $op.SpO2Percent }}%</span>
+              <span><strong>A-a Gradient:</strong> {{ printf "%.1f" $op.AlveolarArterialGradientMmHg }} mmHg</span>
+              <span><strong>Regurg (24h):</strong> {{ $op.RegurgitationEpisodes24h }} episodes</span>
+              <span><strong>Bailey Hold:</strong> {{ $op.UprightHoldMinutes }} min</span>
+              <span><strong>Esophagitis:</strong> Grade {{ $op.MucosalEsophagitisGrade }}/4</span>
+              <span><strong>AChR Titer:</strong> {{ printf "%.2f" $op.AChRAntibodyTiterNmolL }} nmol/L</span>
+              <span><strong>Aspiration Pneumonia:</strong> {{ if $op.AspirationPneumoniaPresent }}Pneumonia+{{ else }}Pneumonia-{{ end }}</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary mega-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open Megaesophagus Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="mega-ops-empty-msg">No Megaesophagus &amp; Foreign Body operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="mega-divider">
+
+        <!-- Admit New Megaesophagus / Foreign Body Patient Form -->
+        <div class="trust-subsection" id="create-mega-section">
+          <h3 id="heading-create-mega">Admit New Esophageal Foreign Body / Megaesophagus Patient</h3>
+          <form id="create-mega-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-MEGA-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Paddington" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species-input">Species</label>
+                <select id="create-species-input" name="species" class="form-control" required>
+                  <option value="Canine" selected>Canine</option>
+                  <option value="Feline">Feline</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed-input">Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="Golden Retriever" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="28.2" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pathology-input">Esophageal Obstruction / Megaesophagus Pathology</label>
+                <select id="create-pathology-input" name="pathology_type" class="form-control" required>
+                  <option value="ACUTE_ESOPHAGEAL_BONE_FISHHOOK_FOREIGN_BODY" selected>ACUTE_ESOPHAGEAL_BONE_FISHHOOK_FOREIGN_BODY (Acute Esophageal Bone / Fishhook Foreign Body)</option>
+                  <option value="ACQUIRED_MYASTHENIA_GRAVIS_MEGAESOPHAGUS">ACQUIRED_MYASTHENIA_GRAVIS_MEGAESOPHAGUS (Acquired Myasthenia Gravis Megaesophagus)</option>
+                  <option value="CONGENITAL_PRAA_IDIOPATHIC_MEGAESOPHAGUS">CONGENITAL_PRAA_IDIOPATHIC_MEGAESOPHAGUS (Congenital PRAA / Idiopathic Megaesophagus)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-spo2-input">Pulse Oximetry SpO2 (%)</label>
+                <input type="number" id="create-spo2-input" name="spo2_percent" class="form-control" min="50.0" max="100.0" step="0.1" value="92.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-aa-gradient-input">Alveolar-Arterial (A-a) O2 Gradient (mmHg)</label>
+                <input type="number" id="create-aa-gradient-input" name="alveolar_arterial_gradient_mmhg" class="form-control" min="0.0" max="80.0" step="0.1" value="31.0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-regurg-input">Passive Regurgitation Episodes (24h)</label>
+                <input type="number" id="create-regurg-input" name="regurgitation_episodes_24h" class="form-control" min="0" max="50" step="1" value="5" required>
+              </div>
+              <div class="form-group">
+                <label for="create-upright-input">Upright Bailey Chair Hold Duration (min)</label>
+                <input type="number" id="create-upright-input" name="upright_hold_minutes" class="form-control" min="0" max="120" step="1" value="0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-esophagitis-input">Mucosal Esophagitis Grade (0–4)</label>
+                <input type="number" id="create-esophagitis-input" name="mucosal_esophagitis_grade" class="form-control" min="0" max="4" step="1" value="2" required>
+              </div>
+              <div class="form-group">
+                <label for="create-achr-input">AChR Antibody Titer (nmol/L; &gt;0.6 MG+)</label>
+                <input type="number" id="create-achr-input" name="achr_antibody_titer_nmol_l" class="form-control" min="0.0" max="50.0" step="0.01" value="0.15" required>
+              </div>
+            </div>
+
+            <div class="form-group mega-checkbox-group">
+              <label class="mega-checkbox-item">
+                <input type="checkbox" id="create-pneumonia-checkbox" name="aspiration_pneumonia_present" checked>
+                <span>Cranioventral / Right Middle Lung Lobe Aspiration Pneumonia Present on Thoracic Radiographs</span>
+              </label>
+            </div>
+
+            <button type="submit" id="create-mega-op-btn" class="btn btn-primary">➕ Admit Megaesophagus / Foreign Body Patient</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active Megaesophagus Workspace & Clinical Staging / Esophageal Check / Discharge Clearance Forms -->
+      <section class="glass-card trust-panel" id="mega-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="mega-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · Pathology: <strong id="active-pathology-type">{{ $active.PathologyType }}</strong> · AChR Titer: <strong id="active-achr-titer">{{ printf "%.2f" $active.AChRAntibodyTiterNmolL }} nmol/L</strong> · Pneumonia: <strong id="active-pneumonia-flag">{{ if $active.AspirationPneumoniaPresent }}YES{{ else }}NO{{ end }}</strong></p>
+          </div>
+          <span id="active-op-status-badge" class="mega-status-badge {{ if eq (printf "%s" $active.Status) "ACUTE_ESOPHAGEAL_OBSTRUCTION_ASPIRATION_TRIAGE" }}mega-status-critical{{ else if eq (printf "%s" $active.Status) "ENDOSCOPIC_RETRIEVAL_PYRIDOSTIGMINE_STAGED" }}mega-status-staged{{ else }}mega-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- Oxygenation, Regurgitation & Upright Bailey Chair Telemetry Bar -->
+        <div class="mega-vitals-summary" id="active-vitals-summary">
+          <div class="mega-vital-chip">
+            <span class="kpi-label">Pulse Oximetry SpO2</span>
+            <strong id="active-spo2">{{ printf "%.1f" $active.SpO2Percent }}%</strong>
+          </div>
+          <div class="mega-vital-chip">
+            <span class="kpi-label">Alveolar-Arterial (A-a) Gradient</span>
+            <strong id="active-aa-gradient">{{ printf "%.1f" $active.AlveolarArterialGradientMmHg }} mmHg</strong>
+          </div>
+          <div class="mega-vital-chip">
+            <span class="kpi-label">Regurgitation (24h)</span>
+            <strong id="active-regurg-episodes">{{ $active.RegurgitationEpisodes24h }} episodes/24h</strong>
+          </div>
+          <div class="mega-vital-chip">
+            <span class="kpi-label">Bailey Hold / Esophagitis</span>
+            <strong id="active-upright-esophagitis">{{ $active.UprightHoldMinutes }} min · Grade {{ $active.MucosalEsophagitisGrade }}/4</strong>
+          </div>
+        </div>
+
+        <!-- Regurgitation, Perforation, AChR Antibody & Contraindication Profile Box -->
+        <div class="mega-plan-box" id="active-aspiration-plan-box">
+          <h3>Passive Regurgitation, Thoracic Radiography, AChR Antibody &amp; Contraindication Profile</h3>
+          <div class="mega-plan-grid">
+            <div><strong>Regurgitation vs. Vomiting Differentiation:</strong> <span id="plan-regurg-note">{{ $active.AspirationPlan.RegurgitationVsVomitingNote }}</span></div>
+            <div><strong>3-View Thoracic Radiographs &amp; POCUS:</strong> <span id="plan-radiograph-finding">{{ $active.AspirationPlan.ThoracicRadiographPOCUSFinding }}</span></div>
+            <div><strong>Perforation &amp; Pneumomediastinum Surveillance:</strong> <span id="plan-perforation-alert">{{ $active.AspirationPlan.PerforationPneumomediastinumAlert }}</span></div>
+            <div><strong>AChR Antibody (&gt;0.6 nmol/L) &amp; Secondary Screen:</strong> <span id="plan-achr-screen">{{ $active.AspirationPlan.AChRAntibodyAddisonScreenNote }}</span></div>
+            <div><strong>Blind Force / Barium Contraindication Guard:</strong> <span id="plan-barium-guard">{{ $active.AspirationPlan.BariumSwallowContraindication }}</span></div>
+            <div><strong>Cholinergic (SLUDGE) vs. Myasthenic Crisis Guard:</strong> <span id="plan-crisis-note">{{ $active.AspirationPlan.CholinergicVsMyasthenicCrisisNote }}</span></div>
+          </div>
+        </div>
+
+        <!-- Endoscopic Retrieval, Pyridostigmine, Sildenafil & Upright Bailey Chair Protocol Box -->
+        <div class="mega-plan-box" id="active-bailey-plan-box">
+          <h3>Flexible Esophagoscopy, Pyridostigmine, Sildenafil &amp; Upright Bailey Chair Protocol</h3>
+          <div class="mega-plan-grid">
+            <div><strong>Endoscopic Retrieval / Gastric Advancement:</strong> <span id="plan-endoscopy-retrieval">{{ $active.BaileyPlan.EndoscopicRetrievalOrGastricPush }}</span></div>
+            <div><strong>Sucralfate Slurry &amp; Omeprazole Cytoprotection:</strong> <span id="plan-sucralfate-omeprazole">{{ $active.BaileyPlan.PostRemovalSucralfateOmeprazole }}</span></div>
+            <div><strong>Pyridostigmine Bromide Anticholinesterase:</strong> <span id="plan-pyridostigmine">{{ $active.BaileyPlan.PyridostigmineAnticholinesterase }}</span></div>
+            <div><strong>Aspiration Pneumonia Antimicrobial &amp; Airway Plan:</strong> <span id="plan-pneumonia-abx">{{ $active.BaileyPlan.AspirationPneumoniaAntibioticPlan }}</span></div>
+            <div><strong>Upright Bailey Chair Vertical Feeding Protocol:</strong> <span id="plan-bailey-chair">{{ $active.BaileyPlan.UprightBaileyChairFeedingProtocol }}</span></div>
+            <div><strong>Sildenafil LES Relaxation Note:</strong> <span id="plan-sildenafil">{{ $active.BaileyPlan.SildenafilLESRelaxationNote }}</span></div>
+          </div>
+        </div>
+        {{ end }}
+
+        <hr class="mega-divider">
+
+        <!-- 1. Stage Flexible Esophagoscopy, Pyridostigmine & Upright Bailey Chair Protocol Form -->
+        <div class="trust-subsection" id="stage-bailey-section">
+          <h3>1. Stage Flexible Esophagoscopy, Sucralfate/Omeprazole, Pyridostigmine &amp; Upright Bailey Chair Protocol</h3>
+          <form id="stage-bailey-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="stage-retrieval-input">Flexible Esophagoscopy Foreign Body Retrieval / Gentle Gastric Push (Cuffed ET Tube)</label>
+              <input
+                type="text"
+                id="stage-retrieval-input"
+                name="endoscopic_retrieval_or_gastric_push"
+                class="form-control"
+                value="Flexible esophagoscopy under general anesthesia with cuffed endotracheal tube; grasp foreign body with alligator forceps/snare (never blindly force sharp bone/fishhooks)"
+                required
+              >
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-sucralfate-input">Post-Removal Sucralfate Slurry &amp; Omeprazole Mucosal Protection</label>
+                <input
+                  type="text"
+                  id="stage-sucralfate-input"
+                  name="post_removal_sucralfate_omeprazole"
+                  class="form-control"
+                  value="Sucralfate oral suspension slurry 0.5–1.0 g PO q8h + Omeprazole 1 mg/kg PO/IV q12h for Grade 1–3 reflux/pressure esophagitis"
+                  required
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-pyridostigmine-input">Pyridostigmine Bromide (1–3 mg/kg PO q8–12h) &amp; Atropine SLUDGE Guard</label>
+                <input
+                  type="text"
+                  id="stage-pyridostigmine-input"
+                  name="pyridostigmine_anticholinesterase"
+                  class="form-control"
+                  value="Pyridostigmine Bromide 1–3 mg/kg PO q8–12h for seropositive Myasthenia Gravis (AChR &gt; 0.6 nmol/L); keep Atropine 0.02–0.04 mg/kg IV ready for SLUDGE crisis"
+                >
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-pneumonia-abx-input">Aspiration Pneumonia Broad-Spectrum Antibiotic &amp; Nebulization Plan</label>
+                <input
+                  type="text"
+                  id="stage-pneumonia-abx-input"
+                  name="aspiration_pneumonia_antibiotic_plan"
+                  class="form-control"
+                  value="Ampicillin-Sulbactam 30 mg/kg IV q8h + Enrofloxacin 10 mg/kg IV q24h + 0.9% NaCl nebulization q6–8h &amp; gentle coupage"
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-bailey-protocol-input">Upright Bailey Chair Vertical Feeding Protocol (20–30 min Hold)</label>
+                <input
+                  type="text"
+                  id="stage-bailey-protocol-input"
+                  name="upright_bailey_chair_feeding_protocol"
+                  class="form-control"
+                  value="Upright Bailey Chair 90-degree vertical feeding of Knox gelatin / meatball slurry with strict 25–30 min post-prandial gravity hold"
+                  required
+                >
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="stage-sildenafil-input">Sildenafil (1 mg/kg PO q8–12h) Lower Esophageal Sphincter (LES) Relaxation</label>
+              <input
+                type="text"
+                id="stage-sildenafil-input"
+                name="sildenafil_les_relaxation_note"
+                class="form-control"
+                value="Sildenafil citrate 1 mg/kg PO q8–12h to relax lower esophageal sphincter (LES) smooth muscle tone and reduce regurgitation episodes"
+              >
+            </div>
+            <button type="submit" id="stage-bailey-btn" class="btn btn-secondary">🪑 Stage Endoscopy / Pyridostigmine / Upright Bailey Chair Plan</button>
+          </form>
+        </div>
+
+        <hr class="mega-divider">
+
+        <!-- 2. Record Serial Esophageal & Aspiration Telemetry Check Form -->
+        <div class="trust-subsection" id="record-esophageal-check-section">
+          <h3>2. Record Serial Esophageal Regurgitation, SpO2, A-a Gradient &amp; Upright Bailey Chair Check</h3>
+          <form id="record-esophageal-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-spo2-input">Pulse Oximetry SpO2 (%)</label>
+                <input type="number" id="check-spo2-input" name="spo2_percent" class="form-control" min="50.0" max="100.0" step="0.1" value="98.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-aa-gradient-input">Alveolar-Arterial (A-a) O2 Gradient (mmHg)</label>
+                <input type="number" id="check-aa-gradient-input" name="alveolar_arterial_gradient_mmhg" class="form-control" min="0.0" max="80.0" step="0.1" value="10.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-regurg-input">Passive Regurgitation Episodes (24h)</label>
+                <input type="number" id="check-regurg-input" name="regurgitation_episodes_24h" class="form-control" min="0" max="50" step="1" value="0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-upright-input">Upright Bailey Chair Hold Duration (min)</label>
+                <input type="number" id="check-upright-input" name="upright_hold_minutes" class="form-control" min="0" max="120" step="1" value="30" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-esophagitis-input">Mucosal Esophagitis Grade (0–4)</label>
+                <input type="number" id="check-esophagitis-input" name="mucosal_esophagitis_grade" class="form-control" min="0" max="4" step="1" value="1" required>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (Clinician)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Clara Sterling, DACVIM (SAIM)" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-note-input">Clinical Esophageal &amp; Aspiration Telemetry Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="Post-endoscopic retrieval, Sucralfate/Omeprazole &amp; 30-min Upright Bailey Chair feeding: 0 regurgitation episodes over 24h, SpO2 98.0% on room air, A-a gradient 10.0 mmHg." required>
+            </div>
+            <button type="submit" id="record-esophageal-check-btn" class="btn btn-secondary">🩺 Record Esophageal &amp; Aspiration Check</button>
+          </form>
+
+          <div class="mega-checks-box">
+            <h4>Serial Esophageal &amp; Aspiration Checks (<span id="esophageal-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.EsophagealChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="esophageal-checks-list" class="mega-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.EsophagealChecks }}
+              <li class="mega-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · SpO2 {{ printf "%.1f" $chk.SpO2Percent }}% · A-a Gradient {{ printf "%.1f" $chk.AlveolarArterialGradientMmHg }} mmHg · Regurg {{ $chk.RegurgitationEpisodes24h }}/24h · Bailey Hold {{ $chk.UprightHoldMinutes }} min · Esophagitis Grade {{ $chk.MucosalEsophagitisGrade }}/4 — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="mega-divider">
+
+        <!-- 3. Clear Megaesophagus / Foreign Body Operation for Upright Bailey Chair Normothermic Discharge Form -->
+        <div class="trust-subsection" id="clear-mega-section">
+          <h3>3. Clear Patient for Upright Bailey Chair &amp; Normothermic Step-Down / Discharge</h3>
+          <form id="clear-mega-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="clear-discharged-by-input">Discharging Internist / Criticalist</label>
+              <input type="text" id="clear-discharged-by-input" name="discharged_by" class="form-control" value="Dr. Clara Sterling, DACVIM (SAIM)" required>
+            </div>
+            <div class="form-group">
+              <label for="clear-summary-input">Upright Bailey Chair &amp; Normothermic Clearance Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="discharge_summary"
+                class="form-control"
+                value="Esophageal obstruction resolved, 0 passive regurgitation episodes over 24h on 30-min Upright Bailey Chair feeding protocol, SpO2 98.0% on room air, A-a gradient 10.0 mmHg, cleared for home management."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-mega-btn" class="btn btn-primary">🛡️ Clear Patient for Upright Bailey Chair Discharge</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/megaesophagus-foreignbody-triage.js" defer></script>
+</body>
+</html>
