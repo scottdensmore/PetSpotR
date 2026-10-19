@@ -27,6 +27,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/acousticpanic"
 	"github.com/scottdensmore/petspotr/pkg/avalanchewinter"
 	"github.com/scottdensmore/petspotr/pkg/avianrecovery"
+	"github.com/scottdensmore/petspotr/pkg/biosecurityiso"
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/confinedspace"
 	"github.com/scottdensmore/petspotr/pkg/domain"
@@ -58,41 +59,42 @@ const contentSecurityPolicy = "default-src 'self'; base-uri 'self'; object-src '
 
 // Server encapsulates HTTP routes and handlers for the PetSpotR Web Frontend.
 type Server struct {
-	mux                      *http.ServeMux
-	metrics                  *telemetry.MetricsRegistry
-	stateStore               store.StateStore
-	confinedSpaceStore       *confinedspace.Store
-	hazmatDeconStore         *hazmatdecon.Store
-	foundPetReporter         FoundPetReporter
-	foundPetLifecycle        FoundPetLifecycle
-	lostPetReporter          LostPetReporter
-	lostPetLifecycle         LostPetLifecycle
-	allowPrivilegedMutations bool
-	identitySessions         identity.SessionManager
-	identityClientConfig     identity.WebClientConfig
-	secureSessionCookie      bool
-	rateLimiter              ratelimit.Limiter
-	reunionHub               *ReunionHub
-	reunionPingInterval      time.Duration
-	signalingHub             *mesh.SignalingHub
-	webhookDispatcher        *webhook.Dispatcher
-	allowLocalhostWebhooks   bool
-	smsProvider              sms.Provider
-	smsWebhookSecret         string
-	evacSeedMu               sync.Mutex
-	ollamaClient             *ollama.Client
-	verticalRescueStore      *verticalrescue.Store
-	avianRecoveryStore       *avianrecovery.Store
-	winterRescueStore        *avalanchewinter.Store
-	ectothermRescueStore     *reptileectotherm.Store
-	usarCollapseStore        *usarcollapse.Store
-	heatTriageStore          *hyperthermiaheat.Store
-	maritimeRescueStore      *maritimecoastal.Store
-	neonatalIncubatorStore   *neonatalincubator.Store
-	envenomationToxinStore   *envenomationtoxin.Store
-	acousticPanicStore       *acousticpanic.Store
-	hyperbaricCOStore        *hyperbaricco.Store
-	handler                  http.Handler
+	mux                       *http.ServeMux
+	metrics                   *telemetry.MetricsRegistry
+	stateStore                store.StateStore
+	confinedSpaceStore        *confinedspace.Store
+	hazmatDeconStore          *hazmatdecon.Store
+	foundPetReporter          FoundPetReporter
+	foundPetLifecycle         FoundPetLifecycle
+	lostPetReporter           LostPetReporter
+	lostPetLifecycle          LostPetLifecycle
+	allowPrivilegedMutations  bool
+	identitySessions          identity.SessionManager
+	identityClientConfig      identity.WebClientConfig
+	secureSessionCookie       bool
+	rateLimiter               ratelimit.Limiter
+	reunionHub                *ReunionHub
+	reunionPingInterval       time.Duration
+	signalingHub              *mesh.SignalingHub
+	webhookDispatcher         *webhook.Dispatcher
+	allowLocalhostWebhooks    bool
+	smsProvider               sms.Provider
+	smsWebhookSecret          string
+	evacSeedMu                sync.Mutex
+	ollamaClient              *ollama.Client
+	verticalRescueStore       *verticalrescue.Store
+	avianRecoveryStore        *avianrecovery.Store
+	winterRescueStore         *avalanchewinter.Store
+	ectothermRescueStore      *reptileectotherm.Store
+	usarCollapseStore         *usarcollapse.Store
+	heatTriageStore           *hyperthermiaheat.Store
+	maritimeRescueStore       *maritimecoastal.Store
+	neonatalIncubatorStore    *neonatalincubator.Store
+	envenomationToxinStore    *envenomationtoxin.Store
+	acousticPanicStore        *acousticpanic.Store
+	hyperbaricCOStore         *hyperbaricco.Store
+	biosecurityIsolationStore *biosecurityiso.Store
+	handler                   http.Handler
 }
 
 // LostPetReporter is the canonical lost-pet command consumed by the browser
@@ -231,39 +233,40 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		webhookDispatcher = webhook.NewDispatcher(st, dOpts...)
 	}
 	s := &Server{
-		mux:                      http.NewServeMux(),
-		metrics:                  telemetry.NewMetricsRegistry("web-frontend"),
-		stateStore:               st,
-		confinedSpaceStore:       confinedspace.NewStore(),
-		hazmatDeconStore:         hazmatdecon.NewStore(),
-		foundPetReporter:         foundPetReporter,
-		foundPetLifecycle:        foundPetLifecycle,
-		lostPetReporter:          lostPetReporter,
-		lostPetLifecycle:         lostPetLifecycle,
-		allowPrivilegedMutations: allowPrivilegedMutations,
-		identitySessions:         options.IdentitySessions,
-		identityClientConfig:     identityClientConfig,
-		secureSessionCookie:      options.SecureSessionCookie,
-		rateLimiter:              rateLimiter,
-		reunionHub:               reunionHub,
-		reunionPingInterval:      options.ReunionPingInterval,
-		signalingHub:             signalingHub,
-		webhookDispatcher:        webhookDispatcher,
-		allowLocalhostWebhooks:   options.AllowLocalhostWebhooks,
-		smsProvider:              options.SMSProvider,
-		smsWebhookSecret:         strings.TrimSpace(options.SMSWebhookSecret),
-		ollamaClient:             options.OllamaClient,
-		verticalRescueStore:      verticalrescue.NewStore(),
-		avianRecoveryStore:       avianrecovery.NewStore(),
-		winterRescueStore:        avalanchewinter.NewStore(),
-		ectothermRescueStore:     reptileectotherm.NewStore(),
-		usarCollapseStore:        usarcollapse.NewStore(),
-		heatTriageStore:          hyperthermiaheat.NewStore(),
-		maritimeRescueStore:      maritimecoastal.NewStore(),
-		neonatalIncubatorStore:   neonatalincubator.NewStore(),
-		envenomationToxinStore:   envenomationtoxin.NewStore(),
-		acousticPanicStore:       acousticpanic.NewStore(),
-		hyperbaricCOStore:        hyperbaricco.NewStore(),
+		mux:                       http.NewServeMux(),
+		metrics:                   telemetry.NewMetricsRegistry("web-frontend"),
+		stateStore:                st,
+		confinedSpaceStore:        confinedspace.NewStore(),
+		hazmatDeconStore:          hazmatdecon.NewStore(),
+		foundPetReporter:          foundPetReporter,
+		foundPetLifecycle:         foundPetLifecycle,
+		lostPetReporter:           lostPetReporter,
+		lostPetLifecycle:          lostPetLifecycle,
+		allowPrivilegedMutations:  allowPrivilegedMutations,
+		identitySessions:          options.IdentitySessions,
+		identityClientConfig:      identityClientConfig,
+		secureSessionCookie:       options.SecureSessionCookie,
+		rateLimiter:               rateLimiter,
+		reunionHub:                reunionHub,
+		reunionPingInterval:       options.ReunionPingInterval,
+		signalingHub:              signalingHub,
+		webhookDispatcher:         webhookDispatcher,
+		allowLocalhostWebhooks:    options.AllowLocalhostWebhooks,
+		smsProvider:               options.SMSProvider,
+		smsWebhookSecret:          strings.TrimSpace(options.SMSWebhookSecret),
+		ollamaClient:              options.OllamaClient,
+		verticalRescueStore:       verticalrescue.NewStore(),
+		avianRecoveryStore:        avianrecovery.NewStore(),
+		winterRescueStore:         avalanchewinter.NewStore(),
+		ectothermRescueStore:      reptileectotherm.NewStore(),
+		usarCollapseStore:         usarcollapse.NewStore(),
+		heatTriageStore:           hyperthermiaheat.NewStore(),
+		maritimeRescueStore:       maritimecoastal.NewStore(),
+		neonatalIncubatorStore:    neonatalincubator.NewStore(),
+		envenomationToxinStore:    envenomationtoxin.NewStore(),
+		acousticPanicStore:        acousticpanic.NewStore(),
+		hyperbaricCOStore:         hyperbaricco.NewStore(),
+		biosecurityIsolationStore: biosecurityiso.NewStore(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -572,6 +575,8 @@ func (s *Server) routes() {
 	s.registerAcousticPanicRoutes()
 	// Hyperbaric Oxygen (HBOT), Carbon Monoxide (CO) Carboxyhemoglobin & Cyanide Smoke Triage Cockpit routes (Milestone 18.1)
 	s.registerHyperbaricCORoutes()
+	// Canine Parvovirus, Panleukopenia, Distemper & Biosecurity Isolation Cohort Cockpit routes (Milestone 18.3)
+	s.registerBiosecurityIsolationRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

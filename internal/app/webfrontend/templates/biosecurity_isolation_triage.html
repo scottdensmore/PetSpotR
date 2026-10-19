@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Canine Parvovirus, Panleukopenia, Distemper &amp; Biosecurity Isolation Cohort Cockpit.">
+  <title>Canine Parvovirus, Panleukopenia, Distemper &amp; Biosecurity Isolation Cohort Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#biosecurity-isolation-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/hyperbaric-co-triage" class="nav-link nav-link-emergency" id="nav-hyperbaric-co-triage">🫧 Hyperbaric &amp; CO Triage</a></li>
+          <li><a href="/biosecurity-isolation-triage" class="nav-link active nav-link-emergency" id="nav-biosecurity-isolation-triage">☣️ Biosecurity Isolation</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="biosecurity-isolation-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header biosec-triage-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>☣️ CANINE PARVOVIRUS (CPV-2), FELINE PANLEUKOPENIA (FPV), DISTEMPER &amp; BIOSECURITY ISOLATION COCKPIT</span>
+        </div>
+        <h1>Canine Parvovirus, Panleukopenia, Distemper &amp; Biosecurity Isolation Cohort Cockpit</h1>
+        <p class="text-secondary">
+          Negative-Pressure Anteroom Containment, Quaternary Ammonium Disinfectant Resistance Override (10-Minute Accelerated Hydrogen Peroxide &amp; Potassium Peroxymonosulfate / Virkon Wet Contact), Neutropenic Sepsis IV Resuscitation, Early Nasojejunal Trickle Nutrition &amp; Quantitative PCR Shedding Clearance.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid biosec-triage-kpi-grid" aria-label="Biosecurity Isolation Cohort Triage KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Biosecurity Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Neutropenic Sepsis / Breach</span>
+        <strong class="kpi-value" id="kpi-critical-sepsis">{{ .CriticalSepsisCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Negative-Pressure Iso Cohort Staged</span>
+        <strong class="kpi-value" id="kpi-staged-iso">{{ .StagedIsoCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">PCR-Negative Decon Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-safe">{{ .ClearedSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="biosec-triage-live-status" class="humane-traps-live-status biosec-triage-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} canine parvovirus, panleukopenia, distemper &amp; biosecurity isolation cohort triage operations.
+    </div>
+
+    <div class="trust-cockpit-grid biosec-triage-cockpit-grid">
+      <!-- Left Column: Evaluate Biosecurity Isolation Cohort Form -->
+      <section class="glass-card trust-panel" id="biosec-evaluate-panel" aria-labelledby="heading-evaluate-biosec-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-biosec-op">Evaluate Biosecurity Isolation &amp; Neutropenic Sepsis</h2>
+          <span class="badge badge-biosec-pathogen">BSL-2 Negative-Pressure &amp; Virkon 10-Min</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Contagious Pathogen &amp; Neutropenic Sepsis Emergency Presets</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary biosec-scenario-btn" data-scenario="parvo-neutropenic-sepsis" id="btn-sim-parvo-sepsis">
+              🦠 Simulate CPV-2 Parvovirus Neutropenic Sepsis Crisis (540 Neutrophils/uL · -5.5 Pa · 10 Min Virkon)
+            </button>
+            <button type="button" class="btn btn-secondary biosec-scenario-btn" data-scenario="distemper-myoclonus-cohort" id="btn-sim-distemper-cohort">
+              🐕 Simulate CDV Distemper Airborne Cohort Staging (2100 Neutrophils/uL · -7.0 Pa · 12 Min AHP)
+            </button>
+          </div>
+        </div>
+
+        <div id="eval-error-banner" class="biosec-eval-error-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="biosec-eval-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-pet-name">Pet Name</label>
+              <input type="text" id="eval-pet-name" name="pet_name" class="form-control" value="Koda" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-species">Species / Breed</label>
+              <input type="text" id="eval-species" name="species" class="form-control" value="Dog - Doberman Pinscher Puppy" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-weight-kg">Estimated Weight (kg)</label>
+              <input type="number" id="eval-weight-kg" name="weight_kg" class="form-control" min="0.1" max="100.0" step="0.1" value="9.8" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-pathogen-type">Biosecurity Pathogen Classification</label>
+              <select id="eval-pathogen-type" name="pathogen_type" class="form-control" required>
+                <option value="CANINE_PARVOVIRUS_CPV2_ENTERITIS" selected>CANINE_PARVOVIRUS_CPV2_ENTERITIS (CPV-2 Non-Enveloped Hemorrhagic Enteritis)</option>
+                <option value="FELINE_PANLEUKOPENIA_FPV">FELINE_PANLEUKOPENIA_FPV (Feline Parvovirus Panleukopenia Crisis)</option>
+                <option value="CANINE_DISTEMPER_CDV_NEURO">CANINE_DISTEMPER_CDV_NEURO (Canine Distemper Morbillivirus Neuro/Airborne)</option>
+                <option value="LEPTOSPIROSIS_ZOONOTIC_RENAL">LEPTOSPIROSIS_ZOONOTIC_RENAL (Zoonotic Leptospira Spirochete Renal/Hepatic)</option>
+                <option value="STREP_ZOOEPIDEMICUS_HEMORRHAGIC">STREP_ZOOEPIDEMICUS_HEMORRHAGIC (Strep. equi subsp. zooepidemicus Pneumonia)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-neutrophils">Neutrophil Count (cells/uL)</label>
+              <input type="number" id="eval-neutrophils" name="neutrophil_count_cells_ul" class="form-control" min="50" max="40000" step="10" value="580" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-pressure-pa">Room Pressure Differential (Pa)</label>
+              <input type="number" id="eval-pressure-pa" name="room_pressure_differential_pa" class="form-control" min="-50.0" max="20.0" step="0.5" value="-5.5" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-contact-mins">AHP / Virkon Disinfectant Wet Contact Time (mins)</label>
+              <input type="number" id="eval-contact-mins" name="disinfectant_contact_mins" class="form-control" min="1" max="60" step="1" value="10" required>
+            </div>
+          </div>
+
+          <div class="biosec-checkbox-group">
+            <label class="biosec-step-item">
+              <input type="checkbox" id="eval-hemorrhagic" name="hemorrhagic_diarrhea_present" checked>
+              <span>Hemorrhagic Diarrhea &amp; Mucosal Crypt Sloughing Present</span>
+            </label>
+            <label class="biosec-step-item">
+              <input type="checkbox" id="eval-footbath" name="potassium_peroxymonosulfate_footbath" checked>
+              <span>Potassium Peroxymonosulfate (Virkon-S) Anteroom Footbath Active</span>
+            </label>
+            <label class="biosec-step-item">
+              <input type="checkbox" id="eval-ppe-enforced" name="dedicated_ppe_gown_gloves_enforced" checked>
+              <span>Dedicated Impervious PPE Gown, Nitrile Gloves &amp; Booties Enforced</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-submit-biosec-eval" class="btn btn-primary">Evaluate Biosecurity Isolation Triage</button>
+        </form>
+      </section>
+
+      <!-- Right Column: Filter Bar, Operations Queue & Active Workspace -->
+      <section class="glass-card trust-panel" id="biosec-ops-panel" aria-labelledby="heading-biosec-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-biosec-ops">Active Biosecurity Isolation &amp; Cohort Triage Operations</h2>
+          <span id="biosec-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col biosec-filter-bar" role="region" aria-label="Filter Biosecurity Isolation Operations">
+          <div class="form-group">
+            <label for="filter-pathogen-type">Filter by Pathogen Type</label>
+            <select id="filter-pathogen-type" class="form-control">
+              <option value="">All Pathogen Types</option>
+              <option value="CANINE_PARVOVIRUS_CPV2_ENTERITIS">CANINE_PARVOVIRUS_CPV2_ENTERITIS</option>
+              <option value="FELINE_PANLEUKOPENIA_FPV">FELINE_PANLEUKOPENIA_FPV</option>
+              <option value="CANINE_DISTEMPER_CDV_NEURO">CANINE_DISTEMPER_CDV_NEURO</option>
+              <option value="LEPTOSPIROSIS_ZOONOTIC_RENAL">LEPTOSPIROSIS_ZOONOTIC_RENAL</option>
+              <option value="STREP_ZOOEPIDEMICUS_HEMORRHAGIC">STREP_ZOOEPIDEMICUS_HEMORRHAGIC</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="NEUTROPENIC_SEPSIS_BREACH_CRITICAL">NEUTROPENIC_SEPSIS_BREACH_CRITICAL</option>
+              <option value="NEGATIVE_PRESSURE_ISO_COHORT_STAGED">NEGATIVE_PRESSURE_ISO_COHORT_STAGED</option>
+              <option value="PCR_NEGATIVE_DECON_CLEARED">PCR_NEGATIVE_DECON_CLEARED</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="biosec-active-workspace" role="region" aria-label="Active Biosecurity Isolation Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="biosec-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">Active Workspace: {{ $active.PetName }} ({{ $active.Species }} · {{ printf "%.1f" $active.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $active.ID }} · {{ $active.PetID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-biosec-pathogen">{{ $active.PathogenType }}</span>
+                <span class="badge badge-biosec-status {{ if eq (printf "%s" $active.Status) "NEUTROPENIC_SEPSIS_BREACH_CRITICAL" }}badge-biosec-critical{{ else if eq (printf "%s" $active.Status) "NEGATIVE_PRESSURE_ISO_COHORT_STAGED" }}badge-biosec-staged{{ else }}badge-biosec-safe{{ end }}">{{ $active.Status }}</span>
+              </div>
+            </div>
+            <div class="biosec-quat-alert-banner">
+              ☣️ {{ $active.QuatDisinfectantFailureNote }}
+            </div>
+            <div class="biosec-regimen-recommendations">
+              <div><strong>Required Biosecurity Isolation Regimen:</strong> {{ $active.RequiredIsolationRegimen }}</div>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="biosec-operations-list" class="trust-screenings-list biosec-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card biosec-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-pathogen-type="{{ $op.PathogenType }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-biosec-pathogen">{{ $op.PathogenType }}</span>
+                <span class="badge badge-biosec-status {{ if eq (printf "%s" $op.Status) "NEUTROPENIC_SEPSIS_BREACH_CRITICAL" }}badge-biosec-critical{{ else if eq (printf "%s" $op.Status) "NEGATIVE_PRESSURE_ISO_COHORT_STAGED" }}badge-biosec-staged{{ else }}badge-biosec-safe{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row biosec-metrics-row">
+              <span class="badge badge-biosec-pathogen">Neutrophils: {{ $op.NeutrophilCountCellsUl }} cells/uL • Room Pressure: {{ printf "%.1f" $op.RoomPressureDifferentialPa }} Pa • Decon Contact: {{ $op.DisinfectantContactMins }} min</span>
+            </div>
+
+            <div class="biosec-flags-row">
+              {{ if lt $op.NeutrophilCountCellsUl 1500 }}
+              <span class="badge badge-biosec-flag">SEVERE_NEUTROPENIC_LEUKOPENIA</span>
+              {{ end }}
+              {{ if $op.HemorrhagicDiarrheaPresent }}
+              <span class="badge badge-biosec-flag">HEMORRHAGIC_ENTERITIS_ENDOTOXEMIA</span>
+              {{ end }}
+              {{ if gt $op.RoomPressureDifferentialPa -2.5 }}
+              <span class="badge badge-biosec-flag">NEGATIVE_PRESSURE_BREACH_HAZARD</span>
+              {{ end }}
+            </div>
+
+            <div class="biosec-quat-alert-banner">
+              ⚠️ {{ $op.QuatDisinfectantFailureNote }}
+            </div>
+
+            {{ if $op.ClearanceToken }}
+            <div class="biosec-clearance-banner">
+              ✅ PCR-NEGATIVE SHEDDING &amp; VIRKON DECON CLEARANCE VERIFIED: {{ $op.ClearanceToken }}
+            </div>
+            {{ end }}
+
+            <div class="biosec-regimen-recommendations">
+              <div><strong>Required Isolation Regimen:</strong> {{ $op.RequiredIsolationRegimen }}</div>
+            </div>
+
+            <div class="biosec-steps-list" aria-label="Biosecurity Isolation &amp; Neutropenic Sepsis Protocol Steps">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="biosec-step-item">
+                <input
+                  type="checkbox"
+                  class="biosec-step-checkbox"
+                  data-op-id="{{ $op.ID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "PCR_NEGATIVE_DECON_CLEARED" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-biosec-safe{{ else }}badge-biosec-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="biosec-step-title">{{ $step.Title }}</strong>
+                <span class="biosec-step-desc">{{ $step.Description }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary biosec-select-workspace-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Inspect in Active Workspace
+              </button>
+              {{ if ne (printf "%s" $op.Status) "PCR_NEGATIVE_DECON_CLEARED" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary biosec-issue-clearance-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🛡️ Issue PCR-Negative Biosecurity Clearance ({{ $op.ID }})
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="biosec-ops-empty-msg">No biosecurity isolation cohort triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/biosecurity-isolation-triage.js" defer></script>
+</body>
+</html>
