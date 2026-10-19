@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Hepatic Failure, Hepatic Encephalopathy, Sago Palm (Cycad) / Amanita / Blue-Green Algae (Microcystin) Hepatotoxicity, N-Acetylcysteine (NAC) &amp; Lactulose/Levetiracetam Cockpit.">
+  <title>Acute Hepatic Failure, Hepatic Encephalopathy, Sago Palm (Cycad) / Amanita / Blue-Green Algae Hepatotoxicity, N-Acetylcysteine (NAC) &amp; Lactulose/Levetiracetam Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#hepatic-encephalopathy-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/toxicology-poison-triage" class="nav-link nav-link-emergency" id="nav-toxicology-poison-triage">🧪 Toxicology ICU</a></li>
+          <li><a href="/hepatic-encephalopathy-triage" class="nav-link active nav-link-emergency" id="nav-hepatic-encephalopathy-triage">🧬 Hepatic Encephalopathy &amp; NAC ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="hepatic-encephalopathy-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header hepatic-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🧬 ACUTE HEPATIC FAILURE, HEPATIC ENCEPHALOPATHY, SAGO PALM / MICROCYSTIN / AMANITA &amp; NAC/LACTULOSE COCKPIT</span>
+        </div>
+        <h1>Acute Hepatic Failure, Hepatic Encephalopathy, Sago Palm (Cycad) / Amanita / Blue-Green Algae (Microcystin) Hepatotoxicity, N-Acetylcysteine (NAC) &amp; Lactulose/Levetiracetam Cockpit</h1>
+        <p class="text-secondary">
+          Fulminant Hepatotoxicity Triage (Sago Palm Cycasin/MAM, Cyanobacteria Microcystin-LR, Amanita phalloides Alpha-Amanitin, Feline Hepatic Lipidosis / Portosystemic Shunt HE), N-Acetylcysteine (NAC) 140 mg/kg IV Loading + 70 mg/kg IV q6h × 7 Doses via 0.2-Micron Filter, Lactulose Warm Retention Enema (NH3 → NH4+ Ion Trapping), Levetiracetam 60 mg/kg IV Priority over Benzodiazepines (Diazepam/Midazolam GABA-A Contraindication Guard) &amp; Vitamin K1 / Dextrose / Fresh Frozen Plasma Synthetic Support.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid hepatic-kpi-grid" aria-label="Hepatic Encephalopathy &amp; Hepatotoxicity KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Hepatic ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Fulminant Hepatotoxicity / HE Triage</span>
+        <strong class="kpi-value" id="kpi-fulminant-triage">{{ .FulminantHETriageCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">NAC / Lactulose / Vit K1 Staged</span>
+        <strong class="kpi-value" id="kpi-nac-staged">{{ .NACLactuloseStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Ammonia Normalized &amp; Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-hepatic">{{ .ClearedHepaticCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Sago Palm / Microcystin / Amanita</span>
+        <strong class="kpi-value" id="kpi-sago-microcystin">{{ .SagoPalmMicrocystinCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Hyperammonemic Encephalopathy</span>
+        <strong class="kpi-value" id="kpi-hyperammonemic-he">{{ .HyperammonemicEncephalopathyCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="hepatic-live-status" class="humane-traps-live-status hepatic-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Acute Hepatic Failure &amp; Hepatic Encephalopathy ICU operations.
+    </div>
+
+    <!-- Global NAC 140 mg/kg Loading, Lactulose NH3 -> NH4+ Ion Trapping, Levetiracetam over Benzodiazepine Contraindication & Vitamin K1/Dextrose/FFP Alert Banner -->
+    <div id="hepatic-alert-banner" class="hepatic-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL FULMINANT HEPATOTOXICITY &amp; HEPATIC ENCEPHALOPATHY GUARD: (1) N-Acetylcysteine (NAC) Glutathione Replenishment — Administer 140 mg/kg IV loading dose diluted 1:4 through a 0.2-micron in-line filter over 20–30 min, followed by 70 mg/kg IV q6h × 7 doses (+ SAMe 20 mg/kg &amp; Silybin); (2) Lactulose Colonic NH3 → NH4+ Ion Trapping — Administer warm Lactulose retention enema (1:3 warm water, 10–20 mL/kg retained 20–30 min) + oral Lactulose &amp; Neomycin/Metronidazole (7.5 mg/kg q12h); (3) Benzodiazepine &amp; Methionine Contraindication Guard — NEVER administer Diazepam or Midazolam for Hepatic Encephalopathy seizures (endogenous GABA-A receptor agonists worsen HE coma/respiratory arrest; use Levetiracetam 60 mg/kg IV loading dose) and NEVER give Methionine in acute HE; (4) Synthetic Failure Rescue — Correct hypoglycemia (&lt; 60 mg/dL) with 2.5%–5% Dextrose CRI and coagulopathy (prolonged PT) with Vitamin K1 1–2.5 mg/kg SC q12h + Fresh Frozen Plasma (FFP) before any hepatic aspirate/biopsy.
+    </div>
+
+    <!-- Global Ammonia Normalized & Synthetic Function Stable Clearance Banner -->
+    <div id="hepatic-clearance-banner" class="hepatic-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "AMMONIA_NORMALIZED_SYNTHETIC_STABLE_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ AMMONIA NORMALIZED, HEPATIC ENCEPHALOPATHY RESOLVED &amp; SYNTHETIC FUNCTION STABLE CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "AMMONIA_NORMALIZED_SYNTHETIC_STABLE_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Discharged by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting blood ammonia normalization, normoglycemia, PT stabilization &amp; NAC/Lactulose discharge clearance.{{ end }}</span>
+    </div>
+
+    <div id="hepatic-error-banner" class="hepatic-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card hepatic-toolbar-card" aria-label="Hepatic Triage Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col hepatic-toolbar-row">
+        <div class="form-group">
+          <label for="hepatic-status-filter">Filter by Hepatic Triage Status</label>
+          <select id="hepatic-status-filter" class="form-control">
+            <option value="">All Hepatic Triage Statuses</option>
+            <option value="ACUTE_FULMINANT_HEPATOTOXICITY_HE_TRIAGE">ACUTE_FULMINANT_HEPATOTOXICITY_HE_TRIAGE (Acute Fulminant Hepatotoxicity &amp; HE Triage)</option>
+            <option value="NAC_LACTULOSE_VITAMIN_K1_STAGED">NAC_LACTULOSE_VITAMIN_K1_STAGED (NAC 140 mg/kg / Lactulose / Vitamin K1 Staged)</option>
+            <option value="AMMONIA_NORMALIZED_SYNTHETIC_STABLE_CLEARED">AMMONIA_NORMALIZED_SYNTHETIC_STABLE_CLEARED (Ammonia Normalized &amp; Synthetic Stable Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group hepatic-sse-controls">
+          <span class="kpi-label">Live ICU Telemetry Stream</span>
+          <div class="hepatic-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live Hepatic SSE Stream</button>
+            <span id="sse-status-badge" class="hepatic-status-badge hepatic-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid hepatic-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="hepatic-operations-panel" aria-labelledby="heading-hepatic-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-hepatic-ops">Active Hepatic Failure &amp; Encephalopathy Operations</h2>
+          <span id="hepatic-ops-count-badge" class="hepatic-status-badge hepatic-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="hepatic-operations-grid" class="trust-screenings-list hepatic-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card hepatic-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-etiology="{{ $op.EtiologyType }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="hepatic-status-badge {{ if eq (printf "%s" $op.Status) "ACUTE_FULMINANT_HEPATOTOXICITY_HE_TRIAGE" }}hepatic-status-critical{{ else if eq (printf "%s" $op.Status) "NAC_LACTULOSE_VITAMIN_K1_STAGED" }}hepatic-status-staged{{ else }}hepatic-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="hepatic-card-metrics">
+              <span><strong>Etiology:</strong> {{ $op.EtiologyType }}</span>
+              <span><strong>Ammonia:</strong> {{ printf "%.1f" $op.BloodAmmoniaUmolL }} umol/L</span>
+              <span><strong>ALT:</strong> {{ $op.ALTIUL }} IU/L</span>
+              <span><strong>Bilirubin:</strong> {{ printf "%.1f" $op.TotalBilirubinMgDL }} mg/dL</span>
+              <span><strong>Glucose:</strong> {{ printf "%.1f" $op.BloodGlucoseMgDL }} mg/dL</span>
+              <span><strong>PT:</strong> {{ printf "%.1f" $op.PTSeconds }} sec</span>
+              <span><strong>HE Grade:</strong> Grade {{ $op.EncephalopathyGrade }}/4</span>
+              <span><strong>Head Pressing / Seizures:</strong> {{ if $op.HeadPressingSeizuresPresent }}YES (Levetiracetam 60 mg/kg IV){{ else }}NO{{ end }}</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary hepatic-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open Hepatic Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="hepatic-ops-empty-msg">No Hepatic Encephalopathy operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="hepatic-divider">
+
+        <!-- Admit New Hepatic Patient Form -->
+        <div class="trust-subsection" id="create-hepatic-section">
+          <h3 id="heading-create-hepatic">Admit New Fulminant Hepatotoxicity / Hepatic Encephalopathy Patient</h3>
+          <form id="create-hepatic-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-HEP-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Bodie" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species-input">Species</label>
+                <select id="create-species-input" name="species" class="form-control" required>
+                  <option value="Canine" selected>Canine</option>
+                  <option value="Feline">Feline</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed-input">Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="Golden Retriever" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="29.5" required>
+              </div>
+              <div class="form-group">
+                <label for="create-etiology-input">Hepatotoxin / Hepatic Failure Etiology</label>
+                <select id="create-etiology-input" name="etiology_type" class="form-control" required>
+                  <option value="SAGO_PALM_CYCASIN_HEPATOTOXICITY" selected>SAGO_PALM_CYCASIN_HEPATOTOXICITY (Sago Palm Cycasin / MAM Hepatotoxicity)</option>
+                  <option value="BLUE_GREEN_ALGAE_MICROCYSTIN_AMANITA">BLUE_GREEN_ALGAE_MICROCYSTIN_AMANITA (Blue-Green Algae Microcystin-LR / Amanita Alpha-Amanitin)</option>
+                  <option value="FELINE_HEPATIC_LIPIDOSIS_PSS_HE">FELINE_HEPATIC_LIPIDOSIS_PSS_HE (Feline Hepatic Lipidosis / Portosystemic Shunt HE)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-alt-input">Serum ALT (IU/L)</label>
+                <input type="number" id="create-alt-input" name="alt_iu_l" class="form-control" min="10" max="25000" step="1" value="3120" required>
+              </div>
+              <div class="form-group">
+                <label for="create-bilirubin-input">Total Bilirubin (mg/dL)</label>
+                <input type="number" id="create-bilirubin-input" name="total_bilirubin_mg_dl" class="form-control" min="0.1" max="50.0" step="0.1" value="7.2" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-ammonia-input">Blood Ammonia (umol/L)</label>
+                <input type="number" id="create-ammonia-input" name="blood_ammonia_umol_l" class="form-control" min="5.0" max="1500.0" step="0.1" value="260.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-glucose-input">Blood Glucose (mg/dL)</label>
+                <input type="number" id="create-glucose-input" name="blood_glucose_mg_dl" class="form-control" min="15.0" max="600.0" step="0.1" value="52.0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-pt-input">Prothrombin Time PT (seconds)</label>
+                <input type="number" id="create-pt-input" name="pt_seconds" class="form-control" min="5.0" max="120.0" step="0.1" value="27.8" required>
+              </div>
+              <div class="form-group">
+                <label for="create-he-grade-input">Hepatic Encephalopathy Grade (0–4)</label>
+                <input type="number" id="create-he-grade-input" name="encephalopathy_grade" class="form-control" min="0" max="4" step="1" value="3" required>
+              </div>
+            </div>
+
+            <div class="form-group hepatic-checkbox-group">
+              <label class="hepatic-checkbox-item">
+                <input type="checkbox" id="create-seizures-checkbox" name="head_pressing_seizures_present" checked>
+                <span>Head Pressing / Ptyalism / Hepatic Encephalopathy Seizures Present</span>
+              </label>
+            </div>
+
+            <button type="submit" id="create-hepatic-op-btn" class="btn btn-primary">➕ Admit Hepatic Failure / HE Patient</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active Hepatic Workspace & Clinical Staging / Metabolic Check / Discharge Clearance Forms -->
+      <section class="glass-card trust-panel" id="hepatic-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="hepatic-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · Etiology: <strong id="active-etiology-type">{{ $active.EtiologyType }}</strong> · HE Grade: <strong id="active-he-grade">Grade {{ $active.EncephalopathyGrade }}/4</strong> · Seizures/Head Pressing: <strong id="active-seizures-flag">{{ if $active.HeadPressingSeizuresPresent }}YES{{ else }}NO{{ end }}</strong></p>
+          </div>
+          <span id="active-op-status-badge" class="hepatic-status-badge {{ if eq (printf "%s" $active.Status) "ACUTE_FULMINANT_HEPATOTOXICITY_HE_TRIAGE" }}hepatic-status-critical{{ else if eq (printf "%s" $active.Status) "NAC_LACTULOSE_VITAMIN_K1_STAGED" }}hepatic-status-staged{{ else }}hepatic-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- Hepatic Metabolic & Synthetic Telemetry Bar -->
+        <div class="hepatic-vitals-summary" id="active-vitals-summary">
+          <div class="hepatic-vital-chip">
+            <span class="kpi-label">Blood Ammonia (NH3)</span>
+            <strong id="active-blood-ammonia">{{ printf "%.1f" $active.BloodAmmoniaUmolL }} umol/L</strong>
+          </div>
+          <div class="hepatic-vital-chip">
+            <span class="kpi-label">Serum ALT Activity</span>
+            <strong id="active-alt-value">{{ $active.ALTIUL }} IU/L</strong>
+          </div>
+          <div class="hepatic-vital-chip">
+            <span class="kpi-label">Total Bilirubin</span>
+            <strong id="active-bilirubin-value">{{ printf "%.1f" $active.TotalBilirubinMgDL }} mg/dL</strong>
+          </div>
+          <div class="hepatic-vital-chip">
+            <span class="kpi-label">Blood Glucose / PT</span>
+            <strong id="active-glucose-pt-value">{{ printf "%.1f" $active.BloodGlucoseMgDL }} mg/dL · {{ printf "%.1f" $active.PTSeconds }} sec</strong>
+          </div>
+        </div>
+
+        <!-- Hepatotoxin & Encephalopathy Pathophysiology Plan Box -->
+        <div class="hepatic-plan-box" id="active-encephalopathy-plan-box">
+          <h3>Hepatotoxin Pathophysiology, Hyperammonemic Encephalopathy &amp; Contraindication Plan</h3>
+          <div class="hepatic-plan-grid">
+            <div><strong>Etiology Pathophysiology:</strong> <span id="plan-etiology-pathophysiology">{{ $active.EncephalopathyPlan.EtiologyPathophysiology }}</span></div>
+            <div><strong>Hyperammonemia &amp; HE Neuro Status:</strong> <span id="plan-hyperammonemia-neuro">{{ $active.EncephalopathyPlan.HyperammonemiaNeuroStatus }}</span></div>
+            <div><strong>Hypoglycemia &amp; Coagulopathy Note:</strong> <span id="plan-hypoglycemia-coagulopathy">{{ $active.EncephalopathyPlan.HypoglycemiaCoagulopathyNote }}</span></div>
+            <div><strong>Lactulose NH3 → NH4+ Ion Trapping:</strong> <span id="plan-lactulose-trapping">{{ $active.EncephalopathyPlan.LactuloseAmmoniumTrappingPlan }}</span></div>
+            <div><strong>Benzodiazepine &amp; Methionine Guard:</strong> <span id="plan-benzo-methionine-warning">{{ $active.EncephalopathyPlan.BenzodiazepineMethionineWarning }}</span></div>
+            <div><strong>Refeeding &amp; Electrolyte Alert:</strong> <span id="plan-refeeding-electrolyte">{{ $active.EncephalopathyPlan.RefeedingElectrolyteAlert }}</span></div>
+          </div>
+        </div>
+
+        <!-- NAC, Lactulose, Levetiracetam & Synthetic Support Plan Box -->
+        <div class="hepatic-plan-box" id="active-support-plan-box">
+          <h3>N-Acetylcysteine (NAC) 140 mg/kg Loading, Lactulose Enema, Levetiracetam &amp; Vitamin K1/FFP Plan</h3>
+          <div class="hepatic-plan-grid">
+            <div><strong>NAC Glutathione Loading Protocol:</strong> <span id="plan-nac-protocol">{{ $active.SupportPlan.NACGlutathioneLoadingProtocol }}</span></div>
+            <div><strong>SAMe / Silybin Hepatoprotectants:</strong> <span id="plan-same-silybin">{{ $active.SupportPlan.SAMeSilybinHepatoprotectant }}</span></div>
+            <div><strong>Lactulose Enema &amp; Oral Protocol:</strong> <span id="plan-lactulose-protocol">{{ $active.SupportPlan.LactuloseEnemaOralProtocol }}</span></div>
+            <div><strong>Levetiracetam Neuro Protocol:</strong> <span id="plan-levetiracetam-protocol">{{ $active.SupportPlan.LevetiracetamNeuroProtocol }}</span></div>
+            <div><strong>Dextrose, Vitamin K1 &amp; FFP Plan:</strong> <span id="plan-dextrose-vitk1-ffp">{{ $active.SupportPlan.DextroseVitaminK1FFPPlan }}</span></div>
+            <div><strong>Potassium, Phosphate &amp; Thiamine Plan:</strong> <span id="plan-potassium-phosphate-thiamine">{{ $active.SupportPlan.PotassiumPhosphateThiaminePlan }}</span></div>
+          </div>
+        </div>
+        {{ end }}
+
+        <hr class="hepatic-divider">
+
+        <!-- 1. Stage N-Acetylcysteine (NAC), Lactulose Retention Enema, Levetiracetam & Vitamin K1/FFP Support Form -->
+        <div class="trust-subsection" id="stage-support-section">
+          <h3>1. Stage N-Acetylcysteine (NAC) 140 mg/kg IV Load, Lactulose NH3 → NH4+ Enema, Levetiracetam &amp; Vitamin K1/FFP Support</h3>
+          <form id="stage-support-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="stage-nac-protocol-input">N-Acetylcysteine (NAC) 140 mg/kg IV Loading + 70 mg/kg IV q6h × 7 Doses (0.2-Micron Filter)</label>
+              <input
+                type="text"
+                id="stage-nac-protocol-input"
+                name="nac_glutathione_loading_protocol"
+                class="form-control"
+                value="N-Acetylcysteine (NAC) 140 mg/kg IV loading dose diluted 1:4 via 0.2-micron filter over 20–30 min, followed by 70 mg/kg IV q6h × 7 doses"
+                required
+              >
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-same-silybin-input">SAMe (20 mg/kg) &amp; Silybin / Milk Thistle Hepatoprotectant Regimen</label>
+                <input
+                  type="text"
+                  id="stage-same-silybin-input"
+                  name="same_silybin_hepatoprotectant"
+                  class="form-control"
+                  value="SAMe 20 mg/kg PO q24h + Silybin-Phosphatidylcholine 50 mg/kg IV/PO + Ursodiol 15 mg/kg PO q24h"
+                  required
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-lactulose-protocol-input">Lactulose Warm Retention Enema (1:3) &amp; Oral Neomycin/Metronidazole Protocol</label>
+                <input
+                  type="text"
+                  id="stage-lactulose-protocol-input"
+                  name="lactulose_enema_oral_protocol"
+                  class="form-control"
+                  value="Lactulose 1:3 warm water retention enema (15 mL/kg retained 20–30 min q6h) + oral Lactulose 0.5 mL/kg PO q8h + Metronidazole 7.5 mg/kg IV q12h"
+                  required
+                >
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-levetiracetam-protocol-input">Levetiracetam 60 mg/kg IV Anticonvulsant Protocol (Strictly Avoid Benzodiazepines)</label>
+                <input
+                  type="text"
+                  id="stage-levetiracetam-protocol-input"
+                  name="levetiracetam_neuro_protocol"
+                  class="form-control"
+                  value="Levetiracetam 60 mg/kg IV loading dose, then 20 mg/kg IV q8h + 30° head elevation (NEVER administer Diazepam/Midazolam)"
+                  required
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-dextrose-vitk1-input">Dextrose CRI, Vitamin K1 (1.5 mg/kg SC q12h) &amp; Fresh Frozen Plasma (FFP) Plan</label>
+                <input
+                  type="text"
+                  id="stage-dextrose-vitk1-input"
+                  name="dextrose_vitamin_k1_ffp_plan"
+                  class="form-control"
+                  value="0.5 g/kg 50% Dextrose diluted 1:4 slow IV bolus + 5% Dextrose CRI + Vitamin K1 1.5 mg/kg SC q12h + FFP 12 mL/kg IV"
+                >
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="stage-electrolyte-thiamine-input">Potassium (KCl), Phosphate (KPO4) &amp; Thiamine (Vitamin B1) Supplementation</label>
+              <input
+                type="text"
+                id="stage-electrolyte-thiamine-input"
+                name="potassium_phosphate_thiamine_plan"
+                class="form-control"
+                value="Supplement KCl 30 mEq/L to prevent hypokalemic renal NH3 genesis + KPO4 0.02 mmol/kg/hr CRI + Thiamine 100 mg SC q12h"
+              >
+            </div>
+            <button type="submit" id="stage-support-btn" class="btn btn-secondary">💊 Stage NAC 140 mg/kg / Lactulose / Levetiracetam / Vitamin K1 Protocol</button>
+          </form>
+        </div>
+
+        <hr class="hepatic-divider">
+
+        <!-- 2. Record Serial Hepatic Metabolic & Synthetic Check Form -->
+        <div class="trust-subsection" id="record-metabolic-check-section">
+          <h3>2. Record Serial Blood Ammonia, Serum ALT, Total Bilirubin, Glucose &amp; Coagulation (PT) Check</h3>
+          <form id="record-metabolic-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-alt-input">Serum ALT (IU/L)</label>
+                <input type="number" id="check-alt-input" name="alt_iu_l" class="form-control" min="10" max="25000" step="1" value="480" required>
+              </div>
+              <div class="form-group">
+                <label for="check-bilirubin-input">Total Bilirubin (mg/dL)</label>
+                <input type="number" id="check-bilirubin-input" name="total_bilirubin_mg_dl" class="form-control" min="0.1" max="50.0" step="0.1" value="1.6" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-ammonia-input">Blood Ammonia (umol/L)</label>
+                <input type="number" id="check-ammonia-input" name="blood_ammonia_umol_l" class="form-control" min="5.0" max="1500.0" step="0.1" value="42.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-glucose-input">Blood Glucose (mg/dL)</label>
+                <input type="number" id="check-glucose-input" name="blood_glucose_mg_dl" class="form-control" min="15.0" max="600.0" step="0.1" value="96.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-pt-input">Prothrombin Time PT (seconds)</label>
+                <input type="number" id="check-pt-input" name="pt_seconds" class="form-control" min="5.0" max="120.0" step="0.1" value="12.8" required>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (Clinician)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Priya Nair, DACVECC" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-note-input">Clinical Hepatic Encephalopathy &amp; Synthetic Coagulation Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="Post-NAC 140 mg/kg load &amp; Lactulose retention enemas: blood ammonia decreased to 42.0 umol/L, ALT reduced to 480 IU/L, euglycemic 96.0 mg/dL, PT normalized to 12.8 sec." required>
+            </div>
+            <button type="submit" id="record-metabolic-check-btn" class="btn btn-secondary">🩺 Record Hepatic Metabolic &amp; Ammonia Check</button>
+          </form>
+
+          <div class="hepatic-checks-box">
+            <h4>Serial Blood Ammonia, ALT, Bilirubin, Glucose &amp; PT Checks (<span id="metabolic-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.MetabolicChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="metabolic-checks-list" class="hepatic-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.MetabolicChecks }}
+              <li class="hepatic-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · Ammonia {{ printf "%.1f" $chk.BloodAmmoniaUmolL }} umol/L · ALT {{ $chk.ALTIUL }} IU/L · Bilirubin {{ printf "%.1f" $chk.TotalBilirubinMgDL }} mg/dL · Glucose {{ printf "%.1f" $chk.BloodGlucoseMgDL }} mg/dL · PT {{ printf "%.1f" $chk.PTSeconds }} sec — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="hepatic-divider">
+
+        <!-- 3. Clear Hepatic Operation for Ammonia-Normalized Synthetic-Stable Discharge Form -->
+        <div class="trust-subsection" id="clear-hepatic-section">
+          <h3>3. Clear Patient with Normalized Blood Ammonia, Resolved HE &amp; Stable Synthetic Coagulation</h3>
+          <form id="clear-hepatic-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="clear-discharged-by-input">Discharging Criticalist / Internist</label>
+              <input type="text" id="clear-discharged-by-input" name="discharged_by" class="form-control" value="Dr. Priya Nair, DACVECC" required>
+            </div>
+            <div class="form-group">
+              <label for="clear-summary-input">Ammonia Normalization, Synthetic Recovery &amp; Hepatoprotectant Discharge Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="discharge_summary"
+                class="form-control"
+                value="Completed 7-dose IV N-Acetylcysteine (NAC) &amp; Lactulose retention enema protocol; blood ammonia normalized (42.0 umol/L), HE Grade 0, normoglycemic (96.0 mg/dL), PT normalized (12.8 sec), discharged on oral SAMe/Silybin, Lactulose &amp; Vitamin K1."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-hepatic-btn" class="btn btn-primary">🛡️ Clear Hepatic Patient for Discharge</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/hepatic-encephalopathy-triage.js" defer></script>
+</body>
+</html>

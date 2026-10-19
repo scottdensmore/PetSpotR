@@ -44,6 +44,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/gdvbloat"
 	"github.com/scottdensmore/petspotr/pkg/hazmatdecon"
 	"github.com/scottdensmore/petspotr/pkg/hemoabdomen"
+	"github.com/scottdensmore/petspotr/pkg/hepaticencephalopathy"
 	"github.com/scottdensmore/petspotr/pkg/hyperbaricco"
 	"github.com/scottdensmore/petspotr/pkg/hyperthermiaheat"
 	"github.com/scottdensmore/petspotr/pkg/identity"
@@ -144,6 +145,7 @@ type Server struct {
 	fateService               *fatethrombus.FATEService
 	dicService                *diccoagulopathy.DICService
 	pyometraService           *pyometrasirs.PyometraService
+	hepaticService            *hepaticencephalopathy.HepaticService
 	handler                   http.Handler
 }
 
@@ -338,6 +340,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		spinalService:             spinalivdd.NewIVDDService(),
 		fateService:               fatethrombus.NewFATEService(),
 		pyometraService:           pyometrasirs.NewPyometraService(),
+		hepaticService:            hepaticencephalopathy.NewHepaticService(),
 		dicService:                diccoagulopathy.NewDICService(),
 		pancreatitisService:       pancreatitiscpl.NewPancreatitisService(),
 	}
@@ -700,6 +703,8 @@ func (s *Server) routes() {
 	s.registerDICCoagulopathyRoutes()
 	// Acute Pyometra (Open vs. Closed Cervix), POCUS Fluid-Filled Uterine Horns, E. coli Endotoxemia/SIRS, Stabilization & Ovariohysterectomy (OHE) Cockpit routes (Milestone 23.1)
 	s.registerPyometraSIRSRoutes()
+	// Acute Hepatic Failure, Hepatic Encephalopathy, Sago Palm (Cycad) / Amanita / Blue-Green Algae (Microcystin) Hepatotoxicity, N-Acetylcysteine (NAC) & Lactulose/Levetiracetam Cockpit routes (Milestone 23.2)
+	s.registerHepaticEncephalopathyRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
