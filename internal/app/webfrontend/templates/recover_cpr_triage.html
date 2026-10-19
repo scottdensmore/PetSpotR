@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Cardiopulmonary Resuscitation (RECOVER Guidelines), Open/Closed-Chest Compression, EtCO2 &gt; 15 mmHg &amp; Defibrillation Cockpit.">
+  <title>Cardiopulmonary Resuscitation (RECOVER Guidelines), Open/Closed-Chest Compression, EtCO2 &gt; 15 mmHg &amp; Defibrillation Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#recover-cpr-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/anaphylaxis-halo-triage" class="nav-link nav-link-emergency" id="nav-anaphylaxis-halo-triage">🐝 Anaphylaxis &amp; Halo Sign ICU</a></li>
+          <li><a href="/recover-cpr-triage" class="nav-link active nav-link-emergency" id="nav-recover-cpr-triage">⚡ RECOVER CPR &amp; Defib ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="recover-cpr-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header cpr-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>⚡ CARDIOPULMONARY RESUSCITATION (RECOVER GUIDELINES), OPEN/CLOSED-CHEST COMPRESSION, ETCO2 &gt; 15 MMHG &amp; DEFIBRILLATION COCKPIT</span>
+        </div>
+        <h1>Cardiopulmonary Resuscitation (RECOVER Guidelines), Open/Closed-Chest Compression, EtCO2 &gt; 15 mmHg &amp; Defibrillation Cockpit</h1>
+        <p class="text-secondary">
+          Thoracic Conformation-Targeted Chest Compressions (Round-Chest Widest Thorax, Keel-Chest 4th–6th ICS Over Heart, Barrel-Chest Sternal Supine, Feline One-Hand Circumferential Cardiac at 100–120/min), Strict 10 Breaths/Min IPPV Anti-Hyperventilation Guard, Capnography EtCO2 &gt; 15 mmHg Perfusion &amp; Abrupt &gt; 35 mmHg ROSC Detection, Low-Dose Epinephrine 0.01 mg/kg IV/IO Every Other 2-Minute Cycle (q3–5 min), Atropine 0.04 mg/kg, Biphasic Defibrillation (2–4 J/kg) &amp; Amiodarone (5 mg/kg).
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid cpr-kpi-grid" aria-label="RECOVER Cardiopulmonary Resuscitation KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total RECOVER CPR Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Arrest BLS/ALS Critical</span>
+        <strong class="kpi-value" id="kpi-critical-arrest">{{ .ArrestInProgressCriticalCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">2-Min Cycle Epi &amp; Defib Staged</span>
+        <strong class="kpi-value" id="kpi-staged-cycle">{{ .EpiDefibCycleStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">ROSC Normocapnic PCA Stable</span>
+        <strong class="kpi-value" id="kpi-cleared-rosc">{{ .ROSCPostArrestClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Hyperventilation &amp; High-Dose Epi Alerts</span>
+        <strong class="kpi-value" id="kpi-pitfall-alerts">{{ .HyperventilationHighDoseAlertCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="cpr-live-status" class="humane-traps-live-status cpr-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} RECOVER cardiopulmonary resuscitation, EtCO2 &gt; 15 mmHg &amp; defibrillation operations.
+    </div>
+
+    <!-- Global Hyperventilation (> 10 breaths/min), Every-Cycle Epinephrine & High-Dose Epinephrine (0.1 mg/kg) Pitfall Alert Banner -->
+    <div id="cpr-alert-banner" class="cpr-alert-banner" role="alert" aria-live="assertive">
+      {{ if and .ActiveOperation .ActiveOperation.ALSProtocolPlan }}
+      ⚠️ RECOVER 2012/2024 BLS/ALS GUARD ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }} · {{ .ActiveOperation.PatientProfile.ArrestRhythm }} · EtCO2 {{ printf "%.1f" .ActiveOperation.PatientProfile.EndTidalCO2MmHg }} mmHg · Cycle {{ .ActiveOperation.PatientProfile.CompressionCyclesCompleted }} · {{ .ActiveOperation.ALSProtocolPlan.HandPlacementTechnique }}): {{ .ActiveOperation.ALSProtocolPlan.RecoverPitfallAlert }}
+      {{ else }}
+      ⚠️ CRITICAL RECOVER 2012/2024 BLS/ALS PITFALL ALERT: NEVER hyperventilate arrest patients &gt; 10 breaths/min (increases intrathoracic pressure, abolishes venous return, and causes cerebral vasoconstriction); NEVER administer Epinephrine every 2-minute cycle (give 0.01 mg/kg IV/IO EVERY OTHER cycle q3–5 min); and NEVER use routine High-Dose Epinephrine (0.1 mg/kg).
+      {{ end }}
+    </div>
+
+    <!-- Global ROSC Achieved & Normocapnic Post-Cardiac Arrest Care (PCA) Clearance Banner -->
+    <div id="cpr-clearance-banner" class="cpr-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation .ActiveOperation.ROSCClearance) }}hidden{{ end }}>
+      {{ if and .ActiveOperation .ActiveOperation.ROSCClearance }}
+      ✅ ROSC ACHIEVED &amp; NORMOCAPNIC PCA CLEARANCE VERIFIED ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }}): Sustained ROSC {{ .ActiveOperation.ROSCClearance.SustainedROSCMinutes }} min · Final EtCO2 {{ printf "%.1f" .ActiveOperation.ROSCClearance.FinalEtCO2MmHg }} mmHg · Final MAP {{ .ActiveOperation.ROSCClearance.FinalMAPMmHg }} mmHg · Vet License {{ .ActiveOperation.ROSCClearance.VetLicense }} — {{ .ActiveOperation.ROSCClearance.Summary }}
+      {{ else }}
+      ✅ ROSC ACHIEVED &amp; NORMOCAPNIC PCA CLEARANCE VERIFIED
+      {{ end }}
+    </div>
+
+    <div class="trust-cockpit-grid cpr-cockpit-grid">
+      <!-- Left Column: Intake Form & Active Operation ALS Protocol Plan / 2-Min Cycle Check / ROSC Clearance Forms -->
+      <section class="glass-card trust-panel" id="cpr-forms-panel" aria-labelledby="heading-cpr-intake">
+        <div class="trust-panel-header">
+          <h2 id="heading-cpr-intake">1. RECOVER Cardiopulmonary Arrest BLS/ALS Intake</h2>
+          <span class="status-pill status-pill-staged">110 BPM · 10 Breaths/Min · EtCO2 &gt; 15 mmHg</span>
+        </div>
+
+        <div id="cpr-error-banner" class="cpr-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="create-cpr-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-incident-id">Incident ID</label>
+              <input type="text" id="create-incident-id" name="incident_id" class="form-control" value="INC-CPR-9944" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pet-name">Pet Name</label>
+              <input type="text" id="create-pet-name" name="pet_name" class="form-control" value="Buster" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-species">Thoracic Conformation &amp; Pump Mechanism</label>
+              <select id="create-species" name="species" class="form-control" required>
+                <option value="CANINE_ROUND_CHEST_CARDIAC_PUMP" selected>CANINE_ROUND_CHEST_CARDIAC_PUMP (Round-Chest Dog · Widest Part of Thorax Lateral Recumbency)</option>
+                <option value="CANINE_KEEL_CHEST_THORACIC_PUMP">CANINE_KEEL_CHEST_THORACIC_PUMP (Keel-Chest Deep/Narrow Dog · Directly Over Heart 4th–6th ICS)</option>
+                <option value="CANINE_BARREL_CHEST_SUPINE">CANINE_BARREL_CHEST_SUPINE (Barrel-Chest Bulldog/Pug · Sternal Supine Compression)</option>
+                <option value="FELINE_CIRCUMFERENTIAL_CARDIAC">FELINE_CIRCUMFERENTIAL_CARDIAC (Feline / Small Dog · One-Hand Circumferential Cardiac)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-breed">Breed</label>
+              <input type="text" id="create-breed" name="breed" class="form-control" value="Golden Retriever">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-weight-kg">Weight (kg)</label>
+              <input type="number" id="create-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="28.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-arrest-rhythm">Arrest ECG Rhythm</label>
+              <select id="create-arrest-rhythm" name="arrest_rhythm" class="form-control" required>
+                <option value="VFIB_PULSELESS_VT_SHOCKABLE" selected>VFIB_PULSELESS_VT_SHOCKABLE (Ventricular Fibrillation / Pulseless VT — Shockable)</option>
+                <option value="ASYSTOLE_PEA_NON_SHOCKABLE">ASYSTOLE_PEA_NON_SHOCKABLE (Asystole / Pulseless Electrical Activity — Non-Shockable)</option>
+                <option value="VAGAL_BRADYCARDIC_ARREST">VAGAL_BRADYCARDIC_ARREST (High-Vagal / Bradycardic CPA Arrest)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-etco2-mmhg">End-Tidal CO2 EtCO2 (mmHg)</label>
+              <input type="number" id="create-etco2-mmhg" name="end_tidal_co2_mmhg" class="form-control" min="0.0" max="100.0" step="0.5" value="12.5" required>
+            </div>
+            <div class="form-group">
+              <label for="create-cycles-completed">2-Minute Compression Cycles Completed</label>
+              <input type="number" id="create-cycles-completed" name="compression_cycles_completed" class="form-control" min="0" max="30" step="1" value="1" required>
+            </div>
+          </div>
+
+          <div class="cpr-checkbox-group">
+            <label class="cpr-checkbox-item">
+              <input type="checkbox" id="create-reversible-present" name="reversible_opioid_alpha2_present" checked>
+              <span>Reversible Opioid, Alpha-2 Agonist, or Benzodiazepine Administered (Indicate Immediate Naloxone / Atipamezole / Flumazenil)</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-create-cpr-op" class="btn btn-primary">Create RECOVER CPR Operation</button>
+        </form>
+
+        <hr class="cpr-divider">
+
+        <!-- Stage RECOVER ALS Protocol Plan Form -->
+        <div class="trust-subsection" id="stage-plan-section">
+          <h3 id="heading-stage-plan">2. Stage RECOVER 2-Min Cycle Low-Dose Epinephrine, Atropine &amp; Biphasic Defib Plan</h3>
+          <form id="stage-plan-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-weight-kg">Weight (kg)</label>
+                <input type="number" id="stage-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.WeightKg }}{{ else }}30.0{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-species">Thoracic Conformation</label>
+                <select id="stage-species" name="species" class="form-control" required>
+                  <option value="CANINE_KEEL_CHEST_THORACIC_PUMP">CANINE_KEEL_CHEST_THORACIC_PUMP (Keel-Chest 4th–6th ICS)</option>
+                  <option value="CANINE_ROUND_CHEST_CARDIAC_PUMP">CANINE_ROUND_CHEST_CARDIAC_PUMP (Round-Chest Widest Thorax)</option>
+                  <option value="CANINE_BARREL_CHEST_SUPINE">CANINE_BARREL_CHEST_SUPINE (Barrel-Chest Sternal Supine)</option>
+                  <option value="FELINE_CIRCUMFERENTIAL_CARDIAC">FELINE_CIRCUMFERENTIAL_CARDIAC (Feline Circumferential Cardiac)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-arrest-rhythm">Arrest ECG Rhythm</label>
+                <select id="stage-arrest-rhythm" name="arrest_rhythm" class="form-control" required>
+                  <option value="VFIB_PULSELESS_VT_SHOCKABLE">VFIB_PULSELESS_VT_SHOCKABLE (Shockable VFib/pVT)</option>
+                  <option value="ASYSTOLE_PEA_NON_SHOCKABLE">ASYSTOLE_PEA_NON_SHOCKABLE (Non-Shockable Asystole/PEA)</option>
+                  <option value="VAGAL_BRADYCARDIC_ARREST">VAGAL_BRADYCARDIC_ARREST (Vagal Bradycardic Arrest)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="stage-etco2-mmhg">End-Tidal CO2 EtCO2 (mmHg)</label>
+                <input type="number" id="stage-etco2-mmhg" name="end_tidal_co2_mmhg" class="form-control" min="0.0" max="100.0" step="0.5" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.EndTidalCO2MmHg }}{{ else }}11.0{{ end }}" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-cycles-completed">2-Minute Cycles Completed</label>
+                <input type="number" id="stage-cycles-completed" name="compression_cycles_completed" class="form-control" min="0" max="30" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.CompressionCyclesCompleted }}{{ else }}1{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label class="cpr-checkbox-item" for="stage-reversible-present">
+                  <input type="checkbox" id="stage-reversible-present" name="reversible_opioid_alpha2_present" {{ if and .ActiveOperation .ActiveOperation.PatientProfile.ReversibleOpioidAlpha2Present }}checked{{ end }}>
+                  <span>Naloxone / Atipamezole Reversal Indicated</span>
+                </label>
+              </div>
+            </div>
+            <button type="submit" id="btn-stage-plan" class="btn btn-secondary">⚡ Stage RECOVER 2-Min ALS &amp; Defib Plan</button>
+          </form>
+        </div>
+
+        <hr class="cpr-divider">
+
+        <!-- 2-Minute Cycle Check Form -->
+        <div class="trust-subsection" id="cycle-check-section">
+          <h3 id="heading-cycle-check">3. Record 2-Minute Uninterrupted BLS Cycle, EtCO2 &amp; Compressor Rotation Check</h3>
+          <form id="cycle-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-cycle-number">Cycle Number</label>
+                <input type="number" id="check-cycle-number" name="cycle_number" class="form-control" min="1" max="30" step="1" value="2" required>
+              </div>
+              <div class="form-group">
+                <label for="check-etco2-mmhg">End-Tidal CO2 EtCO2 (mmHg)</label>
+                <input type="number" id="check-etco2-mmhg" name="end_tidal_co2_mmhg" class="form-control" min="0.0" max="100.0" step="0.5" value="22.5" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-rhythm-pause">ECG Rhythm at 2-Min Pause</label>
+                <input type="text" id="check-rhythm-pause" name="rhythm_at_2_min_pause" class="form-control" value="VFIB_PULSELESS_VT_SHOCKABLE" required>
+              </div>
+              <div class="form-group">
+                <label for="check-pause-seconds">Rhythm Check Pause Duration (sec, &le; 10s)</label>
+                <input type="number" id="check-pause-seconds" name="pause_duration_seconds" class="form-control" min="1" max="10" step="1" value="6" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-callsign">Clinician Callsign</label>
+                <input type="text" id="check-callsign" name="clinician_callsign" class="form-control" value="DR-RECOVER-01" required>
+              </div>
+              <div class="form-group">
+                <label for="check-notes">2-Min Cycle Capnography &amp; Defibrillation Notes</label>
+                <input type="text" id="check-notes" name="notes" class="form-control" value="Cycle 2 completed with compressor rotation; EtCO2 improved from 11.0 to 22.5 mmHg (> 15 mmHg target); 60 J biphasic shock delivered with <= 6s pause.">
+              </div>
+            </div>
+            <div class="cpr-checkbox-group">
+              <label class="cpr-checkbox-item">
+                <input type="checkbox" id="check-compressor-rotated" name="compressor_rotated" checked>
+                <span>Compressor Rotated at 2-Minute Cycle Boundary to Prevent Compressor Fatigue</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-record-cycle-check" class="btn btn-secondary">🩺 Log 2-Minute Cycle &amp; EtCO2 Check</button>
+          </form>
+        </div>
+
+        <hr class="cpr-divider">
+
+        <!-- ROSC Discharge Clearance Form -->
+        <div class="trust-subsection" id="rosc-clearance-section">
+          <h3 id="heading-rosc-clearance">4. Issue Sustained ROSC &amp; Normocapnic Post-Cardiac Arrest (PCA) Clearance</h3>
+          <form id="rosc-clearance-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-rosc-minutes">Sustained ROSC Duration (min, &ge; 20m)</label>
+                <input type="number" id="clearance-rosc-minutes" name="sustained_rosc_minutes" class="form-control" min="20" max="1440" step="1" value="30" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-final-etco2">Final Normocapnic EtCO2 (mmHg, 35–45)</label>
+                <input type="number" id="clearance-final-etco2" name="final_etco2_mmhg" class="form-control" min="35.0" max="45.0" step="0.5" value="39.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-final-map">Final Normotensive MAP (mmHg, 80–120)</label>
+                <input type="number" id="clearance-final-map" name="final_map_mmhg" class="form-control" min="80" max="120" step="1" value="92" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-vet-license">Attending Veterinarian License</label>
+                <input type="text" id="clearance-vet-license" name="vet_license" class="form-control" value="VET-RECOVER-99410" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="clearance-summary">Post-Cardiac Arrest Care (PCA) Neuroprotection &amp; Hemodynamic Summary</label>
+              <input type="text" id="clearance-summary" name="summary" class="form-control" value="Sustained ROSC 30 min after biphasic defibrillation and low-dose Epinephrine; normocapnic EtCO2 39.0 mmHg, MAP 92 mmHg, SpO2 titrated 94-98% avoiding hyperoxia.">
+            </div>
+            <div class="cpr-checkbox-group">
+              <label class="cpr-checkbox-item">
+                <input type="checkbox" id="clearance-spo2-titrated" name="spo2_titrated_94_to_98_no_hyperoxia" checked>
+                <span>FiO2 Weaned to Target SpO2 94–98% (Avoiding 100% FiO2 Hyperoxic Free-Radical Reperfusion Injury)</span>
+              </label>
+              <label class="cpr-checkbox-item">
+                <input type="checkbox" id="clearance-hypothermia-maintained" name="permissive_hypothermia_or_normothermia_maintained" checked>
+                <span>Permissive Mild Hypothermia (36–37°C) or Strict Normothermia Maintained (Zero Rapid Active Rewarming &gt; 0.5°C/hr)</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-issue-rosc-clearance" class="btn btn-primary">🛡️ Issue Sustained ROSC &amp; PCA Clearance</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Queue -->
+      <section class="glass-card trust-panel" id="cpr-ops-panel" aria-labelledby="heading-cpr-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-cpr-ops">Active RECOVER CPR &amp; Defibrillation Operations</h2>
+          <span id="cpr-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col cpr-filter-bar" role="region" aria-label="Filter RECOVER CPR Operations">
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="CARDIOPULMONARY_ARREST_BLS_ALS_CRITICAL">CARDIOPULMONARY_ARREST_BLS_ALS_CRITICAL</option>
+              <option value="RECOVER_2MIN_CYCLE_EPI_DEFIB_STAGED">RECOVER_2MIN_CYCLE_EPI_DEFIB_STAGED</option>
+              <option value="ROSC_ACHIEVED_NORMOCAPNIC_PCA_STABLE">ROSC_ACHIEVED_NORMOCAPNIC_PCA_STABLE</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-species">Filter by Thoracic Conformation</label>
+            <select id="filter-species" class="form-control">
+              <option value="">All Thoracic Conformations</option>
+              <option value="CANINE_ROUND_CHEST_CARDIAC_PUMP">CANINE_ROUND_CHEST_CARDIAC_PUMP</option>
+              <option value="CANINE_KEEL_CHEST_THORACIC_PUMP">CANINE_KEEL_CHEST_THORACIC_PUMP</option>
+              <option value="CANINE_BARREL_CHEST_SUPINE">CANINE_BARREL_CHEST_SUPINE</option>
+              <option value="FELINE_CIRCUMFERENTIAL_CARDIAC">FELINE_CIRCUMFERENTIAL_CARDIAC</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="cpr-active-workspace" role="region" aria-label="Active RECOVER CPR Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="cpr-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-pet-title">Active Workspace: {{ $active.PetName }} ({{ $active.PatientProfile.Species }}{{ if $active.PatientProfile.Breed }} · {{ $active.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $active.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id" id="workspace-op-code">{{ $active.ID }} · {{ $active.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species" id="workspace-species-pill">{{ $active.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $active.Status) "CARDIOPULMONARY_ARREST_BLS_ALS_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $active.Status) "RECOVER_2MIN_CYCLE_EPI_DEFIB_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}" id="workspace-status-pill">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="cpr-vitals-summary" id="workspace-vitals-summary">
+              <span><strong>Arrest Rhythm:</strong> {{ $active.PatientProfile.ArrestRhythm }}</span>
+              <span><strong>EtCO2:</strong> {{ printf "%.1f" $active.PatientProfile.EndTidalCO2MmHg }} mmHg</span>
+              <span><strong>2-Min Cycles:</strong> {{ $active.PatientProfile.CompressionCyclesCompleted }}</span>
+              <span><strong>Reversible Agent:</strong> {{ if $active.PatientProfile.ReversibleOpioidAlpha2Present }}YES (Naloxone/Atipamezole){{ else }}NO{{ end }}</span>
+            </div>
+
+            {{ if $active.ALSProtocolPlan }}
+            <div class="cpr-plan-box" id="workspace-plan-box">
+              <h4>Calculated RECOVER BLS/ALS Compression, Ventilation, Low-Dose Epinephrine &amp; Defibrillation Plan</h4>
+              <div class="cpr-doses-grid">
+                <div><strong>Hand Placement:</strong> <span id="plan-hand-placement">{{ $active.ALSProtocolPlan.HandPlacementTechnique }}</span></div>
+                <div><strong>Target Compression Rate:</strong> <span id="plan-compression-rate">{{ $active.ALSProtocolPlan.TargetCompressionRateBpm }} bpm</span></div>
+                <div><strong>Target Ventilation Rate:</strong> <span id="plan-ventilation-rate">{{ $active.ALSProtocolPlan.TargetVentilationRateBpm }} breaths/min</span></div>
+                <div><strong>Low-Dose Epinephrine (0.01 mg/kg):</strong> <span id="plan-epi-low-dose">{{ printf "%.2f" $active.ALSProtocolPlan.LowDoseEpinephrine001MgKgMg }} mg IV/IO</span></div>
+                <div><strong>Atropine (0.04 mg/kg):</strong> <span id="plan-atropine-dose">{{ printf "%.2f" $active.ALSProtocolPlan.Atropine004MgKgDoseMg }} mg IV/IO</span></div>
+                <div><strong>Biphasic Defibrillation:</strong> <span id="plan-biphasic-defib">{{ printf "%.1f" $active.ALSProtocolPlan.BiphasicDefibJoules }} J</span></div>
+                <div><strong>Amiodarone (5.0 mg/kg):</strong> <span id="plan-amiodarone-dose">{{ printf "%.1f" $active.ALSProtocolPlan.Amiodarone5MgKgDoseMg }} mg IV/IO</span></div>
+                <div><strong>Anti-Hyperventilation / q3–5m Epi Guard:</strong> <span id="plan-epi-vent-guard">{{ if $active.ALSProtocolPlan.ZeroHyperventilationEveryOtherCycleEpiGuard }}ENFORCED{{ else }}OFF{{ end }}</span></div>
+              </div>
+              <p class="cpr-rationale-text" id="workspace-clinical-rationale">{{ $active.ALSProtocolPlan.ClinicalRationale }}</p>
+            </div>
+            {{ end }}
+
+            <div class="cpr-cycle-checks-box">
+              <h4>2-Minute BLS/ALS Compression &amp; Capnography EtCO2 Cycle Checks (<span id="workspace-checks-count">{{ len $active.CycleChecks }}</span>)</h4>
+              <ul id="cycle-checks-list" class="cpr-checks-list">
+                {{ range $chk := $active.CycleChecks }}
+                <li class="cpr-check-item">
+                  <strong>Cycle #{{ $chk.CycleNumber }} ({{ $chk.ClinicianCallsign }})</strong> · EtCO2 {{ printf "%.1f" $chk.EndTidalCO2MmHg }} mmHg · Rhythm {{ $chk.RhythmAt2MinPause }} · Pause {{ $chk.PauseDurationSeconds }}s · Rotated: {{ if $chk.CompressorRotated }}YES{{ else }}NO{{ end }} — {{ $chk.Notes }}
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="cpr-operations-list" class="trust-screenings-list cpr-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card cpr-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-species="{{ $op.PatientProfile.Species }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.PatientProfile.Species }}{{ if $op.PatientProfile.Breed }} · {{ $op.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $op.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species">{{ $op.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $op.Status) "CARDIOPULMONARY_ARREST_BLS_ALS_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $op.Status) "RECOVER_2MIN_CYCLE_EPI_DEFIB_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row cpr-metrics-row">
+              <span class="status-pill status-pill-species">Rhythm: {{ $op.PatientProfile.ArrestRhythm }} • EtCO2: {{ printf "%.1f" $op.PatientProfile.EndTidalCO2MmHg }} mmHg • Cycles: {{ $op.PatientProfile.CompressionCyclesCompleted }} • Reversible: {{ if $op.PatientProfile.ReversibleOpioidAlpha2Present }}YES{{ else }}NO{{ end }}</span>
+            </div>
+
+            {{ if $op.HyperventilationHighDoseEpiAlert }}
+            <div class="cpr-alert-banner">
+              ⚠️ RECOVER BLS/ALS GUARD (EtCO2 {{ printf "%.1f" $op.PatientProfile.EndTidalCO2MmHg }} mmHg · {{ $op.PatientProfile.ArrestRhythm }} · Cycle {{ $op.PatientProfile.CompressionCyclesCompleted }}): {{ if $op.ALSProtocolPlan }}{{ $op.ALSProtocolPlan.RecoverPitfallAlert }}{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if $op.ROSCClearance }}
+            <div class="cpr-clearance-banner">
+              ✅ ROSC ACHIEVED &amp; NORMOCAPNIC PCA STABLE ({{ $op.ROSCClearance.VetLicense }}): Sustained ROSC {{ $op.ROSCClearance.SustainedROSCMinutes }} min · Final EtCO2 {{ printf "%.1f" $op.ROSCClearance.FinalEtCO2MmHg }} mmHg · Final MAP {{ $op.ROSCClearance.FinalMAPMmHg }} mmHg
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary cpr-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select Operation ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="cpr-ops-empty-msg">No RECOVER Cardiopulmonary Resuscitation triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/recover-cpr-triage.js" defer></script>
+</body>
+</html>

@@ -53,6 +53,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/pneumothorax"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/ratelimit"
+	"github.com/scottdensmore/petspotr/pkg/recovercpr"
 	"github.com/scottdensmore/petspotr/pkg/reptileectotherm"
 	"github.com/scottdensmore/petspotr/pkg/scoring"
 	"github.com/scottdensmore/petspotr/pkg/septicperitonitis"
@@ -128,6 +129,7 @@ type Server struct {
 	tamponadeService          *pericardialtamponade.TamponadeService
 	pneumothoraxService       *pneumothorax.PneumothoraxService
 	anaphylaxisService        *anaphylaxishalo.AnaphylaxisService
+	recoverService            *recovercpr.RecoverService
 	handler                   http.Handler
 }
 
@@ -313,6 +315,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		addisonianService:         addisoniancrisis.NewAddisonianService(),
 		pneumothoraxService:       pneumothorax.NewPneumothoraxService(),
 		anaphylaxisService:        anaphylaxishalo.NewAnaphylaxisService(),
+		recoverService:            recovercpr.NewRecoverService(),
 		tamponadeService:          pericardialtamponade.NewTamponadeService(),
 		imhaService:               imhathrombosis.NewIMHAService(),
 		peritonitisService:        septicperitonitis.NewPeritonitisService(),
@@ -660,6 +663,8 @@ func (s *Server) routes() {
 	s.registerPneumothoraxRoutes()
 	// Acute Anaphylaxis, Hemoabdomen Halo Sign (Gallbladder Wall Edema), Epinephrine IM/CRI & Venous Pool Resuscitation Cockpit routes (Milestone 21.2)
 	s.registerAnaphylaxisHaloRoutes()
+	// Cardiopulmonary Resuscitation (RECOVER Guidelines), Open/Closed-Chest Compression, EtCO2 > 15 mmHg & Defibrillation Cockpit routes (Milestone 22.1)
+	s.registerRecoverCPRRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
