@@ -41,6 +41,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/dystociaeclampsia"
 	"github.com/scottdensmore/petspotr/pkg/envenomationtoxin"
 	"github.com/scottdensmore/petspotr/pkg/fatethrombus"
+	"github.com/scottdensmore/petspotr/pkg/fipgs441524"
 	"github.com/scottdensmore/petspotr/pkg/gdvbloat"
 	"github.com/scottdensmore/petspotr/pkg/hazmatdecon"
 	"github.com/scottdensmore/petspotr/pkg/hemoabdomen"
@@ -156,6 +157,7 @@ type Server struct {
 	megaService               *megaesophagusfb.MegaesophagusService
 	orthoService              *polytraumaortho.OrthoService
 	ncpeService               *ncpeelectrocution.NCPEService
+	fipService                *fipgs441524.FIPService
 	handler                   http.Handler
 }
 
@@ -729,6 +731,8 @@ func (s *Server) routes() {
 	s.registerPolytraumaOrthopedicRoutes()
 	// Acute Non-Cardiogenic Pulmonary Edema (NCPE), Electrocution (Oral Cord Bite), Upper Airway Obstruction / Post-Ictal Neurogenic Edema, Low-Dose Furosemide Controversy & CPAP/PEEP Mechanical Ventilation Cockpit routes (Milestone 24.3)
 	s.registerNCPEElectrocutionRoutes()
+	// Acute Feline Infectious Peritonitis (FIP — Effusive Wet & Non-Effusive Dry/Ocular/Neurological), Rivalta Test, Albumin:Globulin Ratio < 0.4, GS-441524 / Remdesivir Nucleoside Analog & Blood-Brain/Ocular Barrier Dosing Cockpit routes (Milestone 24.4)
+	s.registerFIPGS441524Routes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Feline Infectious Peritonitis (FIP — Effusive Wet &amp; Non-Effusive Dry/Ocular/Neurological), Rivalta Test, Albumin:Globulin Ratio &lt; 0.4, GS-441524 / Remdesivir Nucleoside Analog &amp; Blood-Brain/Ocular Barrier Dosing Cockpit.">
+  <title>Acute Feline Infectious Peritonitis (FIP — Effusive Wet &amp; Non-Effusive Dry/Ocular/Neurological), Rivalta Test, Albumin:Globulin Ratio &lt; 0.4, GS-441524 / Remdesivir Nucleoside Analog &amp; Blood-Brain/Ocular Barrier Dosing Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#fip-gs441524-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/oncologic-tls-triage" class="nav-link nav-link-emergency" id="nav-oncologic-tls-triage">🧬 Oncologic TLS ICU</a></li>
+          <li><a href="/fip-gs441524-triage" class="nav-link active nav-link-emergency" id="nav-fip-gs441524-triage">🐈 FIP &amp; GS-441524 Antiviral ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="fip-gs441524-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header fip-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🐈 ACUTE FELINE INFECTIOUS PERITONITIS (FIP) &amp; GS-441524 / REMDESIVIR 84-DAY ANTIVIRAL COCKPIT</span>
+        </div>
+        <h1>Acute Feline Infectious Peritonitis (FIP — Effusive Wet &amp; Non-Effusive Dry/Ocular/Neurological), Rivalta Test, Albumin:Globulin Ratio &lt; 0.4, GS-441524 / Remdesivir Nucleoside Analog &amp; Blood-Brain/Ocular Barrier Dosing Cockpit</h1>
+        <p class="text-secondary">
+          Mutated Macrophage-Tropic Feline Coronavirus (FCoV) Pyogranulomatous Vasculitis Triage, Rivalta Acetic Acid Test &amp; Albumin:Globulin (A:G) Ratio &lt; 0.40 Diagnostic Stratification, 84-Day (12-Week) GS-441524 / Remdesivir Nucleoside Analog Protocol with Blood-Brain &amp; Ocular Barrier Escalation (6–10 vs. 15 vs. 20 mg/kg/day Split q12h), Strict Contraindication of Complete Abdominal Ascites Drainage &amp; Weekly Weight-Adjusted Dose Up-Titration.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid fip-kpi-grid" aria-label="FIP &amp; GS-441524 Antiviral KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total FIP Antiviral Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Acute Effusive / Neuro FIP Triage</span>
+        <strong class="kpi-value" id="kpi-acute-triage">{{ .AcuteFIPTriageCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">GS-441524 / Remdesivir 84-Day Staged</span>
+        <strong class="kpi-value" id="kpi-gs441524-staged">{{ .GS441524StagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">A:G Normalized 84-Day Cured Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-cured">{{ .Cleared84DayCuredCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Neuro / Ocular Barrier High-Dose (&ge;15 mg/kg)</span>
+        <strong class="kpi-value" id="kpi-neuro-ocular-count">{{ .NeuroOcularHighDoseCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Diagnostic A:G Ratio &lt; 0.40</span>
+        <strong class="kpi-value" id="kpi-ag-under-04-count">{{ .AGRatioUnder04Count }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="fip-live-status" class="humane-traps-live-status fip-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Acute Feline Infectious Peritonitis (FIP) &amp; GS-441524 84-Day Antiviral ICU operations.
+    </div>
+
+    <!-- Global FIP Rivalta, A:G Ratio < 0.4, GS-441524 Barrier Dosing, Ascites Drainage Contraindication & L-Lysine/Enrofloxacin Alert Banner -->
+    <div id="fip-alert-banner" class="fip-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL FIP &amp; GS-441524 ANTIVIRAL GUARD: (1) Rivalta Test Positive + Albumin:Globulin (A:G) Ratio &lt; 0.4 + Straw-Colored Proteinaceous Exudate is highly diagnostic for FIP; (2) Initiate GS-441524 / Remdesivir Nucleoside Analog 84-Day (12-Week) Protocol with Mandatory Phenotype Escalation (Effusive 6–10 mg/kg/day, Ocular 15 mg/kg/day, Neurological 20 mg/kg/day Split q12h for Blood-Brain/Ocular Barrier Penetration); (3) STRICT CONTRAINDICATION of Complete Abdominal Ascites Drainage (Inducing Acute Third-Space Hypoproteinemic Shock — Perform Immediate Thoracocentesis Only for Pleural Effusion Dyspnea or &lt; 20–30% Ascites Relief); (4) Weekly Weight-Adjusted Dose Up-Titration (Never Reduce Dose); (5) Avoid L-Lysine (Arginine Antagonism) &amp; Enrofloxacin (Feline Retinal Degeneration).
+    </div>
+
+    <!-- Global 84-Day Antiviral Cure & A:G Ratio Normalization Clearance Banner -->
+    <div id="fip-clearance-banner" class="fip-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "AG_RATIO_NORMALIZED_84DAY_CURED_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ 84-DAY GS-441524 ANTIVIRAL CURE &amp; A:G RATIO NORMALIZATION CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "AG_RATIO_NORMALIZED_84DAY_CURED_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Discharged by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting 84-day nucleoside antiviral completion and A:G ratio normalization (&gt; 0.60).{{ end }}</span>
+    </div>
+
+    <div id="fip-error-banner" class="fip-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card fip-toolbar-card" aria-label="FIP &amp; GS-441524 Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col fip-toolbar-row">
+        <div class="form-group">
+          <label for="fip-status-filter">Filter by FIP &amp; GS-441524 Antiviral Status</label>
+          <select id="fip-status-filter" class="form-control">
+            <option value="">All FIP &amp; GS-441524 Antiviral Statuses</option>
+            <option value="ACUTE_EFFUSIVE_NEURO_FIP_TRIAGE">ACUTE_EFFUSIVE_NEURO_FIP_TRIAGE (Acute Effusive / Neuro FIP Triage)</option>
+            <option value="GS441524_REMDESIVIR_84DAY_STAGED">GS441524_REMDESIVIR_84DAY_STAGED (GS-441524 / Remdesivir 84-Day Staged)</option>
+            <option value="AG_RATIO_NORMALIZED_84DAY_CURED_CLEARED">AG_RATIO_NORMALIZED_84DAY_CURED_CLEARED (A:G Ratio Normalized 84-Day Cured Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group fip-sse-controls">
+          <span class="kpi-label">Live ICU Telemetry Stream</span>
+          <div class="fip-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live FIP GS-441524 SSE Stream</button>
+            <span id="sse-status-badge" class="fip-status-badge fip-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid fip-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="fip-operations-panel" aria-labelledby="heading-fip-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-fip-ops">Active FIP &amp; GS-441524 Antiviral Operations</h2>
+          <span id="fip-ops-count-badge" class="fip-status-badge fip-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="fip-operations-grid" class="trust-screenings-list fip-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card fip-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-phenotype="{{ $op.Phenotype }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="fip-status-badge {{ if eq (printf "%s" $op.Status) "ACUTE_EFFUSIVE_NEURO_FIP_TRIAGE" }}fip-status-critical{{ else if eq (printf "%s" $op.Status) "GS441524_REMDESIVIR_84DAY_STAGED" }}fip-status-staged{{ else }}fip-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="fip-card-metrics">
+              <span><strong>Phenotype:</strong> {{ $op.Phenotype }}</span>
+              <span><strong>Day:</strong> {{ $op.TreatmentDay }} / 84</span>
+              <span><strong>A:G Ratio:</strong> {{ printf "%.2f" $op.AlbuminGlobulinRatio }}</span>
+              <span><strong>Bilirubin:</strong> {{ printf "%.1f" $op.TotalBilirubinMgDL }} mg/dL</span>
+              <span><strong>HCT:</strong> {{ printf "%.1f" $op.HematocritPercent }}%</span>
+              <span><strong>GS-441524:</strong> {{ printf "%.1f" $op.DailyGS441524MgKg }} mg/kg/d</span>
+              <span><strong>Rivalta:</strong> {{ if $op.RivaltaTestPositive }}POSITIVE{{ else }}Negative{{ end }}</span>
+              <span><strong>Pleural Dyspnea:</strong> {{ if $op.PleuralEffusionDyspneaPresent }}YES (Thoracocentesis){{ else }}No{{ end }}</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary fip-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open FIP Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="fip-ops-empty-msg">No FIP &amp; GS-441524 operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="fip-divider">
+
+        <!-- Admit New FIP Patient Form -->
+        <div class="trust-subsection" id="create-fip-section">
+          <h3 id="heading-create-fip">Admit New Feline Infectious Peritonitis (FIP) Patient</h3>
+          <form id="create-fip-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-FIP-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Mochi" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species-input">Species</label>
+                <select id="create-species-input" name="species" class="form-control" required>
+                  <option value="Feline" selected>Feline</option>
+                  <option value="Exotic Felid">Exotic Felid</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed-input">Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="Scottish Fold" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.3" max="20.0" step="0.1" value="2.8" required>
+              </div>
+              <div class="form-group">
+                <label for="create-phenotype-input">FIP Clinical Phenotype</label>
+                <select id="create-phenotype-input" name="phenotype" class="form-control" required>
+                  <option value="EFFUSIVE_CAVITARY_PLEURAL_ASCITES_FIP" selected>EFFUSIVE_CAVITARY_PLEURAL_ASCITES_FIP (Effusive Wet Cavitary — Ascites / Pleural)</option>
+                  <option value="NEUROLOGICAL_ATAXIA_SEIZURE_CNS_FIP">NEUROLOGICAL_ATAXIA_SEIZURE_CNS_FIP (Neurological CNS — Ataxia / Seizures / 20 mg/kg)</option>
+                  <option value="OCULAR_ANTERIOR_UVEITIS_KERATIC_FIP">OCULAR_ANTERIOR_UVEITIS_KERATIC_FIP (Ocular Anterior Uveitis / Keratic / 15 mg/kg)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-treatment-day-input">Treatment Day (1–84)</label>
+                <input type="number" id="create-treatment-day-input" name="treatment_day" class="form-control" min="1" max="120" step="1" value="1" required>
+              </div>
+              <div class="form-group">
+                <label for="create-ag-ratio-input">Albumin:Globulin (A:G) Ratio</label>
+                <input type="number" id="create-ag-ratio-input" name="albumin_globulin_ratio" class="form-control" min="0.05" max="2.50" step="0.01" value="0.32" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-bilirubin-input">Total Bilirubin (mg/dL)</label>
+                <input type="number" id="create-bilirubin-input" name="total_bilirubin_mg_dl" class="form-control" min="0.0" max="25.0" step="0.1" value="2.1" required>
+              </div>
+              <div class="form-group">
+                <label for="create-hct-input">Hematocrit HCT (%)</label>
+                <input type="number" id="create-hct-input" name="hematocrit_percent" class="form-control" min="5.0" max="65.0" step="0.5" value="23.5" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-gs-dose-input">Daily GS-441524 Dose (mg/kg/day)</label>
+                <input type="number" id="create-gs-dose-input" name="daily_gs441524_mg_kg" class="form-control" min="4.0" max="30.0" step="0.5" value="10.0" required>
+              </div>
+              <div class="form-group fip-checkbox-group">
+                <label class="fip-checkbox-item">
+                  <input type="checkbox" id="create-rivalta-checkbox" name="rivalta_test_positive" checked>
+                  <span>Rivalta Acetic Acid Test Positive</span>
+                </label>
+                <label class="fip-checkbox-item">
+                  <input type="checkbox" id="create-pleural-dyspnea-checkbox" name="pleural_effusion_dyspnea_present" checked>
+                  <span>Pleural Effusion Dyspnea Present (Immediate Thoracocentesis)</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" id="create-fip-op-btn" class="btn btn-primary">➕ Admit FIP Patient to GS-441524 Cockpit</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active FIP Workspace & Clinical Staging / Progress Check / Discharge Clearance Forms -->
+      <section class="glass-card trust-panel" id="fip-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="fip-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · Phenotype: <strong id="active-phenotype">{{ $active.Phenotype }}</strong> · GS-441524 Dose: <strong id="active-gs-dose">{{ printf "%.1f" $active.DailyGS441524MgKg }} mg/kg/day</strong> · Rivalta: <strong id="active-rivalta-flag">{{ if $active.RivaltaTestPositive }}POSITIVE{{ else }}NEGATIVE{{ end }}</strong></p>
+          </div>
+          <span id="active-op-status-badge" class="fip-status-badge {{ if eq (printf "%s" $active.Status) "ACUTE_EFFUSIVE_NEURO_FIP_TRIAGE" }}fip-status-critical{{ else if eq (printf "%s" $active.Status) "GS441524_REMDESIVIR_84DAY_STAGED" }}fip-status-staged{{ else }}fip-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- Biomarker & Antiviral Telemetry Bar -->
+        <div class="fip-vitals-summary" id="active-vitals-summary">
+          <div class="fip-vital-chip">
+            <span class="kpi-label">Albumin:Globulin (A:G) Ratio</span>
+            <strong id="active-ag-ratio">{{ printf "%.2f" $active.AlbuminGlobulinRatio }}</strong>
+          </div>
+          <div class="fip-vital-chip">
+            <span class="kpi-label">84-Day Protocol Progress</span>
+            <strong id="active-treatment-day">Day {{ $active.TreatmentDay }} / 84</strong>
+          </div>
+          <div class="fip-vital-chip">
+            <span class="kpi-label">Total Bilirubin</span>
+            <strong id="active-bilirubin">{{ printf "%.1f" $active.TotalBilirubinMgDL }} mg/dL</strong>
+          </div>
+          <div class="fip-vital-chip">
+            <span class="kpi-label">Hematocrit (HCT) / Weight</span>
+            <strong id="active-hct-weight">{{ printf "%.1f" $active.HematocritPercent }}% · {{ printf "%.1f" $active.WeightKg }} kg</strong>
+          </div>
+        </div>
+
+        <!-- Rivalta & Biomarker Assessment Profile Box -->
+        <div class="fip-plan-box" id="active-biomarker-plan-box">
+          <h3>Rivalta Test, Albumin:Globulin Ratio &amp; Cavitary/Barrier Pathophysiology Profile</h3>
+          <div class="fip-plan-grid">
+            <div><strong>Phenotype Pathophysiology:</strong> <span id="plan-phenotype-patho">{{ $active.BiomarkerPlan.PhenotypePathophysiology }}</span></div>
+            <div><strong>Rivalta &amp; A:G Ratio Interpretation:</strong> <span id="plan-rivalta-ag">{{ $active.BiomarkerPlan.RivaltaAGRatioInterpretation }}</span></div>
+            <div><strong>AGP &amp; FCoV S-Gene RT-PCR Status:</strong> <span id="plan-agp-pcr">{{ $active.BiomarkerPlan.Alpha1AcidGlycoproteinFCoVPCR }}</span></div>
+            <div><strong>Complete Ascites Drainage Contraindication:</strong> <span id="plan-ascites-guard">{{ $active.BiomarkerPlan.CompleteAscitesDrainageContraindication }}</span></div>
+            <div><strong>Blood-Brain / Ocular Barrier Dose Escalation:</strong> <span id="plan-barrier-escalation">{{ $active.BiomarkerPlan.BarrierPenetrationDoseEscalation }}</span></div>
+            <div><strong>L-Lysine &amp; Enrofloxacin Retinal Toxicity Guard:</strong> <span id="plan-toxicity-warning">{{ $active.BiomarkerPlan.FluoroquinoloneRetinalToxicityWarning }}</span></div>
+          </div>
+        </div>
+
+        <!-- GS-441524 / Remdesivir 84-Day Nucleoside Antiviral Protocol Box -->
+        <div class="fip-plan-box" id="active-antiviral-plan-box">
+          <h3>GS-441524 / Remdesivir 84-Day (12-Week) Nucleoside Antiviral Protocol</h3>
+          <div class="fip-plan-grid">
+            <div><strong>GS-441524 / Remdesivir Dosing:</strong> <span id="plan-gs441524-dosing">{{ $active.AntiviralPlan.GS441524OrRemdesivirDosing }}</span></div>
+            <div><strong>Weekly Weight-Adjusted Dose Up-Titration:</strong> <span id="plan-weight-recalc">{{ $active.AntiviralPlan.WeightAdjustedDoseRecalcNote }}</span></div>
+            <div><strong>Therapeutic Thoracocentesis &amp; Ascites Limit:</strong> <span id="plan-centesis-limit">{{ $active.AntiviralPlan.TherapeuticThoracocentesisLimit }}</span></div>
+            <div><strong>Ocular / CNS Barrier Support:</strong> <span id="plan-ocular-support">{{ $active.AntiviralPlan.OcularTopicalAtropinePredNote }}</span></div>
+            <div><strong>Hepatoprotectant (SAMe/Silybin) &amp; Vitamin B12 Plan:</strong> <span id="plan-hepatoprotectant">{{ $active.AntiviralPlan.HepatoprotectantB12SupportPlan }}</span></div>
+            <div><strong>Day 28 / Day 56 / Day 84 Checkpoint Schedule:</strong> <span id="plan-monitoring-schedule">{{ $active.AntiviralPlan.Day28Day56Day84MonitoringPlan }}</span></div>
+          </div>
+        </div>
+        {{ end }}
+
+        <hr class="fip-divider">
+
+        <!-- 1. Stage 84-Day GS-441524 / Remdesivir Nucleoside Antiviral Protocol Form -->
+        <div class="trust-subsection" id="stage-antiviral-section">
+          <h3>1. Stage 84-Day (12-Week) GS-441524 / Remdesivir Nucleoside Analog Protocol</h3>
+          <form id="stage-antiviral-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="stage-gs441524-dosing-input">GS-441524 / Remdesivir Phenotype-Escalated Dosing Plan (6–10 vs. 15 vs. 20 mg/kg/day)</label>
+              <input
+                type="text"
+                id="stage-gs441524-dosing-input"
+                name="gs441524_or_remdesivir_dosing"
+                class="form-control"
+                value="GS-441524 Nucleoside Analog 10.0 mg/kg/day (or 15 mg/kg/day Ocular / 20 mg/kg/day Split q12h Neurological) for 84 uninterrupted days"
+                required
+              >
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-weight-recalc-input">Weekly Weight-Adjusted Dose Up-Titration (Never Reduce Dose)</label>
+                <input
+                  type="text"
+                  id="stage-weight-recalc-input"
+                  name="weight_adjusted_dose_recalc_note"
+                  class="form-control"
+                  value="Weigh weekly on pediatric scale and recalculate GS-441524 dose upward with weight gain; NEVER reduce daily mg dose"
+                  required
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-centesis-limit-input">Therapeutic Thoracocentesis vs. Abdominal Ascites Limit (&lt; 20–30%)</label>
+                <input
+                  type="text"
+                  id="stage-centesis-limit-input"
+                  name="therapeutic_thoracocentesis_limit"
+                  class="form-control"
+                  value="Immediate thoracocentesis for pleural effusion dyspnea; NEVER perform complete abdominal ascites drainage to avoid hypoproteinemic shock"
+                  required
+                >
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-ocular-support-input">Ocular Uveitis / CNS Barrier Adjunct Support</label>
+                <input
+                  type="text"
+                  id="stage-ocular-support-input"
+                  name="ocular_topical_atropine_pred_note"
+                  class="form-control"
+                  value="Topical Prednisolone Acetate 1% q8h + Atropine 1% ophthalmic for anterior uveitis; Levetiracetam 20 mg/kg q8h if CNS seizures"
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-hepatoprotectant-input">Hepatoprotectant (SAMe/Silybin) &amp; Cobalamin (Vitamin B12) Support</label>
+                <input
+                  type="text"
+                  id="stage-hepatoprotectant-input"
+                  name="hepatoprotectant_b12_support_plan"
+                  class="form-control"
+                  value="Denamarin (SAMe 90 mg + Silybin) PO q24h + Cyanocobalamin (Vitamin B12) 250 µg SC weekly; strictly avoid L-Lysine &amp; Enrofloxacin"
+                >
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="stage-monitoring-plan-input">Day 28, Day 56 &amp; Day 84 Biomarker (A:G Ratio &gt; 0.60, AGP, Bilirubin, HCT) Schedule</label>
+              <input
+                type="text"
+                id="stage-monitoring-plan-input"
+                name="day28_day56_day84_monitoring_plan"
+                class="form-control"
+                value="Serial CBC (HCT %), Chemistry (Albumin, Globulin, A:G Ratio target &gt; 0.60, Total Bilirubin), Serum AGP, and Weekly Weight at Day 28, Day 56 &amp; Day 84"
+              >
+            </div>
+            <button type="submit" id="stage-antiviral-btn" class="btn btn-secondary">💊 Stage 84-Day GS-441524 / Remdesivir Antiviral Protocol</button>
+          </form>
+        </div>
+
+        <hr class="fip-divider">
+
+        <!-- 2. Record 84-Day Antiviral Progress & Biomarker Check Form -->
+        <div class="trust-subsection" id="record-progress-check-section">
+          <h3>2. Record Serial 84-Day Antiviral Progress &amp; Biomarker (Day, Weight, A:G Ratio, Bilirubin, HCT) Check</h3>
+          <form id="record-progress-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-treatment-day-input">Treatment Day (1–84)</label>
+                <input type="number" id="check-treatment-day-input" name="treatment_day" class="form-control" min="1" max="120" step="1" value="84" required>
+              </div>
+              <div class="form-group">
+                <label for="check-weight-input">Updated Weight (kg)</label>
+                <input type="number" id="check-weight-input" name="weight_kg" class="form-control" min="0.3" max="20.0" step="0.1" value="3.5" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-ag-ratio-input">Albumin:Globulin (A:G) Ratio</label>
+                <input type="number" id="check-ag-ratio-input" name="albumin_globulin_ratio" class="form-control" min="0.05" max="2.50" step="0.01" value="0.72" required>
+              </div>
+              <div class="form-group">
+                <label for="check-bilirubin-input">Total Bilirubin (mg/dL)</label>
+                <input type="number" id="check-bilirubin-input" name="total_bilirubin_mg_dl" class="form-control" min="0.0" max="25.0" step="0.1" value="0.2" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-hct-input">Hematocrit HCT (%)</label>
+                <input type="number" id="check-hct-input" name="hematocrit_percent" class="form-control" min="5.0" max="65.0" step="0.5" value="36.5" required>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (Clinician)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Linnea Lindholm, DACVIM (Feline Medicine)" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-note-input">Clinical Antiviral Progress, Effusion Resolution &amp; Dose Up-Titration Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="Day 84 (Week 12) Check: Cavitary effusion completely resolved, weight increased to 3.5 kg, A:G Ratio normalized to 0.72 (&gt; 0.60), Total Bilirubin 0.2 mg/dL, HCT 36.5%." required>
+            </div>
+            <button type="submit" id="record-progress-check-btn" class="btn btn-secondary">🧪 Record 84-Day Antiviral Progress Check</button>
+          </form>
+
+          <div class="fip-checks-box">
+            <h4>Serial 84-Day Antiviral Progress &amp; Biomarker Checks (<span id="progress-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.ProgressChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="progress-checks-list" class="fip-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.ProgressChecks }}
+              <li class="fip-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · Day {{ $chk.TreatmentDay }}/84 · Weight {{ printf "%.1f" $chk.WeightKg }} kg · A:G Ratio {{ printf "%.2f" $chk.AlbuminGlobulinRatio }} · Bilirubin {{ printf "%.1f" $chk.TotalBilirubinMgDL }} mg/dL · HCT {{ printf "%.1f" $chk.HematocritPercent }}% — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="fip-divider">
+
+        <!-- 3. Clear FIP Operation for 84-Day Antiviral Cure & A:G Normalized Discharge Form -->
+        <div class="trust-subsection" id="clear-fip-section">
+          <h3>3. Clear A:G Ratio Normalized &amp; 84-Day GS-441524 Cured Patient for Graduation / Discharge</h3>
+          <form id="clear-fip-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="clear-discharged-by-input">Discharging Feline Internal Medicine Specialist / Criticalist</label>
+              <input type="text" id="clear-discharged-by-input" name="discharged_by" class="form-control" value="Dr. Linnea Lindholm, DACVIM (Feline Medicine)" required>
+            </div>
+            <div class="form-group">
+              <label for="clear-summary-input">84-Day GS-441524 Cure &amp; A:G Ratio Normalization Clearance Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="discharge_summary"
+                class="form-control"
+                value="Completed full 84-day (12-week) GS-441524 nucleoside analog protocol; cavitary effusion resolved, Albumin:Globulin (A:G) Ratio normalized to 0.72 (&gt; 0.60), Total Bilirubin 0.2 mg/dL, HCT 36.5%; cleared as 84-day FIP clinical cure."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-fip-btn" class="btn btn-primary">🛡️ Clear FIP Patient for 84-Day Antiviral Cure Discharge</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/fip-gs441524-triage.js" defer></script>
+</body>
+</html>
