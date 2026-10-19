@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Gastric Dilatation-Volvulus (GDV / Bloat), Splenic Torsion &amp; Trocar Decompression Triage Cockpit.">
+  <title>Gastric Dilatation-Volvulus (GDV / Bloat), Splenic Torsion &amp; Trocar Decompression Triage Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#gdv-bloat-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/hyperbaric-co-triage" class="nav-link nav-link-emergency" id="nav-hyperbaric-co-triage">🫧 Hyperbaric &amp; CO Triage</a></li>
+          <li><a href="/gdv-bloat-triage" class="nav-link active nav-link-emergency" id="nav-gdv-bloat-triage">🐕 GDV &amp; Bloat Triage</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="gdv-bloat-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header gdv-triage-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🐕 GASTRIC DILATATION-VOLVULUS (GDV / BLOAT), SPLENIC TORSION &amp; TROCAR DECOMPRESSION TRIAGE COCKPIT</span>
+        </div>
+        <h1>Gastric Dilatation-Volvulus (GDV / Bloat), Splenic Torsion &amp; Trocar Decompression Triage Cockpit</h1>
+        <p class="text-secondary">
+          Bilateral Cranial Cephalic 14G–16G Shock Resuscitation (Bypassing Occluded Caudal Vena Cava / Saphenous Veins), Percutaneous 14G Trocarization &amp; Pre-Measured Orogastric Lavage, Right-Lateral Radiographic Double-Bubble Confirmation, Continuous ECG Lidocaine VPC Anti-Arrhythmic CRI &amp; Incisional Right Gastropexy.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid gdv-triage-kpi-grid" aria-label="GDV / Bloat, Splenic Torsion &amp; Trocar Decompression KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total GDV &amp; Bloat Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Gastric Necrosis / VPC Shock</span>
+        <strong class="kpi-value" id="kpi-critical-gdv">{{ .CriticalGDVCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Trocar Decompressed &amp; Dual IV Staged</span>
+        <strong class="kpi-value" id="kpi-staged-trocar">{{ .StagedTrocarCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Gastropexy &amp; Sinus Rhythm Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-safe">{{ .ClearedSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="gdv-triage-live-status" class="humane-traps-live-status gdv-triage-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} gastric dilatation-volvulus (GDV / bloat), splenic torsion &amp; trocar decompression triage operations.
+    </div>
+
+    <div class="trust-cockpit-grid gdv-triage-cockpit-grid">
+      <!-- Left Column: Evaluate GDV / Bloat & Splenic Torsion Form -->
+      <section class="glass-card trust-panel" id="gdv-evaluate-panel" aria-labelledby="heading-evaluate-gdv-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-gdv-op">Evaluate GDV / Bloat, Splenic Torsion &amp; Trocar Decompression</h2>
+          <span class="badge badge-gdv-presentation">Cranial Dual IV &amp; 14G Trocar</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Deep-Chested GDV &amp; Splenic Torsion Emergency Scenario Presets</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary gdv-scenario-btn" data-scenario="acute-360-gdv-vpc" id="btn-sim-acute-360-gdv-vpc">
+              🚨 Simulate 360° Acute Pyloric Torsion &amp; VPC Shock (Lactate 8.6 mmol/L · HR 204 bpm · Girth 116 cm)
+            </button>
+            <button type="button" class="btn btn-secondary gdv-scenario-btn" data-scenario="splenic-torsion-hemo" id="btn-sim-splenic-torsion-hemo">
+              🩸 Simulate Splenic Pedicle Torsion &amp; Hemoabdomen (Lactate 6.8 mmol/L · HR 184 bpm · En-Bloc Splenectomy)
+            </button>
+          </div>
+        </div>
+
+        <div id="eval-error-banner" class="gdv-eval-error-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="gdv-eval-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-pet-name">Pet Name</label>
+              <input type="text" id="eval-pet-name" name="pet_name" class="form-control" value="Goliath" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-species">Species / Breed</label>
+              <input type="text" id="eval-species" name="species" class="form-control" value="Dog - German Shepherd" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-weight-kg">Estimated Weight (kg)</label>
+              <input type="number" id="eval-weight-kg" name="weight_kg" class="form-control" min="5.0" max="120.0" step="0.5" value="42.0" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-presentation-type">GDV / Bloat Presentation Type</label>
+              <select id="eval-presentation-type" name="presentation_type" class="form-control" required>
+                <option value="ACUTE_GDV_360_PYLORIC_TORSION" selected>ACUTE_GDV_360_PYLORIC_TORSION (360° Clockwise Pyloric Volvulus &amp; Cardia Occlusion)</option>
+                <option value="PARTIAL_GDV_180_VOLVULUS">PARTIAL_GDV_180_VOLVULUS (180° Dorsal Pyloric Compartmentalization / Double-Bubble)</option>
+                <option value="SIMPLE_GASTRIC_DILATATION_FOOD_BLOAT">SIMPLE_GASTRIC_DILATATION_FOOD_BLOAT (Non-Rotated Gas/Ingesta Gastric Dilatation)</option>
+                <option value="SPLENIC_TORSION_HEMOABDOMEN">SPLENIC_TORSION_HEMOABDOMEN (Gastro-Splenic Ligament Pedicle Torsion &amp; Thrombosis)</option>
+                <option value="POST_EXERCISE_DEEP_CHEST_AEROPHAGIA">POST_EXERCISE_DEEP_CHEST_AEROPHAGIA (Post-Exertional Deep-Chest Aerophagia)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-lactate-mmol">Plasma Lactate (mmol/L)</label>
+              <input type="number" id="eval-lactate-mmol" name="plasma_lactate_mmol_l" class="form-control" min="0.5" max="25.0" step="0.1" value="8.2" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-heart-rate">Heart Rate (bpm)</label>
+              <input type="number" id="eval-heart-rate" name="heart_rate_bpm" class="form-control" min="40" max="280" step="1" value="198" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-girth-cm">Tympanic Abdominal Girth (cm)</label>
+              <input type="number" id="eval-girth-cm" name="tympanic_abdominal_girth_cm" class="form-control" min="30.0" max="180.0" step="0.5" value="104.0" required>
+            </div>
+          </div>
+
+          <div class="gdv-checkbox-group">
+            <label class="gdv-step-item">
+              <input type="checkbox" id="eval-retching" name="non_productive_retching_present" checked>
+              <span>Non-Productive Retching, Hypersalivation &amp; Tympanic Cranial Abdomen</span>
+            </label>
+            <label class="gdv-step-item">
+              <input type="checkbox" id="eval-cranial-iv" name="cranial_cephalic_dual_iv_access" checked>
+              <span>Bilateral Cranial Cephalic / Jugular Large-Bore IV Access Placed (Avoiding Occluded Saphenous/Caudal Vena Cava)</span>
+            </label>
+            <label class="gdv-step-item">
+              <input type="checkbox" id="eval-vpcs" name="ventricular_arrhythmia_vpcs" checked>
+              <span>Ventricular Premature Contractions (VPCs / R-on-T Arrhythmia) on Continuous ECG</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-submit-gdv-eval" class="btn btn-primary">Evaluate GDV / Bloat &amp; Trocar Triage</button>
+        </form>
+      </section>
+
+      <!-- Right Column: Filter Bar, Operations Queue & Active Workspace -->
+      <section class="glass-card trust-panel" id="gdv-ops-panel" aria-labelledby="heading-gdv-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-gdv-ops">Active GDV / Bloat, Splenic Torsion &amp; Trocar Operations</h2>
+          <span id="gdv-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col gdv-filter-bar" role="region" aria-label="Filter GDV Bloat Triage Operations">
+          <div class="form-group">
+            <label for="filter-presentation-type">Filter by Presentation Type</label>
+            <select id="filter-presentation-type" class="form-control">
+              <option value="">All Presentation Types</option>
+              <option value="ACUTE_GDV_360_PYLORIC_TORSION">ACUTE_GDV_360_PYLORIC_TORSION</option>
+              <option value="PARTIAL_GDV_180_VOLVULUS">PARTIAL_GDV_180_VOLVULUS</option>
+              <option value="SIMPLE_GASTRIC_DILATATION_FOOD_BLOAT">SIMPLE_GASTRIC_DILATATION_FOOD_BLOAT</option>
+              <option value="SPLENIC_TORSION_HEMOABDOMEN">SPLENIC_TORSION_HEMOABDOMEN</option>
+              <option value="POST_EXERCISE_DEEP_CHEST_AEROPHAGIA">POST_EXERCISE_DEEP_CHEST_AEROPHAGIA</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="GASTRIC_NECROSIS_VPC_SHOCK_CRITICAL">GASTRIC_NECROSIS_VPC_SHOCK_CRITICAL</option>
+              <option value="TROCAR_DECOMPRESSED_DUAL_IV_STAGED">TROCAR_DECOMPRESSED_DUAL_IV_STAGED</option>
+              <option value="GASTROPEXY_SINUS_RHYTHM_CLEARED">GASTROPEXY_SINUS_RHYTHM_CLEARED</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="gdv-active-workspace" role="region" aria-label="Active GDV Bloat Triage Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="gdv-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">Active Workspace: {{ $active.PetName }} ({{ $active.Species }} · {{ printf "%.1f" $active.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $active.ID }} · {{ $active.PetID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-gdv-presentation">{{ $active.PresentationType }}</span>
+                <span class="badge badge-gdv-status {{ if eq (printf "%s" $active.Status) "GASTRIC_NECROSIS_VPC_SHOCK_CRITICAL" }}badge-gdv-critical{{ else if eq (printf "%s" $active.Status) "TROCAR_DECOMPRESSED_DUAL_IV_STAGED" }}badge-gdv-staged{{ else }}badge-gdv-safe{{ end }}">{{ $active.Status }}</span>
+              </div>
+            </div>
+            <div class="gdv-venacava-alert-banner">
+              ⚠️ {{ $active.CaudalVenaCavaWarningNote }}
+            </div>
+            <div class="gdv-regimen-recommendations">
+              <div><strong>Required Decompression &amp; Resuscitation Regimen:</strong> {{ $active.RequiredDecompressionRegimen }}</div>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="gdv-operations-list" class="trust-screenings-list gdv-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card gdv-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-presentation-type="{{ $op.PresentationType }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-gdv-presentation">{{ $op.PresentationType }}</span>
+                <span class="badge badge-gdv-status {{ if eq (printf "%s" $op.Status) "GASTRIC_NECROSIS_VPC_SHOCK_CRITICAL" }}badge-gdv-critical{{ else if eq (printf "%s" $op.Status) "TROCAR_DECOMPRESSED_DUAL_IV_STAGED" }}badge-gdv-staged{{ else }}badge-gdv-safe{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row gdv-metrics-row">
+              <span class="badge badge-gdv-presentation">Plasma Lactate: {{ printf "%.1f" $op.PlasmaLactateMmolL }} mmol/L • Heart Rate: {{ $op.HeartRateBpm }} bpm • Tympanic Girth: {{ printf "%.1f" $op.TympanicAbdominalGirthCm }} cm</span>
+            </div>
+
+            <div class="gdv-flags-row">
+              {{ if $op.NonProductiveRetchingPresent }}
+              <span class="badge badge-gdv-flag">NON_PRODUCTIVE_RETCHING_TYMPANY</span>
+              {{ end }}
+              {{ if ge $op.PlasmaLactateMmolL 6.0 }}
+              <span class="badge badge-gdv-flag">GASTRIC_NECROSIS_HYPERLACTATEMIA</span>
+              {{ end }}
+              {{ if $op.VentricularArrhythmiaVPCs }}
+              <span class="badge badge-gdv-flag">REPERFUSION_VPC_ARRHYTHMIA_ALERT</span>
+              {{ end }}
+            </div>
+
+            <div class="gdv-venacava-alert-banner">
+              ⚠️ {{ $op.CaudalVenaCavaWarningNote }}
+            </div>
+
+            {{ if $op.ClearanceToken }}
+            <div class="gdv-clearance-banner">
+              ✅ GASTROPEXY &amp; SINUS RHYTHM CLEARANCE VERIFIED: {{ $op.ClearanceToken }}
+            </div>
+            {{ end }}
+
+            <div class="gdv-regimen-recommendations">
+              <div><strong>Required Decompression Regimen:</strong> {{ $op.RequiredDecompressionRegimen }}</div>
+            </div>
+
+            <div class="gdv-steps-list" aria-label="Cranial Cephalic IV, Trocar Decompression, Double-Bubble X-Ray &amp; Gastropexy Protocol Steps">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="gdv-step-item">
+                <input
+                  type="checkbox"
+                  class="gdv-step-checkbox"
+                  data-op-id="{{ $op.ID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "GASTROPEXY_SINUS_RHYTHM_CLEARED" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-gdv-safe{{ else }}badge-gdv-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="gdv-step-title">{{ $step.Title }}</strong>
+                <span class="gdv-step-desc">{{ $step.Description }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary gdv-select-workspace-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Inspect in Active Workspace
+              </button>
+              {{ if ne (printf "%s" $op.Status) "GASTROPEXY_SINUS_RHYTHM_CLEARED" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary gdv-issue-clearance-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🛡️ Issue Gastropexy &amp; Sinus Rhythm Clearance ({{ $op.ID }})
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="gdv-ops-empty-msg">No GDV / bloat or splenic torsion triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/gdv-bloat-triage.js" defer></script>
+</body>
+</html>
