@@ -65,6 +65,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/polytraumaortho"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/pyometrasirs"
+	"github.com/scottdensmore/petspotr/pkg/rabiesquarantine"
 	"github.com/scottdensmore/petspotr/pkg/ratelimit"
 	"github.com/scottdensmore/petspotr/pkg/recovercpr"
 	"github.com/scottdensmore/petspotr/pkg/reptileectotherm"
@@ -164,6 +165,7 @@ type Server struct {
 	tetanusBotulismService    *tetanusbotulism.TetanusBotulismService
 	heartwormService          *heartwormcaval.HeartwormService
 	vectorBorneService        *vectorbornerickettsial.VectorBorneService
+	rabiesQuarantineService   *rabiesquarantine.RabiesQuarantineService
 	handler                   http.Handler
 }
 
@@ -367,6 +369,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		orthoService:              polytraumaortho.NewOrthoService(),
 		heartwormService:          heartwormcaval.NewHeartwormService(),
 		vectorBorneService:        vectorbornerickettsial.NewVectorBorneService(),
+		rabiesQuarantineService:   rabiesquarantine.NewRabiesQuarantineService(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -747,6 +750,8 @@ func (s *Server) routes() {
 	s.registerHeartwormCavalRoutes()
 	// Acute Vector-Borne & Rickettsial Emergencies (Lyme Nephritis, Anaplasmosis, Ehrlichiosis, Rocky Mountain Spotted Fever, Babesiosis & Cytauxzoonosis), SNAP 4Dx Plus / PCR Triage, Doxycycline, Atovaquone + Azithromycin & Imidocarb Dipropionate Cockpit routes (Milestone 24.5)
 	s.registerVectorBorneRickettsialRoutes()
+	// Acute Rabies Quarantine, Lyssavirus Post-Exposure Prophylaxis (PEP), Strict 10-Day Domestic Bite Observation vs. 45-Day/4-Month Unvaccinated Quarantine, Biosecurity Double-Barrier Isolation & Public Health Rabies Control Officer (RCO) Statutory Reporting Cockpit routes (Milestone 25.4)
+	s.registerRabiesQuarantineRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

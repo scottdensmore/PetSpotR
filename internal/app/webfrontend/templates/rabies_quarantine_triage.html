@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Rabies Quarantine, Lyssavirus Post-Exposure Prophylaxis (PEP), Strict 10-Day Domestic Bite Observation vs. 45-Day/4-Month Unvaccinated Quarantine, Biosecurity Double-Barrier Isolation &amp; Public Health Rabies Control Officer (RCO) Statutory Reporting Cockpit.">
+  <title>Acute Rabies Quarantine, Lyssavirus Post-Exposure Prophylaxis (PEP), Strict 10-Day Domestic Bite Observation vs. 45-Day/4-Month Unvaccinated Quarantine, Biosecurity Double-Barrier Isolation &amp; Public Health Rabies Control Officer (RCO) Statutory Reporting Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#rabies-quarantine-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/heartworm-caval-triage" class="nav-link nav-link-emergency" id="nav-heartworm-caval-triage">🫀 Heartworm Caval ICU</a></li>
+          <li><a href="/rabies-quarantine-pep-triage" class="nav-link active nav-link-emergency" id="nav-rabies-quarantine-pep-triage">🦇 Rabies Quarantine &amp; PEP ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="rabies-quarantine-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header rbq-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🦇 ACUTE RABIES QUARANTINE, LYSSAVIRUS PEP &amp; PUBLIC HEALTH RCO STATUTORY REPORTING COCKPIT</span>
+        </div>
+        <h1>Acute Rabies Quarantine, Lyssavirus Post-Exposure Prophylaxis (PEP), Strict 10-Day Domestic Bite Observation vs. 45-Day/4-Month Unvaccinated Quarantine, Biosecurity Double-Barrier Isolation &amp; Public Health Rabies Control Officer (RCO) Statutory Reporting Cockpit</h1>
+        <p class="text-secondary">
+          NASPHV Compendium 10-Day Human-Bite Confinement (Strict Prohibition of Rabies Vaccination During 10-Day Hold), 45-Day Currently Vaccinated Wildlife Exposure Booster Observation, 4-Month (120-Day) Strict Double-Barrier Unvaccinated Quarantine, Rapid Fluorescent Focus Inhibition Test (RFFIT &ge; 0.50 IU/mL) Prospective Serology, Cranial Nerve / Bulbar Palsy Telemetry &amp; Direct Fluorescent Antibody (DFA) Brainstem/Hippocampus 4°C Preservation Guard.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid rbq-kpi-grid" aria-label="Rabies Quarantine &amp; PEP KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Rabies Quarantine Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Biosecurity Isolation &amp; RCO Hold Staged</span>
+        <strong class="kpi-value" id="kpi-biosecurity-staged">{{ .BiosecurityIsolationRCOHoldStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Serial Neuro &amp; Salivary Shedding Monitored</span>
+        <strong class="kpi-value" id="kpi-neuro-monitored">{{ .SerialNeuroSalivaryMonitoredCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Statutory Quarantine Survived &amp; Cleared</span>
+        <strong class="kpi-value" id="kpi-quarantine-cleared">{{ .StatutoryQuarantineSurvivedClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">10-Day Domestic Bite Confinements</span>
+        <strong class="kpi-value" id="kpi-ten-day-bite-count">{{ .TenDayDomesticBiteHoldCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Seroprotective RFFIT (&ge; 0.50 IU/mL)</span>
+        <strong class="kpi-value" id="kpi-protective-rffit-count">{{ .ProtectiveRFFITTiterCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="rbq-live-status" class="humane-traps-live-status rbq-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Acute Rabies Quarantine, Lyssavirus PEP &amp; Public Health RCO Biosecurity operations.
+    </div>
+
+    <!-- Global NASPHV Compendium 10-Day Bite Hold Vaccine Prohibition, Double-Barrier PPE, RFFIT >= 0.5 IU/mL & DFA Brainstem Preservation Alert Banner -->
+    <div id="rbq-alert-banner" class="rbq-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL NASPHV COMPENDIUM &amp; PUBLIC HEALTH RCO BIOSECURITY GUARD: (1) 10-DAY BITE HOLD VACCINE PROHIBITION — A dog, cat, or ferret confined for biting a human MUST NOT receive a rabies vaccine during the 10-day observation period (adverse vaccine reactions mimic prodromal rabies and confound euthanasia/DFA testing; vaccinate ONLY upon Day 10 release); (2) WILDLIFE EXPOSURE PEP — Perform 15-minute virucidal 1% povidone-iodine wound lavage + IM rabies booster within 96 hours (45-day observation if currently vaccinated; 4-month / 120-day strict double-barrier quarantine if unvaccinated; paired Day 0 &amp; Day 5 RFFIT &ge; 0.50 IU/mL if overdue); (3) DFA NEUROPATHOLOGY GUARD — If progressive cranial nerve/bulbar palsy requires euthanasia, preserve intact brainstem, cerebellum &amp; hippocampus chilled at 4°C (NEVER freeze with dry ice or damage skull).
+    </div>
+
+    <!-- Global Statutory Quarantine Survival & Public Health RCO Release Clearance Banner -->
+    <div id="rbq-clearance-banner" class="rbq-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "STATUTORY_QUARANTINE_SURVIVED_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ STATUTORY RABIES QUARANTINE SURVIVED, CRANIAL NERVES NORMAL &amp; PUBLIC HEALTH RCO RELEASE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "STATUTORY_QUARANTINE_SURVIVED_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Cleared by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting full statutory quarantine duration survival, absence of cranial nerve/bulbar palsy, signed Public Health RCO release, and verified exit rabies vaccination.{{ end }}</span>
+    </div>
+
+    <div id="rbq-error-banner" class="rbq-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card rbq-toolbar-card" aria-label="Rabies Quarantine Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col rbq-toolbar-row">
+        <div class="form-group">
+          <label for="rbq-status-filter">Filter by Rabies Quarantine Status</label>
+          <select id="rbq-status-filter" class="form-control">
+            <option value="">All Rabies Quarantine Statuses</option>
+            <option value="BIOSECURITY_ISOLATION_RCO_HOLD_STAGED">BIOSECURITY_ISOLATION_RCO_HOLD_STAGED (Biosecurity Isolation &amp; RCO Hold Staged)</option>
+            <option value="SERIAL_NEURO_SALIVARY_SHEDDING_MONITORED">SERIAL_NEURO_SALIVARY_SHEDDING_MONITORED (Serial Neuro &amp; Salivary Shedding Monitored)</option>
+            <option value="STATUTORY_QUARANTINE_SURVIVED_CLEARED">STATUTORY_QUARANTINE_SURVIVED_CLEARED (Statutory Quarantine Survived &amp; Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group rbq-sse-controls">
+          <span class="kpi-label">Live Biosecurity &amp; RCO Telemetry Stream</span>
+          <div class="rbq-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live Rabies Quarantine SSE Stream</button>
+            <span id="sse-status-badge" class="rbq-status-badge rbq-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid rbq-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="rbq-operations-panel" aria-labelledby="heading-rbq-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-rbq-ops">Active Rabies Quarantine &amp; RCO Statutory Holds</h2>
+          <span id="rbq-ops-count-badge" class="rbq-status-badge rbq-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="rbq-operations-grid" class="trust-screenings-list rbq-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card rbq-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-statutory-category="{{ $op.StatutoryCategory }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }} · {{ $op.RCOCaseFilingNumber }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="rbq-status-badge {{ if eq (printf "%s" $op.Status) "BIOSECURITY_ISOLATION_RCO_HOLD_STAGED" }}rbq-status-critical{{ else if eq (printf "%s" $op.Status) "SERIAL_NEURO_SALIVARY_SHEDDING_MONITORED" }}rbq-status-staged{{ else }}rbq-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="rbq-card-metrics">
+              <span><strong>Category:</strong> {{ $op.StatutoryCategory }}</span>
+              <span><strong>Protocol:</strong> {{ $op.Protocol }}</span>
+              <span><strong>Quarantine Progress:</strong> Day {{ $op.QuarantineDayElapsed }} / {{ $op.RequiredQuarantineDays }}</span>
+              <span><strong>RFFIT Titer:</strong> {{ printf "%.2f" $op.RFFITTiterIUML }} IU/mL</span>
+              <span><strong>10-Day No-Vaccine Guard:</strong> {{ if $op.NoVaccineDuring10DayBiteHoldVerified }}VERIFIED{{ else }}VIOLATION{{ end }}</span>
+              <span><strong>Double-Barrier Locked:</strong> {{ if $op.DoubleBarrierLockedEnclosureVerified }}VERIFIED{{ else }}UNVERIFIED{{ end }}</span>
+              <span><strong>Bulbar Palsy:</strong> {{ if $op.CranialNerveBulbarPalsyAbsent }}Absent (Normal){{ else }}PRESENT{{ end }}</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary rbq-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open Rabies Quarantine Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="rbq-ops-empty-msg">No Rabies Quarantine operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="rbq-divider">
+
+        <!-- Admit New Rabies Quarantine & RCO Statutory Hold Patient Form -->
+        <div class="trust-subsection" id="create-rbq-section">
+          <h3 id="heading-create-rbq">Admit New Rabies Quarantine &amp; Public Health RCO Hold Patient</h3>
+          <form id="create-rbq-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-RBQ-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Zephyr" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species-input">Species</label>
+                <select id="create-species-input" name="species" class="form-control" required>
+                  <option value="Canine" selected>Canine</option>
+                  <option value="Feline">Feline</option>
+                  <option value="Ferret">Ferret</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed-input">Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="Belgian Malinois" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="110.0" step="0.1" value="29.5" required>
+              </div>
+              <div class="form-group">
+                <label for="create-rco-filing-input">Public Health RCO Statutory Case Number</label>
+                <input type="text" id="create-rco-filing-input" name="rco_case_filing_number" class="form-control" value="RCO-STAT-2026-104" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-statutory-category-input">NASPHV Statutory Quarantine Category</label>
+                <select id="create-statutory-category-input" name="statutory_category" class="form-control" required>
+                  <option value="TEN_DAY_DOMESTIC_BITE_CONFINEMENT" selected>TEN_DAY_DOMESTIC_BITE_CONFINEMENT (10-Day Human-Bite Confinement — No Vaccine During Hold)</option>
+                  <option value="FORTY_FIVE_DAY_VACCINATED_BOOSTER_OBSERVATION">FORTY_FIVE_DAY_VACCINATED_BOOSTER_OBSERVATION (45-Day Currently Vaccinated Wildlife Exposure)</option>
+                  <option value="FOUR_MONTH_STRICT_DOUBLE_BARRIER_QUARANTINE">FOUR_MONTH_STRICT_DOUBLE_BARRIER_QUARANTINE (120-Day Unvaccinated Strict Double-Barrier Quarantine)</option>
+                  <option value="SIX_MONTH_OVERDUE_SEROLOGY_QUARANTINE">SIX_MONTH_OVERDUE_SEROLOGY_QUARANTINE (180-Day Overdue / Prospective RFFIT Serology Quarantine)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-protocol-input">Biosecurity &amp; PEP Protocol</label>
+                <select id="create-protocol-input" name="protocol" class="form-control" required>
+                  <option value="STRICT_TEN_DAY_NO_VACCINE_DURING_BITE_HOLD" selected>STRICT_TEN_DAY_NO_VACCINE_DURING_BITE_HOLD (10-Day Bite Hold — Withhold Vaccine Until Day 10)</option>
+                  <option value="IMMEDIATE_IM_BOOSTER_WITHIN_96HR_WOUND_LAVAGE">IMMEDIATE_IM_BOOSTER_WITHIN_96HR_WOUND_LAVAGE (&le; 96h IM Rabies Booster + 15-Min Virucidal Lavage)</option>
+                  <option value="DOUBLE_BARRIER_LOCKED_CAGE_PPE_POLE_HANDLING">DOUBLE_BARRIER_LOCKED_CAGE_PPE_POLE_HANDLING (Double-Barrier Padlocked Enclosure + PPE &amp; Pole)</option>
+                  <option value="PROSPECTIVE_SEROLOGIC_RFFIT_DAY0_DAY5_BOOSTER">PROSPECTIVE_SEROLOGIC_RFFIT_DAY0_DAY5_BOOSTER (Paired Day 0 &amp; Day 5 RFFIT &ge; 0.50 IU/mL)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-day-elapsed-input">Quarantine Day Elapsed</label>
+                <input type="number" id="create-day-elapsed-input" name="quarantine_day_elapsed" class="form-control" min="0" max="180" step="1" value="1" required>
+              </div>
+              <div class="form-group">
+                <label for="create-required-days-input">Required Statutory Quarantine Days (10, 45, 120, 180)</label>
+                <input type="number" id="create-required-days-input" name="required_quarantine_days" class="form-control" min="10" max="180" step="1" value="10" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-rffit-titer-input">Baseline RFFIT Neutralizing Titer (IU/mL · &ge; 0.50 Protective)</label>
+                <input type="number" id="create-rffit-titer-input" name="rffit_titer_iu_ml" class="form-control" min="0.0" max="50.0" step="0.05" value="0.40" required>
+              </div>
+              <div class="form-group rbq-checkbox-group">
+                <label class="rbq-checkbox-item">
+                  <input type="checkbox" id="create-no-vaccine-hold-checkbox" name="no_vaccine_during_10day_bite_hold_verified" checked>
+                  <span>NASPHV 10-Day Bite Hold No-Vaccine Guard Verified</span>
+                </label>
+                <label class="rbq-checkbox-item">
+                  <input type="checkbox" id="create-double-barrier-checkbox" name="double_barrier_locked_enclosure_verified" checked>
+                  <span>Double-Barrier Padlocked Isolation Enclosure Verified</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" id="create-rbq-op-btn" class="btn btn-primary">➕ Admit Rabies Quarantine Patient to Biosecurity Cockpit</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active Rabies Quarantine Workspace & Staging / Neuro Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="rbq-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="rbq-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · RCO Case: <strong id="active-rco-filing">{{ $active.RCOCaseFilingNumber }}</strong> · Category: <strong id="active-statutory-category">{{ $active.StatutoryCategory }}</strong> · 10-Day No-Vaccine Guard: <strong id="active-vaccine-hold-guard">{{ if $active.NoVaccineDuring10DayBiteHoldVerified }}VERIFIED (HOLD VACCINE UNTIL DAY 10){{ else }}VIOLATION{{ end }}</strong></p>
+          </div>
+          <span id="active-op-status-badge" class="rbq-status-badge {{ if eq (printf "%s" $active.Status) "BIOSECURITY_ISOLATION_RCO_HOLD_STAGED" }}rbq-status-critical{{ else if eq (printf "%s" $active.Status) "SERIAL_NEURO_SALIVARY_SHEDDING_MONITORED" }}rbq-status-staged{{ else }}rbq-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- Statutory Quarantine & Neuro-Salivary Telemetry Bar -->
+        <div class="rbq-vitals-summary" id="active-vitals-summary">
+          <div class="rbq-vital-chip">
+            <span class="kpi-label">Quarantine Progress (Days)</span>
+            <strong id="active-quarantine-days">Day {{ $active.QuarantineDayElapsed }} / {{ $active.RequiredQuarantineDays }} days</strong>
+          </div>
+          <div class="rbq-vital-chip">
+            <span class="kpi-label">RFFIT Neutralizing Titer</span>
+            <strong id="active-rffit-titer">{{ printf "%.2f" $active.RFFITTiterIUML }} IU/mL ({{ if $active.SeroprotectiveTiterVerified }}PROTECTIVE{{ else }}SUB-THRESHOLD{{ end }})</strong>
+          </div>
+          <div class="rbq-vital-chip">
+            <span class="kpi-label">Cranial Nerve / Bulbar Palsy</span>
+            <strong id="active-bulbar-status">{{ if $active.CranialNerveBulbarPalsyAbsent }}ABSENT (NORMAL){{ else }}PRESENT (ALERT){{ end }}</strong>
+          </div>
+          <div class="rbq-vital-chip">
+            <span class="kpi-label">Double-Barrier / DFA Guard</span>
+            <strong id="active-biosecurity-guard">{{ if $active.DoubleBarrierLockedEnclosureVerified }}LOCKED{{ else }}BREACH{{ end }} · {{ if $active.BrainStemHippocampusPreservedGuard }}DFA 4°C GUARD{{ else }}UNVERIFIED{{ end }}</strong>
+          </div>
+        </div>
+
+        <!-- Lyssavirus Pathophysiology & Public Health RCO Statutory Surveillance Box -->
+        <div class="rbq-plan-box" id="active-patho-plan-box">
+          <h3>Lyssavirus Salivary Shedding Pathophysiology &amp; Public Health RCO Statutory Profile</h3>
+          <div class="rbq-plan-grid">
+            <div><strong>Statutory Category Pathophysiology:</strong> <span id="plan-patho-summary">{{ $active.PathophysiologySummary }}</span></div>
+            <div><strong>Public Health RCO Statutory Filing:</strong> <span id="plan-rco-note">{{ $active.StatutoryQuarantineRCONote }}</span></div>
+            <div><strong>Cranial Nerve &amp; Salivary Shedding Telemetry:</strong> <span id="plan-neuro-note">{{ $active.NeuroSalivarySheddingNote }}</span></div>
+            <div><strong>NASPHV 10-Day Bite Hold Vaccine Guard:</strong> <span id="plan-vaccine-guard">{{ $active.QuarantineStaging.TenDayBiteHoldVaccineGuardNote }}</span></div>
+          </div>
+        </div>
+
+        <!-- Double-Barrier Biosecurity, Wound Lavage PEP, RFFIT Serology & DFA Brainstem Preservation Box -->
+        <div class="rbq-plan-box" id="active-staging-plan-box">
+          <h3>Double-Barrier Biosecurity Isolation, Virucidal Wound Lavage PEP, RFFIT Serology &amp; DFA Brainstem Guard</h3>
+          <div class="rbq-plan-grid">
+            <div><strong>Double-Barrier Locked Enclosure &amp; PPE Plan:</strong> <span id="plan-double-barrier-ppe">{{ $active.QuarantineStaging.DoubleBarrierBiosecurityPPEPlan }}</span></div>
+            <div><strong>Virucidal 1% Povidone-Iodine Lavage &amp; PEP Booster:</strong> <span id="plan-wound-lavage-pep">{{ $active.QuarantineStaging.VirucidalWoundLavageBoosterPEPPlan }}</span></div>
+            <div><strong>Prospective RFFIT Serologic Monitoring (&ge; 0.50 IU/mL):</strong> <span id="plan-rffit-serology">{{ $active.QuarantineStaging.ProspectiveSerologicRFFITPlan }}</span></div>
+            <div><strong>DFA Brainstem / Cerebellum / Hippocampus 4°C Guard:</strong> <span id="plan-dfa-preservation">{{ $active.QuarantineStaging.DFANeuropathologyPreservationNote }}</span></div>
+          </div>
+        </div>
+        {{ end }}
+
+        <hr class="rbq-divider">
+
+        <!-- 1. Stage Biosecurity Double-Barrier Isolation, RCO Case Filing & NASPHV PEP Protocol Form -->
+        <div class="trust-subsection" id="stage-quarantine-section">
+          <h3>1. Stage Double-Barrier Biosecurity Isolation, Public Health RCO Filing &amp; NASPHV PEP Protocol</h3>
+          <form id="stage-quarantine-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-protocol-input">Selected Biosecurity / PEP Protocol</label>
+                <select id="stage-protocol-input" name="protocol" class="form-control" required>
+                  <option value="STRICT_TEN_DAY_NO_VACCINE_DURING_BITE_HOLD" selected>STRICT_TEN_DAY_NO_VACCINE_DURING_BITE_HOLD (10-Day Bite Hold — Withhold Vaccine Until Day 10)</option>
+                  <option value="IMMEDIATE_IM_BOOSTER_WITHIN_96HR_WOUND_LAVAGE">IMMEDIATE_IM_BOOSTER_WITHIN_96HR_WOUND_LAVAGE (&le; 96h IM Rabies Booster + 15-Min Virucidal Lavage)</option>
+                  <option value="DOUBLE_BARRIER_LOCKED_CAGE_PPE_POLE_HANDLING">DOUBLE_BARRIER_LOCKED_CAGE_PPE_POLE_HANDLING (Double-Barrier Padlocked Enclosure + PPE &amp; Pole)</option>
+                  <option value="PROSPECTIVE_SEROLOGIC_RFFIT_DAY0_DAY5_BOOSTER">PROSPECTIVE_SEROLOGIC_RFFIT_DAY0_DAY5_BOOSTER (Paired Day 0 &amp; Day 5 RFFIT &ge; 0.50 IU/mL)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="stage-rco-filing-input">Public Health RCO Statutory Case Filing Number</label>
+                <input type="text" id="stage-rco-filing-input" name="rco_case_filing_number" class="form-control" value="RCO-STAT-2026-101" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-required-days-input">Required Statutory Quarantine Days (10, 45, 120, 180)</label>
+                <input type="number" id="stage-required-days-input" name="required_quarantine_days" class="form-control" min="10" max="180" step="1" value="10" required>
+              </div>
+              <div class="form-group rbq-checkbox-group">
+                <label class="rbq-checkbox-item">
+                  <input type="checkbox" id="stage-no-vaccine-hold-checkbox" name="no_vaccine_during_10day_bite_hold_verified" checked>
+                  <span>No Rabies Vaccine Administered During 10-Day Bite Hold</span>
+                </label>
+                <label class="rbq-checkbox-item">
+                  <input type="checkbox" id="stage-double-barrier-checkbox" name="double_barrier_locked_enclosure_verified" checked>
+                  <span>Double-Barrier Padlocked Enclosure &amp; PPE Verified</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="stage-ppe-plan-input">Double-Barrier Padlocked Enclosure, Pre-Exposure Immunized Handler &amp; Catch-Pole PPE Plan</label>
+              <input
+                type="text"
+                id="stage-ppe-plan-input"
+                name="double_barrier_biosecurity_ppe_plan"
+                class="form-control"
+                value="Padlocked double-door stainless-steel isolation run with rabid biohazard signage, pre-exposure immunized handlers (RFFIT >= 0.5 IU/mL), Kevlar gauntlets, face shield, and contactless pass-through feeding"
+                required
+              >
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-lavage-plan-input">15-Minute Virucidal 1% Povidone-Iodine Wound Lavage &amp; PEP Booster Plan</label>
+                <input
+                  type="text"
+                  id="stage-lavage-plan-input"
+                  name="virucidal_wound_lavage_booster_pep_plan"
+                  class="form-control"
+                  value="15-minute copious soap and virucidal 1% povidone-iodine irrigation; coordinate human victim HRIG 20 IU/kg + Days 0, 3, 7, 14 rabies vaccine with RCO; withhold animal vaccine until Day 10 release"
+                  required
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-rffit-plan-input">Prospective RFFIT Neutralizing Antibody Serology Plan (&ge; 0.50 IU/mL)</label>
+                <input
+                  type="text"
+                  id="stage-rffit-plan-input"
+                  name="prospective_serologic_rffit_plan"
+                  class="form-control"
+                  value="Paired Day 0 and Day 5–7 RFFIT neutralizing antibody serum titers verifying >= 0.50 IU/mL WHO/NASPHV seroprotection"
+                  required
+                >
+              </div>
+            </div>
+
+            <button type="submit" id="stage-quarantine-btn" class="btn btn-secondary">🛠️ Stage Biosecurity Isolation &amp; RCO Statutory Protocol</button>
+          </form>
+        </div>
+
+        <hr class="rbq-divider">
+
+        <!-- 2. Record Serial Neurological & Salivary Shedding Observation Check Form -->
+        <div class="trust-subsection" id="record-neuro-check-section">
+          <h3>2. Record Serial Neurological (Cranial Nerves V/VII/IX/X/XII, Bulbar Palsy) &amp; Salivary Shedding Check</h3>
+          <form id="record-neuro-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-day-elapsed-input">Quarantine Day Elapsed</label>
+                <input type="number" id="check-day-elapsed-input" name="quarantine_day_elapsed" class="form-control" min="0" max="200" step="1" value="10" required>
+              </div>
+              <div class="form-group">
+                <label for="check-rffit-titer-input">RFFIT Neutralizing Antibody Titer (IU/mL · &ge; 0.50 Protective)</label>
+                <input type="number" id="check-rffit-titer-input" name="rffit_titer_iu_ml" class="form-control" min="0.0" max="50.0" step="0.05" value="1.45" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group rbq-checkbox-group">
+                <label class="rbq-checkbox-item">
+                  <input type="checkbox" id="check-bulbar-absent-checkbox" name="cranial_nerve_bulbar_palsy_absent" checked>
+                  <span>Cranial Nerve / Bulbar Palsy Absent (Normal Jaw Tone &amp; Gag)</span>
+                </label>
+                <label class="rbq-checkbox-item">
+                  <input type="checkbox" id="check-dysphagia-absent-checkbox" name="hypersalivation_dysphagia_absent" checked>
+                  <span>Hypersalivation &amp; Pharyngeal Dysphagia Absent</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (Rabies Control Officer / Attending DVM)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Celeste Thibodeaux, DVM, MPH, DACVPM (Rabies Control Officer)" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="check-note-input">Contactless Neurological &amp; Salivary Shedding Clinical Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="Day 10 of 10 statutory domestic bite observation complete: cranial nerves V, VII, IX, X, XII normal, drinking water freely without dysphagia or foamy hypersalivation, RFFIT titer 1.45 IU/mL." required>
+            </div>
+
+            <button type="submit" id="record-neuro-check-btn" class="btn btn-secondary">🦇 Record Neurological &amp; Salivary Shedding Check</button>
+          </form>
+
+          <div class="rbq-checks-box">
+            <h4>Serial Neurological &amp; Salivary Shedding Telemetry Checks (<span id="neuro-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.NeuroObservationChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="neuro-checks-list" class="rbq-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.NeuroObservationChecks }}
+              <li class="rbq-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · Day {{ $chk.QuarantineDayElapsed }} · RFFIT {{ printf "%.2f" $chk.RFFITTiterIUML }} IU/mL · Bulbar Palsy: {{ if $chk.CranialNerveBulbarPalsyAbsent }}Absent{{ else }}PRESENT{{ end }} · Dysphagia/Hypersalivation: {{ if $chk.HypersalivationDysphagiaAbsent }}Absent{{ else }}PRESENT{{ end }} — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="rbq-divider">
+
+        <!-- 3. Clear Statutory Rabies Quarantine Operation for RCO Release & Exit Vaccination Form -->
+        <div class="trust-subsection" id="clear-rbq-section">
+          <h3>3. Clear Survived Statutory Quarantine Patient for Public Health RCO Release &amp; Exit Rabies Vaccination</h3>
+          <form id="clear-rbq-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clear-day-elapsed-input">Final Verified Quarantine Day Elapsed (&ge; Required Days)</label>
+                <input type="number" id="clear-day-elapsed-input" name="quarantine_day_elapsed" class="form-control" min="10" max="200" step="1" value="10" required>
+              </div>
+              <div class="form-group">
+                <label for="clear-rffit-titer-input">Final Verified RFFIT Neutralizing Titer (IU/mL)</label>
+                <input type="number" id="clear-rffit-titer-input" name="rffit_titer_iu_ml" class="form-control" min="0.0" max="50.0" step="0.05" value="1.45" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group rbq-checkbox-group">
+                <label class="rbq-checkbox-item">
+                  <input type="checkbox" id="clear-rco-release-checkbox" name="rco_written_release_signed" checked>
+                  <span>Public Health RCO Written Statutory Release Signed</span>
+                </label>
+                <label class="rbq-checkbox-item">
+                  <input type="checkbox" id="clear-exit-vaccine-checkbox" name="exit_rabies_vaccination_verified" checked>
+                  <span>Exit USDA-Licensed Rabies Vaccination Administered &amp; Verified</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="clear-cleared-by-input">Clearing Rabies Control Officer / Attending DVM</label>
+                <input type="text" id="clear-cleared-by-input" name="cleared_by" class="form-control" value="Dr. Celeste Thibodeaux, DVM, MPH, DACVPM (Rabies Control Officer)" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="clear-summary-input">Statutory Quarantine Survival, RCO Release &amp; Exit Vaccination Clearance Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="clearance_summary"
+                class="form-control"
+                value="Survived full 10-day NASPHV domestic bite observation (Day 10/10) with zero cranial nerve or bulbar palsy, RFFIT 1.45 IU/mL, Public Health RCO statutory release signed, and exit USDA-licensed rabies vaccine administered upon release; cleared."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-rbq-btn" class="btn btn-primary">🛡️ Clear Rabies Quarantine Patient for Statutory RCO Release</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/rabies-quarantine-triage.js" defer></script>
+</body>
+</html>
