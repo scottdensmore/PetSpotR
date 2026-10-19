@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Hyperthermia, Heatstroke &amp; Hot-Asphalt Pad Burn Triage Cockpit.">
+  <title>Hyperthermia, Heatstroke &amp; Hot-Asphalt Pad Burn Triage Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#dc2626">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#hyperthermia-heat-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/avalanche-winter-rescue" class="nav-link nav-link-emergency" id="nav-avalanche-winter-rescue">🏔️ Avalanche &amp; Winter SAR</a></li>
+          <li><a href="/hyperthermia-heat-triage" class="nav-link active nav-link-emergency" id="nav-hyperthermia-heat-triage">🌡️ Hyperthermia &amp; Heat Triage</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="hyperthermia-heat-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header heat-triage-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🌡️ HYPERTHERMIA, HEATSTROKE &amp; HOT-ASPHALT PAD BURN TRIAGE COCKPIT</span>
+        </div>
+        <h1>Hyperthermia, Heatstroke &amp; Hot-Asphalt Pad Burn Triage Cockpit</h1>
+        <p class="text-secondary">
+          Enclosed Solar Cabin Extraction, Evaporative Cool-Water &amp; Axial Fan Convection, Strict 39.4°C (103.0°F) Active Cooling Cutoff to Prevent Rebound Hypothermia, Brachycephalic Airway Management, Hot-Asphalt Paw Pad Sloughing Debridement &amp; DIC Coagulopathy Prevention.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid heat-triage-kpi-grid" aria-label="Hyperthermia &amp; Heatstroke Triage KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Heat Triage Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Heatstroke / DIC Coagulopathy</span>
+        <strong class="kpi-value" id="kpi-critical-dic">{{ .CriticalDICCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Evaporative Cooling 39.4°C Staged</span>
+        <strong class="kpi-value" id="kpi-staged-cooling">{{ .StagedCoolingCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Stabilized Normothermic Cooled</span>
+        <strong class="kpi-value" id="kpi-stabilized-safe">{{ .StabilizedSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="heat-triage-live-status" class="humane-traps-live-status heat-triage-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} hyperthermia, heatstroke &amp; hot-asphalt paw pad burn triage operations.
+    </div>
+
+    <div class="trust-cockpit-grid heat-triage-cockpit-grid">
+      <!-- Left Column: Evaluate Hyperthermia / Heatstroke Form -->
+      <section class="glass-card trust-panel" id="heat-evaluate-panel" aria-labelledby="heading-evaluate-heat-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-heat-op">Evaluate Hyperthermia, Heatstroke &amp; Hot-Asphalt Pad Burn</h2>
+          <span class="badge badge-heat-exposure">39.4°C (103.0°F) Cooling Cutoff</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Thermal Emergency Scenario Presets</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary heat-scenario-btn" data-scenario="solar-cabin-heatstroke" id="btn-sim-solar-cabin-heatstroke">
+              🚗 Simulate Enclosed Solar Vehicle Cabin Heatstroke &amp; BOAS Crisis (41.9°C Core · 66.0°C Cabin · 38m)
+            </button>
+            <button type="button" class="btn btn-secondary heat-scenario-btn" data-scenario="asphalt-paw-sloughing" id="btn-sim-asphalt-paw-sloughing">
+              🐾 Simulate 71.0°C Blacktop Asphalt Grade 3 Epidermal Paw Pad Sloughing &amp; Evaporative Cooling
+            </button>
+          </div>
+        </div>
+
+        <div id="eval-error-banner" class="heat-eval-error-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="heat-eval-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-pet-name">Pet Name</label>
+              <input type="text" id="eval-pet-name" name="pet_name" class="form-control" value="Maximus" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-species">Species / Breed</label>
+              <input type="text" id="eval-species" name="species" class="form-control" value="Dog - English Bulldog" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-weight-kg">Estimated Weight (kg)</label>
+              <input type="number" id="eval-weight-kg" name="weight_kg" class="form-control" min="0.5" max="150" step="0.1" value="24.5" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-exposure-type">Thermal Exposure Classification</label>
+              <select id="eval-exposure-type" name="exposure_type" class="form-control" required>
+                <option value="ENCLOSED_VEHICLE_SOLAR_CABIN" selected>ENCLOSED_VEHICLE_SOLAR_CABIN (Solar Greenhouse Vehicle Cabin)</option>
+                <option value="HOT_ASPHALT_PAW_NECROSIS">HOT_ASPHALT_PAW_NECROSIS (Radiant Blacktop / Concrete Pad Burn)</option>
+                <option value="EXERTIONAL_BRACHYCEPHALIC_HEATSTROKE">EXERTIONAL_BRACHYCEPHALIC_HEATSTROKE (Humid Exertional / BOAS Crisis)</option>
+                <option value="UNSHADED_YARD_TETHER_DOME">UNSHADED_YARD_TETHER_DOME (Unshaded Heat-Dome Yard Tether)</option>
+                <option value="GARAGE_ATTIC_VENTILATION_FAILURE">GARAGE_ATTIC_VENTILATION_FAILURE (Enclosed HVAC / Power Outage Failure)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-rectal-temp-c">Rectal Core Temperature (°C)</label>
+              <input type="number" id="eval-rectal-temp-c" name="rectal_core_temp_celsius" class="form-control" min="37.0" max="45.0" step="0.1" value="41.6" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-surface-temp-c">Asphalt / Cabin Surface Temp (°C)</label>
+              <input type="number" id="eval-surface-temp-c" name="surface_asphalt_temp_celsius" class="form-control" min="15.0" max="95.0" step="0.5" value="65.0" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-exposure-mins">Exposure Duration (mins)</label>
+              <input type="number" id="eval-exposure-mins" name="exposure_duration_mins" class="form-control" min="1" max="600" step="1" value="35" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-paw-sloughing-grade">Paw Pad Sloughing Grade (0–4)</label>
+              <select id="eval-paw-sloughing-grade" name="paw_pad_sloughing_grade" class="form-control" required>
+                <option value="0">Grade 0 — Intact Digital &amp; Metacarpal Pads</option>
+                <option value="1">Grade 1 — Superficial Erythema &amp; Thermal Hyperemia</option>
+                <option value="2" selected>Grade 2 — Partial-Thickness Blistering &amp; Serous Vesicles</option>
+                <option value="3">Grade 3 — Full Epidermal Pad Ulceration &amp; Sloughing</option>
+                <option value="4">Grade 4 — Deep Dermal Necrosis &amp; Exposed Digital Cushion</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="heat-checkbox-group">
+            <label class="heat-step-item">
+              <input type="checkbox" id="eval-brachycephalic-airway" name="brachycephalic_airway_obstruction" checked>
+              <span>Brachycephalic Obstructive Airway Syndrome (BOAS) / Laryngeal Edema Stridor</span>
+            </label>
+            <label class="heat-step-item">
+              <input type="checkbox" id="eval-convection-fan" name="cool_water_convection_fan_active" checked>
+              <span>Tepid Cool-Water (15–20°C) Wetting &amp; Axial Convection Fan Active</span>
+            </label>
+            <label class="heat-step-item">
+              <input type="checkbox" id="eval-ice-bath-avoided" name="ice_bath_vasoconstriction_avoided" checked>
+              <span>Ice-Water Immersion Avoided (Prevents Peripheral Vasoconstriction &amp; Shivering)</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-submit-heat-eval" class="btn btn-primary">Evaluate Hyperthermia &amp; Pad Burn Triage</button>
+        </form>
+      </section>
+
+      <!-- Right Column: Filter Bar, Operations Queue & Active Workspace -->
+      <section class="glass-card trust-panel" id="heat-ops-panel" aria-labelledby="heading-heat-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-heat-ops">Active Hyperthermia, Heatstroke &amp; Paw Burn Operations</h2>
+          <span id="heat-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col heat-filter-bar" role="region" aria-label="Filter Heat Triage Operations">
+          <div class="form-group">
+            <label for="filter-exposure">Filter by Exposure Vector</label>
+            <select id="filter-exposure" class="form-control">
+              <option value="">All Exposure Vectors</option>
+              <option value="ENCLOSED_VEHICLE_SOLAR_CABIN">ENCLOSED_VEHICLE_SOLAR_CABIN</option>
+              <option value="HOT_ASPHALT_PAW_NECROSIS">HOT_ASPHALT_PAW_NECROSIS</option>
+              <option value="EXERTIONAL_BRACHYCEPHALIC_HEATSTROKE">EXERTIONAL_BRACHYCEPHALIC_HEATSTROKE</option>
+              <option value="UNSHADED_YARD_TETHER_DOME">UNSHADED_YARD_TETHER_DOME</option>
+              <option value="GARAGE_ATTIC_VENTILATION_FAILURE">GARAGE_ATTIC_VENTILATION_FAILURE</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="HEATSTROKE_DIC_COAGULOPATHY_CRITICAL">HEATSTROKE_DIC_COAGULOPATHY_CRITICAL</option>
+              <option value="EVAPORATIVE_COOLING_394C_STAGED">EVAPORATIVE_COOLING_394C_STAGED</option>
+              <option value="STABILIZED_NORMOTHERMIC_COOLED">STABILIZED_NORMOTHERMIC_COOLED</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="heat-active-workspace" role="region" aria-label="Active Heat Triage Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="heat-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">Active Workspace: {{ $active.PetName }} ({{ $active.Species }} · {{ printf "%.1f" $active.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $active.ID }} · {{ $active.PetID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-heat-exposure">{{ $active.ExposureType }}</span>
+                <span class="badge badge-heat-status {{ if eq (printf "%s" $active.Status) "HEATSTROKE_DIC_COAGULOPATHY_CRITICAL" }}badge-heat-critical{{ else if eq (printf "%s" $active.Status) "EVAPORATIVE_COOLING_394C_STAGED" }}badge-heat-staged{{ else }}badge-heat-safe{{ end }}">{{ $active.Status }}</span>
+              </div>
+            </div>
+            <div class="heat-cutoff-alert-banner">
+              🌡️ {{ $active.CoagulopathyCutoffNote }}
+            </div>
+            <div class="heat-gear-recommendations">
+              <div><strong>Required Cooling &amp; Debridement Protocol:</strong> {{ $active.RequiredCoolingProtocol }}</div>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="heat-operations-list" class="trust-screenings-list heat-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card heat-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-exposure="{{ $op.ExposureType }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-heat-exposure">{{ $op.ExposureType }}</span>
+                <span class="badge badge-heat-status {{ if eq (printf "%s" $op.Status) "HEATSTROKE_DIC_COAGULOPATHY_CRITICAL" }}badge-heat-critical{{ else if eq (printf "%s" $op.Status) "EVAPORATIVE_COOLING_394C_STAGED" }}badge-heat-staged{{ else }}badge-heat-safe{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row heat-metrics-row">
+              <span class="badge badge-heat-exposure">Rectal Core: {{ printf "%.1f" $op.RectalCoreTempCelsius }}°C • Surface/Cabin: {{ printf "%.1f" $op.SurfaceAsphaltTempCelsius }}°C • Duration: {{ $op.ExposureDurationMins }}m • Paw Sloughing: Grade {{ $op.PawPadSloughingGrade }}/4</span>
+            </div>
+
+            <div class="heat-flags-row">
+              {{ if $op.BrachycephalicAirwayObstruction }}
+              <span class="badge badge-heat-flag">BRACHYCEPHALIC_AIRWAY_OBSTRUCTION</span>
+              {{ end }}
+              {{ if ge $op.RectalCoreTempCelsius 41.0 }}
+              <span class="badge badge-heat-flag">HYPERPYREXIA_DIC_COAGULOPATHY_RISK</span>
+              {{ end }}
+              {{ if ge $op.PawPadSloughingGrade 2 }}
+              <span class="badge badge-heat-flag">PAW_PAD_EPIDERMAL_SLOUGHING_GRADE_{{ $op.PawPadSloughingGrade }}</span>
+              {{ end }}
+            </div>
+
+            <div class="heat-cutoff-alert-banner">
+              ⚠️ {{ $op.CoagulopathyCutoffNote }}
+            </div>
+
+            {{ if $op.ClearanceToken }}
+            <div class="heat-clearance-banner">
+              ✅ NORMOTHERMIC COOLING &amp; PAW PAD CLEARANCE VERIFIED: {{ $op.ClearanceToken }}
+            </div>
+            {{ end }}
+
+            <div class="heat-gear-recommendations">
+              <div><strong>Required Cooling Protocol:</strong> {{ $op.RequiredCoolingProtocol }}</div>
+            </div>
+
+            <div class="heat-steps-list" aria-label="Evaporative Cooling, 39.4°C Cutoff &amp; Paw Pad Burn Protocol Steps">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="heat-step-item">
+                <input
+                  type="checkbox"
+                  class="heat-step-checkbox"
+                  data-op-id="{{ $op.ID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "STABILIZED_NORMOTHERMIC_COOLED" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-heat-safe{{ else }}badge-heat-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="heat-step-title">{{ $step.Title }}</strong>
+                <span class="heat-step-desc">{{ $step.Description }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary heat-select-workspace-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Inspect in Active Workspace
+              </button>
+              {{ if ne (printf "%s" $op.Status) "STABILIZED_NORMOTHERMIC_COOLED" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary heat-issue-clearance-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🛡️ Issue Normothermic Cooling Clearance ({{ $op.ID }})
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="heat-ops-empty-msg">No hyperthermia heat triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/hyperthermia-heat-triage.js" defer></script>
+</body>
+</html>
