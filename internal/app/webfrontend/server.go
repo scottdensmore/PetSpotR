@@ -57,6 +57,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/pericardialtamponade"
 	"github.com/scottdensmore/petspotr/pkg/pneumothorax"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
+	"github.com/scottdensmore/petspotr/pkg/pyometrasirs"
 	"github.com/scottdensmore/petspotr/pkg/ratelimit"
 	"github.com/scottdensmore/petspotr/pkg/recovercpr"
 	"github.com/scottdensmore/petspotr/pkg/reptileectotherm"
@@ -142,6 +143,7 @@ type Server struct {
 	spinalService             *spinalivdd.IVDDService
 	fateService               *fatethrombus.FATEService
 	dicService                *diccoagulopathy.DICService
+	pyometraService           *pyometrasirs.PyometraService
 	handler                   http.Handler
 }
 
@@ -335,6 +337,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		peritonitisService:        septicperitonitis.NewPeritonitisService(),
 		spinalService:             spinalivdd.NewIVDDService(),
 		fateService:               fatethrombus.NewFATEService(),
+		pyometraService:           pyometrasirs.NewPyometraService(),
 		dicService:                diccoagulopathy.NewDICService(),
 		pancreatitisService:       pancreatitiscpl.NewPancreatitisService(),
 	}
@@ -695,6 +698,8 @@ func (s *Server) routes() {
 	s.registerFATEThrombusRoutes()
 	// Acute Coagulopathy & Disseminated Intravascular Coagulation (DIC), PT/aPTT Prolongation, D-Dimer/FDP Elevation, Fresh Frozen Plasma (FFP) & Tranexamic Acid (TXA) Cockpit routes (Milestone 23.3)
 	s.registerDICCoagulopathyRoutes()
+	// Acute Pyometra (Open vs. Closed Cervix), POCUS Fluid-Filled Uterine Horns, E. coli Endotoxemia/SIRS, Stabilization & Ovariohysterectomy (OHE) Cockpit routes (Milestone 23.1)
+	s.registerPyometraSIRSRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
