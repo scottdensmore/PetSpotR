@@ -62,3 +62,10 @@ cross-process integration testing.
 
 For complete development details and GCP deployment instructions, see
 [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md).
+
+
+## Build/test CI
+
+The read-only Go workflow selects an already installed runner toolchain, verifies the checked-in module graph, runs vet, compiles every package, and runs the complete default Go test suite with race detection and coverage. It does not invoke Makefile tool fallbacks or install a Go toolchain. Application dependencies remain at their checked-in versions; existing dependency PRs are separate work. Gofmt output differs between Go 1.26 and 1.27 for existing multi-value returns, so this workflow adds no formatting gate or source churn while the separate toolchain PR remains unresolved.
+
+Default tests use in-memory stores/brokers and local HTTP fakes, including the in-process event cascade. Existing opt-in Firestore/PubSub/Auth emulator, live GCS and live Ollama tests keep their original guards and are reported as unexecuted. CI supplies no cloud/provider credentials. Browser journeys, emulator processes, real model inference, infrastructure validation and golangci-lint are not claimed by this workflow. No Docker services, model downloads, deployment or publisher are invoked.
