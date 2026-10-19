@@ -27,6 +27,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/acousticpanic"
 	"github.com/scottdensmore/petspotr/pkg/addisoniancrisis"
 	"github.com/scottdensmore/petspotr/pkg/airwaytracheostomy"
+	"github.com/scottdensmore/petspotr/pkg/akidialysis"
 	"github.com/scottdensmore/petspotr/pkg/anaphylaxishalo"
 	"github.com/scottdensmore/petspotr/pkg/avalanchewinter"
 	"github.com/scottdensmore/petspotr/pkg/avianrecovery"
@@ -132,6 +133,7 @@ type Server struct {
 	anaphylaxisService        *anaphylaxishalo.AnaphylaxisService
 	recoverService            *recovercpr.RecoverService
 	ophthalmicService         *ophthalmicglobe.OphthalmicService
+	akiService                *akidialysis.AKIService
 	handler                   http.Handler
 }
 
@@ -317,6 +319,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		addisonianService:         addisoniancrisis.NewAddisonianService(),
 		pneumothoraxService:       pneumothorax.NewPneumothoraxService(),
 		anaphylaxisService:        anaphylaxishalo.NewAnaphylaxisService(),
+		akiService:                akidialysis.NewAKIService(),
 		ophthalmicService:         ophthalmicglobe.NewOphthalmicService(),
 		recoverService:            recovercpr.NewRecoverService(),
 		tamponadeService:          pericardialtamponade.NewTamponadeService(),
@@ -670,6 +673,8 @@ func (s *Server) routes() {
 	s.registerRecoverCPRRoutes()
 	// Acute Ophthalmic Emergencies, Descemetoceles, Proptosed Globe, Acute Congestive Glaucoma (IOP > 40 mmHg) & Mannitol/Latanoprost Cockpit routes (Milestone 22.2)
 	s.registerOphthalmicGlobeRoutes()
+	// Acute Kidney Injury (AKI), Lily/Ethylene Glycol/Grape Nephrotoxicity, Oliguria/Anuria & Furosemide/Diltiazem/Dialysis Cockpit routes (Milestone 21.5)
+	s.registerAKIDialysisRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

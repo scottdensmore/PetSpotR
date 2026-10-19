@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Kidney Injury (AKI), Lily/Ethylene Glycol/Grape Nephrotoxicity, Oliguria/Anuria &amp; Furosemide/Diltiazem/Dialysis Triage Cockpit.">
+  <title>Acute Kidney Injury (AKI), Lily/Ethylene Glycol/Grape Nephrotoxicity, Oliguria/Anuria &amp; Furosemide/Diltiazem/Dialysis Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#aki-dialysis-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/anaphylaxis-halo-triage" class="nav-link nav-link-emergency" id="nav-anaphylaxis-halo-triage">🐝 Anaphylaxis &amp; Halo Sign ICU</a></li>
+          <li><a href="/aki-dialysis-triage" class="nav-link active nav-link-emergency" id="nav-aki-dialysis-triage">🫘 AKI &amp; Dialysis ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="aki-dialysis-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header aki-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🫘 ACUTE KIDNEY INJURY (AKI), LILY/ETHYLENE GLYCOL/GRAPE NEPHROTOXICITY, OLIGURIA/ANURIA &amp; FUROSEMIDE/DILTIAZEM/DIALYSIS COCKPIT</span>
+        </div>
+        <h1>Acute Kidney Injury (AKI), Lily/Ethylene Glycol/Grape Nephrotoxicity, Oliguria/Anuria &amp; Furosemide/Diltiazem/Dialysis Cockpit</h1>
+        <p class="text-secondary">
+          Feline <em>Lilium</em> (Easter/Asiatic Lily) Proximal Tubular Necrosis, Canine Ethylene Glycol Calcium Oxalate Monohydrate Crystalluria &amp; <em>Vitis</em> (Grape/Raisin) Tartaric Acid / Leptospirosis AKI, Fomepizole (4-MP) 20 mg/kg Canine vs. High-Dose 125 mg/kg Feline Alcohol Dehydrogenase Blockade, Closed-System "Ins-and-Outs" Fluid Matching (UOP + 20 mL/kg/day Insensible Loss), Oliguric Furosemide 2.0 mg/kg + Diltiazem CRI 0.3 mcg/kg/min Conversion &amp; Intermittent Hemodialysis (IHD) Guard.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid aki-kpi-grid" aria-label="Acute Kidney Injury &amp; Dialysis KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total AKI &amp; Dialysis ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Oliguric / Anuric Azotemia Critical</span>
+        <strong class="kpi-value" id="kpi-critical-oliguric">{{ .OliguricAzotemiaCriticalCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Fomepizole &amp; Ins-and-Outs Staged</span>
+        <strong class="kpi-value" id="kpi-staged-fomepizole">{{ .FomepizoleDiuresisStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Polyuric Creatinine Plateau Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-polyuric">{{ .PolyuricClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Anuric Fluid Overload &amp; Fomepizole Alerts</span>
+        <strong class="kpi-value" id="kpi-anuric-alerts">{{ .AnuricOverloadAlertCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="aki-live-status" class="humane-traps-live-status aki-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} acute kidney injury, Fomepizole &amp; Ins-and-Outs diuresis/dialysis operations.
+    </div>
+
+    <!-- Global Anuric Fluid Overload, Feline 125 mg/kg Fomepizole & Hemodialysis Pitfall Alert Banner -->
+    <div id="aki-alert-banner" class="aki-alert-banner" role="alert" aria-live="assertive">
+      {{ if and .ActiveOperation .ActiveOperation.DiuresisPlan }}
+      ⚠️ AKI, ANURIC FLUID OVERLOAD &amp; FOMEPIZOLE GUARD ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }} · IRIS Grade {{ .ActiveOperation.PatientProfile.IRISGrade }} · UOP {{ printf "%.1f" .ActiveOperation.PatientProfile.UrineOutputMlKgHr }} mL/kg/hr · Cr {{ printf "%.1f" .ActiveOperation.PatientProfile.SerumCreatinineMgDl }} mg/dL · K+ {{ printf "%.1f" .ActiveOperation.PatientProfile.SerumPotassiumMeqL }} mEq/L · Weight Gain {{ printf "%.1f" .ActiveOperation.PatientProfile.BodyWeightGainPercent }}%): {{ .ActiveOperation.DiuresisPlan.AKIPitfallAlert }}
+      {{ else }}
+      ⚠️ CRITICAL AKI, ANURIC FLUID OVERLOAD &amp; FOMEPIZOLE PITFALL ALERT: NEVER force high-rate IV crystalloid fluids into an oliguric/anuric (&lt; 0.5 mL/kg/hr) patient — switch strictly to 'Ins-and-Outs' fluid matching (urine output + 20 mL/kg/day insensible loss); NEVER use canine-dose Fomepizole (20 mg/kg) in cats (cats require 125 mg/kg IV high-dose Fomepizole within 3 hours); and NEVER delay intermittent hemodialysis when oliguria + K+ &gt; 6.5 mEq/L persists.
+      {{ end }}
+    </div>
+
+    <!-- Global Polyuric Recovery & Non-Azotemic Creatinine Plateau Discharge Clearance Banner -->
+    <div id="aki-clearance-banner" class="aki-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation .ActiveOperation.DischargeClearance) }}hidden{{ end }}>
+      {{ if and .ActiveOperation .ActiveOperation.DischargeClearance }}
+      ✅ POLYURIC RECOVERY &amp; CREATININE PLATEAU CLEARANCE VERIFIED ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }}): Final UOP {{ printf "%.1f" .ActiveOperation.DischargeClearance.FinalUrineOutputMlKgHr }} mL/kg/hr · Final Cr {{ printf "%.1f" .ActiveOperation.DischargeClearance.FinalSerumCreatinineMgDl }} mg/dL · Final K+ {{ printf "%.1f" .ActiveOperation.DischargeClearance.FinalSerumPotassiumMeqL }} mEq/L · Vet License {{ .ActiveOperation.DischargeClearance.VetLicense }} — {{ .ActiveOperation.DischargeClearance.Summary }}
+      {{ else }}
+      ✅ POLYURIC RECOVERY &amp; CREATININE PLATEAU CLEARANCE VERIFIED
+      {{ end }}
+    </div>
+
+    <div class="trust-cockpit-grid aki-cockpit-grid">
+      <!-- Left Column: Intake Form & Active Operation Diuresis Plan / Renal Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="aki-forms-panel" aria-labelledby="heading-aki-intake">
+        <div class="trust-panel-header">
+          <h2 id="heading-aki-intake">1. Acute Kidney Injury (AKI) &amp; Nephrotoxin Triage Intake</h2>
+          <span class="status-pill status-pill-staged">Fomepizole · Ins-and-Outs · Dialysis</span>
+        </div>
+
+        <div id="aki-error-banner" class="aki-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="create-aki-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-incident-id">Incident ID</label>
+              <input type="text" id="create-incident-id" name="incident_id" class="form-control" value="INC-AKI-9934" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pet-name">Pet Name</label>
+              <input type="text" id="create-pet-name" name="pet_name" class="form-control" value="Pinot" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-species">AKI Nephrotoxin / Etiology Classification</label>
+              <select id="create-species" name="species" class="form-control" required>
+                <option value="CANINE_ETHYLENE_GLYCOL_OXALATE" selected>CANINE_ETHYLENE_GLYCOL_OXALATE (Canine Ethylene Glycol Antifreeze · Calcium Oxalate Monohydrate)</option>
+                <option value="FELINE_LILIUM_NEPHROTOXICITY">FELINE_LILIUM_NEPHROTOXICITY (Feline Easter/Asiatic Lily · Proximal Tubular Necrosis)</option>
+                <option value="CANINE_VITIS_GRAPE_LEPTOSPIROSIS">CANINE_VITIS_GRAPE_LEPTOSPIROSIS (Canine Grape/Raisin Tartaric Acid &amp; Leptospirosis AKI)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-breed">Breed</label>
+              <input type="text" id="create-breed" name="breed" class="form-control" value="Golden Retriever">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-weight-kg">Weight (kg)</label>
+              <input type="number" id="create-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="24.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-iris-grade">IRIS AKI Grade (1–5)</label>
+              <input type="number" id="create-iris-grade" name="iris_grade" class="form-control" min="1" max="5" step="1" value="4" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-creatinine">Serum Creatinine (mg/dL)</label>
+              <input type="number" id="create-creatinine" name="serum_creatinine_mg_dl" class="form-control" min="0.3" max="30.0" step="0.1" value="6.8" required>
+            </div>
+            <div class="form-group">
+              <label for="create-potassium">Serum Potassium K+ (mEq/L)</label>
+              <input type="number" id="create-potassium" name="serum_potassium_meq_l" class="form-control" min="2.0" max="12.0" step="0.1" value="6.6" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-uop">Closed-System Urine Output UOP (mL/kg/hr)</label>
+              <input type="number" id="create-uop" name="urine_output_ml_kg_hr" class="form-control" min="0.0" max="25.0" step="0.1" value="0.4" required>
+            </div>
+            <div class="form-group">
+              <label for="create-weight-gain-pct">Body Weight Gain Fluid Overload (%)</label>
+              <input type="number" id="create-weight-gain-pct" name="body_weight_gain_percent" class="form-control" min="-15.0" max="25.0" step="0.5" value="6.0" required>
+            </div>
+          </div>
+
+          <div class="aki-checkbox-group">
+            <label class="aki-checkbox-item">
+              <input type="checkbox" id="create-oxalate-crystals" name="calcium_oxalate_monohydrate_crystals" checked>
+              <span>Pathognomonic Calcium Oxalate Monohydrate ("Picket-Fence") Crystalluria Present</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-create-aki-op" class="btn btn-primary">Create AKI &amp; Dialysis Operation</button>
+        </form>
+
+        <hr class="aki-divider">
+
+        <!-- Stage Fomepizole, Ins-and-Outs Fluid Rate, Furosemide/Diltiazem & Dialysis Plan Form -->
+        <div class="trust-subsection" id="stage-plan-section">
+          <h3 id="heading-stage-plan">2. Stage Fomepizole, Ins-and-Outs Fluid Rate, Furosemide/Diltiazem &amp; Dialysis Plan</h3>
+          <form id="stage-plan-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-weight-kg">Weight (kg)</label>
+                <input type="number" id="stage-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.WeightKg }}{{ else }}4.5{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-species">AKI Nephrotoxin / Etiology</label>
+                <select id="stage-species" name="species" class="form-control" required>
+                  <option value="FELINE_LILIUM_NEPHROTOXICITY">FELINE_LILIUM_NEPHROTOXICITY (Feline Lily Nephrotoxicity)</option>
+                  <option value="CANINE_ETHYLENE_GLYCOL_OXALATE">CANINE_ETHYLENE_GLYCOL_OXALATE (Canine Ethylene Glycol Oxalate)</option>
+                  <option value="CANINE_VITIS_GRAPE_LEPTOSPIROSIS">CANINE_VITIS_GRAPE_LEPTOSPIROSIS (Canine Grape / Leptospirosis)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-iris-grade">IRIS AKI Grade (1–5)</label>
+                <input type="number" id="stage-iris-grade" name="iris_grade" class="form-control" min="1" max="5" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.IRISGrade }}{{ else }}5{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-uop">Urine Output UOP (mL/kg/hr)</label>
+                <input type="number" id="stage-uop" name="urine_output_ml_kg_hr" class="form-control" min="0.0" max="25.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.UrineOutputMlKgHr }}{{ else }}0.2{{ end }}" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-creatinine">Serum Creatinine (mg/dL)</label>
+                <input type="number" id="stage-creatinine" name="serum_creatinine_mg_dl" class="form-control" min="0.3" max="30.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.SerumCreatinineMgDl }}{{ else }}11.4{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-potassium">Serum Potassium K+ (mEq/L)</label>
+                <input type="number" id="stage-potassium" name="serum_potassium_meq_l" class="form-control" min="2.0" max="12.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.SerumPotassiumMeqL }}{{ else }}7.4{{ end }}" required>
+              </div>
+            </div>
+            <button type="submit" id="btn-stage-plan" class="btn btn-secondary">💉 Stage Fomepizole, Ins-and-Outs &amp; Dialysis Plan</button>
+          </form>
+        </div>
+
+        <hr class="aki-divider">
+
+        <!-- Serial Closed-System UOP, Creatinine, Potassium & Fluid Balance Telemetry Check Form -->
+        <div class="trust-subsection" id="renal-check-section">
+          <h3 id="heading-renal-check">3. Record Serial Closed-System UOP, Creatinine, Potassium &amp; Fluid Balance Check</h3>
+          <form id="renal-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-uop">Closed-System UOP (mL/kg/hr)</label>
+                <input type="number" id="check-uop" name="urine_output_ml_kg_hr" class="form-control" min="0.0" max="25.0" step="0.1" value="2.4" required>
+              </div>
+              <div class="form-group">
+                <label for="check-creatinine">Serum Creatinine (mg/dL)</label>
+                <input type="number" id="check-creatinine" name="serum_creatinine_mg_dl" class="form-control" min="0.3" max="30.0" step="0.1" value="1.9" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-potassium">Serum Potassium K+ (mEq/L)</label>
+                <input type="number" id="check-potassium" name="serum_potassium_meq_l" class="form-control" min="2.0" max="12.0" step="0.1" value="4.2" required>
+              </div>
+              <div class="form-group">
+                <label for="check-body-weight">Body Weight (kg)</label>
+                <input type="number" id="check-body-weight" name="body_weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="4.5" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-fluid-balance">Fluid In/Out Balance (mL)</label>
+                <input type="number" id="check-fluid-balance" name="fluid_in_out_balance_ml" class="form-control" min="-2000" max="2000" step="5" value="0.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-callsign">Clinician Callsign</label>
+                <input type="text" id="check-callsign" name="clinician_callsign" class="form-control" value="DR-RENAL-11" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-notes">Renal Diuresis, Ins-and-Outs &amp; Hemodialysis Telemetry Notes</label>
+              <input type="text" id="check-notes" name="notes" class="form-control" value="Post-hemodialysis &amp; Furosemide/Diltiazem conversion: polyuric phase achieved (UOP 2.4 mL/kg/hr), Cr decreased from 11.4 to 1.9 mg/dL, K+ normalized to 4.2 mEq/L.">
+            </div>
+            <button type="submit" id="btn-record-renal-check" class="btn btn-secondary">🩺 Log Closed-System UOP &amp; Renal Telemetry Check</button>
+          </form>
+        </div>
+
+        <hr class="aki-divider">
+
+        <!-- Discharge Clearance Form -->
+        <div class="trust-subsection" id="discharge-clearance-section">
+          <h3 id="heading-discharge-clearance">4. Issue Polyuric Recovery &amp; Non-Azotemic Creatinine Plateau Clearance</h3>
+          <form id="discharge-clearance-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-final-uop">Final Urine Output UOP (&ge; 1.5 mL/kg/hr)</label>
+                <input type="number" id="clearance-final-uop" name="final_urine_output_ml_kg_hr" class="form-control" min="1.5" max="20.0" step="0.1" value="2.4" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-final-creatinine">Final Serum Creatinine (&le; 2.5 mg/dL)</label>
+                <input type="number" id="clearance-final-creatinine" name="final_serum_creatinine_mg_dl" class="form-control" min="0.3" max="2.5" step="0.1" value="1.8" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-final-potassium">Final Serum Potassium K+ (3.5–5.5 mEq/L)</label>
+                <input type="number" id="clearance-final-potassium" name="final_serum_potassium_meq_l" class="form-control" min="3.5" max="5.5" step="0.1" value="4.2" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-vet-license">Attending Veterinarian License</label>
+                <input type="text" id="clearance-vet-license" name="vet_license" class="form-control" value="VET-RENAL-99308" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="clearance-summary">Discharge Summary &amp; Outpatient SubQ Fluid Taper Protocol</label>
+              <input type="text" id="clearance-summary" name="summary" class="form-control" value="Polyuric conversion &amp; non-azotemic creatinine plateau achieved (UOP 2.4 mL/kg/hr, Cr 1.8 mg/dL, K+ 4.2 mEq/L); euvolemic without pulmonary edema; owner educated on outpatient SubQ fluid taper.">
+            </div>
+            <div class="aki-checkbox-group">
+              <label class="aki-checkbox-item">
+                <input type="checkbox" id="clearance-euvolemic" name="euvolemic_no_pulmonary_edema" checked>
+                <span>Euvolemic Body Weight Restored Without Iatrogenic Pulmonary/Pleural Edema or Chemosis</span>
+              </label>
+              <label class="aki-checkbox-item">
+                <input type="checkbox" id="clearance-subq-educated" name="outpatient_subq_fluids_educated" checked>
+                <span>Owner Educated on Outpatient Subcutaneous Fluid Taper, Water Access &amp; 48h Recheck Renal Panel</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-issue-discharge-clearance" class="btn btn-primary">🛡️ Issue Polyuric &amp; Creatinine Plateau Clearance</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Queue -->
+      <section class="glass-card trust-panel" id="aki-ops-panel" aria-labelledby="heading-aki-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-aki-ops">Active AKI, Fomepizole &amp; Dialysis Operations</h2>
+          <span id="aki-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col aki-filter-bar" role="region" aria-label="Filter AKI Dialysis Operations">
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="OLIGURIC_ANURIC_AZOTEMIA_CRITICAL">OLIGURIC_ANURIC_AZOTEMIA_CRITICAL</option>
+              <option value="FOMEPIZOLE_INS_OUTS_DIURESIS_STAGED">FOMEPIZOLE_INS_OUTS_DIURESIS_STAGED</option>
+              <option value="POLYURIC_CREATININE_PLATEAU_CLEARED">POLYURIC_CREATININE_PLATEAU_CLEARED</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-species">Filter by AKI Nephrotoxin / Etiology</label>
+            <select id="filter-species" class="form-control">
+              <option value="">All AKI Classifications</option>
+              <option value="FELINE_LILIUM_NEPHROTOXICITY">FELINE_LILIUM_NEPHROTOXICITY</option>
+              <option value="CANINE_ETHYLENE_GLYCOL_OXALATE">CANINE_ETHYLENE_GLYCOL_OXALATE</option>
+              <option value="CANINE_VITIS_GRAPE_LEPTOSPIROSIS">CANINE_VITIS_GRAPE_LEPTOSPIROSIS</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="aki-active-workspace" role="region" aria-label="Active AKI Dialysis Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="aki-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-pet-title">Active Workspace: {{ $active.PetName }} ({{ $active.PatientProfile.Species }}{{ if $active.PatientProfile.Breed }} · {{ $active.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $active.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id" id="workspace-op-code">{{ $active.ID }} · {{ $active.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species" id="workspace-species-pill">{{ $active.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $active.Status) "OLIGURIC_ANURIC_AZOTEMIA_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $active.Status) "FOMEPIZOLE_INS_OUTS_DIURESIS_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}" id="workspace-status-pill">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="aki-vitals-summary" id="workspace-vitals-summary">
+              <span><strong>IRIS Grade:</strong> {{ $active.PatientProfile.IRISGrade }}</span>
+              <span><strong>UOP:</strong> {{ printf "%.1f" $active.PatientProfile.UrineOutputMlKgHr }} mL/kg/hr</span>
+              <span><strong>Creatinine:</strong> {{ printf "%.1f" $active.PatientProfile.SerumCreatinineMgDl }} mg/dL</span>
+              <span><strong>Potassium K+:</strong> {{ printf "%.1f" $active.PatientProfile.SerumPotassiumMeqL }} mEq/L</span>
+              <span><strong>Weight Gain:</strong> {{ printf "%.1f" $active.PatientProfile.BodyWeightGainPercent }}%</span>
+              <span><strong>Oxalate Crystals:</strong> {{ if $active.PatientProfile.CalciumOxalateMonohydrateCrystals }}YES{{ else }}NO{{ end }}</span>
+            </div>
+
+            {{ if $active.DiuresisPlan }}
+            <div class="aki-plan-box" id="workspace-plan-box">
+              <h4>Calculated Fomepizole (4-MP), Ins-and-Outs Fluid Rate, Furosemide/Diltiazem &amp; Hemodialysis Plan</h4>
+              <div class="aki-doses-grid">
+                <div><strong>Fomepizole Loading Dose:</strong> <span id="plan-fomepizole">{{ printf "%.1f" $active.DiuresisPlan.FomepizoleLoadingDoseMg }} mg IV</span></div>
+                <div><strong>Ins-and-Outs Fluid Rate:</strong> <span id="plan-ins-outs-rate">{{ printf "%.2f" $active.DiuresisPlan.InsAndOutsFluidRateMlHr }} mL/hr</span></div>
+                <div><strong>Furosemide Conversion Bolus:</strong> <span id="plan-furosemide-bolus">{{ printf "%.1f" $active.DiuresisPlan.FurosemideConversionBolusMg }} mg IV</span></div>
+                <div><strong>Diltiazem CRI:</strong> <span id="plan-diltiazem-cri">{{ printf "%.1f" $active.DiuresisPlan.DiltiazemCRI03McgKgMin }} mcg/kg/min</span></div>
+                <div><strong>Intermittent Hemodialysis:</strong> <span id="plan-hemodialysis">{{ if $active.DiuresisPlan.HemodialysisIndicated }}INDICATED{{ else }}STANDBY{{ end }}</span></div>
+                <div><strong>Zero-Force-Fluid-in-Anuria Guard:</strong> <span id="plan-anuria-fluid-guard">{{ if $active.DiuresisPlan.ZeroForceFluidInAnuriaGuard }}ENFORCED{{ else }}OFF{{ end }}</span></div>
+              </div>
+              <p class="aki-rationale-text" id="workspace-clinical-rationale">{{ $active.DiuresisPlan.ClinicalRationale }}</p>
+            </div>
+            {{ end }}
+
+            <div class="aki-renal-checks-box">
+              <h4>Serial Closed-System UOP, Creatinine, Potassium &amp; Fluid Balance Checks (<span id="workspace-checks-count">{{ len $active.RenalChecks }}</span>)</h4>
+              <ul id="renal-checks-list" class="aki-checks-list">
+                {{ range $chk := $active.RenalChecks }}
+                <li class="aki-check-item">
+                  <strong>{{ $chk.ClinicianCallsign }}</strong> · UOP {{ printf "%.1f" $chk.UrineOutputMlKgHr }} mL/kg/hr · Cr {{ printf "%.1f" $chk.SerumCreatinineMgDl }} mg/dL · K+ {{ printf "%.1f" $chk.SerumPotassiumMeqL }} mEq/L · Wt {{ printf "%.1f" $chk.BodyWeightKg }} kg · Fluid Bal {{ printf "%.1f" $chk.FluidInOutBalanceMl }} mL — {{ $chk.Notes }}
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="aki-operations-list" class="trust-screenings-list aki-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card aki-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-species="{{ $op.PatientProfile.Species }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.PatientProfile.Species }}{{ if $op.PatientProfile.Breed }} · {{ $op.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $op.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species">{{ $op.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $op.Status) "OLIGURIC_ANURIC_AZOTEMIA_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $op.Status) "FOMEPIZOLE_INS_OUTS_DIURESIS_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row aki-metrics-row">
+              <span class="status-pill status-pill-species">IRIS Grade: {{ $op.PatientProfile.IRISGrade }} • UOP: {{ printf "%.1f" $op.PatientProfile.UrineOutputMlKgHr }} mL/kg/hr • Cr: {{ printf "%.1f" $op.PatientProfile.SerumCreatinineMgDl }} mg/dL • K+: {{ printf "%.1f" $op.PatientProfile.SerumPotassiumMeqL }} mEq/L • Weight Gain: {{ printf "%.1f" $op.PatientProfile.BodyWeightGainPercent }}% • Oxalate Crystals: {{ if $op.PatientProfile.CalciumOxalateMonohydrateCrystals }}YES{{ else }}NO{{ end }}</span>
+            </div>
+
+            {{ if $op.AnuricFluidOverloadFomepizoleAlert }}
+            <div class="aki-alert-banner">
+              ⚠️ ANURIC FLUID OVERLOAD &amp; FOMEPIZOLE GUARD (UOP {{ printf "%.1f" $op.PatientProfile.UrineOutputMlKgHr }} mL/kg/hr · Cr {{ printf "%.1f" $op.PatientProfile.SerumCreatinineMgDl }} mg/dL · K+ {{ printf "%.1f" $op.PatientProfile.SerumPotassiumMeqL }} mEq/L): {{ if $op.DiuresisPlan }}{{ $op.DiuresisPlan.AKIPitfallAlert }}{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if $op.DischargeClearance }}
+            <div class="aki-clearance-banner">
+              ✅ POLYURIC &amp; CREATININE PLATEAU CLEARED ({{ $op.DischargeClearance.VetLicense }}): Final UOP {{ printf "%.1f" $op.DischargeClearance.FinalUrineOutputMlKgHr }} mL/kg/hr · Final Cr {{ printf "%.1f" $op.DischargeClearance.FinalSerumCreatinineMgDl }} mg/dL · Final K+ {{ printf "%.1f" $op.DischargeClearance.FinalSerumPotassiumMeqL }} mEq/L
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary aki-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select Operation ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="aki-ops-empty-msg">No Acute Kidney Injury &amp; Dialysis triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/aki-dialysis-triage.js" defer></script>
+</body>
+</html>
