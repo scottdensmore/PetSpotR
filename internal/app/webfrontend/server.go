@@ -27,6 +27,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/acousticpanic"
 	"github.com/scottdensmore/petspotr/pkg/addisoniancrisis"
 	"github.com/scottdensmore/petspotr/pkg/airwaytracheostomy"
+	"github.com/scottdensmore/petspotr/pkg/anaphylaxishalo"
 	"github.com/scottdensmore/petspotr/pkg/avalanchewinter"
 	"github.com/scottdensmore/petspotr/pkg/avianrecovery"
 	"github.com/scottdensmore/petspotr/pkg/biosecurityiso"
@@ -126,6 +127,7 @@ type Server struct {
 	addisonianService         *addisoniancrisis.AddisonianService
 	tamponadeService          *pericardialtamponade.TamponadeService
 	pneumothoraxService       *pneumothorax.PneumothoraxService
+	anaphylaxisService        *anaphylaxishalo.AnaphylaxisService
 	handler                   http.Handler
 }
 
@@ -310,6 +312,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		tbiService:                traumaticbrain.NewTBIService(),
 		addisonianService:         addisoniancrisis.NewAddisonianService(),
 		pneumothoraxService:       pneumothorax.NewPneumothoraxService(),
+		anaphylaxisService:        anaphylaxishalo.NewAnaphylaxisService(),
 		tamponadeService:          pericardialtamponade.NewTamponadeService(),
 		imhaService:               imhathrombosis.NewIMHAService(),
 		peritonitisService:        septicperitonitis.NewPeritonitisService(),
@@ -655,6 +658,8 @@ func (s *Server) routes() {
 	s.registerPericardialTamponadeRoutes()
 	// Tension Pneumothorax, Flail Chest, 7th–9th ICS Thoracocentesis & Heimlich/Pleural Seal Chest Tube Cockpit routes (Milestone 21.3)
 	s.registerPneumothoraxRoutes()
+	// Acute Anaphylaxis, Hemoabdomen Halo Sign (Gallbladder Wall Edema), Epinephrine IM/CRI & Venous Pool Resuscitation Cockpit routes (Milestone 21.2)
+	s.registerAnaphylaxisHaloRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

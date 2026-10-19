@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Anaphylaxis, Hemoabdomen Halo Sign (Gallbladder Wall Edema), Epinephrine IM/CRI &amp; Venous Pool Resuscitation Triage Cockpit.">
+  <title>Acute Anaphylaxis, Hemoabdomen Halo Sign (Gallbladder Wall Edema), Epinephrine IM/CRI &amp; Venous Pool Resuscitation Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#anaphylaxis-halo-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/hemoabdomen-triage" class="nav-link nav-link-emergency" id="nav-hemoabdomen-triage">🩸 Hemoabdomen ICU</a></li>
+          <li><a href="/anaphylaxis-halo-triage" class="nav-link active nav-link-emergency" id="nav-anaphylaxis-halo-triage">🐝 Anaphylaxis &amp; Halo Sign ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="anaphylaxis-halo-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header anaphylaxis-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🐝 ACUTE ANAPHYLAXIS, HEMOABDOMEN HALO SIGN (GALLBLADDER WALL EDEMA), EPINEPHRINE IM/CRI &amp; VENOUS POOL RESUSCITATION COCKPIT</span>
+        </div>
+        <h1>Acute Anaphylaxis, Hemoabdomen Halo Sign (Gallbladder Wall Edema), Epinephrine IM/CRI &amp; Venous Pool Resuscitation Cockpit</h1>
+        <p class="text-secondary">
+          Canine Hepatic Venous Sphincter Constriction &amp; Splanchnic Pooling vs. Feline Pulmonary Bronchospasm Shock, AFAST Gallbladder Wall Striated "Halo Sign" (&gt; 3.0 mm) Non-Surgical Cholecystectomy Guard, Epinephrine 0.01 mg/kg IM (Max 0.3 mg &lt; 20 kg / 0.5 mg &ge; 20 kg) &amp; 0.05 mcg/kg/min CRI, Fresh Frozen Plasma (15 mL/kg for Mast-Cell Heparin/Tryptase Hyperfibrinolytic Hemoabdomen), IM Diphenhydramine &amp; Mandatory 24-Hour Biphasic Relapse Observation.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid anaphylaxis-kpi-grid" aria-label="Acute Anaphylaxis &amp; Hemoabdomen Halo Sign KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Anaphylaxis ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Anaphylactic Shock / Halo Sign Critical</span>
+        <strong class="kpi-value" id="kpi-critical-shock">{{ .CriticalShockHaloCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Epinephrine IM/CRI &amp; FFP Staged</span>
+        <strong class="kpi-value" id="kpi-staged-epinephrine">{{ .EpinephrineFFPStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">24h Biphasic Normotensive Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-biphasic">{{ .Biphasic24HrClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Hepatic Congestion &amp; Coagulopathy Alerts</span>
+        <strong class="kpi-value" id="kpi-hepatic-alerts">{{ .HepaticCoagulopathyAlertCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="anaphylaxis-live-status" class="humane-traps-live-status anaphylaxis-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} acute anaphylaxis, gallbladder Halo Sign &amp; Epinephrine IM/CRI operations.
+    </div>
+
+    <!-- Global Gallbladder Halo Sign Cholecystectomy, IV Diphenhydramine & 24h Biphasic Pitfall Alert Banner -->
+    <div id="anaphylaxis-alert-banner" class="anaphylaxis-alert-banner" role="alert" aria-live="assertive">
+      {{ if and .ActiveOperation .ActiveOperation.ResuscitationPlan }}
+      ⚠️ ANAPHYLAXIS, GALLBLADDER HALO SIGN &amp; HEMOABDOMEN GUARD ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }} · GB Wall {{ printf "%.1f" .ActiveOperation.PatientProfile.GallbladderWallThicknessMm }} mm · MAP {{ .ActiveOperation.PatientProfile.MeanArterialPressureMmHg }} mmHg · ALT {{ .ActiveOperation.PatientProfile.AlanineAminotransferaseUL }} U/L · PCV {{ printf "%.1f" .ActiveOperation.PatientProfile.PackedCellVolumePercent }}% · PT {{ printf "%.1f" .ActiveOperation.PatientProfile.ProthrombinTimeSeconds }} s): {{ .ActiveOperation.ResuscitationPlan.AnaphylaxisPitfallAlert }}
+      {{ else }}
+      ⚠️ CRITICAL ANAPHYLAXIS, GALLBLADDER HALO SIGN &amp; HEMOABDOMEN PITFALL ALERT: NEVER mistake the ultrasound gallbladder wall striated 'Halo Sign' (&gt; 3.0 mm edema) and anaphylactic non-clotting hemoabdomen for surgical gallbladder mucocele rupture; NEVER administer Diphenhydramine IV rapid bolus (give 2.0 mg/kg IM only AFTER Epinephrine); and NEVER discharge before &ge; 24h biphasic anaphylaxis observation.
+      {{ end }}
+    </div>
+
+    <!-- Global 24h Biphasic Normotensive & Halo Sign Resolved Discharge Clearance Banner -->
+    <div id="anaphylaxis-clearance-banner" class="anaphylaxis-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation .ActiveOperation.DischargeClearance) }}hidden{{ end }}>
+      {{ if and .ActiveOperation .ActiveOperation.DischargeClearance }}
+      ✅ 24H BIPHASIC NORMOTENSIVE &amp; HALO SIGN RESOLVED CLEARANCE VERIFIED ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }}): {{ .ActiveOperation.DischargeClearance.BiphasicObservationHours }}h Observation · Final MAP {{ .ActiveOperation.DischargeClearance.FinalMAPMmHg }} mmHg · Vet License {{ .ActiveOperation.DischargeClearance.VetLicense }} — {{ .ActiveOperation.DischargeClearance.Summary }}
+      {{ else }}
+      ✅ 24H BIPHASIC NORMOTENSIVE &amp; HALO SIGN RESOLVED CLEARANCE VERIFIED
+      {{ end }}
+    </div>
+
+    <div class="trust-cockpit-grid anaphylaxis-cockpit-grid">
+      <!-- Left Column: Intake Form & Active Operation Resuscitation Plan / Biphasic Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="anaphylaxis-forms-panel" aria-labelledby="heading-anaphylaxis-intake">
+        <div class="trust-panel-header">
+          <h2 id="heading-anaphylaxis-intake">1. Acute Anaphylaxis &amp; Gallbladder Halo Sign Intake</h2>
+          <span class="status-pill status-pill-staged">Epinephrine IM/CRI · Crystalloid · FFP</span>
+        </div>
+
+        <div id="anaphylaxis-error-banner" class="anaphylaxis-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="create-anaphylaxis-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-incident-id">Incident ID</label>
+              <input type="text" id="create-incident-id" name="incident_id" class="form-control" value="INC-AH-9904" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pet-name">Pet Name</label>
+              <input type="text" id="create-pet-name" name="pet_name" class="form-control" value="Peanut" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-species">Anaphylaxis Shock-Organ Classification</label>
+              <select id="create-species" name="species" class="form-control" required>
+                <option value="CANINE_HYMENOPTERA_HEMOABDOMEN" selected>CANINE_HYMENOPTERA_HEMOABDOMEN (Canine Hymenoptera Sting · Gallbladder Halo Sign &amp; Anaphylactic Hemoabdomen)</option>
+                <option value="CANINE_HEPATIC_SPLANCHNIC_SHOCK">CANINE_HEPATIC_SPLANCHNIC_SHOCK (Canine Hepatic Venous Sphincter Constriction &amp; Splanchnic Pooling)</option>
+                <option value="FELINE_BRONCHOSPASM_PULMONARY_SHOCK">FELINE_BRONCHOSPASM_PULMONARY_SHOCK (Feline Pulmonary Bronchospasm, Laryngeal Edema &amp; Hypoxemia)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-breed">Breed</label>
+              <input type="text" id="create-breed" name="breed" class="form-control" value="French Bulldog">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-weight-kg">Weight (kg)</label>
+              <input type="number" id="create-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="11.5" required>
+            </div>
+            <div class="form-group">
+              <label for="create-gb-wall-mm">AFAST Gallbladder Wall Thickness (mm)</label>
+              <input type="number" id="create-gb-wall-mm" name="gallbladder_wall_thickness_mm" class="form-control" min="0.5" max="15.0" step="0.1" value="5.8" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-map-mmhg">Mean Arterial Pressure MAP (mmHg)</label>
+              <input type="number" id="create-map-mmhg" name="mean_arterial_pressure_mmhg" class="form-control" min="20" max="200" step="1" value="48" required>
+            </div>
+            <div class="form-group">
+              <label for="create-alt-ul">Serum ALT (U/L)</label>
+              <input type="number" id="create-alt-ul" name="alanine_aminotransferase_u_l" class="form-control" min="10" max="25000" step="10" value="1850" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-pcv-pct">Packed Cell Volume PCV (%)</label>
+              <input type="number" id="create-pcv-pct" name="packed_cell_volume_percent" class="form-control" min="10.0" max="85.0" step="0.5" value="66.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pt-sec">Prothrombin Time PT (seconds)</label>
+              <input type="number" id="create-pt-sec" name="prothrombin_time_seconds" class="form-control" min="5.0" max="120.0" step="0.5" value="24.5" required>
+            </div>
+          </div>
+
+          <div class="anaphylaxis-checkbox-group">
+            <label class="anaphylaxis-checkbox-item">
+              <input type="checkbox" id="create-halo-sign-present" name="gallbladder_halo_sign_present" checked>
+              <span>AFAST Striated Double-Layered Gallbladder Wall "Halo Sign" Present (&gt; 3.0 mm Hepatic Venous Congestion Edema)</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-create-anaphylaxis-op" class="btn btn-primary">Create Anaphylaxis &amp; Halo Sign Operation</button>
+        </form>
+
+        <hr class="anaphylaxis-divider">
+
+        <!-- Stage Epinephrine IM/CRI, Isotonic Crystalloid & FFP Resuscitation Plan Form -->
+        <div class="trust-subsection" id="stage-plan-section">
+          <h3 id="heading-stage-plan">2. Stage Epinephrine IM/CRI, Crystalloid Bolus &amp; FFP Resuscitation Plan</h3>
+          <form id="stage-plan-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-weight-kg">Weight (kg)</label>
+                <input type="number" id="stage-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.WeightKg }}{{ else }}6.8{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-species">Anaphylaxis Shock Organ</label>
+                <select id="stage-species" name="species" class="form-control" required>
+                  <option value="CANINE_HYMENOPTERA_HEMOABDOMEN">CANINE_HYMENOPTERA_HEMOABDOMEN (Canine Halo Sign &amp; Hemoabdomen)</option>
+                  <option value="CANINE_HEPATIC_SPLANCHNIC_SHOCK">CANINE_HEPATIC_SPLANCHNIC_SHOCK (Canine Hepatic Splanchnic)</option>
+                  <option value="FELINE_BRONCHOSPASM_PULMONARY_SHOCK">FELINE_BRONCHOSPASM_PULMONARY_SHOCK (Feline Bronchospasm)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-gb-wall-mm">Gallbladder Wall Thickness (mm)</label>
+                <input type="number" id="stage-gb-wall-mm" name="gallbladder_wall_thickness_mm" class="form-control" min="0.5" max="15.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.GallbladderWallThicknessMm }}{{ else }}6.4{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-map-mmhg">Mean Arterial Pressure MAP (mmHg)</label>
+                <input type="number" id="stage-map-mmhg" name="mean_arterial_pressure_mmhg" class="form-control" min="20" max="200" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.MeanArterialPressureMmHg }}{{ else }}46{{ end }}" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-pcv-pct">Packed Cell Volume PCV (%)</label>
+                <input type="number" id="stage-pcv-pct" name="packed_cell_volume_percent" class="form-control" min="10.0" max="85.0" step="0.5" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.PackedCellVolumePercent }}{{ else }}68.0{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-pt-sec">Prothrombin Time PT (seconds)</label>
+                <input type="number" id="stage-pt-sec" name="prothrombin_time_seconds" class="form-control" min="5.0" max="120.0" step="0.5" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.ProthrombinTimeSeconds }}{{ else }}28.5{{ end }}" required>
+              </div>
+            </div>
+            <button type="submit" id="btn-stage-plan" class="btn btn-secondary">💉 Stage Epinephrine IM/CRI, Crystalloid &amp; FFP Plan</button>
+          </form>
+        </div>
+
+        <hr class="anaphylaxis-divider">
+
+        <!-- Serial 24-Hour Biphasic Observation, MAP & Gallbladder Wall Check Form -->
+        <div class="trust-subsection" id="biphasic-check-section">
+          <h3 id="heading-biphasic-check">3. Record Serial 24h Biphasic Observation, MAP &amp; Gallbladder Wall Check</h3>
+          <form id="biphasic-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-map-mmhg">Mean Arterial Pressure MAP (mmHg)</label>
+                <input type="number" id="check-map-mmhg" name="mean_arterial_pressure_mmhg" class="form-control" min="20" max="200" step="1" value="84" required>
+              </div>
+              <div class="form-group">
+                <label for="check-gb-wall-mm">AFAST Gallbladder Wall (mm)</label>
+                <input type="number" id="check-gb-wall-mm" name="gallbladder_wall_thickness_mm" class="form-control" min="0.5" max="15.0" step="0.1" value="2.3" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-pcv-pct">Packed Cell Volume PCV (%)</label>
+                <input type="number" id="check-pcv-pct" name="packed_cell_volume_percent" class="form-control" min="10.0" max="85.0" step="0.5" value="47.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-alt-ul">Serum ALT (U/L)</label>
+                <input type="number" id="check-alt-ul" name="alanine_aminotransferase_u_l" class="form-control" min="10" max="25000" step="10" value="420" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-callsign">Clinician Callsign</label>
+                <input type="text" id="check-callsign" name="clinician_callsign" class="form-control" value="DR-ECC-41" required>
+              </div>
+              <div class="form-group">
+                <label for="check-notes">Biphasic Surveillance &amp; AFAST Halo Sign Notes</label>
+                <input type="text" id="check-notes" name="notes" class="form-control" value="AFAST gallbladder wall edema resolved from 6.4 mm to 2.3 mm; MAP 84 mmHg off Epinephrine CRI; PCV normalized to 47%.">
+              </div>
+            </div>
+            <div class="anaphylaxis-checkbox-group">
+              <label class="anaphylaxis-checkbox-item">
+                <input type="checkbox" id="check-biphasic-relapse" name="biphasic_relapse_signs_noted">
+                <span>Biphasic Anaphylactic Relapse Signs Noted (Recurrent Hypotension, Bronchospasm, or Urticaria/ Vomiting)</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-record-biphasic-check" class="btn btn-secondary">🩺 Log 24h Biphasic &amp; Gallbladder Halo Check</button>
+          </form>
+        </div>
+
+        <hr class="anaphylaxis-divider">
+
+        <!-- Discharge Clearance Form -->
+        <div class="trust-subsection" id="discharge-clearance-section">
+          <h3 id="heading-discharge-clearance">4. Issue 24h Biphasic Normotensive &amp; Halo Sign Resolved Clearance</h3>
+          <form id="discharge-clearance-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-observation-hours">Biphasic Observation Hours (&ge; 24h)</label>
+                <input type="number" id="clearance-observation-hours" name="biphasic_observation_hours" class="form-control" min="24" max="168" step="1" value="26" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-final-map">Final Normotensive MAP (mmHg, 75–120)</label>
+                <input type="number" id="clearance-final-map" name="final_map_mmhg" class="form-control" min="75" max="120" step="1" value="88" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-vet-license">Attending Veterinarian License</label>
+                <input type="text" id="clearance-vet-license" name="vet_license" class="form-control" value="VET-ECC-99108" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-summary">Discharge Summary &amp; EpiPen Auto-Injector Prescription</label>
+                <input type="text" id="clearance-summary" name="summary" class="form-control" value="26h biphasic observation completed without relapse; AFAST gallbladder Halo Sign resolved; PT/PCV normalized; owner educated on EpiPen auto-injector.">
+              </div>
+            </div>
+            <div class="anaphylaxis-checkbox-group">
+              <label class="anaphylaxis-checkbox-item">
+                <input type="checkbox" id="clearance-halo-resolved" name="gallbladder_halo_resolved" checked>
+                <span>AFAST Ultrasound Gallbladder Wall Striated "Halo Sign" Edema Resolved (&le; 2.5 mm)</span>
+              </label>
+              <label class="anaphylaxis-checkbox-item">
+                <input type="checkbox" id="clearance-coagulopathy-normalized" name="coagulopathy_normalized" checked>
+                <span>Anaphylactic Coagulopathy / Non-Clotting Hemoabdomen Normalized (PT &le; 15 s, Stable PCV)</span>
+              </label>
+              <label class="anaphylaxis-checkbox-item">
+                <input type="checkbox" id="clearance-epipen-educated" name="epipen_auto_injector_educated" checked>
+                <span>Owner Educated &amp; Prescribed Epinephrine Auto-Injector (EpiPen Jr 0.15 mg / EpiPen 0.3 mg IM) + Oral H1/H2 Taper</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-issue-discharge-clearance" class="btn btn-primary">🛡️ Issue 24h Biphasic &amp; Halo Resolved Clearance</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Queue -->
+      <section class="glass-card trust-panel" id="anaphylaxis-ops-panel" aria-labelledby="heading-anaphylaxis-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-anaphylaxis-ops">Active Anaphylaxis &amp; Gallbladder Halo Sign Operations</h2>
+          <span id="anaphylaxis-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col anaphylaxis-filter-bar" role="region" aria-label="Filter Anaphylaxis Halo Operations">
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="ANAPHYLACTIC_SHOCK_HALO_SIGN_CRITICAL">ANAPHYLACTIC_SHOCK_HALO_SIGN_CRITICAL</option>
+              <option value="EPINEPHRINE_IM_CRI_CRYSTALLOID_FFP_STAGED">EPINEPHRINE_IM_CRI_CRYSTALLOID_FFP_STAGED</option>
+              <option value="BIPHASIC_24H_NORMOTENSIVE_HALO_RESOLVED">BIPHASIC_24H_NORMOTENSIVE_HALO_RESOLVED</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-species">Filter by Anaphylaxis Shock Organ</label>
+            <select id="filter-species" class="form-control">
+              <option value="">All Anaphylaxis Classifications</option>
+              <option value="CANINE_HYMENOPTERA_HEMOABDOMEN">CANINE_HYMENOPTERA_HEMOABDOMEN</option>
+              <option value="CANINE_HEPATIC_SPLANCHNIC_SHOCK">CANINE_HEPATIC_SPLANCHNIC_SHOCK</option>
+              <option value="FELINE_BRONCHOSPASM_PULMONARY_SHOCK">FELINE_BRONCHOSPASM_PULMONARY_SHOCK</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="anaphylaxis-active-workspace" role="region" aria-label="Active Anaphylaxis Halo Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="anaphylaxis-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-pet-title">Active Workspace: {{ $active.PetName }} ({{ $active.PatientProfile.Species }}{{ if $active.PatientProfile.Breed }} · {{ $active.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $active.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id" id="workspace-op-code">{{ $active.ID }} · {{ $active.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species" id="workspace-species-pill">{{ $active.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $active.Status) "ANAPHYLACTIC_SHOCK_HALO_SIGN_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $active.Status) "EPINEPHRINE_IM_CRI_CRYSTALLOID_FFP_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}" id="workspace-status-pill">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="anaphylaxis-vitals-summary" id="workspace-vitals-summary">
+              <span><strong>GB Wall:</strong> {{ printf "%.1f" $active.PatientProfile.GallbladderWallThicknessMm }} mm ({{ if $active.PatientProfile.GallbladderHaloSignPresent }}HALO SIGN +{{ else }}Normal{{ end }})</span>
+              <span><strong>MAP:</strong> {{ $active.PatientProfile.MeanArterialPressureMmHg }} mmHg</span>
+              <span><strong>Serum ALT:</strong> {{ $active.PatientProfile.AlanineAminotransferaseUL }} U/L</span>
+              <span><strong>PCV:</strong> {{ printf "%.1f" $active.PatientProfile.PackedCellVolumePercent }}%</span>
+              <span><strong>PT:</strong> {{ printf "%.1f" $active.PatientProfile.ProthrombinTimeSeconds }} s</span>
+            </div>
+
+            {{ if $active.ResuscitationPlan }}
+            <div class="anaphylaxis-plan-box" id="workspace-plan-box">
+              <h4>Calculated Epinephrine IM/CRI, Crystalloid Shock Bolus, Fresh Frozen Plasma &amp; H1/H2 Blockade Plan</h4>
+              <div class="anaphylaxis-doses-grid">
+                <div><strong>Epinephrine IM (0.01 mg/kg):</strong> <span id="plan-epi-im">{{ printf "%.2f" $active.ResuscitationPlan.EpinephrineIM001MgKgDoseMg }} mg IM</span></div>
+                <div><strong>Epinephrine CRI (0.05 mcg/kg/min):</strong> <span id="plan-epi-cri">{{ printf "%.2f" $active.ResuscitationPlan.EpinephrineCRI005McgKgMin }} mcg/min</span></div>
+                <div><strong>Isotonic Crystalloid Bolus:</strong> <span id="plan-crystalloid-bolus">{{ printf "%.1f" $active.ResuscitationPlan.IsotonicCrystalloidBolusMl }} mL IV</span></div>
+                <div><strong>Fresh Frozen Plasma (15 mL/kg):</strong> <span id="plan-ffp-ml">{{ printf "%.1f" $active.ResuscitationPlan.FreshFrozenPlasma15MlKgMl }} mL IV</span></div>
+                <div><strong>Diphenhydramine IM (2.0 mg/kg):</strong> <span id="plan-diphenhydramine-im">{{ printf "%.1f" $active.ResuscitationPlan.DiphenhydramineIM2MgKgMg }} mg IM</span></div>
+                <div><strong>Famotidine IV (0.5 mg/kg):</strong> <span id="plan-famotidine-iv">{{ printf "%.1f" $active.ResuscitationPlan.FamotidineIV05MgKgMg }} mg IV</span></div>
+                <div><strong>Surgical Cholecystectomy / IV Epi Guard:</strong> <span id="plan-cholecystectomy-guard">{{ if $active.ResuscitationPlan.ZeroIVUndilutedEpiSurgicalCholecystectomyGuard }}ENFORCED{{ else }}OFF{{ end }}</span></div>
+              </div>
+              <p class="anaphylaxis-rationale-text" id="workspace-clinical-rationale">{{ $active.ResuscitationPlan.ClinicalRationale }}</p>
+            </div>
+            {{ end }}
+
+            <div class="anaphylaxis-biphasic-checks-box">
+              <h4>Serial 24h Biphasic Observation, MAP &amp; Gallbladder Wall Checks (<span id="workspace-checks-count">{{ len $active.BiphasicChecks }}</span>)</h4>
+              <ul id="biphasic-checks-list" class="anaphylaxis-checks-list">
+                {{ range $chk := $active.BiphasicChecks }}
+                <li class="anaphylaxis-check-item">
+                  <strong>{{ $chk.ClinicianCallsign }}</strong> · MAP {{ $chk.MeanArterialPressureMmHg }} mmHg · GB Wall {{ printf "%.1f" $chk.GallbladderWallThicknessMm }} mm · PCV {{ printf "%.1f" $chk.PackedCellVolumePercent }}% · ALT {{ $chk.AlanineAminotransferaseUL }} U/L · Relapse: {{ if $chk.BiphasicRelapseSignsNoted }}YES{{ else }}NO{{ end }} — {{ $chk.Notes }}
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="anaphylaxis-operations-list" class="trust-screenings-list anaphylaxis-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card anaphylaxis-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-species="{{ $op.PatientProfile.Species }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.PatientProfile.Species }}{{ if $op.PatientProfile.Breed }} · {{ $op.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $op.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species">{{ $op.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $op.Status) "ANAPHYLACTIC_SHOCK_HALO_SIGN_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $op.Status) "EPINEPHRINE_IM_CRI_CRYSTALLOID_FFP_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row anaphylaxis-metrics-row">
+              <span class="status-pill status-pill-species">GB Wall: {{ printf "%.1f" $op.PatientProfile.GallbladderWallThicknessMm }} mm • Halo Sign: {{ if $op.PatientProfile.GallbladderHaloSignPresent }}YES{{ else }}NO{{ end }} • MAP: {{ $op.PatientProfile.MeanArterialPressureMmHg }} mmHg • ALT: {{ $op.PatientProfile.AlanineAminotransferaseUL }} U/L • PCV: {{ printf "%.1f" $op.PatientProfile.PackedCellVolumePercent }}% • PT: {{ printf "%.1f" $op.PatientProfile.ProthrombinTimeSeconds }} s</span>
+            </div>
+
+            {{ if $op.HepaticCongestionCoagulopathyAlert }}
+            <div class="anaphylaxis-alert-banner">
+              ⚠️ HEPATIC VENOUS CONGESTION &amp; HALO SIGN GUARD (GB Wall {{ printf "%.1f" $op.PatientProfile.GallbladderWallThicknessMm }} mm · MAP {{ $op.PatientProfile.MeanArterialPressureMmHg }} mmHg · PT {{ printf "%.1f" $op.PatientProfile.ProthrombinTimeSeconds }} s): {{ if $op.ResuscitationPlan }}{{ $op.ResuscitationPlan.AnaphylaxisPitfallAlert }}{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if $op.DischargeClearance }}
+            <div class="anaphylaxis-clearance-banner">
+              ✅ 24H BIPHASIC NORMOTENSIVE &amp; HALO RESOLVED ({{ $op.DischargeClearance.VetLicense }}): {{ $op.DischargeClearance.BiphasicObservationHours }}h Observation · Final MAP {{ $op.DischargeClearance.FinalMAPMmHg }} mmHg
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary anaphylaxis-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select Operation ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="anaphylaxis-ops-empty-msg">No Acute Anaphylaxis &amp; Gallbladder Halo Sign triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/anaphylaxis-halo-triage.js" defer></script>
+</body>
+</html>
