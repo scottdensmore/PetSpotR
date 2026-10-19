@@ -37,6 +37,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/envenomationtoxin"
 	"github.com/scottdensmore/petspotr/pkg/gdvbloat"
 	"github.com/scottdensmore/petspotr/pkg/hazmatdecon"
+	"github.com/scottdensmore/petspotr/pkg/hemoabdomen"
 	"github.com/scottdensmore/petspotr/pkg/hyperbaricco"
 	"github.com/scottdensmore/petspotr/pkg/hyperthermiaheat"
 	"github.com/scottdensmore/petspotr/pkg/identity"
@@ -112,6 +113,7 @@ type Server struct {
 	airwayService             *airwaytracheostomy.AirwayService
 	cardiogenicService        *cardiogenicedema.CardiogenicService
 	peritonitisService        *septicperitonitis.PeritonitisService
+	hemoabdomenService        *hemoabdomen.HemoabdomenService
 	handler                   http.Handler
 }
 
@@ -291,6 +293,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		transfusionBloodbankStore: transfusionbloodbank.NewStore(),
 		toxicologyPoisonStore:     toxicologypoison.NewStore(),
 		epilepticusService:        statusepilepticus.NewEpilepticusService(),
+		hemoabdomenService:        hemoabdomen.NewHemoabdomenService(),
 		peritonitisService:        septicperitonitis.NewPeritonitisService(),
 	}
 	if s.smsWebhookSecret == "" {
@@ -620,6 +623,8 @@ func (s *Server) routes() {
 	s.registerCardiogenicEdemaRoutes()
 	// Septic Peritonitis, Abdominocentesis Blood-Fluid Glucose/Lactate Gradient & Closed-Suction Jackson-Pratt Drain Cockpit routes (Milestone 20.3)
 	s.registerSepticPeritonitisRoutes()
+	// Acute Traumatic Hemoabdomen, Autotransfusion, Centesis Non-Clotting & Norepinephrine/TXA Resuscitation Cockpit routes (Milestone 20.2)
+	s.registerHemoabdomenRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
