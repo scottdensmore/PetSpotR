@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Smoke Inhalation, Thermal Burn Classification (Superficial/Partial/Full-Thickness TBSA%), Parkland Crystalloid Resuscitation Formula, Silver Sulfadiazine &amp; Escharotomy Cockpit.">
+  <title>Acute Smoke Inhalation, Thermal Burn Classification (Superficial/Partial/Full-Thickness TBSA%), Parkland Crystalloid Resuscitation Formula, Silver Sulfadiazine &amp; Escharotomy Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#thermal-burn-parkland-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/dic-coagulopathy-triage" class="nav-link nav-link-emergency" id="nav-dic-coagulopathy-triage">🧪 DIC &amp; Coagulopathy ICU</a></li>
+          <li><a href="/thermal-burn-parkland-triage" class="nav-link active nav-link-emergency" id="nav-thermal-burn-parkland-triage">🔥 Thermal Burn &amp; Parkland ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="thermal-burn-parkland-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header burn-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🔥 ACUTE SMOKE INHALATION, THERMAL BURN (%TBSA), PARKLAND RESUSCITATION FORMULA, SILVER SULFADIAZINE &amp; ESCHAROTOMY COCKPIT</span>
+        </div>
+        <h1>Acute Smoke Inhalation, Thermal Burn Classification (Superficial/Partial/Full-Thickness TBSA%), Parkland Crystalloid Resuscitation Formula, Silver Sulfadiazine &amp; Escharotomy Cockpit</h1>
+        <p class="text-secondary">
+          Total Body Surface Area (%TBSA) Burn Depth Classification (Superficial / Deep Partial-Thickness / Full-Thickness Leathery Eschar), Parkland Crystalloid Resuscitation Formula (Canine 4 mL/kg/%TBSA, Feline 2–3 mL/kg/%TBSA — 50% in First 8h From Time of Thermal Injury, 50% Over Next 16h Titrated to Urine Output 1–2 mL/kg/hr), 24-Hour Capillary Leak Colloid Contraindication Guard, Emergent Thoracic/Limb Escharotomy &amp; 1% Silver Sulfadiazine (SSD) / Medical-Grade Manuka Honey Barrier.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid burn-kpi-grid" aria-label="Thermal Burn &amp; Parkland KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Burn ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Acute Burn / Smoke Edema Triage</span>
+        <strong class="kpi-value" id="kpi-acute-burn">{{ .AcuteBurnTriageCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Parkland 8h / Escharotomy Staged</span>
+        <strong class="kpi-value" id="kpi-parkland-staged">{{ .ParklandStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Granulation Bed Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-granulation">{{ .ClearedGranulationCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Severe Burn (&ge; 20% TBSA)</span>
+        <strong class="kpi-value" id="kpi-severe-tbsa">{{ .SevereTBSAOver20PctCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Circumferential Thoracic Eschar</span>
+        <strong class="kpi-value" id="kpi-circumferential-eschar">{{ .CircumferentialEscharCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="burn-live-status" class="humane-traps-live-status burn-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Acute Thermal Burn, Parkland Formula &amp; Escharotomy ICU operations.
+    </div>
+
+    <!-- Global Parkland Formula, 24h Colloid Contraindication, Escharotomy & Silver Sulfadiazine Alert Banner -->
+    <div id="burn-alert-banner" class="burn-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL PARKLAND FORMULA, 24-HOUR COLLOID LEAK GUARD, ESCHAROTOMY &amp; WOUND BARRIER PROTOCOL: (1) Parkland Crystalloid Formula: Canine 4 mL/kg/%TBSA, Feline 2–3 mL/kg/%TBSA of Isotonic Buffered Crystalloid (LRS / Normosol-R) — deliver 50% in the First 8 Hours FROM TIME OF THERMAL INJURY (not time of presentation) and 50% over the Next 16 Hours, titrated hourly to Urine Output 1.0–2.0 mL/kg/hr; (2) STRICT 24-HOUR COLLOID CONTRAINDICATION — withhold synthetic colloids (HES/VetStarch) and natural colloids (Albumin/FFP) during the first 12–24h active capillary leak phase where endothelial gaps allow macromolecular extravasation that worsens interstitial and pulmonary edema; (3) Emergent Thoracic/Limb Escharotomy is mandatory for circumferential full-thickness leathery eschar restricting chest wall excursion or limb perfusion; (4) Topical 1% Silver Sulfadiazine (SSD) or sterile medical-grade Manuka Honey barrier; STRICTLY AVOID systemic corticosteroids and routine prophylactic systemic antibiotics.
+    </div>
+
+    <!-- Global Granulation Bed & Normoalbuminemic Clearance Banner -->
+    <div id="burn-clearance-banner" class="burn-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "GRANULATION_BED_NORMOALBUMINEMIC_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ HEALTHY GRANULATION BED &amp; NORMOALBUMINEMIC CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "GRANULATION_BED_NORMOALBUMINEMIC_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Discharged by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting healthy granulation bed, oncotic normalization &amp; renal perfusion stability.{{ end }}</span>
+    </div>
+
+    <div id="burn-error-banner" class="burn-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card burn-toolbar-card" aria-label="Thermal Burn Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col burn-toolbar-row">
+        <div class="form-group">
+          <label for="burn-status-filter">Filter by Thermal Burn Triage Status</label>
+          <select id="burn-status-filter" class="form-control">
+            <option value="">All Thermal Burn Triage Statuses</option>
+            <option value="ACUTE_TBSA_BURN_SMOKE_EDEMA_TRIAGE">ACUTE_TBSA_BURN_SMOKE_EDEMA_TRIAGE (Acute TBSA Burn / Smoke Edema Triage)</option>
+            <option value="PARKLAND_FIRST_8H_ESCHAROTOMY_STAGED">PARKLAND_FIRST_8H_ESCHAROTOMY_STAGED (Parkland First 8h / Escharotomy Staged)</option>
+            <option value="GRANULATION_BED_NORMOALBUMINEMIC_CLEARED">GRANULATION_BED_NORMOALBUMINEMIC_CLEARED (Granulation Bed &amp; Normoalbuminemic Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group burn-sse-controls">
+          <span class="kpi-label">Live ICU Telemetry Stream</span>
+          <div class="burn-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live Burn SSE Stream</button>
+            <span id="sse-status-badge" class="burn-status-badge burn-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid burn-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="burn-operations-panel" aria-labelledby="heading-burn-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-burn-ops">Active Thermal Burn &amp; Parkland Operations</h2>
+          <span id="burn-ops-count-badge" class="burn-status-badge burn-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="burn-operations-grid" class="trust-screenings-list burn-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card burn-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-depth-class="{{ $op.DepthClass }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="burn-status-badge {{ if eq (printf "%s" $op.Status) "ACUTE_TBSA_BURN_SMOKE_EDEMA_TRIAGE" }}burn-status-critical{{ else if eq (printf "%s" $op.Status) "PARKLAND_FIRST_8H_ESCHAROTOMY_STAGED" }}burn-status-staged{{ else }}burn-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="burn-card-metrics">
+              <span><strong>Depth Class:</strong> {{ $op.DepthClass }}</span>
+              <span><strong>TBSA%:</strong> {{ printf "%.1f" $op.TBSAPercent }}%</span>
+              <span><strong>24h Parkland:</strong> {{ printf "%.1f" $op.Total24hParklandML }} mL (8h: {{ printf "%.1f" $op.First8hRateMLHr }} mL/hr)</span>
+              <span><strong>Current Rate:</strong> {{ printf "%.1f" $op.CurrentFluidRateMLHr }} mL/hr</span>
+              <span><strong>Urine Output:</strong> {{ printf "%.1f" $op.UrineOutputMLKgHr }} mL/kg/hr</span>
+              <span><strong>Albumin / PCV:</strong> {{ printf "%.1f" $op.SerumAlbuminGDL }} g/dL / {{ printf "%.1f" $op.PCVPercent }}%</span>
+              <span><strong>Eschar / Airway:</strong> {{ if $op.CircumferentialThoracicEschar }}Eschar+{{ else }}Eschar-{{ end }} / {{ if $op.SingedVibrissaeSootAirway }}Soot+{{ else }}Soot-{{ end }}</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary burn-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open Burn Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="burn-ops-empty-msg">No Thermal Burn &amp; Parkland operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="burn-divider">
+
+        <!-- Admit New Thermal Burn Patient Form -->
+        <div class="trust-subsection" id="create-burn-section">
+          <h3 id="heading-create-burn">Admit New Thermal Burn / Smoke Inhalation Patient</h3>
+          <form id="create-burn-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-BURN-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Phoenix" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species-input">Species</label>
+                <select id="create-species-input" name="species" class="form-control" required>
+                  <option value="Canine" selected>Canine</option>
+                  <option value="Feline">Feline</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed-input">Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="Belgian Malinois" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="25.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-depth-class-input">Burn Depth &amp; Distribution Classification</label>
+                <select id="create-depth-class-input" name="depth_class" class="form-control" required>
+                  <option value="FULL_THICKNESS_CIRCUMFERENTIAL_ESCHAR" selected>FULL_THICKNESS_CIRCUMFERENTIAL_ESCHAR (Full-Thickness Circumferential Eschar)</option>
+                  <option value="DEEP_PARTIAL_THICKNESS_DERMAL_BURN">DEEP_PARTIAL_THICKNESS_DERMAL_BURN (Deep Partial-Thickness Dermal Burn)</option>
+                  <option value="THERMAL_AIRWAY_CORNEAL_FLASH_BURN">THERMAL_AIRWAY_CORNEAL_FLASH_BURN (Supraglottic Thermal Airway &amp; Corneal Flash Burn)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-tbsa-input">Total Body Surface Area Burned (%TBSA)</label>
+                <input type="number" id="create-tbsa-input" name="tbsa_percent" class="form-control" min="1.0" max="100.0" step="0.5" value="28.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-fluid-rate-input">Current Crystalloid Rate (mL/hr)</label>
+                <input type="number" id="create-fluid-rate-input" name="current_fluid_rate_ml_hr" class="form-control" min="0.0" max="2000.0" step="0.5" value="175.0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-uop-input">Urine Output (mL/kg/hr)</label>
+                <input type="number" id="create-uop-input" name="urine_output_ml_kg_hr" class="form-control" min="0.0" max="20.0" step="0.1" value="0.9" required>
+              </div>
+              <div class="form-group">
+                <label for="create-albumin-input">Serum Albumin (g/dL)</label>
+                <input type="number" id="create-albumin-input" name="serum_albumin_g_dl" class="form-control" min="0.5" max="6.0" step="0.1" value="1.8" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-pcv-input">Packed Cell Volume PCV (%)</label>
+                <input type="number" id="create-pcv-input" name="pcv_percent" class="form-control" min="10.0" max="80.0" step="0.5" value="56.0" required>
+              </div>
+              <div class="form-group burn-checkbox-group">
+                <label class="burn-checkbox-item">
+                  <input type="checkbox" id="create-eschar-checkbox" name="circumferential_thoracic_eschar" checked>
+                  <span>Circumferential Thoracic/Limb Leathery Eschar Present</span>
+                </label>
+                <label class="burn-checkbox-item">
+                  <input type="checkbox" id="create-airway-checkbox" name="singed_vibrissae_soot_airway" checked>
+                  <span>Singed Vibrissae / Carbonaceous Airway Soot Present</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" id="create-burn-op-btn" class="btn btn-primary">➕ Admit Thermal Burn Patient</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active Burn Workspace & Parkland Staging / Burn Check / Discharge Clearance Forms -->
+      <section class="glass-card trust-panel" id="burn-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="burn-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · Depth Class: <strong id="active-depth-class">{{ $active.DepthClass }}</strong> · 24h Parkland: <strong id="active-parkland-total">{{ printf "%.1f" $active.Total24hParklandML }} mL</strong> (1st 8h: <strong id="active-first8h-rate">{{ printf "%.1f" $active.First8hRateMLHr }} mL/hr</strong> / Next 16h: <strong id="active-next16h-rate">{{ printf "%.1f" $active.Next16hRateMLHr }} mL/hr</strong>)</p>
+          </div>
+          <span id="active-op-status-badge" class="burn-status-badge {{ if eq (printf "%s" $active.Status) "ACUTE_TBSA_BURN_SMOKE_EDEMA_TRIAGE" }}burn-status-critical{{ else if eq (printf "%s" $active.Status) "PARKLAND_FIRST_8H_ESCHAROTOMY_STAGED" }}burn-status-staged{{ else }}burn-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- Thermal Burn & Parkland Telemetry Bar -->
+        <div class="burn-vitals-summary" id="active-vitals-summary">
+          <div class="burn-vital-chip">
+            <span class="kpi-label">Total Burn Surface Area (%TBSA)</span>
+            <strong id="active-tbsa-percent">{{ printf "%.1f" $active.TBSAPercent }}% TBSA</strong>
+          </div>
+          <div class="burn-vital-chip">
+            <span class="kpi-label">Current Crystalloid Rate</span>
+            <strong id="active-fluid-rate">{{ printf "%.1f" $active.CurrentFluidRateMLHr }} mL/hr</strong>
+          </div>
+          <div class="burn-vital-chip">
+            <span class="kpi-label">Urine Output (Target 1–2 mL/kg/hr)</span>
+            <strong id="active-urine-output">{{ printf "%.1f" $active.UrineOutputMLKgHr }} mL/kg/hr</strong>
+          </div>
+          <div class="burn-vital-chip">
+            <span class="kpi-label">Serum Albumin / PCV</span>
+            <strong id="active-albumin-pcv">{{ printf "%.1f" $active.SerumAlbuminGDL }} g/dL / {{ printf "%.1f" $active.PCVPercent }}%</strong>
+          </div>
+        </div>
+
+        <!-- TBSA & Parkland Assessment Profile Box -->
+        <div class="burn-plan-box" id="active-parkland-plan-box">
+          <h3>%TBSA Burn Depth, Parkland 8h/16h Split &amp; Capillary Leak Assessment</h3>
+          <div class="burn-plan-grid">
+            <div><strong>Burn Depth Pathophysiology:</strong> <span id="plan-burn-depth-patho">{{ $active.ParklandPlan.BurnDepthPathophysiology }}</span></div>
+            <div><strong>Parkland 24h Calculation Summary:</strong> <span id="plan-parkland-summary">{{ $active.ParklandPlan.Parkland24hCalculationSummary }}</span></div>
+            <div><strong>First 8h vs. Next 16h Split Note:</strong> <span id="plan-8h-16h-split">{{ $active.ParklandPlan.First8hVsNext16hSplitNote }}</span></div>
+            <div><strong>Circumferential Escharotomy &amp; Airway Alert:</strong> <span id="plan-escharotomy-alert">{{ $active.ParklandPlan.CircumferentialEscharotomyAlert }}</span></div>
+            <div><strong>24h Colloid Capillary Leak Warning:</strong> <span id="plan-colloid-warning">{{ $active.ParklandPlan.Colloid24hCapillaryLeakWarning }}</span></div>
+            <div><strong>Steroid &amp; Prophylactic Abx Guard:</strong> <span id="plan-steroid-abx-warning">{{ $active.ParklandPlan.SystemicSteroidProphylacticAbxWarning }}</span></div>
+          </div>
+        </div>
+
+        <!-- Resuscitation, Silver Sulfadiazine & Escharotomy Protocol Box -->
+        <div class="burn-plan-box" id="active-wound-plan-box">
+          <h3>Parkland Crystalloid Schedule, 1% Silver Sulfadiazine / Manuka Honey &amp; Escharotomy Protocol</h3>
+          <div class="burn-plan-grid">
+            <div><strong>Parkland Crystalloid Schedule:</strong> <span id="plan-parkland-schedule">{{ $active.WoundPlan.ParklandCrystalloidSchedule }}</span></div>
+            <div><strong>1% Silver Sulfadiazine / Manuka Honey Plan:</strong> <span id="plan-ssd-honey">{{ $active.WoundPlan.SilverSulfadiazineHoneyWoundPlan }}</span></div>
+            <div><strong>Escharotomy &amp; Staged Debridement Plan:</strong> <span id="plan-escharotomy-debridement">{{ $active.WoundPlan.EscharotomyWetDebridementPlan }}</span></div>
+            <div><strong>Multimodal Burn Analgesia CRI:</strong> <span id="plan-analgesia-cri">{{ $active.WoundPlan.MultimodalBurnAnalgesiaCRI }}</span></div>
+            <div><strong>Post-24h Albumin / Oncotic Transition:</strong> <span id="plan-albumin-transition">{{ $active.WoundPlan.AlbuminOncotic24hTransition }}</span></div>
+            <div><strong>Corneal &amp; Thermal Airway Protection:</strong> <span id="plan-corneal-airway">{{ $active.WoundPlan.CornealThermalAirwayProtection }}</span></div>
+          </div>
+        </div>
+        {{ end }}
+
+        <hr class="burn-divider">
+
+        <!-- 1. Stage Parkland Crystalloid, Silver Sulfadiazine & Escharotomy Protocol Form -->
+        <div class="trust-subsection" id="stage-parkland-section">
+          <h3>1. Stage Parkland Crystalloid First-8h/16h Split, 1% Silver Sulfadiazine &amp; Escharotomy Protocol</h3>
+          <form id="stage-parkland-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="stage-parkland-schedule-input">Parkland Crystalloid Resuscitation Schedule (50% First 8h From Burn Time / 50% Next 16h)</label>
+              <input
+                type="text"
+                id="stage-parkland-schedule-input"
+                name="parkland_crystalloid_schedule"
+                class="form-control"
+                value="Isotonic Buffered Crystalloid (LRS): 50% in First 8h from time of thermal injury (150.0 mL/hr), 50% over Next 16h (75.0 mL/hr) titrated to UOP 1–2 mL/kg/hr; withhold colloids in first 24h"
+                required
+              >
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-ssd-honey-input">1% Silver Sulfadiazine (SSD) / Medical-Grade Manuka Honey Barrier</label>
+                <input
+                  type="text"
+                  id="stage-ssd-honey-input"
+                  name="silver_sulfadiazine_honey_wound_plan"
+                  class="form-control"
+                  value="Topical 1% Silver Sulfadiazine (SSD) water-miscible cream + sterile Leptospermum Manuka Honey (UMF 15+) under non-adherent contact dressings q12h"
+                  required
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-escharotomy-input">Emergent Thoracic/Limb Escharotomy &amp; Staged Debridement Plan</label>
+                <input
+                  type="text"
+                  id="stage-escharotomy-input"
+                  name="escharotomy_wet_debridement_plan"
+                  class="form-control"
+                  value="Immediate longitudinal lateral thoracic escharotomy incisions through full-thickness leathery eschar to restore chest wall compliance + staged debridement"
+                  required
+                >
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-analgesia-cri-input">Multimodal Neuropathic &amp; Nociceptive Burn Analgesia CRI</label>
+                <input
+                  type="text"
+                  id="stage-analgesia-cri-input"
+                  name="multimodal_burn_analgesia_cri"
+                  class="form-control"
+                  value="Fentanyl CRI (3–5 mcg/kg/hr) + Ketamine NMDA-blockade CRI (5 mcg/kg/min) + Lidocaine CRI; strictly avoid NSAIDs during burn shock"
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-albumin-transition-input">Post-24h Capillary Seal &amp; Albumin / Oncotic Transition</label>
+                <input
+                  type="text"
+                  id="stage-albumin-transition-input"
+                  name="albumin_oncotic_24h_transition"
+                  class="form-control"
+                  value="After 24h capillary leak seals, initiate Canine Albumin / Plasma oncotic support for Albumin &lt; 2.0 g/dL + high-protein enteral nutrition"
+                >
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="stage-corneal-airway-input">Corneal Fluorescein &amp; Supraglottic Thermal Airway Protection</label>
+              <input
+                type="text"
+                id="stage-corneal-airway-input"
+                name="corneal_thermal_airway_protection"
+                class="form-control"
+                value="Bilateral corneal fluorescein check + ophthalmic lubrication q4h + humidified O2 (40–60%) + 0.9% NaCl nebulization/coupage"
+              >
+            </div>
+            <button type="submit" id="stage-parkland-btn" class="btn btn-secondary">🔥 Stage Parkland 8h/16h, SSD &amp; Escharotomy Protocol</button>
+          </form>
+        </div>
+
+        <hr class="burn-divider">
+
+        <!-- 2. Record Serial Burn Fluid, Urine Output, Albumin & Wound Check Form -->
+        <div class="trust-subsection" id="record-burn-check-section">
+          <h3>2. Record Serial %TBSA, Crystalloid Rate, Urine Output, Albumin &amp; PCV Check</h3>
+          <form id="record-burn-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-tbsa-input">Residual / Active Burn Area (%TBSA)</label>
+                <input type="number" id="check-tbsa-input" name="tbsa_percent" class="form-control" min="1.0" max="100.0" step="0.5" value="18.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-fluid-rate-input">Current Crystalloid Rate (mL/hr)</label>
+                <input type="number" id="check-fluid-rate-input" name="current_fluid_rate_ml_hr" class="form-control" min="0.0" max="2000.0" step="0.5" value="75.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-uop-input">Urine Output (mL/kg/hr)</label>
+                <input type="number" id="check-uop-input" name="urine_output_ml_kg_hr" class="form-control" min="0.0" max="20.0" step="0.1" value="1.7" required>
+              </div>
+              <div class="form-group">
+                <label for="check-albumin-input">Serum Albumin (g/dL)</label>
+                <input type="number" id="check-albumin-input" name="serum_albumin_g_dl" class="form-control" min="0.5" max="6.0" step="0.1" value="2.5" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-pcv-input">Packed Cell Volume PCV (%)</label>
+                <input type="number" id="check-pcv-input" name="pcv_percent" class="form-control" min="10.0" max="80.0" step="0.5" value="43.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (Clinician)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Marcus Thorne, DACVS / Burn Reconstruction" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-note-input">Clinical Burn Resuscitation &amp; Wound Bed Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="Post-escharotomy &amp; Parkland 16h phase: chest excursion unrestricted, Urine Output 1.7 mL/kg/hr, Serum Albumin 2.5 g/dL, healthy granulation tissue forming over 18.0% TBSA." required>
+            </div>
+            <button type="submit" id="record-burn-check-btn" class="btn btn-secondary">🧪 Record Burn Fluid &amp; Wound Check</button>
+          </form>
+
+          <div class="burn-checks-box">
+            <h4>Serial Burn Fluid &amp; Wound Checks (<span id="burn-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.BurnChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="burn-checks-list" class="burn-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.BurnChecks }}
+              <li class="burn-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · {{ printf "%.1f" $chk.TBSAPercent }}% TBSA · Rate {{ printf "%.1f" $chk.CurrentFluidRateMLHr }} mL/hr · UOP {{ printf "%.1f" $chk.UrineOutputMLKgHr }} mL/kg/hr · Albumin {{ printf "%.1f" $chk.SerumAlbuminGDL }} g/dL · PCV {{ printf "%.1f" $chk.PCVPercent }}% — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="burn-divider">
+
+        <!-- 3. Clear Thermal Burn Operation for Granulation Bed & Normoalbuminemic Discharge Form -->
+        <div class="trust-subsection" id="clear-burn-section">
+          <h3>3. Clear Granulation Bed &amp; Normoalbuminemic Patient for Reconstructive Step-Down / Discharge</h3>
+          <form id="clear-burn-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="clear-discharged-by-input">Discharging Surgeon / Criticalist</label>
+              <input type="text" id="clear-discharged-by-input" name="discharged_by" class="form-control" value="Dr. Marcus Thorne, DACVS / Burn Reconstruction" required>
+            </div>
+            <div class="form-group">
+              <label for="clear-summary-input">Granulation Bed &amp; Normoalbuminemic Clearance Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="discharge_summary"
+                class="form-control"
+                value="Healthy vascularized granulation bed established across residual 18.0% TBSA, Urine Output 1.7 mL/kg/hr, Serum Albumin restored to 2.5 g/dL, PCV normalized to 43.0%, cleared for reconstructive step-down."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-burn-btn" class="btn btn-primary">🛡️ Clear Burn Patient for Granulation / Reconstructive Step-Down</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/thermal-burn-parkland-triage.js" defer></script>
+</body>
+</html>
