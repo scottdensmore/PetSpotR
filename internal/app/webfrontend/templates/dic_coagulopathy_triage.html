@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Coagulopathy &amp; Disseminated Intravascular Coagulation (DIC), PT/aPTT Prolongation, D-Dimer/FDP Elevation, Fresh Frozen Plasma (FFP) &amp; Tranexamic Acid (TXA) Cockpit.">
+  <title>Acute Coagulopathy &amp; Disseminated Intravascular Coagulation (DIC), PT/aPTT Prolongation, D-Dimer/FDP Elevation, Fresh Frozen Plasma (FFP) &amp; Tranexamic Acid (TXA) Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#dic-coagulopathy-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/imha-thrombosis-triage" class="nav-link nav-link-emergency" id="nav-imha-thrombosis-triage">🩸 IMHA Thrombosis ICU</a></li>
+          <li><a href="/dic-coagulopathy-triage" class="nav-link active nav-link-emergency" id="nav-dic-coagulopathy-triage">🧪 DIC &amp; Coagulopathy ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="dic-coagulopathy-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header dic-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🧪 ACUTE COAGULOPATHY, DISSEMINATED INTRAVASCULAR COAGULATION (DIC), FFP &amp; TRANEXAMIC ACID (TXA) COCKPIT</span>
+        </div>
+        <h1>Acute Coagulopathy &amp; Disseminated Intravascular Coagulation (DIC), PT/aPTT Prolongation, D-Dimer/FDP Elevation, Fresh Frozen Plasma (FFP) &amp; Tranexamic Acid (TXA) Cockpit</h1>
+        <p class="text-secondary">
+          Hypercoagulable vs. Hypocoagulable Consumptive DIC &amp; Sighthound/Greyhound Post-Trauma Hyperfibrinolysis Triage, Thromboelastography (TEG/ROTEM LY30 &gt; 3%), Fresh Frozen Plasma (FFP 10–20 mL/kg IV) Clotting Factor &amp; Antithrombin III Replenishment, Cryoprecipitate (1 unit/10 kg) for Fibrinogen &lt; 100 mg/dL &amp; vWF, Tranexamic Acid (TXA 10 mg/kg IV) / Epsilon-Aminocaproic Acid (EACA) Antifibrinolysis &amp; Strict Jugular Venipuncture Contraindication Guard.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid dic-kpi-grid" aria-label="DIC &amp; Coagulopathy KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total DIC ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Overt DIC / Hypofibrinogenemia Triage</span>
+        <strong class="kpi-value" id="kpi-overt-dic">{{ .OvertDICTriageCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">FFP / Cryoprecipitate / TXA Staged</span>
+        <strong class="kpi-value" id="kpi-ffp-txa-staged">{{ .FFPTXAStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Hemostasis Restored Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-normocoagulable">{{ .ClearedNormocoagulableCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Consumptive Hemorrhagic DIC</span>
+        <strong class="kpi-value" id="kpi-consumptive-hemorrhagic">{{ .ConsumptiveHemorrhagicCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Hyperfibrinolysis / Greyhound</span>
+        <strong class="kpi-value" id="kpi-hyperfibrinolysis-greyhound">{{ .HyperfibrinolysisGreyhoundCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="dic-live-status" class="humane-traps-live-status dic-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Acute Coagulopathy &amp; Disseminated Intravascular Coagulation (DIC) ICU operations.
+    </div>
+
+    <!-- Global DIC, FFP, Cryoprecipitate, Tranexamic Acid (TXA) & Jugular Venipuncture Contraindication Alert Banner -->
+    <div id="dic-alert-banner" class="dic-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL DIC, FFP, CRYOPRECIPITATE, TRANEXAMIC ACID (TXA) &amp; JUGULAR VENIPUNCTURE GUARD: (1) Fresh Frozen Plasma (FFP 10–20 mL/kg IV over 3–4h) replenishes labile &amp; stable clotting factors (II, V, VII, VIII, IX, X) and Antithrombin III (&lt; 65% indicates severe consumption); (2) Cryoprecipitate (1 unit/10 kg IV) is indicated for severe hypofibrinogenemia (Fibrinogen &lt; 100 mg/dL) or von Willebrand Factor (vWF) / Factor VIII deficiency; (3) Tranexamic Acid (TXA 10 mg/kg IV slow over 15–20 min q8h) or Epsilon-Aminocaproic Acid (EACA 50–100 mg/kg IV/PO q8h) inhibits plasminogen activation in Greyhound/Sighthound Delayed Post-Operative Bleeding &amp; Trauma Hyperfibrinolysis (TEG LY30 &gt; 3%); (4) STRICT CONTRAINDICATION — NEVER perform Jugular Venipuncture, non-compressible central neck lines, cystocentesis, or IM injections in coagulopathic patients (risk of fatal compressive cervical airway hematoma; use peripheral saphenous/cephalic veins with pressure wraps only).
+    </div>
+
+    <!-- Global Hemostasis Restored & Normocoagulable Clearance Banner -->
+    <div id="dic-clearance-banner" class="dic-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "HEMOSTASIS_RESTORED_NORMOCOAGULABLE_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ HEMOSTASIS RESTORED &amp; NORMOCOAGULABLE CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "HEMOSTASIS_RESTORED_NORMOCOAGULABLE_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Discharged by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting PT/aPTT normalization, fibrinogen restoration &amp; resolution of spontaneous bleeding.{{ end }}</span>
+    </div>
+
+    <div id="dic-error-banner" class="dic-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card dic-toolbar-card" aria-label="DIC Coagulopathy Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col dic-toolbar-row">
+        <div class="form-group">
+          <label for="dic-status-filter">Filter by DIC Coagulopathy Status</label>
+          <select id="dic-status-filter" class="form-control">
+            <option value="">All DIC Coagulopathy Statuses</option>
+            <option value="ACUTE_OVERT_DIC_HYPOFIBRINOLYSIS_TRIAGE">ACUTE_OVERT_DIC_HYPOFIBRINOLYSIS_TRIAGE (Acute Overt DIC / Hypofibrinogenemia Triage)</option>
+            <option value="FFP_CRYOPRECIPITATE_TXA_STAGED">FFP_CRYOPRECIPITATE_TXA_STAGED (FFP / Cryoprecipitate / TXA Staged)</option>
+            <option value="HEMOSTASIS_RESTORED_NORMOCOAGULABLE_CLEARED">HEMOSTASIS_RESTORED_NORMOCOAGULABLE_CLEARED (Hemostasis Restored Normocoagulable Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group dic-sse-controls">
+          <span class="kpi-label">Live ICU Telemetry Stream</span>
+          <div class="dic-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live DIC SSE Stream</button>
+            <span id="sse-status-badge" class="dic-status-badge dic-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid dic-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="dic-operations-panel" aria-labelledby="heading-dic-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-dic-ops">Active DIC &amp; Coagulopathy Operations</h2>
+          <span id="dic-ops-count-badge" class="dic-status-badge dic-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="dic-operations-grid" class="trust-screenings-list dic-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card dic-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-phenotype="{{ $op.PhasePhenotype }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="dic-status-badge {{ if eq (printf "%s" $op.Status) "ACUTE_OVERT_DIC_HYPOFIBRINOLYSIS_TRIAGE" }}dic-status-critical{{ else if eq (printf "%s" $op.Status) "FFP_CRYOPRECIPITATE_TXA_STAGED" }}dic-status-staged{{ else }}dic-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="dic-card-metrics">
+              <span><strong>Phenotype:</strong> {{ $op.PhasePhenotype }}</span>
+              <span><strong>Platelets:</strong> {{ printf "%.1f" $op.PlateletCountKUl }} K/µL</span>
+              <span><strong>PT / aPTT:</strong> {{ printf "%.1f" $op.PTSeconds }}s / {{ printf "%.1f" $op.APTTSeconds }}s</span>
+              <span><strong>D-Dimer:</strong> {{ printf "%.1f" $op.DDimerNgML }} ng/mL</span>
+              <span><strong>Fibrinogen:</strong> {{ printf "%.1f" $op.FibrinogenMgDL }} mg/dL</span>
+              <span><strong>ATIII:</strong> {{ printf "%.1f" $op.AntithrombinPercent }}%</span>
+              <span><strong>Schistocytes / Bleeding:</strong> {{ if $op.SchistocytesPresent }}Schisto+{{ else }}Schisto-{{ end }} / {{ if $op.SpontaneousMucosalBleeding }}Bleeding+{{ else }}Bleeding-{{ end }}</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary dic-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open DIC Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="dic-ops-empty-msg">No DIC &amp; Coagulopathy operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="dic-divider">
+
+        <!-- Admit New DIC Patient Form -->
+        <div class="trust-subsection" id="create-dic-section">
+          <h3 id="heading-create-dic">Admit New DIC / Coagulopathy Patient</h3>
+          <form id="create-dic-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-DIC-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Zephyr" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species-input">Species</label>
+                <select id="create-species-input" name="species" class="form-control" required>
+                  <option value="Canine" selected>Canine</option>
+                  <option value="Feline">Feline</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed-input">Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="Retired Racing Greyhound" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="29.5" required>
+              </div>
+              <div class="form-group">
+                <label for="create-phenotype-input">DIC Phase / Coagulopathy Phenotype</label>
+                <select id="create-phenotype-input" name="phase_phenotype" class="form-control" required>
+                  <option value="HYPO_COAGULABLE_HEMORRHAGIC_CONSUMPTIVE_DIC" selected>HYPO_COAGULABLE_HEMORRHAGIC_CONSUMPTIVE_DIC (Consumptive Hemorrhagic DIC)</option>
+                  <option value="HYPERFIBRINOLYSIS_GREYHOUND_TRAUMA_COAGULOPATHY">HYPERFIBRINOLYSIS_GREYHOUND_TRAUMA_COAGULOPATHY (Greyhound / Trauma Hyperfibrinolysis)</option>
+                  <option value="HYPER_COAGULABLE_MICROTHROMBOTIC_EARLY_DIC">HYPER_COAGULABLE_MICROTHROMBOTIC_EARLY_DIC (Early Microthrombotic Hypercoagulable DIC)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-platelets-input">Platelet Count (K/µL)</label>
+                <input type="number" id="create-platelets-input" name="platelet_count_k_ul" class="form-control" min="1" max="1000" step="0.1" value="42.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pt-input">Prothrombin Time PT (sec)</label>
+                <input type="number" id="create-pt-input" name="pt_seconds" class="form-control" min="5.0" max="180.0" step="0.1" value="23.2" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-aptt-input">Activated Partial Thromboplastin Time aPTT (sec)</label>
+                <input type="number" id="create-aptt-input" name="aptt_seconds" class="form-control" min="20.0" max="300.0" step="0.1" value="138.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-ddimer-input">D-Dimer (ng/mL)</label>
+                <input type="number" id="create-ddimer-input" name="d_dimer_ng_ml" class="form-control" min="0" max="20000" step="1.0" value="1720.0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-fibrinogen-input">Fibrinogen (mg/dL)</label>
+                <input type="number" id="create-fibrinogen-input" name="fibrinogen_mg_dl" class="form-control" min="10" max="1000" step="1.0" value="74.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-at3-input">Antithrombin III Activity (%)</label>
+                <input type="number" id="create-at3-input" name="antithrombin_percent" class="form-control" min="10" max="150" step="1.0" value="51.0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group dic-checkbox-group">
+                <label class="dic-checkbox-item">
+                  <input type="checkbox" id="create-schistocytes-checkbox" name="schistocytes_present" checked>
+                  <span>Peripheral Smear Schistocytes / RBC Fragmentation Present</span>
+                </label>
+              </div>
+              <div class="form-group dic-checkbox-group">
+                <label class="dic-checkbox-item">
+                  <input type="checkbox" id="create-bleeding-checkbox" name="spontaneous_mucosal_bleeding" checked>
+                  <span>Spontaneous Mucosal / Petechial / Cavitary Bleeding Present</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" id="create-dic-op-btn" class="btn btn-primary">➕ Admit DIC / Coagulopathy Patient</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active DIC Workspace & Clinical Staging / Coag Check / Discharge Clearance Forms -->
+      <section class="glass-card trust-panel" id="dic-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="dic-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · Phenotype: <strong id="active-phase-phenotype">{{ $active.PhasePhenotype }}</strong> · ATIII: <strong id="active-at3-percent">{{ printf "%.1f" $active.AntithrombinPercent }}%</strong> · Schistocytes: <strong id="active-schistocytes-flag">{{ if $active.SchistocytesPresent }}YES{{ else }}NO{{ end }}</strong></p>
+          </div>
+          <span id="active-op-status-badge" class="dic-status-badge {{ if eq (printf "%s" $active.Status) "ACUTE_OVERT_DIC_HYPOFIBRINOLYSIS_TRIAGE" }}dic-status-critical{{ else if eq (printf "%s" $active.Status) "FFP_CRYOPRECIPITATE_TXA_STAGED" }}dic-status-staged{{ else }}dic-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- Coagulation & Fibrinolysis Telemetry Bar -->
+        <div class="dic-vitals-summary" id="active-vitals-summary">
+          <div class="dic-vital-chip">
+            <span class="kpi-label">Platelet Count</span>
+            <strong id="active-platelet-count">{{ printf "%.1f" $active.PlateletCountKUl }} K/µL</strong>
+          </div>
+          <div class="dic-vital-chip">
+            <span class="kpi-label">PT / aPTT Clotting Times</span>
+            <strong id="active-pt-aptt">{{ printf "%.1f" $active.PTSeconds }}s / {{ printf "%.1f" $active.APTTSeconds }}s</strong>
+          </div>
+          <div class="dic-vital-chip">
+            <span class="kpi-label">D-Dimer (Cross-Linked Fibrin)</span>
+            <strong id="active-d-dimer">{{ printf "%.1f" $active.DDimerNgML }} ng/mL</strong>
+          </div>
+          <div class="dic-vital-chip">
+            <span class="kpi-label">Plasma Fibrinogen</span>
+            <strong id="active-fibrinogen">{{ printf "%.1f" $active.FibrinogenMgDL }} mg/dL</strong>
+          </div>
+        </div>
+
+        <!-- Coagulation & TEG Viscoelastic Profile Box -->
+        <div class="dic-plan-box" id="active-profile-plan-box">
+          <h3>Coagulation, Fibrinolysis &amp; Viscoelastic (TEG/ROTEM) Triage Profile</h3>
+          <div class="dic-plan-grid">
+            <div><strong>Phenotype Pathophysiology:</strong> <span id="plan-phenotype-patho">{{ $active.ProfilePlan.PhenotypePathophysiology }}</span></div>
+            <div><strong>PT/aPTT &amp; Platelet Summary:</strong> <span id="plan-pt-aptt-summary">{{ $active.ProfilePlan.PTaPTTProlongationSummary }}</span></div>
+            <div><strong>D-Dimer, Fibrinogen &amp; ATIII Note:</strong> <span id="plan-ddimer-fib-at3">{{ $active.ProfilePlan.DDimerFibrinogenATIIINote }}</span></div>
+            <div><strong>TEG / ROTEM Viscoelastic Tracing:</strong> <span id="plan-teg-interpretation">{{ $active.ProfilePlan.TEGViscoelasticInterpretation }}</span></div>
+            <div><strong>TXA / EACA Fibrinolysis Indication:</strong> <span id="plan-txa-indication">{{ $active.ProfilePlan.TXAFibrinolysisIndicationNote }}</span></div>
+            <div><strong>Jugular Venipuncture Contraindication:</strong> <span id="plan-jugular-guard">{{ $active.ProfilePlan.JugularVenipunctureContraindication }}</span></div>
+          </div>
+        </div>
+
+        <!-- FFP, Cryoprecipitate & Antifibrinolytic Component Therapy Box -->
+        <div class="dic-plan-box" id="active-component-plan-box">
+          <h3>Fresh Frozen Plasma (FFP), Cryoprecipitate &amp; Tranexamic Acid (TXA) Protocol</h3>
+          <div class="dic-plan-grid">
+            <div><strong>Fresh Frozen Plasma (FFP) Protocol:</strong> <span id="plan-ffp-protocol">{{ $active.ComponentPlan.FreshFrozenPlasmaProtocol }}</span></div>
+            <div><strong>Cryoprecipitate / vWF Protocol:</strong> <span id="plan-cryo-protocol">{{ $active.ComponentPlan.CryoprecipitatevWFProtocol }}</span></div>
+            <div><strong>Tranexamic Acid (TXA) / EACA Plan:</strong> <span id="plan-txa-protocol">{{ $active.ComponentPlan.TranexamicAcidAminocaproicPlan }}</span></div>
+            <div><strong>Antithrombin III / Heparin Phase Plan:</strong> <span id="plan-heparin-phase">{{ $active.ComponentPlan.AntithrombinHeparinPhasePlan }}</span></div>
+            <div><strong>Underlying Trigger Control:</strong> <span id="plan-trigger-control">{{ $active.ComponentPlan.UnderlyingTriggerControlPlan }}</span></div>
+            <div><strong>Serial Coagulation Panel Schedule:</strong> <span id="plan-coag-schedule">{{ $active.ComponentPlan.SerialCoagPanelSchedule }}</span></div>
+          </div>
+        </div>
+        {{ end }}
+
+        <hr class="dic-divider">
+
+        <!-- 1. Stage Fresh Frozen Plasma (FFP), Cryoprecipitate & Tranexamic Acid (TXA) Form -->
+        <div class="trust-subsection" id="stage-therapy-section">
+          <h3>1. Stage Fresh Frozen Plasma (FFP 10–20 mL/kg), Cryoprecipitate (1 unit/10 kg) &amp; Tranexamic Acid (TXA) Protocol</h3>
+          <form id="stage-therapy-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="stage-ffp-protocol-input">Fresh Frozen Plasma (FFP 10–20 mL/kg IV) Clotting Factor &amp; Antithrombin III Protocol</label>
+              <input
+                type="text"
+                id="stage-ffp-protocol-input"
+                name="fresh_frozen_plasma_protocol"
+                class="form-control"
+                value="Fresh Frozen Plasma (FFP) 15 mL/kg IV over 3–4h via 170–260 µm filter to replenish Factors II, V, VII, VIII, IX, X, Fibrinogen &amp; Antithrombin III"
+                required
+              >
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-cryo-protocol-input">Cryoprecipitate (1 unit/10 kg IV) for Fibrinogen &lt; 100 mg/dL &amp; vWF</label>
+                <input
+                  type="text"
+                  id="stage-cryo-protocol-input"
+                  name="cryoprecipitate_vwf_protocol"
+                  class="form-control"
+                  value="Cryoprecipitate 1 unit per 10 kg IV for severe hypofibrinogenemia (&lt; 100 mg/dL) and Factor VIII/vWF enrichment"
+                  required
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-txa-plan-input">Tranexamic Acid (TXA 10 mg/kg IV) / Epsilon-Aminocaproic Acid (EACA) Plan</label>
+                <input
+                  type="text"
+                  id="stage-txa-plan-input"
+                  name="tranexamic_acid_aminocaproic_plan"
+                  class="form-control"
+                  value="Tranexamic Acid (TXA) 10 mg/kg IV slow infusion over 20 min q8h (or EACA 50–100 mg/kg IV q8h) for hyperfibrinolysis"
+                  required
+                >
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-heparin-phase-input">Antithrombin III &amp; Phase-Specific Heparin Guard</label>
+                <input
+                  type="text"
+                  id="stage-heparin-phase-input"
+                  name="antithrombin_heparin_phase_plan"
+                  class="form-control"
+                  value="Replenish Antithrombin III (&gt; 65%) via FFP; withhold systemic heparin during active consumptive mucosal hemorrhage"
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-trigger-control-input">Underlying DIC Trigger Source Control Plan</label>
+                <input
+                  type="text"
+                  id="stage-trigger-control-input"
+                  name="underlying_trigger_control_plan"
+                  class="form-control"
+                  value="Rapid source control of primary sepsis/heatstroke/hemangiosarcoma trigger + microvascular oxygen delivery restoration"
+                >
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="stage-coag-schedule-input">Serial Coagulation &amp; TEG Monitoring Schedule</label>
+              <input
+                type="text"
+                id="stage-coag-schedule-input"
+                name="serial_coag_panel_schedule"
+                class="form-control"
+                value="Recheck PT, aPTT, Platelets, Fibrinogen, D-Dimer &amp; ATIII q4–6h via peripheral saphenous/cephalic catheter only"
+              >
+            </div>
+            <button type="submit" id="stage-therapy-btn" class="btn btn-secondary">🩸 Stage FFP / Cryoprecipitate / TXA Component Therapy</button>
+          </form>
+        </div>
+
+        <hr class="dic-divider">
+
+        <!-- 2. Record Serial Coagulation Panel (Platelets, PT, aPTT, D-Dimer, Fibrinogen) Check Form -->
+        <div class="trust-subsection" id="record-coag-check-section">
+          <h3>2. Record Serial Coagulation Panel (Platelets, PT, aPTT, D-Dimer &amp; Fibrinogen) Check</h3>
+          <form id="record-coag-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-platelets-input">Platelet Count (K/µL)</label>
+                <input type="number" id="check-platelets-input" name="platelet_count_k_ul" class="form-control" min="1" max="1000" step="0.1" value="145.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-pt-input">Prothrombin Time PT (sec)</label>
+                <input type="number" id="check-pt-input" name="pt_seconds" class="form-control" min="5.0" max="180.0" step="0.1" value="11.6" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-aptt-input">Activated Partial Thromboplastin Time aPTT (sec)</label>
+                <input type="number" id="check-aptt-input" name="aptt_seconds" class="form-control" min="20.0" max="300.0" step="0.1" value="72.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-ddimer-input">D-Dimer (ng/mL)</label>
+                <input type="number" id="check-ddimer-input" name="d_dimer_ng_ml" class="form-control" min="0" max="20000" step="1.0" value="240.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-fibrinogen-input">Fibrinogen (mg/dL)</label>
+                <input type="number" id="check-fibrinogen-input" name="fibrinogen_mg_dl" class="form-control" min="10" max="1000" step="1.0" value="195.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (Clinician)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Callum Vance, DACVECC" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-note-input">Clinical Coagulation &amp; Hemostasis Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="Post-FFP 15 mL/kg, Cryoprecipitate &amp; TXA 10 mg/kg IV: gingival petechiae resolved, Fibrinogen restored to 195.0 mg/dL, D-Dimer decreased to 240.0 ng/mL." required>
+            </div>
+            <button type="submit" id="record-coag-check-btn" class="btn btn-secondary">🧪 Record Coagulation Panel Check</button>
+          </form>
+
+          <div class="dic-checks-box">
+            <h4>Serial Coagulation Panel Checks (<span id="coag-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.CoagChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="coag-checks-list" class="dic-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.CoagChecks }}
+              <li class="dic-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · Platelets {{ printf "%.1f" $chk.PlateletCountKUl }} K/µL · PT {{ printf "%.1f" $chk.PTSeconds }}s · aPTT {{ printf "%.1f" $chk.APTTSeconds }}s · D-Dimer {{ printf "%.1f" $chk.DDimerNgML }} ng/mL · Fibrinogen {{ printf "%.1f" $chk.FibrinogenMgDL }} mg/dL — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="dic-divider">
+
+        <!-- 3. Clear DIC Operation for Hemostasis Restored & Normocoagulable Discharge Form -->
+        <div class="trust-subsection" id="clear-dic-section">
+          <h3>3. Clear Hemostasis Restored &amp; Normocoagulable Patient for Step-Down / Discharge</h3>
+          <form id="clear-dic-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="clear-discharged-by-input">Discharging Criticalist / Clinician</label>
+              <input type="text" id="clear-discharged-by-input" name="discharged_by" class="form-control" value="Dr. Callum Vance, DACVECC" required>
+            </div>
+            <div class="form-group">
+              <label for="clear-summary-input">Hemostasis Restoration &amp; Normocoagulable Clearance Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="discharge_summary"
+                class="form-control"
+                value="Spontaneous mucosal bleeding completely arrested, PT/aPTT normalized (11.6s / 72.0s), Fibrinogen restored to 195.0 mg/dL, D-Dimer reduced to 240.0 ng/mL, and platelet count recovering (145.0 K/µL)."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-dic-btn" class="btn btn-primary">🛡️ Clear DIC Patient for Normocoagulable Discharge</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/dic-coagulopathy-triage.js" defer></script>
+</body>
+</html>

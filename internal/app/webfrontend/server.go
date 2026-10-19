@@ -35,6 +35,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/cardiogenicedema"
 	"github.com/scottdensmore/petspotr/pkg/confinedspace"
+	"github.com/scottdensmore/petspotr/pkg/diccoagulopathy"
 	"github.com/scottdensmore/petspotr/pkg/dkainsulin"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/dystociaeclampsia"
@@ -140,6 +141,7 @@ type Server struct {
 	pancreatitisService       *pancreatitiscpl.PancreatitisService
 	spinalService             *spinalivdd.IVDDService
 	fateService               *fatethrombus.FATEService
+	dicService                *diccoagulopathy.DICService
 	handler                   http.Handler
 }
 
@@ -333,6 +335,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		peritonitisService:        septicperitonitis.NewPeritonitisService(),
 		spinalService:             spinalivdd.NewIVDDService(),
 		fateService:               fatethrombus.NewFATEService(),
+		dicService:                diccoagulopathy.NewDICService(),
 		pancreatitisService:       pancreatitiscpl.NewPancreatitisService(),
 	}
 	if s.smsWebhookSecret == "" {
@@ -690,6 +693,8 @@ func (s *Server) routes() {
 	s.registerSpinalIVDDRoutes()
 	// Feline Aortic Thromboembolism (FATE / Saddle Thrombus), 5 Ps, Paired Glucose/Lactate Limb Gradient & Clopidogrel/Rivaroxaban Cockpit routes (Milestone 22.5)
 	s.registerFATEThrombusRoutes()
+	// Acute Coagulopathy & Disseminated Intravascular Coagulation (DIC), PT/aPTT Prolongation, D-Dimer/FDP Elevation, Fresh Frozen Plasma (FFP) & Tranexamic Acid (TXA) Cockpit routes (Milestone 23.3)
+	s.registerDICCoagulopathyRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
