@@ -70,6 +70,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/statusepilepticus"
 	"github.com/scottdensmore/petspotr/pkg/store"
 	"github.com/scottdensmore/petspotr/pkg/telemetry"
+	"github.com/scottdensmore/petspotr/pkg/thermalburnparkland"
 	"github.com/scottdensmore/petspotr/pkg/toxicologypoison"
 	"github.com/scottdensmore/petspotr/pkg/transfusionbloodbank"
 	"github.com/scottdensmore/petspotr/pkg/traumaticbrain"
@@ -148,6 +149,7 @@ type Server struct {
 	pyometraService           *pyometrasirs.PyometraService
 	hepaticService            *hepaticencephalopathy.HepaticService
 	tlsService                *oncologictls.TLSService
+	burnService               *thermalburnparkland.BurnService
 	handler                   http.Handler
 }
 
@@ -345,6 +347,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		hepaticService:            hepaticencephalopathy.NewHepaticService(),
 		dicService:                diccoagulopathy.NewDICService(),
 		pancreatitisService:       pancreatitiscpl.NewPancreatitisService(),
+		burnService:               thermalburnparkland.NewBurnService(),
 		tlsService:                oncologictls.NewTLSService(),
 	}
 	if s.smsWebhookSecret == "" {
@@ -710,6 +713,8 @@ func (s *Server) routes() {
 	s.registerHepaticEncephalopathyRoutes()
 	// Acute Tumor Lysis Syndrome (TLS) & Oncologic Hypercalcemia of Malignancy, Hyperkalemia/Hyperphosphatemia/Hypocalcemia, Rasburicase/Allopurinol & Zoledronate/Saline Diuresis Cockpit routes (Milestone 23.4)
 	s.registerOncologicTLSRoutes()
+	// Acute Smoke Inhalation, Thermal Burn Classification (Superficial/Partial/Full-Thickness TBSA%), Parkland Crystalloid Resuscitation Formula, Silver Sulfadiazine & Escharotomy Cockpit routes (Milestone 24.1)
+	s.registerThermalBurnParklandRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
