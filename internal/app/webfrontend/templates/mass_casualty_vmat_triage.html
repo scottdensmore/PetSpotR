@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Disaster Mass-Casualty Veterinary Triage (START/SALT Veterinary Color-Tagging: Immediate Red, Delayed Yellow, Minimal Green, Expectant Black), Decontamination Corridor, Field Hospital Surge Capacity &amp; FEMA/AVMA VMAT Deployment Command Cockpit.">
+  <title>Acute Disaster Mass-Casualty Veterinary Triage (START/SALT Veterinary Color-Tagging), Decontamination Corridor, Field Hospital Surge Capacity &amp; FEMA/AVMA VMAT Deployment Command Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#mass-casualty-vmat-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/heartworm-caval-triage" class="nav-link nav-link-emergency" id="nav-heartworm-caval-triage">🫀 Heartworm Caval ICU</a></li>
+          <li><a href="/mass-casualty-vmat-triage" class="nav-link active nav-link-emergency" id="nav-mass-casualty-vmat-triage">⛺ Mass-Casualty VMAT ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="mass-casualty-vmat-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header mci-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>⛺ ACUTE DISASTER MASS-CASUALTY VETERINARY TRIAGE (START/SALT COLOR-TAGGING) &amp; FEMA/AVMA VMAT COMMAND COCKPIT</span>
+        </div>
+        <h1>Acute Disaster Mass-Casualty Veterinary Triage (START/SALT Veterinary Color-Tagging: Immediate Red, Delayed Yellow, Minimal Green, Expectant Black), Decontamination Corridor, Field Hospital Surge Capacity &amp; FEMA/AVMA VMAT Deployment Command Cockpit</h1>
+        <p class="text-secondary">
+          Veterinary START/SALT Color-Tagging (Red Immediate Priority 1, Yellow Delayed Priority 2, Green Minimal Priority 3, Black Expectant Priority 4), Animal Trauma Triage Score (ATS 0–25), Hot/Warm/Cold Zone Dawn Decontamination Corridor, Cold-Zone Cross-Contamination Guard, Damage-Control Resuscitation, Waterproof RFID Triage Collars, FEMA ICS-214 Chain-of-Custody Logging &amp; Reverse-Triage Surge Allocation (&ge; 85% Bed Occupancy).
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid mci-kpi-grid" aria-label="Mass-Casualty VMAT KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Mass-Casualty VMAT Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">START/SALT Tagged &amp; Decon Staged</span>
+        <strong class="kpi-value" id="kpi-decon-staged">{{ .StartSaltTaggedDeconStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Damage-Control Surge ICU Monitored</span>
+        <strong class="kpi-value" id="kpi-surge-monitored">{{ .DamageControlSurgeMonitoredCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Reunified &amp; Evac Transport Cleared</span>
+        <strong class="kpi-value" id="kpi-evac-cleared">{{ .ReunifiedEvacClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">RED Immediate (Priority 1 Life-Threat)</span>
+        <strong class="kpi-value" id="kpi-red-immediate-count">{{ .RedImmediatePriority1Count }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Reverse-Triage Surge Active (&ge; 85%)</span>
+        <strong class="kpi-value" id="kpi-reverse-surge-count">{{ .ReverseTriageSurgeTriggeredCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="mci-live-status" class="humane-traps-live-status mci-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Acute Disaster Mass-Casualty Veterinary Triage &amp; FEMA/AVMA VMAT field hospital operations.
+    </div>
+
+    <!-- Global START/SALT Triage, Hot-to-Cold Zone Cross-Contamination Guard, Reverse-Triage Surge & FEMA ICS-214 Alert Banner -->
+    <div id="mci-alert-banner" class="mci-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL MASS-CASUALTY VMAT &amp; DECONTAMINATION GUARD: (1) HOT-TO-COLD ZONE CROSS-CONTAMINATION GUARD: All hazmat, floodwater-sewage, and wildfire-ash MCI patients MUST complete Warm-Zone Gross Decontamination (low-pressure tepid water + Dawn surfactant dermal wash &amp; 0.9% NaCl ocular irrigation) BEFORE crossing into the Cold-Zone VMAT surgical/ICU tent; (2) Enforce Veterinary START/SALT Color-Tagging (RED Immediate Priority 1, YELLOW Delayed Priority 2, GREEN Minimal Priority 3, BLACK Expectant Palliative) with Waterproof RFID Triage Collars &amp; FEMA ICS-214 Chain-of-Custody logs; (3) Trigger Reverse-Triage Surge Protocol when Field Hospital Bed Occupancy &ge; 85.0% (route stable Green/Yellow patients to secondary staging shelters to preserve Red Immediate oxygen &amp; ventilator bays) and segregate contagious cohorts.
+    </div>
+
+    <!-- Global Owner Reunification & Regional Medevac Transport Clearance Banner -->
+    <div id="mci-clearance-banner" class="mci-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "REUNIFIED_EVAC_TRANSPORT_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ VMAT PERFUSION RESTORED, RFID/MICROCHIP MATCHED &amp; FEMA ICS-214 REUNIFICATION / MEDEVAC CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "REUNIFIED_EVAC_TRANSPORT_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Cleared by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting lactate &le; 2.5 mmol/L, SpO2 &ge; 95.0%, verified warm-zone decontamination, waterproof RFID collar match, and signed FEMA ICS-214 chain of custody.{{ end }}</span>
+    </div>
+
+    <div id="mci-error-banner" class="mci-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card mci-toolbar-card" aria-label="Mass-Casualty VMAT Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col mci-toolbar-row">
+        <div class="form-group">
+          <label for="mci-status-filter">Filter by Mass-Casualty VMAT Status</label>
+          <select id="mci-status-filter" class="form-control">
+            <option value="">All Mass-Casualty VMAT Statuses</option>
+            <option value="START_SALT_TAGGED_DECON_STAGED">START_SALT_TAGGED_DECON_STAGED (START/SALT Tagged &amp; Decon Staged)</option>
+            <option value="DAMAGE_CONTROL_SURGE_ICU_MONITORED">DAMAGE_CONTROL_SURGE_ICU_MONITORED (Damage-Control Surge ICU Monitored)</option>
+            <option value="REUNIFIED_EVAC_TRANSPORT_CLEARED">REUNIFIED_EVAC_TRANSPORT_CLEARED (Reunified &amp; Evac Transport Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group mci-sse-controls">
+          <span class="kpi-label">Live VMAT ICS-214 Telemetry Stream</span>
+          <div class="mci-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live Mass-Casualty VMAT SSE Stream</button>
+            <span id="sse-status-badge" class="mci-status-badge mci-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid mci-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="mci-operations-panel" aria-labelledby="heading-mci-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-mci-ops">Active Mass-Casualty VMAT Operations</h2>
+          <span id="mci-ops-count-badge" class="mci-status-badge mci-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="mci-operations-grid" class="trust-screenings-list mci-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card mci-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-triage-tag="{{ $op.TriageTag }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }} · {{ $op.WaterproofRFIDTriageCollarNumber }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="mci-status-badge {{ if eq (printf "%s" $op.Status) "START_SALT_TAGGED_DECON_STAGED" }}mci-status-critical{{ else if eq (printf "%s" $op.Status) "DAMAGE_CONTROL_SURGE_ICU_MONITORED" }}mci-status-staged{{ else }}mci-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="mci-card-metrics">
+              <span><strong>START Tag:</strong> {{ $op.TriageTag }}</span>
+              <span><strong>Protocol:</strong> {{ $op.Protocol }}</span>
+              <span><strong>ATS Score:</strong> {{ $op.AnimalTriageScoreATS }}/25</span>
+              <span><strong>Lactate:</strong> {{ printf "%.2f" $op.LactateMmolL }} mmol/L</span>
+              <span><strong>SpO2:</strong> {{ printf "%.1f" $op.SpO2Percent }}%</span>
+              <span><strong>Surge Occupancy:</strong> {{ printf "%.1f" $op.SurgeBedOccupancyPercent }}%</span>
+              <span><strong>Warm-Zone Decon:</strong> {{ if $op.GrossDecontaminationPriorToColdZoneVerified }}VERIFIED{{ else }}PENDING{{ end }}</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary mci-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open VMAT Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="mci-ops-empty-msg">No Mass-Casualty VMAT operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="mci-divider">
+
+        <!-- Admit New Mass-Casualty VMAT Patient Form -->
+        <div class="trust-subsection" id="create-mci-section">
+          <h3 id="heading-create-mci">Admit New Disaster Mass-Casualty Veterinary Patient (START/SALT Triage Intake)</h3>
+          <form id="create-mci-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-MCI-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name / Disaster Field Call-Sign</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Cascade" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species-input">Species</label>
+                <select id="create-species-input" name="species" class="form-control" required>
+                  <option value="Canine" selected>Canine</option>
+                  <option value="Feline">Feline</option>
+                  <option value="Equine">Equine</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed-input">Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="German Shepherd (SAR K9)" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="140.0" step="0.1" value="32.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-triage-tag-input">Veterinary START/SALT Color-Tag Priority</label>
+                <select id="create-triage-tag-input" name="triage_tag" class="form-control" required>
+                  <option value="RED_IMMEDIATE_PRIORITY_1_LIFE_THREAT" selected>RED_IMMEDIATE_PRIORITY_1_LIFE_THREAT (Red Immediate — Priority 1 Life-Threatening)</option>
+                  <option value="YELLOW_DELAYED_PRIORITY_2_URGENT_SURGERY">YELLOW_DELAYED_PRIORITY_2_URGENT_SURGERY (Yellow Delayed — Priority 2 Urgent Surgery)</option>
+                  <option value="GREEN_MINIMAL_PRIORITY_3_WALKING_WOUNDED">GREEN_MINIMAL_PRIORITY_3_WALKING_WOUNDED (Green Minimal — Priority 3 Walking Wounded)</option>
+                  <option value="BLACK_EXPECTANT_ANALGESIA_PALLIATIVE">BLACK_EXPECTANT_ANALGESIA_PALLIATIVE (Black Expectant — Priority 4 Palliative Analgesia)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-protocol-input">FEMA/AVMA VMAT Surge Protocol</label>
+                <select id="create-protocol-input" name="protocol" class="form-control" required>
+                  <option value="HOT_WARM_COLD_ZONE_DAWN_DECON_CORRIDOR" selected>HOT_WARM_COLD_ZONE_DAWN_DECON_CORRIDOR (Hot/Warm/Cold Zone Dawn Decon Corridor)</option>
+                  <option value="DAMAGE_CONTROL_RESUSCITATION_TOURNIQUET_O2">DAMAGE_CONTROL_RESUSCITATION_TOURNIQUET_O2 (Damage-Control Resuscitation, Tourniquet &amp; O2)</option>
+                  <option value="ICS_214_MICROCHIP_BAND_COHORT_ISOLATION">ICS_214_MICROCHIP_BAND_COHORT_ISOLATION (ICS-214 Microchip Band &amp; Cohort Isolation)</option>
+                  <option value="REGIONAL_TERTIARY_VET_MEDEVAC_TRANSFER">REGIONAL_TERTIARY_VET_MEDEVAC_TRANSFER (Regional Tertiary Vet Medevac Transfer)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-ats-score-input">Animal Trauma Triage Score (ATS · 0–25)</label>
+                <input type="number" id="create-ats-score-input" name="animal_triage_score_ats" class="form-control" min="0" max="25" step="1" value="18" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-lactate-input">Blood Lactate (mmol/L)</label>
+                <input type="number" id="create-lactate-input" name="lactate_mmol_l" class="form-control" min="0.5" max="22.0" step="0.1" value="6.4" required>
+              </div>
+              <div class="form-group">
+                <label for="create-spo2-input">Pulse Oximetry SpO2 (%)</label>
+                <input type="number" id="create-spo2-input" name="spo2_percent" class="form-control" min="55.0" max="100.0" step="0.5" value="88.0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-surge-occupancy-input">Field Hospital Surge Bed Occupancy (% · &ge; 85% Triggers Reverse Triage)</label>
+                <input type="number" id="create-surge-occupancy-input" name="surge_bed_occupancy_percent" class="form-control" min="10.0" max="100.0" step="0.5" value="92.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-rfid-collar-input">Waterproof RFID Triage Collar Number</label>
+                <input type="text" id="create-rfid-collar-input" name="waterproof_rfid_triage_collar_number" class="form-control" value="VMAT-RFID-9104" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-ics214-input">FEMA ICS-214 Incident Activity Number</label>
+                <input type="text" id="create-ics214-input" name="ics214_incident_number" class="form-control" value="ICS214-FEMA-2026-104" required>
+              </div>
+              <div class="form-group mci-checkbox-group">
+                <label class="mci-checkbox-item">
+                  <input type="checkbox" id="create-gross-decon-checkbox" name="gross_decontamination_prior_to_cold_zone_verified" checked>
+                  <span>Warm-Zone Gross Decontamination Verified Prior to Cold-Zone ICU</span>
+                </label>
+                <label class="mci-checkbox-item">
+                  <input type="checkbox" id="create-contagious-segregated-checkbox" name="contagious_cohort_segregated" checked>
+                  <span>Contagious Biosecurity Cohort Segregated</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" id="create-mci-op-btn" class="btn btn-primary">➕ Admit Mass-Casualty Patient to VMAT Cockpit</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active Mass-Casualty VMAT Workspace & Staging / Reassessment / Clearance Forms -->
+      <section class="glass-card trust-panel" id="mci-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="mci-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · START Tag: <strong id="active-triage-tag">{{ $active.TriageTag }}</strong> · Protocol: <strong id="active-protocol">{{ $active.Protocol }}</strong> · RFID Collar: <strong id="active-rfid-collar">{{ $active.WaterproofRFIDTriageCollarNumber }}</strong> · ICS-214: <strong id="active-ics214">{{ $active.ICS214IncidentNumber }}</strong></p>
+          </div>
+          <span id="active-op-status-badge" class="mci-status-badge {{ if eq (printf "%s" $active.Status) "START_SALT_TAGGED_DECON_STAGED" }}mci-status-critical{{ else if eq (printf "%s" $active.Status) "DAMAGE_CONTROL_SURGE_ICU_MONITORED" }}mci-status-staged{{ else }}mci-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- VMAT Field Triage & Surge Telemetry Bar -->
+        <div class="mci-vitals-summary" id="active-vitals-summary">
+          <div class="mci-vital-chip">
+            <span class="kpi-label">Animal Trauma Triage Score (ATS)</span>
+            <strong id="active-ats-score">{{ $active.AnimalTriageScoreATS }}/25</strong>
+          </div>
+          <div class="mci-vital-chip">
+            <span class="kpi-label">Blood Lactate (mmol/L)</span>
+            <strong id="active-lactate">{{ printf "%.2f" $active.LactateMmolL }} mmol/L</strong>
+          </div>
+          <div class="mci-vital-chip">
+            <span class="kpi-label">Pulse Oximetry (SpO2)</span>
+            <strong id="active-spo2">{{ printf "%.1f" $active.SpO2Percent }}%</strong>
+          </div>
+          <div class="mci-vital-chip">
+            <span class="kpi-label">Surge Bed Occupancy / Decon</span>
+            <strong id="active-surge-occupancy">{{ printf "%.1f" $active.SurgeBedOccupancyPercent }}% ({{ if $active.ReverseTriageSurgeTriggered }}REVERSE TRIAGE{{ else }}STANDARD{{ end }}) · {{ if $active.GrossDecontaminationPriorToColdZoneVerified }}DECON VERIFIED{{ else }}BLOCKED{{ end }}</strong>
+          </div>
+        </div>
+
+        <!-- START/SALT Triage, Decontamination Corridor & ICS Command Profile Box -->
+        <div class="mci-plan-box" id="active-patho-plan-box">
+          <h3>START/SALT Color-Tagging, Hot/Warm/Cold Zone Decontamination &amp; FEMA ICS-214 Command Profile</h3>
+          <div class="mci-plan-grid">
+            <div><strong>START/SALT Priority Assessment:</strong> <span id="plan-start-salt-summary">{{ $active.StartSaltTriageSummary }}</span></div>
+            <div><strong>Warm-Zone Decontamination &amp; Biosecurity:</strong> <span id="plan-decon-biosecurity">{{ $active.DeconCorridorBiosecurityNote }}</span></div>
+            <div><strong>FEMA/AVMA VMAT ICS-214 &amp; Surge Command:</strong> <span id="plan-surge-ics">{{ $active.SurgeCapacityICSCommandNote }}</span></div>
+            <div><strong>Cold-Zone Cross-Contamination Guard:</strong> <span id="plan-cold-zone-guard">{{ $active.FieldTriageStaging.ColdZoneCrossContaminationGuardNote }}</span></div>
+          </div>
+        </div>
+
+        <!-- Damage-Control Resuscitation, RFID Chain-of-Custody & Reverse-Triage Surge Plan Box -->
+        <div class="mci-plan-box" id="active-staging-plan-box">
+          <h3>VMAT Damage-Control Resuscitation, Waterproof RFID Chain-of-Custody &amp; Reverse-Triage Surge Plan</h3>
+          <div class="mci-plan-grid">
+            <div><strong>Warm-Zone Dawn Decontamination Corridor Plan:</strong> <span id="plan-warm-zone-decon">{{ $active.FieldTriageStaging.WarmZoneDecontaminationCorridorPlan }}</span></div>
+            <div><strong>Damage-Control Resuscitation (TXA / Hypertonic Saline / O2):</strong> <span id="plan-damage-control">{{ $active.FieldTriageStaging.DamageControlResuscitationPlan }}</span></div>
+            <div><strong>FEMA ICS-214 &amp; Waterproof RFID Collar Chain of Custody:</strong> <span id="plan-ics214-custody">{{ $active.FieldTriageStaging.ICS214ChainOfCustodyPlan }}</span></div>
+            <div><strong>Contagious Cohort Biosecurity Isolation Plan:</strong> <span id="plan-biosecurity-isolation">{{ $active.FieldTriageStaging.BiosecurityCohortIsolationPlan }}</span></div>
+            <div><strong>Reverse-Triage Surge Bed Allocation Plan:</strong> <span id="plan-reverse-triage">{{ $active.FieldTriageStaging.ReverseTriageSurgeAllocationPlan }}</span></div>
+          </div>
+        </div>
+        {{ end }}
+
+        <hr class="mci-divider">
+
+        <!-- 1. Stage Warm-Zone Decontamination, Damage-Control Resuscitation & FEMA ICS-214 Triage Form -->
+        <div class="trust-subsection" id="stage-vmat-section">
+          <h3>1. Stage Warm-Zone Decontamination, Damage-Control Resuscitation &amp; FEMA ICS-214 Chain of Custody</h3>
+          <form id="stage-vmat-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-protocol-input">Selected VMAT Surge Protocol</label>
+                <select id="stage-protocol-input" name="protocol" class="form-control" required>
+                  <option value="HOT_WARM_COLD_ZONE_DAWN_DECON_CORRIDOR" selected>HOT_WARM_COLD_ZONE_DAWN_DECON_CORRIDOR (Hot/Warm/Cold Zone Dawn Decon Corridor)</option>
+                  <option value="DAMAGE_CONTROL_RESUSCITATION_TOURNIQUET_O2">DAMAGE_CONTROL_RESUSCITATION_TOURNIQUET_O2 (Damage-Control Resuscitation, Tourniquet &amp; O2)</option>
+                  <option value="ICS_214_MICROCHIP_BAND_COHORT_ISOLATION">ICS_214_MICROCHIP_BAND_COHORT_ISOLATION (ICS-214 Microchip Band &amp; Cohort Isolation)</option>
+                  <option value="REGIONAL_TERTIARY_VET_MEDEVAC_TRANSFER">REGIONAL_TERTIARY_VET_MEDEVAC_TRANSFER (Regional Tertiary Vet Medevac Transfer)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="stage-triage-tag-input">Assigned START/SALT Triage Tag</label>
+                <select id="stage-triage-tag-input" name="triage_tag" class="form-control" required>
+                  <option value="RED_IMMEDIATE_PRIORITY_1_LIFE_THREAT" selected>RED_IMMEDIATE_PRIORITY_1_LIFE_THREAT</option>
+                  <option value="YELLOW_DELAYED_PRIORITY_2_URGENT_SURGERY">YELLOW_DELAYED_PRIORITY_2_URGENT_SURGERY</option>
+                  <option value="GREEN_MINIMAL_PRIORITY_3_WALKING_WOUNDED">GREEN_MINIMAL_PRIORITY_3_WALKING_WOUNDED</option>
+                  <option value="BLACK_EXPECTANT_ANALGESIA_PALLIATIVE">BLACK_EXPECTANT_ANALGESIA_PALLIATIVE</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="stage-decon-plan-input">Warm-Zone Dawn Surfactant &amp; Sterile Saline Decontamination Corridor Plan</label>
+              <input
+                type="text"
+                id="stage-decon-plan-input"
+                name="warm_zone_decontamination_corridor_plan"
+                class="form-control"
+                value="Warm-zone tepid low-pressure water + Dawn dish detergent dermal degreasing wash and 0.9% sterile saline ocular/oral flush verified prior to Cold-Zone VMAT ICU entry"
+                required
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="stage-dcr-plan-input">Damage-Control Resuscitation (Hemorrhage Control, TXA, Hypertonic Saline &amp; Oxygen) Plan</label>
+              <input
+                type="text"
+                id="stage-dcr-plan-input"
+                name="damage_control_resuscitation_plan"
+                class="form-control"
+                value="Direct arterial pressure bandage + Tranexamic Acid (TXA) 10 mg/kg IV + Hypertonic Saline 7.2% 4 mL/kg IV + Methadone 0.2 mg/kg IV analgesia and high-flow oxygen cage"
+                required
+              >
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-rfid-collar-input">Waterproof RFID Triage Collar Number</label>
+                <input type="text" id="stage-rfid-collar-input" name="waterproof_rfid_triage_collar_number" class="form-control" value="VMAT-RFID-9101" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-ics214-input">FEMA ICS-214 Incident Activity Number</label>
+                <input type="text" id="stage-ics214-input" name="ics214_incident_number" class="form-control" value="ICS214-FEMA-2026-101" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-surge-occupancy-input">Field Hospital Surge Bed Occupancy (%)</label>
+                <input type="number" id="stage-surge-occupancy-input" name="surge_bed_occupancy_percent" class="form-control" min="10.0" max="100.0" step="0.5" value="91.0" required>
+              </div>
+              <div class="form-group mci-checkbox-group">
+                <label class="mci-checkbox-item">
+                  <input type="checkbox" id="stage-gross-decon-checkbox" name="gross_decontamination_prior_to_cold_zone_verified" checked>
+                  <span>Warm-Zone Gross Decontamination Verified (Cold-Zone Guard)</span>
+                </label>
+                <label class="mci-checkbox-item">
+                  <input type="checkbox" id="stage-contagious-segregated-checkbox" name="contagious_cohort_segregated" checked>
+                  <span>Contagious Cohort Biosecurity Segregation Verified</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" id="stage-vmat-btn" class="btn btn-secondary">🛠️ Stage Warm-Zone Decon, Damage-Control &amp; ICS-214 Protocol</button>
+          </form>
+        </div>
+
+        <hr class="mci-divider">
+
+        <!-- 2. Record Serial VMAT Surge ICU Reassessment Check Form -->
+        <div class="trust-subsection" id="record-reassessment-section">
+          <h3>2. Record Serial VMAT Surge Reassessment (START Tag, ATS Score, Lactate, SpO2 &amp; Surge Occupancy) Check</h3>
+          <form id="record-reassessment-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-triage-tag-input">Updated START/SALT Triage Tag</label>
+                <select id="check-triage-tag-input" name="triage_tag" class="form-control" required>
+                  <option value="RED_IMMEDIATE_PRIORITY_1_LIFE_THREAT">RED_IMMEDIATE_PRIORITY_1_LIFE_THREAT</option>
+                  <option value="YELLOW_DELAYED_PRIORITY_2_URGENT_SURGERY" selected>YELLOW_DELAYED_PRIORITY_2_URGENT_SURGERY</option>
+                  <option value="GREEN_MINIMAL_PRIORITY_3_WALKING_WOUNDED">GREEN_MINIMAL_PRIORITY_3_WALKING_WOUNDED</option>
+                  <option value="BLACK_EXPECTANT_ANALGESIA_PALLIATIVE">BLACK_EXPECTANT_ANALGESIA_PALLIATIVE</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="check-ats-score-input">Animal Trauma Triage Score (ATS · 0–25)</label>
+                <input type="number" id="check-ats-score-input" name="animal_triage_score_ats" class="form-control" min="0" max="25" step="1" value="5" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-lactate-input">Blood Lactate (mmol/L)</label>
+                <input type="number" id="check-lactate-input" name="lactate_mmol_l" class="form-control" min="0.5" max="22.0" step="0.05" value="1.85" required>
+              </div>
+              <div class="form-group">
+                <label for="check-spo2-input">Pulse Oximetry SpO2 (%)</label>
+                <input type="number" id="check-spo2-input" name="spo2_percent" class="form-control" min="55.0" max="100.0" step="0.5" value="97.5" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-surge-occupancy-input">Current Surge Bed Occupancy (%)</label>
+                <input type="number" id="check-surge-occupancy-input" name="surge_bed_occupancy_percent" class="form-control" min="10.0" max="100.0" step="0.5" value="78.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (VMAT Commander / Criticalist)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Cheyenne Vance, DVM, DACVECC (FEMA VMAT Incident Commander)" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="check-note-input">Cold-Zone VMAT ICU Reassessment Clinical Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="Post-resuscitation VMAT ICU check: arterial hemorrhage controlled, ATS improved to 5/25, blood lactate cleared to 1.85 mmol/L, SpO2 97.5%, surge bed occupancy reduced to 78.0%." required>
+            </div>
+
+            <button type="submit" id="record-reassessment-btn" class="btn btn-secondary">🩺 Record VMAT Surge Reassessment Check</button>
+          </form>
+
+          <div class="mci-checks-box">
+            <h4>Serial VMAT Surge Reassessment Telemetry Checks (<span id="reassessment-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.ReassessmentChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="reassessment-checks-list" class="mci-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.ReassessmentChecks }}
+              <li class="mci-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · Tag: {{ $chk.TriageTag }} · ATS {{ $chk.AnimalTriageScoreATS }}/25 · Lactate {{ printf "%.2f" $chk.LactateMmolL }} mmol/L · SpO2 {{ printf "%.1f" $chk.SpO2Percent }}% · Surge Occupancy {{ printf "%.1f" $chk.SurgeBedOccupancyPercent }}% — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="mci-divider">
+
+        <!-- 3. Clear Mass-Casualty VMAT Operation for Owner Reunification / Medevac Transport Form -->
+        <div class="trust-subsection" id="clear-mci-section">
+          <h3>3. Clear Stabilized VMAT Patient for Owner Reunification or Regional Medevac Transport</h3>
+          <form id="clear-mci-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clear-lactate-input">Final Verified Blood Lactate (&le; 2.50 mmol/L Required)</label>
+                <input type="number" id="clear-lactate-input" name="lactate_mmol_l" class="form-control" min="0.5" max="2.5" step="0.05" value="1.85" required>
+              </div>
+              <div class="form-group">
+                <label for="clear-spo2-input">Final Verified SpO2 (&ge; 95.0% Required)</label>
+                <input type="number" id="clear-spo2-input" name="spo2_percent" class="form-control" min="95.0" max="100.0" step="0.5" value="97.5" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group mci-checkbox-group">
+                <label class="mci-checkbox-item">
+                  <input type="checkbox" id="clear-rfid-verified-checkbox" name="waterproof_rfid_matched_verified" checked>
+                  <span>Waterproof RFID Triage Collar &amp; 15-Digit ISO Microchip Match Verified</span>
+                </label>
+                <label class="mci-checkbox-item">
+                  <input type="checkbox" id="clear-ics214-signed-checkbox" name="ics214_chain_of_custody_signed" checked>
+                  <span>FEMA ICS-214 Activity Log &amp; Chain-of-Custody Transfer Signed</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="clear-cleared-by-input">Clearing VMAT Commander / Criticalist</label>
+                <input type="text" id="clear-cleared-by-input" name="cleared_by" class="form-control" value="Dr. Cheyenne Vance, DVM, DACVECC (FEMA VMAT Incident Commander)" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="clear-summary-input">Owner Reunification &amp; Regional Medevac Transport Clearance Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="clearance_summary"
+                class="form-control"
+                value="Perfusion normalized (lactate 1.85 mmol/L <= 2.5 mmol/L), SpO2 97.5% (>= 95.0%), warm-zone gross decontamination verified, waterproof RFID triage collar & ISO microchip matched, and FEMA ICS-214 chain of custody signed; cleared for owner reunification / transport."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-mci-btn" class="btn btn-primary">🛡️ Clear VMAT Patient for Reunification / Medevac Transport</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/mass-casualty-vmat-triage.js" defer></script>
+</body>
+</html>
