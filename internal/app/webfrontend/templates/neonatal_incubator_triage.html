@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Neonatal Orphan Litter &amp; Incubator Critical Care Triage Cockpit.">
+  <title>Neonatal Orphan Litter &amp; Incubator Critical Care Triage Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#neonatal-incubator-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/veterinary/fhir" class="nav-link nav-link-emergency" id="nav-veterinary-fhir">🏥 FHIR &amp; PIMS Handoff</a></li>
+          <li><a href="/ics-command" class="nav-link nav-link-emergency" id="nav-ics-command">🎖️ ICS Command</a></li>
+          <li><a href="/k9-ops" class="nav-link nav-link-emergency" id="nav-k9-ops">🐕‍🦺 K9 Scent Plume</a></li>
+          <li><a href="/custody-ledger" class="nav-link nav-link-emergency" id="nav-custody-ledger">⛓️ Custody Ledger</a></li>
+          <li><a href="/trust-safety" class="nav-link nav-link-emergency" id="nav-trust-safety">🛡️ Trust &amp; Safety</a></li>
+          <li><a href="/avalanche-winter-rescue" class="nav-link nav-link-emergency" id="nav-avalanche-winter-rescue">🏔️ Avalanche &amp; Winter SAR</a></li>
+          <li><a href="/neonatal-incubator-triage" class="nav-link active nav-link-emergency" id="nav-neonatal-incubator-triage">🍼 Neonatal Incubator Triage</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="neonatal-incubator-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header neonatal-incubator-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🍼 NEONATAL ORPHAN LITTER &amp; INCUBATOR CRITICAL CARE TRIAGE (FADING SYNDROME TRIAD)</span>
+        </div>
+        <h1>Neonatal Orphan Litter &amp; Incubator Critical Care Triage Cockpit</h1>
+        <p class="text-secondary">
+          Fading Kitten/Puppy Triad Resuscitation (Hypothermia · Hypoglycemia · Dehydration), 36.1°C / 97.0°F Paralytic Ileus Warming Gate, 50% Sublingual Dextrose Mucosal Rescue, 5Fr/8Fr Orogastric Tube Gavage &amp; Post-Prandial Anogenital Stimulation Telemetry.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Telemetry Bar -->
+    <section class="humane-traps-kpi-grid neonatal-kpi-grid" aria-label="Neonatal Incubator Triage KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Neonatal Litter Ops</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Fading Triad Hypothermic Critical</span>
+        <strong class="kpi-value" id="kpi-critical-fading">{{ .CriticalFadingCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Incubator Warmed &amp; Dextrose Staged</span>
+        <strong class="kpi-value" id="kpi-staged-incubator">{{ .StagedIncubatorCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Stabilized Nursing &amp; Gaining Safe</span>
+        <strong class="kpi-value" id="kpi-stabilized-safe">{{ .StabilizedSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="neonatal-triage-live-status" class="humane-traps-live-status neonatal-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} neonatal orphan litter &amp; incubator critical care triage operations.
+    </div>
+
+    <!-- Filter Controls Bar -->
+    <section class="glass-card ni-filter-bar" aria-label="Filter Neonatal Triage Operations">
+      <div class="form-row-2col">
+        <div class="form-group">
+          <label for="filter-litter-type">Filter by Litter Classification</label>
+          <select id="filter-litter-type" name="litter_type" class="form-control">
+            <option value="">All Litter Classifications</option>
+            <option value="UNWEANED_KITTEN_LITTER_0_2WK">UNWEANED_KITTEN_LITTER_0_2WK (0–2 Weeks Unweaned Kitten Litter)</option>
+            <option value="TRANSITIONAL_KITTEN_LITTER_2_4WK">TRANSITIONAL_KITTEN_LITTER_2_4WK (2–4 Weeks Transitional Kitten Litter)</option>
+            <option value="NEONATAL_PUPPY_LITTER_CLEFT">NEONATAL_PUPPY_LITTER_CLEFT (Neonatal Puppy Cleft Palate Gavage)</option>
+            <option value="SINGLETON_ORPHAN_COLOSTRUM_DEPRIVED">SINGLETON_ORPHAN_COLOSTRUM_DEPRIVED (Singleton Colostrum-Deprived Neonate)</option>
+            <option value="MATERNAL_AGALACTIA_REJECTED">MATERNAL_AGALACTIA_REJECTED (Maternal Agalactia / Rejected Litter)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="filter-status">Filter by Clinical Triage Status</label>
+          <select id="filter-status" name="status" class="form-control">
+            <option value="">All Triage Statuses</option>
+            <option value="FADING_TRIAD_HYPOTHERMIC_CRITICAL">FADING_TRIAD_HYPOTHERMIC_CRITICAL</option>
+            <option value="INCUBATOR_WARMED_DEXTROSE_STAGED">INCUBATOR_WARMED_DEXTROSE_STAGED</option>
+            <option value="STABILIZED_NURSING_GAINING_SAFE">STABILIZED_NURSING_GAINING_SAFE</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid neonatal-cockpit-grid">
+      <!-- Left Column: Evaluation Form + Active Operation Workspace -->
+      <div class="ni-left-column">
+        <!-- Section 1: Evaluate Neonatal Incubator Triage Form -->
+        <section class="glass-card trust-panel" id="ni-evaluate-panel" aria-labelledby="heading-evaluate-ni-op">
+          <div class="trust-panel-header">
+            <h2 id="heading-evaluate-ni-op">Evaluate Neonatal Orphan Litter &amp; Incubator Triage</h2>
+            <span class="badge badge-ni-litter">36.1°C Ileus Gate + 50% Dextrose</span>
+          </div>
+
+          <div class="trust-subsection">
+            <h3>Neonatal Emergency Scenario Simulators</h3>
+            <div class="trust-sim-actions">
+              <button type="button" class="btn btn-secondary ni-scenario-btn" data-scenario="fading-kitten-triad" id="btn-sim-fading-kitten-triad">
+                ⚠️ Simulate Fading Kitten Triad (Rectal 33.4°C · Glucose 41 mg/dL · Hypothermic Ileus Gate)
+              </button>
+              <button type="button" class="btn btn-secondary ni-scenario-btn" data-scenario="cleft-palate-gavage" id="btn-sim-cleft-palate-gavage">
+                🍼 Simulate Cleft-Palate Puppy Litter (Absent Suckling Reflex · 8Fr Orogastric Tube Gavage)
+              </button>
+              <button type="button" class="btn btn-secondary ni-scenario-btn" data-scenario="singleton-colostrum-orphan" id="btn-sim-singleton-colostrum-orphan">
+                🌡️ Simulate Warmed Singleton Orphan (Rectal 36.9°C · Glucose 92 mg/dL · Incubator Staged)
+              </button>
+            </div>
+          </div>
+
+          <div id="eval-error-banner" class="ni-error-banner" role="alert" hidden></div>
+
+          <form id="neonatal-eval-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="eval-pet-name">Neonate / Litter Name</label>
+                <input type="text" id="eval-pet-name" name="pet_name" class="form-control" value="Bramble Litter" required>
+              </div>
+              <div class="form-group">
+                <label for="eval-species">Species &amp; Breed Profile</label>
+                <input type="text" id="eval-species" name="species" class="form-control" value="Cat - Domestic Shorthair Neonates" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="eval-weight-grams">Mean Neonate Weight (grams, 30–5000g)</label>
+                <input type="number" id="eval-weight-grams" name="weight_grams" class="form-control" min="30" max="5000" step="1" value="88" required>
+              </div>
+              <div class="form-group">
+                <label for="eval-litter-count">Litter Count (1–16 neonates)</label>
+                <input type="number" id="eval-litter-count" name="litter_count" class="form-control" min="1" max="16" step="1" value="4" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="eval-age-days">Postnatal Age (days, 0–42d)</label>
+                <input type="number" id="eval-age-days" name="age_days" class="form-control" min="0" max="42" step="1" value="4" required>
+              </div>
+              <div class="form-group">
+                <label for="eval-litter-type">Neonatal Litter Classification</label>
+                <select id="eval-litter-type" name="litter_type" class="form-control" required>
+                  <option value="UNWEANED_KITTEN_LITTER_0_2WK" selected>UNWEANED_KITTEN_LITTER_0_2WK (0–2 Weeks Unweaned Kitten Litter)</option>
+                  <option value="TRANSITIONAL_KITTEN_LITTER_2_4WK">TRANSITIONAL_KITTEN_LITTER_2_4WK (2–4 Weeks Transitional Kitten Litter)</option>
+                  <option value="NEONATAL_PUPPY_LITTER_CLEFT">NEONATAL_PUPPY_LITTER_CLEFT (Neonatal Puppy Cleft Palate Gavage)</option>
+                  <option value="SINGLETON_ORPHAN_COLOSTRUM_DEPRIVED">SINGLETON_ORPHAN_COLOSTRUM_DEPRIVED (Singleton Colostrum-Deprived Neonate)</option>
+                  <option value="MATERNAL_AGALACTIA_REJECTED">MATERNAL_AGALACTIA_REJECTED (Maternal Agalactia / Rejected Litter)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="eval-rectal-temp-c">Neonate Rectal Temperature (°C, 28.0–40.5°C)</label>
+                <input type="number" id="eval-rectal-temp-c" name="neonate_rectal_temp_celsius" class="form-control" min="28.0" max="40.5" step="0.1" value="33.6" required>
+              </div>
+              <div class="form-group">
+                <label for="eval-glucose-mgdl">Blood Glucose (mg/dL, 15–300 mg/dL)</label>
+                <input type="number" id="eval-glucose-mgdl" name="blood_glucose_mg_dl" class="form-control" min="15" max="300" step="1" value="42" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="eval-humidity-pct">Incubator Relative Humidity (%, 20–95%)</label>
+                <input type="number" id="eval-humidity-pct" name="incubator_humidity_pct" class="form-control" min="20" max="95" step="1" value="62" required>
+              </div>
+              <div class="form-group ni-checkbox-group">
+                <label class="checkbox-label" for="eval-suckling-reflex">
+                  <input type="checkbox" id="eval-suckling-reflex" name="suckling_reflex_present">
+                  <span>Strong Suckling &amp; Rooting Reflex Present</span>
+                </label>
+                <label class="checkbox-label" for="eval-warmed-gate">
+                  <input type="checkbox" id="eval-warmed-gate" name="warmed_before_feeding_gate">
+                  <span>Warmed ≥ 36.1°C (97.0°F) Before Feeding Gate</span>
+                </label>
+                <label class="checkbox-label" for="eval-dextrose-applied">
+                  <input type="checkbox" id="eval-dextrose-applied" name="sublingual_dextrose_applied" checked>
+                  <span>Sublingual 50% Dextrose Mucosal Applied</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" id="btn-evaluate-neonatal" class="btn btn-primary">Evaluate Neonatal Litter Triage</button>
+          </form>
+        </section>
+
+        <!-- Section 2: Active Operation Workspace -->
+        <section class="glass-card trust-panel" id="active-operation-workspace" aria-labelledby="heading-active-workspace">
+          <div class="trust-panel-header">
+            <h2 id="heading-active-workspace">Active Incubator Critical Care Workspace</h2>
+            {{ if .ActiveOperation }}
+            <code class="trust-pet-id" id="workspace-op-id">{{ .ActiveOperation.ID }}</code>
+            {{ end }}
+          </div>
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="ni-workspace-body" data-workspace-op-id="{{ $active.ID }}" data-status="{{ $active.Status }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-pet-title">{{ $active.PetName }} ({{ $active.Species }} · {{ printf "%.1f" $active.WeightGrams }} g · Litter of {{ $active.LitterCount }} · {{ $active.AgeDays }}d)</strong>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-ni-litter">{{ $active.LitterType }}</span>
+                <span class="badge badge-ni-status {{ if eq (printf "%s" $active.Status) "FADING_TRIAD_HYPOTHERMIC_CRITICAL" }}badge-ni-critical{{ else if eq (printf "%s" $active.Status) "INCUBATOR_WARMED_DEXTROSE_STAGED" }}badge-ni-staged{{ else }}badge-ni-safe{{ end }}">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="ni-ileus-gate-banner">
+              {{ $active.IleusWarmingGateNote }}
+            </div>
+
+            <div class="ni-protocol-box">
+              <div><strong>Required Incubator &amp; Enteral Protocol:</strong> {{ $active.RequiredIncubatorProtocol }}</div>
+              <div><strong>Telemetry Vitals:</strong> Rectal Temp {{ printf "%.1f" $active.NeonateRectalTempCelsius }}°C • Blood Glucose {{ printf "%.0f" $active.BloodGlucoseMgDl }} mg/dL • Humidity {{ printf "%.0f" $active.IncubatorHumidityPct }}% • Suckling Reflex: {{ if $active.SucklingReflexPresent }}Present{{ else }}Absent{{ end }}</div>
+            </div>
+
+            {{ if $active.ClearanceToken }}
+            <div class="ni-clearance-banner" id="workspace-clearance-banner">
+              ✅ NEONATAL NURSING &amp; WEIGHT-GAIN CLEARANCE VERIFIED: {{ $active.ClearanceToken }}
+            </div>
+            {{ end }}
+
+            <div class="ni-steps-list" aria-label="Workspace Neonatal Incubator Resuscitation Checklist">
+              {{ range $step := $active.ProtocolSteps }}
+              <label class="ni-step-item">
+                <input
+                  type="checkbox"
+                  class="ni-step-checkbox"
+                  data-op-id="{{ $active.ID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-ni-safe{{ else }}badge-ni-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="ni-step-id">[{{ $step.ID }}]</strong>
+                <span class="ni-step-title">{{ $step.Title }}</span>
+                <span class="ni-step-desc">— {{ $step.Description }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-primary ni-issue-clearance-btn"
+                id="workspace-issue-clearance-btn"
+                data-op-id="{{ $active.ID }}"
+              >
+                🛡️ Issue Neonatal Stabilized Nursing Clearance Token
+              </button>
+            </div>
+          </div>
+          {{ else }}
+          <p class="trust-empty-hint">Select or evaluate a neonatal litter operation to open the active workspace.</p>
+          {{ end }}
+        </section>
+      </div>
+
+      <!-- Right Column: Neonatal Triage Operations List -->
+      <section class="glass-card trust-panel" id="ni-ops-panel" aria-labelledby="heading-ni-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-ni-ops">Active Neonatal Orphan Litter &amp; Incubator Operations</h2>
+          <span id="ni-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="neonatal-operations-list" class="trust-screenings-list ni-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card neonatal-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-litter-type="{{ $op.LitterType }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightGrams }} g · Litter of {{ $op.LitterCount }} · {{ $op.AgeDays }}d)</strong>
+                <code class="trust-pet-id">{{ $op.ID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-ni-litter">{{ $op.LitterType }}</span>
+                <span class="badge badge-ni-status {{ if eq (printf "%s" $op.Status) "FADING_TRIAD_HYPOTHERMIC_CRITICAL" }}badge-ni-critical{{ else if eq (printf "%s" $op.Status) "INCUBATOR_WARMED_DEXTROSE_STAGED" }}badge-ni-staged{{ else if eq (printf "%s" $op.Status) "STABILIZED_NURSING_GAINING_SAFE" }}badge-ni-safe{{ else }}badge-ni-critical{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row ni-metrics-row">
+              <span class="badge badge-ni-litter">Rectal Temp: {{ printf "%.1f" $op.NeonateRectalTempCelsius }}°C • Glucose: {{ printf "%.0f" $op.BloodGlucoseMgDl }} mg/dL • Humidity: {{ printf "%.0f" $op.IncubatorHumidityPct }}% • Suckling: {{ if $op.SucklingReflexPresent }}Yes{{ else }}No{{ end }} • Warmed Gate: {{ if $op.WarmedBeforeFeedingGate }}Cleared{{ else }}Blocked{{ end }}</span>
+            </div>
+
+            <div class="ni-ileus-gate-banner">
+              {{ $op.IleusWarmingGateNote }}
+            </div>
+
+            {{ if $op.ClearanceToken }}
+            <div class="ni-clearance-banner">
+              ✅ NEONATAL NURSING &amp; WEIGHT-GAIN CLEARANCE VERIFIED: {{ $op.ClearanceToken }}
+            </div>
+            {{ end }}
+
+            <div class="ni-protocol-box">
+              <div><strong>Required Incubator Protocol:</strong> {{ $op.RequiredIncubatorProtocol }}</div>
+            </div>
+
+            <div class="ni-steps-list" aria-label="Neonatal Incubator &amp; Gavage Protocol Steps">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="ni-step-item">
+                <input
+                  type="checkbox"
+                  class="ni-step-checkbox"
+                  data-op-id="{{ $op.ID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-ni-safe{{ else }}badge-ni-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="ni-step-id">[{{ $step.ID }}]</strong>
+                <span class="ni-step-title">{{ $step.Title }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary ni-select-workspace-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Open in Workspace
+              </button>
+              {{ if ne (printf "%s" $op.Status) "STABILIZED_NURSING_GAINING_SAFE" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary ni-issue-clearance-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🛡️ Issue Neonatal Nursing Clearance
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="ni-ops-empty-msg">No neonatal incubator triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/neonatal-incubator-triage.js" defer></script>
+</body>
+</html>
