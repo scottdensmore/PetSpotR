@@ -17043,5 +17043,134 @@ textarea:focus-visible,
   margin: 0.5rem 0;
 }
 
+/* ============================================================================
+   Milestone 21.4: Pericardial Effusion, Cardiac Tamponade, Electrical Alternans
+   & Right-Sided 4th–5th ICS Pericardiocentesis Cockpit (/pericardial-tamponade-triage)
+   WCAG AAA High-Contrast Status Pills, Alert & Clearance Banners (> 7.1:1)
+   ============================================================================ */
+
+.tamponade-active-workspace {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .tamponade-active-workspace {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.tamponade-vitals-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  font-size: 0.8125rem;
+  margin: 0.5rem 0;
+}
+
+.tamponade-plan-box,
+.tamponade-checks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  margin: 0.5rem 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="light"] .tamponade-plan-box,
+[data-theme="light"] .tamponade-checks-list {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.tamponade-doses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.4rem 0.8rem;
+  margin: 0.35rem 0;
+}
+
+.tamponade-check-item {
+  font-size: 0.8rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.25);
+}
+
+.tamponade-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.5rem 0;
+}
+
+.tamponade-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.tamponade-divider {
+  border: 0;
+  border-top: 1px solid var(--border-color);
+  margin: 1rem 0;
+}
+
+:root .tamponade-alert-banner,
+[data-theme="dark"] .tamponade-alert-banner {
+  background-color: #450a0a;
+  color: #fef2f2;
+  border: 2px solid #f87171;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+:root .tamponade-clearance-banner,
+[data-theme="dark"] .tamponade-clearance-banner {
+  background-color: #064e3b;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .tamponade-alert-banner {
+  background-color: #fef2f2;
+  color: #7f1d1d;
+  border: 2px solid #b91c1c;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  margin: 0.5rem 0;
+}
+
+[data-theme="light"] .tamponade-clearance-banner {
+  background-color: #d1fae5;
+  color: #064e3b;
+  border: 1px solid #047857;
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+
 
 
