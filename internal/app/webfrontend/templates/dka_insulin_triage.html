@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Diabetic Ketoacidosis (DKA), Regular Insulin CRI, Hypokalemia/Hypophosphatemia &amp; Cerebral Edema Triage Cockpit.">
+  <title>Diabetic Ketoacidosis (DKA), Regular Insulin CRI, Hypokalemia/Hypophosphatemia &amp; Cerebral Edema Triage Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#dka-insulin-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/status-epilepticus-triage" class="nav-link nav-link-emergency" id="nav-status-epilepticus-triage">⚡ Status Epilepticus ICU</a></li>
+          <li><a href="/dka-insulin-triage" class="nav-link active nav-link-emergency" id="nav-dka-insulin-triage">💉 DKA &amp; Insulin CRI ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="dka-insulin-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header dka-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>💉 DIABETIC KETOACIDOSIS (DKA), REGULAR INSULIN CRI, HYPOKALEMIA/HYPOPHOSPHATEMIA &amp; CEREBRAL EDEMA TRIAGE COCKPIT</span>
+        </div>
+        <h1>Diabetic Ketoacidosis (DKA), Regular Insulin CRI, Hypokalemia/Hypophosphatemia &amp; Cerebral Edema Triage Cockpit</h1>
+        <p class="text-secondary">
+          4–6h Isotonic Crystalloid Rehydration Delay, Sliding-Scale Potassium Chloride (KCl 20–80 mEq/L, Hold Insulin if K+ &lt; 3.3 mEq/L), Potassium Phosphate CRI (0.03–0.12 mmol/kg/hr for Phos &lt; 2.5 mg/dL to Prevent Heinz Body Hemolysis), Regular Crystalline Insulin CRI (1.1 U/kg/day Feline vs 2.2 U/kg/day Canine), 2.5%–5.0% Dextrose Addition at BG &lt; 250 mg/dL &amp; Max Glucose Drop &le; 50 mg/dL/hr Osmotic Cerebral Edema Guard.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid dka-kpi-grid" aria-label="DKA &amp; Regular Insulin CRI KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total DKA ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Ketoacidosis / Dehydrated Critical</span>
+        <strong class="kpi-value" id="kpi-critical-acidosis">{{ .CriticalAcidosisCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">KCl / KPhos / Regular Insulin CRI Staged</span>
+        <strong class="kpi-value" id="kpi-staged-insulin-cri">{{ .InsulinCRIStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Ketones Cleared / SubQ Glargine Ready</span>
+        <strong class="kpi-value" id="kpi-cleared-glargine">{{ .KetoneClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Hypokalemia &amp; Cerebral Edema Alerts</span>
+        <strong class="kpi-value" id="kpi-hypokalemia-alerts">{{ .HypokalemiaEdemaAlertCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="dka-live-status" class="humane-traps-live-status dka-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} diabetic ketoacidosis (DKA), electrolyte &amp; regular insulin CRI operations.
+    </div>
+
+    <!-- Global Hypokalemia, Hypophosphatemia & Osmotic Cerebral Edema Pitfall Alert Banner -->
+    <div id="dka-alert-banner" class="dka-alert-banner" role="alert" aria-live="assertive">
+      {{ if and .ActiveOperation .ActiveOperation.InsulinRegimen }}
+      ⚠️ HYPOKALEMIA, HYPOPHOSPHATEMIA &amp; CEREBRAL EDEMA GUARD ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }} · BG {{ printf "%.0f" .ActiveOperation.PatientProfile.BloodGlucoseMgDl }} mg/dL · K+ {{ printf "%.1f" .ActiveOperation.PatientProfile.SerumPotassiumMeqL }} mEq/L · Phos {{ printf "%.1f" .ActiveOperation.PatientProfile.SerumPhosphorusMgDl }} mg/dL · Max Drop &le; {{ printf "%.0f" .ActiveOperation.InsulinRegimen.MaxGlucoseDropRateMgDlHr }} mg/dL/hr): {{ .ActiveOperation.InsulinRegimen.DKAPitfallAlert }}
+      {{ else }}
+      ⚠️ CRITICAL DKA &amp; CEREBRAL EDEMA PITFALL ALERT: NEVER initiate Regular Insulin CRI before 4–6h of isotonic fluid rehydration and potassium correction (K+ &ge; 3.3 mEq/L); NEVER drop glucose &gt; 50–75 mg/dL/hr (fatal osmotic cerebral edema); and treat hypophosphatemia (&lt; 1.5 mg/dL) to prevent Heinz body hemolytic anemia.
+      {{ end }}
+    </div>
+
+    <!-- Global Ketone Resolution & SubQ Glargine Discharge Clearance Banner -->
+    <div id="dka-clearance-banner" class="dka-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation .ActiveOperation.DischargeClearance) }}hidden{{ end }}>
+      {{ if and .ActiveOperation .ActiveOperation.DischargeClearance }}
+      ✅ KETONES CLEARED &amp; SUBQ GLARGINE DISCHARGE CLEARANCE VERIFIED ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }}): BHB {{ printf "%.2f" .ActiveOperation.DischargeClearance.FinalBetaHydroxybutyrateMmolL }} mmol/L · pH {{ printf "%.2f" .ActiveOperation.DischargeClearance.FinalVenousPH }} · K+ {{ printf "%.1f" .ActiveOperation.DischargeClearance.FinalSerumPotassiumMeqL }} mEq/L · Phos {{ printf "%.1f" .ActiveOperation.DischargeClearance.FinalSerumPhosphorusMgDl }} mg/dL · Vet License {{ .ActiveOperation.DischargeClearance.VetLicense }} — {{ .ActiveOperation.DischargeClearance.Summary }}
+      {{ else }}
+      ✅ KETONES CLEARED &amp; SUBQ GLARGINE DISCHARGE CLEARANCE VERIFIED
+      {{ end }}
+    </div>
+
+    <div class="trust-cockpit-grid dka-cockpit-grid">
+      <!-- Left Column: Intake Form & Active Operation Regimen / Serial Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="dka-forms-panel" aria-labelledby="heading-dka-intake">
+        <div class="trust-panel-header">
+          <h2 id="heading-dka-intake">1. Diabetic Ketoacidosis (DKA) &amp; Electrolyte Intake</h2>
+          <span class="status-pill status-pill-staged">KCl · KPhos · Regular Insulin CRI</span>
+        </div>
+
+        <div id="dka-error-banner" class="dka-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="create-dka-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-incident-id">Incident ID</label>
+              <input type="text" id="create-incident-id" name="incident_id" class="form-control" value="INC-DKA-9304" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pet-name">Pet Name</label>
+              <input type="text" id="create-pet-name" name="pet_name" class="form-control" value="Biscuit" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-species">DKA Syndrome Classification</label>
+              <select id="create-species" name="species" class="form-control" required>
+                <option value="CANINE_DKA_PANCREATITIS" selected>CANINE_DKA_PANCREATITIS (Canine DKA + Acute Pancreatitis — 2.2 U/kg/day)</option>
+                <option value="FELINE_DKA_HEPATIC_LIPIDOSIS">FELINE_DKA_HEPATIC_LIPIDOSIS (Feline DKA + Hepatic Lipidosis — 1.1 U/kg/day)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-breed">Breed</label>
+              <input type="text" id="create-breed" name="breed" class="form-control" value="Golden Retriever">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-weight-kg">Weight (kg)</label>
+              <input type="number" id="create-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="24.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-blood-glucose">Blood Glucose (mg/dL)</label>
+              <input type="number" id="create-blood-glucose" name="blood_glucose_mg_dl" class="form-control" min="30.0" max="1500.0" step="1.0" value="460.0" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-bhb">Beta-Hydroxybutyrate Ketones (BHB mmol/L)</label>
+              <input type="number" id="create-bhb" name="beta_hydroxybutyrate_mmol_l" class="form-control" min="0.0" max="25.0" step="0.1" value="5.4" required>
+            </div>
+            <div class="form-group">
+              <label for="create-venous-ph">Venous Blood pH</label>
+              <input type="number" id="create-venous-ph" name="venous_ph" class="form-control" min="6.70" max="7.60" step="0.01" value="7.14" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-potassium">Serum Potassium K+ (mEq/L)</label>
+              <input type="number" id="create-potassium" name="serum_potassium_meq_l" class="form-control" min="1.2" max="10.0" step="0.1" value="2.9" required>
+            </div>
+            <div class="form-group">
+              <label for="create-phosphorus">Serum Phosphorus (mg/dL)</label>
+              <input type="number" id="create-phosphorus" name="serum_phosphorus_mg_dl" class="form-control" min="0.3" max="18.0" step="0.1" value="1.7" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-osmolality">Effective Osmolality (mOsm/kg)</label>
+              <input type="number" id="create-osmolality" name="effective_osmolality_mosm_kg" class="form-control" min="240.0" max="420.0" step="1.0" value="324.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-dehydration">Dehydration Estimate (%)</label>
+              <input type="number" id="create-dehydration" name="dehydration_percent" class="form-control" min="0.0" max="15.0" step="0.5" value="8.0" required>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-create-dka-op" class="btn btn-primary">Create DKA &amp; Insulin CRI Operation</button>
+        </form>
+
+        <hr class="dka-divider">
+
+        <!-- Stage KCl, KPhos & Regular Insulin CRI Regimen Form -->
+        <div class="trust-subsection" id="stage-regimen-section">
+          <h3 id="heading-stage-regimen">2. Stage Sliding-Scale KCl, KPhos &amp; Regular Insulin CRI Regimen</h3>
+          <form id="stage-regimen-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-weight-kg">Weight (kg)</label>
+                <input type="number" id="stage-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.WeightKg }}{{ else }}5.4{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-species">DKA Syndrome</label>
+                <select id="stage-species" name="species" class="form-control" required>
+                  <option value="FELINE_DKA_HEPATIC_LIPIDOSIS">FELINE_DKA_HEPATIC_LIPIDOSIS (1.1 U/kg/day)</option>
+                  <option value="CANINE_DKA_PANCREATITIS">CANINE_DKA_PANCREATITIS (2.2 U/kg/day)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-blood-glucose">Blood Glucose (mg/dL)</label>
+                <input type="number" id="stage-blood-glucose" name="blood_glucose_mg_dl" class="form-control" min="30.0" max="1500.0" step="1.0" value="{{ if .ActiveOperation }}{{ printf "%.0f" .ActiveOperation.PatientProfile.BloodGlucoseMgDl }}{{ else }}485{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-potassium">Serum Potassium K+ (mEq/L)</label>
+                <input type="number" id="stage-potassium" name="serum_potassium_meq_l" class="form-control" min="1.2" max="10.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.SerumPotassiumMeqL }}{{ else }}2.8{{ end }}" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-phosphorus">Serum Phosphorus (mg/dL)</label>
+                <input type="number" id="stage-phosphorus" name="serum_phosphorus_mg_dl" class="form-control" min="0.3" max="18.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.SerumPhosphorusMgDl }}{{ else }}1.6{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-dehydration">Dehydration (%)</label>
+                <input type="number" id="stage-dehydration" name="dehydration_percent" class="form-control" min="0.0" max="15.0" step="0.5" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.DehydrationPercent }}{{ else }}8.0{{ end }}" required>
+              </div>
+            </div>
+            <button type="submit" id="btn-stage-regimen" class="btn btn-secondary">💉 Stage Sliding-Scale KCl / KPhos / Regular Insulin CRI</button>
+          </form>
+        </div>
+
+        <hr class="dka-divider">
+
+        <!-- Serial q2h Glucose, Ketone & Electrolyte Check Form -->
+        <div class="trust-subsection" id="serial-check-section">
+          <h3 id="heading-serial-check">3. Record Serial q2h Glucose, BHB Ketone &amp; Electrolyte Check</h3>
+          <form id="serial-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-blood-glucose">Blood Glucose (mg/dL)</label>
+                <input type="number" id="check-blood-glucose" name="blood_glucose_mg_dl" class="form-control" min="30.0" max="1500.0" step="1.0" value="210.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-bhb">BHB Ketones (mmol/L)</label>
+                <input type="number" id="check-bhb" name="beta_hydroxybutyrate_mmol_l" class="form-control" min="0.0" max="25.0" step="0.1" value="1.8" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-potassium">Serum K+ (mEq/L)</label>
+                <input type="number" id="check-potassium" name="serum_potassium_meq_l" class="form-control" min="1.2" max="10.0" step="0.1" value="3.9" required>
+              </div>
+              <div class="form-group">
+                <label for="check-phosphorus">Serum Phosphorus (mg/dL)</label>
+                <input type="number" id="check-phosphorus" name="serum_phosphorus_mg_dl" class="form-control" min="0.3" max="18.0" step="0.1" value="3.1" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-dextrose-percent">Active Dextrose Supplementation (%)</label>
+                <input type="number" id="check-dextrose-percent" name="dextrose_percent_active" class="form-control" min="0.0" max="10.0" step="0.5" value="2.5" required>
+              </div>
+              <div class="form-group">
+                <label for="check-callsign">Clinician Callsign</label>
+                <input type="text" id="check-callsign" name="clinician_callsign" class="form-control" value="DR-ENDO-14" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-notes">Serial ICU Curve &amp; Mentation Notes</label>
+              <input type="text" id="check-notes" name="notes" class="form-control" value="BG drop rate 42 mg/dL/hr (<= 50 mg/dL/hr limit); 2.5% dextrose added at BG 210 mg/dL; K+ normalized to 3.9 mEq/L.">
+            </div>
+            <label class="dka-checkbox-item">
+              <input type="checkbox" id="check-mentation-normal" name="mentation_normal_no_cerebral_edema" checked>
+              <span>Mentation Normal / Alert — Zero Signs of Osmotic Cerebral Edema</span>
+            </label>
+            <button type="submit" id="btn-record-serial-check" class="btn btn-secondary">🩺 Log q2h Glucose &amp; Electrolyte Check</button>
+          </form>
+        </div>
+
+        <hr class="dka-divider">
+
+        <!-- Discharge Clearance Form -->
+        <div class="trust-subsection" id="discharge-clearance-section">
+          <h3 id="heading-discharge-clearance">4. Issue Ketone-Cleared &amp; SubQ Glargine Transition Clearance</h3>
+          <form id="discharge-clearance-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-final-bhb">Final BHB Ketones (mmol/L, &lt; 0.6)</label>
+                <input type="number" id="clearance-final-bhb" name="final_beta_hydroxybutyrate_mmol_l" class="form-control" min="0.0" max="0.59" step="0.05" value="0.4" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-final-ph">Final Venous pH (7.35–7.45)</label>
+                <input type="number" id="clearance-final-ph" name="final_venous_ph" class="form-control" min="7.35" max="7.45" step="0.01" value="7.39" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-final-potassium">Final Serum K+ (mEq/L, 3.5–5.5)</label>
+                <input type="number" id="clearance-final-potassium" name="final_serum_potassium_meq_l" class="form-control" min="3.5" max="5.5" step="0.1" value="4.2" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-final-phosphorus">Final Phosphorus (mg/dL, 2.5–6.0)</label>
+                <input type="number" id="clearance-final-phosphorus" name="final_serum_phosphorus_mg_dl" class="form-control" min="2.5" max="6.0" step="0.1" value="3.8" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-vet-license">Attending Veterinarian License</label>
+                <input type="text" id="clearance-vet-license" name="vet_license" class="form-control" value="VET-ENDO-91042" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-summary">Discharge Summary &amp; SubQ Insulin Regimen</label>
+                <input type="text" id="clearance-summary" name="summary" class="form-control" value="Ketones cleared (BHB 0.4 mmol/L, pH 7.39); eating voluntarily without vomiting; transitioned to SubQ Glargine.">
+              </div>
+            </div>
+            <div class="dka-checkbox-group">
+              <label class="dka-checkbox-item">
+                <input type="checkbox" id="clearance-voluntary-eating" name="voluntary_eating_no_vomiting" checked>
+                <span>Voluntary Eating &amp; Drinking — Zero Vomiting or Regurgitation</span>
+              </label>
+              <label class="dka-checkbox-item">
+                <input type="checkbox" id="clearance-subq-transition" name="subq_insulin_transition_completed" checked>
+                <span>Subcutaneous Long-Acting Insulin (Glargine / Vetsulin) Transition Completed</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-issue-discharge-clearance" class="btn btn-primary">🛡️ Issue Ketone-Cleared SubQ Glargine Clearance</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Queue -->
+      <section class="glass-card trust-panel" id="dka-ops-panel" aria-labelledby="heading-dka-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-dka-ops">Active DKA &amp; Regular Insulin CRI Operations</h2>
+          <span id="dka-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col dka-filter-bar" role="region" aria-label="Filter DKA Operations">
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="KETOACIDOSIS_DEHYDRATED_CRITICAL">KETOACIDOSIS_DEHYDRATED_CRITICAL</option>
+              <option value="KCL_PHOS_REGULAR_INSULIN_CRI_STAGED">KCL_PHOS_REGULAR_INSULIN_CRI_STAGED</option>
+              <option value="KETONES_CLEARED_SUBQ_GLARGINE_READY">KETONES_CLEARED_SUBQ_GLARGINE_READY</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-species">Filter by DKA Syndrome</label>
+            <select id="filter-species" class="form-control">
+              <option value="">All DKA Syndromes</option>
+              <option value="FELINE_DKA_HEPATIC_LIPIDOSIS">FELINE_DKA_HEPATIC_LIPIDOSIS</option>
+              <option value="CANINE_DKA_PANCREATITIS">CANINE_DKA_PANCREATITIS</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="dka-active-workspace" role="region" aria-label="Active DKA Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="dka-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-pet-title">Active Workspace: {{ $active.PetName }} ({{ $active.PatientProfile.Species }}{{ if $active.PatientProfile.Breed }} · {{ $active.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $active.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id" id="workspace-op-code">{{ $active.ID }} · {{ $active.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species" id="workspace-species-pill">{{ $active.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $active.Status) "KETOACIDOSIS_DEHYDRATED_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $active.Status) "KCL_PHOS_REGULAR_INSULIN_CRI_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}" id="workspace-status-pill">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="dka-vitals-summary" id="workspace-vitals-summary">
+              <span><strong>BG:</strong> {{ printf "%.0f" $active.PatientProfile.BloodGlucoseMgDl }} mg/dL</span>
+              <span><strong>BHB Ketones:</strong> {{ printf "%.1f" $active.PatientProfile.BetaHydroxybutyrateMmolL }} mmol/L</span>
+              <span><strong>Venous pH:</strong> {{ printf "%.2f" $active.PatientProfile.VenousPH }}</span>
+              <span><strong>Serum K+:</strong> {{ printf "%.1f" $active.PatientProfile.SerumPotassiumMeqL }} mEq/L</span>
+              <span><strong>Phosphorus:</strong> {{ printf "%.1f" $active.PatientProfile.SerumPhosphorusMgDl }} mg/dL</span>
+              <span><strong>Osmolality:</strong> {{ printf "%.0f" $active.PatientProfile.EffectiveOsmolalityMosmKg }} mOsm/kg</span>
+              <span><strong>Dehydration:</strong> {{ printf "%.1f" $active.PatientProfile.DehydrationPercent }}%</span>
+            </div>
+
+            {{ if $active.InsulinRegimen }}
+            <div class="dka-regimen-box" id="workspace-regimen-box">
+              <h4>Calculated Sliding-Scale KCl, Potassium Phosphate CRI &amp; Regular Insulin CRI Regimen</h4>
+              <div class="dka-doses-grid">
+                <div><strong>Isotonic Rehydration Delay:</strong> <span id="regimen-rehydration-delay">{{ $active.InsulinRegimen.FluidRehydrationDelayHours }}h Delay</span></div>
+                <div><strong>Sliding-Scale KCl:</strong> <span id="regimen-kcl-meq">{{ $active.InsulinRegimen.PotassiumChlorideMeqPerLiter }} mEq/L</span></div>
+                <div><strong>Potassium Phosphate CRI:</strong> <span id="regimen-kphos-cri">{{ printf "%.2f" $active.InsulinRegimen.PotassiumPhosphateMmolKgHr }} mmol/kg/hr</span></div>
+                <div><strong>Regular Insulin CRI:</strong> <span id="regimen-insulin-cri">{{ printf "%.1f" $active.InsulinRegimen.RegularInsulinCRIUkgDay }} U/kg/day</span></div>
+                <div><strong>Dextrose Supplementation:</strong> <span id="regimen-dextrose-pct">{{ printf "%.1f" $active.InsulinRegimen.DextroseSupplementationPercent }}%</span></div>
+                <div><strong>Max BG Drop Rate:</strong> <span id="regimen-max-bg-drop">&le; {{ printf "%.0f" $active.InsulinRegimen.MaxGlucoseDropRateMgDlHr }} mg/dL/hr</span></div>
+                <div><strong>Hold Insulin if K+ &lt; 3.3:</strong> <span id="regimen-k-guard">{{ if $active.InsulinRegimen.HoldInsulinIfPotassiumBelow33Guard }}ENFORCED{{ else }}OFF{{ end }}</span></div>
+              </div>
+              <p class="dka-rationale-text" id="workspace-clinical-rationale">{{ $active.InsulinRegimen.ClinicalRationale }}</p>
+            </div>
+            {{ end }}
+
+            <div class="dka-serial-checks-box">
+              <h4>Serial q2h Glucose, Ketone &amp; Electrolyte Checks (<span id="workspace-checks-count">{{ len $active.SerialChecks }}</span>)</h4>
+              <ul id="serial-checks-list" class="dka-checks-list">
+                {{ range $chk := $active.SerialChecks }}
+                <li class="dka-check-item">
+                  <strong>{{ $chk.ClinicianCallsign }}</strong> · BG {{ printf "%.0f" $chk.BloodGlucoseMgDl }} mg/dL · BHB {{ printf "%.1f" $chk.BetaHydroxybutyrateMmolL }} mmol/L · K+ {{ printf "%.1f" $chk.SerumPotassiumMeqL }} mEq/L · Phos {{ printf "%.1f" $chk.SerumPhosphorusMgDl }} mg/dL · Dextrose {{ printf "%.1f" $chk.DextrosePercentActive }}% · {{ if $chk.MentationNormalNoCerebralEdema }}MENTATION NORMAL{{ else }}CEREBRAL EDEMA SUSPECTED{{ end }} — {{ $chk.Notes }}
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="dka-operations-list" class="trust-screenings-list dka-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card dka-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-species="{{ $op.PatientProfile.Species }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.PatientProfile.Species }}{{ if $op.PatientProfile.Breed }} · {{ $op.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $op.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species">{{ $op.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $op.Status) "KETOACIDOSIS_DEHYDRATED_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $op.Status) "KCL_PHOS_REGULAR_INSULIN_CRI_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row dka-metrics-row">
+              <span class="status-pill status-pill-species">BG: {{ printf "%.0f" $op.PatientProfile.BloodGlucoseMgDl }} mg/dL • BHB: {{ printf "%.1f" $op.PatientProfile.BetaHydroxybutyrateMmolL }} mmol/L • pH: {{ printf "%.2f" $op.PatientProfile.VenousPH }} • K+: {{ printf "%.1f" $op.PatientProfile.SerumPotassiumMeqL }} mEq/L • Phos: {{ printf "%.1f" $op.PatientProfile.SerumPhosphorusMgDl }} mg/dL</span>
+            </div>
+
+            {{ if $op.HypokalemiaCerebralEdemaAlert }}
+            <div class="dka-alert-banner">
+              ⚠️ HYPOKALEMIA / HYPOPHOSPHATEMIA &amp; CEREBRAL EDEMA ALERT (K+ {{ printf "%.1f" $op.PatientProfile.SerumPotassiumMeqL }} mEq/L · Phos {{ printf "%.1f" $op.PatientProfile.SerumPhosphorusMgDl }} mg/dL · Max Drop &le; 50 mg/dL/hr): {{ if $op.InsulinRegimen }}{{ $op.InsulinRegimen.DKAPitfallAlert }}{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if $op.DischargeClearance }}
+            <div class="dka-clearance-banner">
+              ✅ KETONES CLEARED &amp; SUBQ GLARGINE READY ({{ $op.DischargeClearance.VetLicense }}): BHB {{ printf "%.2f" $op.DischargeClearance.FinalBetaHydroxybutyrateMmolL }} mmol/L · pH {{ printf "%.2f" $op.DischargeClearance.FinalVenousPH }} · K+ {{ printf "%.1f" $op.DischargeClearance.FinalSerumPotassiumMeqL }} mEq/L
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary dka-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select Operation ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="dka-ops-empty-msg">No DKA &amp; Regular Insulin CRI triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/dka-insulin-triage.js" defer></script>
+</body>
+</html>
