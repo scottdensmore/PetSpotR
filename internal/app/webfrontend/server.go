@@ -49,6 +49,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/sms"
 	"github.com/scottdensmore/petspotr/pkg/store"
 	"github.com/scottdensmore/petspotr/pkg/telemetry"
+	"github.com/scottdensmore/petspotr/pkg/urethralobstruction"
 	"github.com/scottdensmore/petspotr/pkg/usarcollapse"
 	"github.com/scottdensmore/petspotr/pkg/verticalrescue"
 	"github.com/scottdensmore/petspotr/pkg/webhook"
@@ -98,6 +99,7 @@ type Server struct {
 	biosecurityIsolationStore *biosecurityiso.Store
 	dystociaEclampsiaStore    *dystociaeclampsia.Store
 	gdvBloatStore             *gdvbloat.Store
+	urethralObstructionStore  *urethralobstruction.Store
 	handler                   http.Handler
 }
 
@@ -273,6 +275,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		biosecurityIsolationStore: biosecurityiso.NewStore(),
 		dystociaEclampsiaStore:    dystociaeclampsia.NewStore(),
 		gdvBloatStore:             gdvbloat.NewStore(),
+		urethralObstructionStore:  urethralobstruction.NewStore(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -587,6 +590,8 @@ func (s *Server) routes() {
 	s.registerDystociaEclampsiaRoutes()
 	// Gastric Dilatation-Volvulus (GDV / Bloat), Splenic Torsion & Trocar Decompression Triage Cockpit routes (Milestone 18.2)
 	s.registerGDVBloatRoutes()
+	// Feline Urethral Obstruction (Blocked Tom), Hyperkalemic Bradycardia & Calcium Gluconate Cardioprotection Cockpit routes (Milestone 18.5)
+	s.registerUrethralObstructionRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

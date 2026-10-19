@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Feline Urethral Obstruction (Blocked Tom), Hyperkalemic Bradycardia &amp; Calcium Gluconate Cardioprotection Cockpit.">
+  <title>Feline Urethral Obstruction (Blocked Tom), Hyperkalemic Bradycardia &amp; Calcium Gluconate Cardioprotection Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#urethral-obstruction-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/shelters/analytics" class="nav-link" id="nav-analytics">Shelter Analytics</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/gdv-bloat-triage" class="nav-link nav-link-emergency" id="nav-gdv-bloat-triage">🐕 GDV &amp; Bloat Triage</a></li>
+          <li><a href="/urethral-obstruction-triage" class="nav-link active nav-link-emergency" id="nav-urethral-obstruction-triage">🐈 Blocked Tom &amp; Hyperkalemia Triage</a></li>
+          <li><a href="/cameras" class="nav-link" id="nav-cameras">📷 Camera Traps</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+          <span id="outbox-count-badge" class="badge badge-warning" hidden>0</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="urethral-obstruction-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header urethral-triage-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🐈 FELINE URETHRAL OBSTRUCTION (BLOCKED TOM), HYPERKALEMIC BRADYCARDIA &amp; CALCIUM GLUCONATE CARDIOPROTECTION COCKPIT</span>
+        </div>
+        <h1>Feline Urethral Obstruction (Blocked Tom), Hyperkalemic Bradycardia &amp; Calcium Gluconate Cardioprotection Cockpit</h1>
+        <p class="text-secondary">
+          10% Calcium Gluconate Slow IV &amp; Regular Insulin + Dextrose Cardioprotection Before Sedation, Sacrococcygeal (Co1–Co2) Epidural Block &amp; Atraumatic Retrohydropropulsion (Avoiding Manual Bladder Rupture), Closed-System Post-Obstructive Diuresis Ins/Outs &amp; Normokalemic Voiding Clearance.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid urethral-triage-kpi-grid" aria-label="Feline Urethral Obstruction &amp; Hyperkalemic Bradycardia KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Urethral Obstruction Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Critical Hyperkalemic Bradycardia / Atrial Standstill</span>
+        <strong class="kpi-value" id="kpi-critical-hyperk">{{ .CriticalHyperKCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Calcium Cardioprotect &amp; Retrohydropropulsion Staged</span>
+        <strong class="kpi-value" id="kpi-staged-unblock">{{ .StagedUnblockCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Indwelling Closed Diuresis &amp; Normokalemic Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-safe">{{ .ClearedSafeCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="urethral-triage-live-status" class="humane-traps-live-status urethral-triage-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} feline urethral obstruction (blocked tom), hyperkalemic bradycardia &amp; calcium gluconate cardioprotection triage operations.
+    </div>
+
+    <div class="trust-cockpit-grid urethral-triage-cockpit-grid">
+      <!-- Left Column: Evaluate Urethral Obstruction & Hyperkalemic Bradycardia Form -->
+      <section class="glass-card trust-panel" id="urethral-evaluate-panel" aria-labelledby="heading-evaluate-urethral-op">
+        <div class="trust-panel-header">
+          <h2 id="heading-evaluate-urethral-op">Evaluate Urethral Obstruction &amp; Hyperkalemic Cardioprotection</h2>
+          <span class="badge badge-urethral-cause">10% Ca Gluconate &amp; Co1–Co2 Block</span>
+        </div>
+
+        <div class="trust-subsection">
+          <h3>Blocked Tom &amp; Canine Os Penis Emergency Scenario Presets</h3>
+          <div class="trust-sim-actions">
+            <button type="button" class="btn btn-secondary urethral-scenario-btn" data-scenario="hyperk-atrial-standstill" id="btn-sim-hyperk-atrial-standstill">
+              🚨 Simulate Struvite Matrix Plug &amp; Hyperkalemic Atrial Standstill (K+ 9.4 mmol/L · HR 112 bpm · Bladder 10.2 cm)
+            </button>
+            <button type="button" class="btn btn-secondary urethral-scenario-btn" data-scenario="canine-os-penis-calculus" id="btn-sim-canine-os-penis-calculus">
+              🐕 Simulate Canine Os Penis Urethrolith Lodgment (K+ 7.6 mmol/L · HR 128 bpm · Retrohydropropulsion)
+            </button>
+          </div>
+        </div>
+
+        <div id="eval-error-banner" class="urethral-eval-error-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="urethral-eval-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-pet-name">Pet Name</label>
+              <input type="text" id="eval-pet-name" name="pet_name" class="form-control" value="Garfield" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-species">Species / Sex</label>
+              <input type="text" id="eval-species" name="species" class="form-control" value="Cat - Persian Neutered Male" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-weight-kg">Estimated Weight (kg)</label>
+              <input type="number" id="eval-weight-kg" name="weight_kg" class="form-control" min="1.5" max="65.0" step="0.1" value="6.4" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-obstruction-cause">Urethral Obstruction Cause</label>
+              <select id="eval-obstruction-cause" name="obstruction_cause" class="form-control" required>
+                <option value="STRUWITE_CRYSTALLINE_MATRIX_PLUG" selected>STRUWITE_CRYSTALLINE_MATRIX_PLUG (Distal Penile Struvite Crystalline-Protein Matrix Plug)</option>
+                <option value="CALCIUM_OXALATE_URETHROLITH">CALCIUM_OXALATE_URETHROLITH (Radiopaque Calcium Oxalate Urethrolith Calculus)</option>
+                <option value="IDIOPATHIC_FIC_URETHRAL_SPASM">IDIOPATHIC_FIC_URETHRAL_SPASM (Feline Idiopathic Cystitis Neurogenic Sphincter Spasm)</option>
+                <option value="CANINE_OS_PENIS_CALCULUS_LODGMENT">CANINE_OS_PENIS_CALCULUS_LODGMENT (Canine Os Penis Base Urolith Lodgment)</option>
+                <option value="POST_CATHETER_STRICTURED_REOBSTRUCTION">POST_CATHETER_STRICTURED_REOBSTRUCTION (Recurrent Post-Catheter Urethral Stricture / PU Candidate)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-potassium-mmol">Serum Potassium K+ (mmol/L)</label>
+              <input type="number" id="eval-potassium-mmol" name="serum_potassium_mmol_l" class="form-control" min="2.5" max="12.5" step="0.1" value="9.4" required>
+            </div>
+            <div class="form-group">
+              <label for="eval-heart-rate">Heart Rate (bpm)</label>
+              <input type="number" id="eval-heart-rate" name="heart_rate_bpm" class="form-control" min="60" max="260" step="1" value="112" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="eval-bladder-cm">Turgid Bladder Palpation Diameter (cm)</label>
+              <input type="number" id="eval-bladder-cm" name="bladder_palpation_diameter_cm" class="form-control" min="2.0" max="20.0" step="0.1" value="10.2" required>
+            </div>
+          </div>
+
+          <div class="urethral-checkbox-group">
+            <label class="urethral-step-item">
+              <input type="checkbox" id="eval-absent-pwave" name="absent_p_wave_tented_t_wave" checked>
+              <span>Absent P Waves, Tented T Waves &amp; Wide QRS Sinoventricular Atrial Standstill on Lead II ECG</span>
+            </label>
+            <label class="urethral-step-item">
+              <input type="checkbox" id="eval-calcium-before-sedation" name="calcium_gluconate_before_sedation" checked>
+              <span>10% Calcium Gluconate Slow IV + Insulin/Dextrose Administered BEFORE Any Sedation / Anesthesia</span>
+            </label>
+            <label class="urethral-step-item">
+              <input type="checkbox" id="eval-manual-expression-avoided" name="manual_bladder_expression_avoided" checked>
+              <span>Forceful Manual Bladder Expression Strictly Avoided (Prevents Uroabdomen Bladder Rupture)</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-submit-urethral-eval" class="btn btn-primary">Evaluate Blocked Tom &amp; Hyperkalemia Triage</button>
+        </form>
+      </section>
+
+      <!-- Right Column: Filter Bar, Operations Queue & Active Workspace -->
+      <section class="glass-card trust-panel" id="urethral-ops-panel" aria-labelledby="heading-urethral-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-urethral-ops">Active Blocked Tom &amp; Urethral Obstruction Operations</h2>
+          <span id="urethral-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col urethral-filter-bar" role="region" aria-label="Filter Urethral Obstruction Triage Operations">
+          <div class="form-group">
+            <label for="filter-obstruction-cause">Filter by Obstruction Cause</label>
+            <select id="filter-obstruction-cause" class="form-control">
+              <option value="">All Obstruction Causes</option>
+              <option value="STRUWITE_CRYSTALLINE_MATRIX_PLUG">STRUWITE_CRYSTALLINE_MATRIX_PLUG</option>
+              <option value="CALCIUM_OXALATE_URETHROLITH">CALCIUM_OXALATE_URETHROLITH</option>
+              <option value="IDIOPATHIC_FIC_URETHRAL_SPASM">IDIOPATHIC_FIC_URETHRAL_SPASM</option>
+              <option value="CANINE_OS_PENIS_CALCULUS_LODGMENT">CANINE_OS_PENIS_CALCULUS_LODGMENT</option>
+              <option value="POST_CATHETER_STRICTURED_REOBSTRUCTION">POST_CATHETER_STRICTURED_REOBSTRUCTION</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="HYPERKALEMIC_BRADYCARDIA_ATRIAL_STANDSTILL_CRITICAL">HYPERKALEMIC_BRADYCARDIA_ATRIAL_STANDSTILL_CRITICAL</option>
+              <option value="CALCIUM_CARDIOPROTECT_RETROHYDROPROPULSION_STAGED">CALCIUM_CARDIOPROTECT_RETROHYDROPROPULSION_STAGED</option>
+              <option value="INDWELLING_CLOSED_DIURESIS_NORMOKALEMIC_CLEARED">INDWELLING_CLOSED_DIURESIS_NORMOKALEMIC_CLEARED</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="urethral-active-workspace" role="region" aria-label="Active Urethral Obstruction Triage Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="urethral-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">Active Workspace: {{ $active.PetName }} ({{ $active.Species }} · {{ printf "%.1f" $active.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $active.ID }} · {{ $active.PetID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-urethral-cause">{{ $active.ObstructionCause }}</span>
+                <span class="badge badge-urethral-status {{ if eq (printf "%s" $active.Status) "HYPERKALEMIC_BRADYCARDIA_ATRIAL_STANDSTILL_CRITICAL" }}badge-urethral-critical{{ else if eq (printf "%s" $active.Status) "CALCIUM_CARDIOPROTECT_RETROHYDROPROPULSION_STAGED" }}badge-urethral-staged{{ else }}badge-urethral-safe{{ end }}">{{ $active.Status }}</span>
+              </div>
+            </div>
+            <div class="urethral-cardioprotect-alert-banner">
+              ⚠️ {{ $active.CardioprotectionWarningNote }}
+            </div>
+            <div class="urethral-protocol-recommendations">
+              <div><strong>Required Unblocking &amp; Cardioprotection Protocol:</strong> {{ $active.RequiredUnblockingProtocol }}</div>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="urethral-operations-list" class="trust-screenings-list urethral-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card urethral-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-obstruction-cause="{{ $op.ObstructionCause }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="badge badge-urethral-cause">{{ $op.ObstructionCause }}</span>
+                <span class="badge badge-urethral-status {{ if eq (printf "%s" $op.Status) "HYPERKALEMIC_BRADYCARDIA_ATRIAL_STANDSTILL_CRITICAL" }}badge-urethral-critical{{ else if eq (printf "%s" $op.Status) "CALCIUM_CARDIOPROTECT_RETROHYDROPROPULSION_STAGED" }}badge-urethral-staged{{ else }}badge-urethral-safe{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row urethral-metrics-row">
+              <span class="badge badge-urethral-cause">Serum K+: {{ printf "%.1f" $op.SerumPotassiumMmolL }} mmol/L • Heart Rate: {{ $op.HeartRateBpm }} bpm • Bladder Diameter: {{ printf "%.1f" $op.BladderPalpationDiameterCm }} cm</span>
+            </div>
+
+            <div class="urethral-flags-row">
+              {{ if $op.AbsentPWaveTentedTWave }}
+              <span class="badge badge-urethral-flag">ABSENT_PWAVE_ATRIAL_STANDSTILL</span>
+              {{ end }}
+              {{ if ge $op.SerumPotassiumMmolL 7.0 }}
+              <span class="badge badge-urethral-flag">CRITICAL_HYPERKALEMIC_CARDIOTOXICITY</span>
+              {{ end }}
+              {{ if lt $op.HeartRateBpm 140 }}
+              <span class="badge badge-urethral-flag">FELINE_HYPERKALEMIC_BRADYCARDIA</span>
+              {{ end }}
+            </div>
+
+            <div class="urethral-cardioprotect-alert-banner">
+              ⚠️ {{ $op.CardioprotectionWarningNote }}
+            </div>
+
+            {{ if $op.ClearanceToken }}
+            <div class="urethral-clearance-banner">
+              ✅ INDWELLING CLOSED DIURESIS &amp; NORMOKALEMIC CLEARANCE VERIFIED: {{ $op.ClearanceToken }}
+            </div>
+            {{ end }}
+
+            <div class="urethral-protocol-recommendations">
+              <div><strong>Required Unblocking Protocol:</strong> {{ $op.RequiredUnblockingProtocol }}</div>
+            </div>
+
+            <div class="urethral-steps-list" aria-label="10% Calcium Gluconate, Sacrococcygeal Epidural, Closed Collection Diuresis &amp; Normokalemic Clearance Steps">
+              {{ range $step := $op.ProtocolSteps }}
+              <label class="urethral-step-item">
+                <input
+                  type="checkbox"
+                  class="urethral-step-checkbox"
+                  data-op-id="{{ $op.ID }}"
+                  data-step-id="{{ $step.ID }}"
+                  {{ if $step.Completed }}checked{{ end }}
+                  {{ if eq (printf "%s" $op.Status) "INDWELLING_CLOSED_DIURESIS_NORMOKALEMIC_CLEARED" }}disabled{{ end }}
+                >
+                <span class="badge {{ if $step.Completed }}badge-urethral-safe{{ else }}badge-urethral-critical{{ end }}">{{ if $step.Completed }}DONE{{ else }}REQ{{ end }}</span>
+                <strong class="urethral-step-title">{{ $step.Title }}</strong>
+                <span class="urethral-step-desc">{{ $step.Description }}</span>
+              </label>
+              {{ end }}
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary urethral-select-workspace-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Inspect in Active Workspace
+              </button>
+              {{ if ne (printf "%s" $op.Status) "INDWELLING_CLOSED_DIURESIS_NORMOKALEMIC_CLEARED" }}
+              <button
+                type="button"
+                class="btn btn-sm btn-primary urethral-issue-clearance-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🛡️ Issue Indwelling Diuresis &amp; Normokalemic Clearance ({{ $op.ID }})
+              </button>
+              {{ end }}
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="urethral-ops-empty-msg">No feline urethral obstruction triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/urethral-obstruction-triage.js" defer></script>
+</body>
+</html>
