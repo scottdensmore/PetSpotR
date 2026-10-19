@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Immune-Mediated Hemolytic Anemia (IMHA) &amp; Thrombocytopenia (IMTP), Saline Agglutination, Spherocytosis &amp; Thromboprophylaxis Triage Cockpit.">
+  <title>Immune-Mediated Hemolytic Anemia (IMHA) &amp; Thrombocytopenia (IMTP), Saline Agglutination, Spherocytosis &amp; Thromboprophylaxis Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#imha-thrombosis-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/dka-insulin-triage" class="nav-link nav-link-emergency" id="nav-dka-insulin-triage">💉 DKA &amp; Insulin CRI ICU</a></li>
+          <li><a href="/imha-thrombosis-triage" class="nav-link active nav-link-emergency" id="nav-imha-thrombosis-triage">🩸 IMHA &amp; Thrombosis ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="imha-thrombosis-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header imha-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🩸 IMMUNE-MEDIATED HEMOLYTIC ANEMIA (IMHA) &amp; THROMBOCYTOPENIA (IMTP), SALINE AGGLUTINATION, SPHEROCYTOSIS &amp; THROMBOPROPHYLAXIS COCKPIT</span>
+        </div>
+        <h1>Immune-Mediated Hemolytic Anemia (IMHA) &amp; Thrombocytopenia (IMTP), Saline Agglutination, Spherocytosis &amp; Thromboprophylaxis Cockpit</h1>
+        <p class="text-secondary">
+          1:4 Saline Dilution Autoagglutination Slide Test (Distinguishing True IgG/IgM Autoagglutination from Rouleaux), Spherocytosis &amp; Intravascular Hemoglobinuria Triage, Immunosuppressive Prednisolone (2.0 mg/kg/day) + Mycophenolate Mofetil (10 mg/kg BID), Dual Thromboprophylaxis (Clopidogrel 2.0 mg/kg/day + Rivaroxaban 1.0 mg/kg/day When Platelets &ge; 30 K/&micro;L vs Vincristine 0.02 mg/kg IV Bolus When &lt; 30 K/&micro;L in Evans Syndrome), Crossmatched pRBC Transfusion (15 mL/kg When PCV &lt; 18%) &amp; Zero-Jugular Venipuncture Guard.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid imha-kpi-grid" aria-label="IMHA &amp; Thromboprophylaxis KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total IMHA / IMTP Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Hemolytic / Agglutination Crisis Critical</span>
+        <strong class="kpi-value" id="kpi-critical-hemolytic">{{ .CriticalHemolyticCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Prednisolone / Clopidogrel / pRBC Staged</span>
+        <strong class="kpi-value" id="kpi-staged-regimen">{{ .StagedRegimenCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">PCV Stable / Reticulocytosis Taper Safe</span>
+        <strong class="kpi-value" id="kpi-cleared-stable">{{ .ClearedStableCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Pulmonary Thromboembolism (PTE) Alerts</span>
+        <strong class="kpi-value" id="kpi-pte-alerts">{{ .PTEAlertCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="imha-live-status" class="humane-traps-live-status imha-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} immune-mediated hemolytic anemia (IMHA), Evans Syndrome (IMTP) &amp; thromboprophylaxis operations.
+    </div>
+
+    <!-- Global Pulmonary Thromboembolism (PTE) & Zero-Jugular Venipuncture Pitfall Alert Banner -->
+    <div id="imha-alert-banner" class="imha-alert-banner" role="alert" aria-live="assertive">
+      {{ if and .ActiveOperation .ActiveOperation.ImmunosuppressiveRegimen }}
+      ⚠️ PULMONARY THROMBOEMBOLISM (PTE) &amp; ZERO-JUGULAR VENIPUNCTURE GUARD ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }} · PCV {{ printf "%.1f" .ActiveOperation.PatientProfile.PackedCellVolumePercent }}% · TBili {{ printf "%.1f" .ActiveOperation.PatientProfile.TotalBilirubinMgDl }} mg/dL · Platelets {{ printf "%.0f" .ActiveOperation.PatientProfile.PlateletCountKUl }} K/&micro;L · Spherocytes {{ .ActiveOperation.PatientProfile.SpherocytesPerHPF }}/HPF): {{ .ActiveOperation.ImmunosuppressiveRegimen.IMHAPitfallAlert }}
+      {{ else }}
+      ⚠️ CRITICAL IMHA &amp; PULMONARY THROMBOEMBOLISM PITFALL ALERT: NEVER omit dual thromboprophylaxis (Clopidogrel + Rivaroxaban) in hypercoagulable IMHA when platelets &ge; 30 K/&micro;L (pulmonary thromboembolism is the #1 cause of acute mortality in canine IMHA); NEVER perform jugular venipuncture in hypercoagulable IMHA or severely thrombocytopenic Evans Syndrome (&lt; 30 K/&micro;L) patients; and NEVER mistake rouleaux for true autoagglutination without a 1:4 saline dilution wash.
+      {{ end }}
+    </div>
+
+    <!-- Global 48h Stable PCV & Regenerative Reticulocytosis Discharge Clearance Banner -->
+    <div id="imha-clearance-banner" class="imha-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation .ActiveOperation.DischargeClearance) }}hidden{{ end }}>
+      {{ if and .ActiveOperation .ActiveOperation.DischargeClearance }}
+      ✅ 48H STABLE PCV &amp; REGENERATIVE RETICULOCYTOSIS DISCHARGE CLEARANCE VERIFIED ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }}): PCV {{ printf "%.1f" .ActiveOperation.DischargeClearance.FinalPCVStable48HrPercent }}% · Reticulocytes {{ printf "%.0f" .ActiveOperation.DischargeClearance.FinalReticulocyteCountKUl }} K/&micro;L · 1:4 Saline Agglutination Resolved · Vet License {{ .ActiveOperation.DischargeClearance.VetLicense }} — {{ .ActiveOperation.DischargeClearance.Summary }}
+      {{ else }}
+      ✅ 48H STABLE PCV &amp; REGENERATIVE RETICULOCYTOSIS DISCHARGE CLEARANCE VERIFIED
+      {{ end }}
+    </div>
+
+    <div class="trust-cockpit-grid imha-cockpit-grid">
+      <!-- Left Column: Intake Form & Active Operation Regimen / Hemolysis Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="imha-forms-panel" aria-labelledby="heading-imha-intake">
+        <div class="trust-panel-header">
+          <h2 id="heading-imha-intake">1. IMHA / Evans Syndrome (IMTP) &amp; 1:4 Saline Agglutination Intake</h2>
+          <span class="status-pill status-pill-staged">Prednisolone · Clopidogrel · pRBC</span>
+        </div>
+
+        <div id="imha-error-banner" class="imha-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="create-imha-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-incident-id">Incident ID</label>
+              <input type="text" id="create-incident-id" name="incident_id" class="form-control" value="INC-IM-9704" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pet-name">Pet Name</label>
+              <input type="text" id="create-pet-name" name="pet_name" class="form-control" value="Poppy" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-species">IMHA / IMTP Syndrome Classification</label>
+              <select id="create-species" name="species" class="form-control" required>
+                <option value="CANINE_PRIMARY_IMHA" selected>CANINE_PRIMARY_IMHA (Canine Primary Autoimmune IMHA)</option>
+                <option value="CANINE_EVANS_SYNDROME_IMTP">CANINE_EVANS_SYNDROME_IMTP (Canine Concurrent IMHA + Severe IMTP)</option>
+                <option value="FELINE_MYCOPLASMA_SECONDARY_IMHA">FELINE_MYCOPLASMA_SECONDARY_IMHA (Feline Secondary / Mycoplasma haemofelis IMHA)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-breed">Breed</label>
+              <input type="text" id="create-breed" name="breed" class="form-control" value="Cocker Spaniel">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-weight-kg">Weight (kg)</label>
+              <input type="number" id="create-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="12.5" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pcv">Packed Cell Volume PCV (%)</label>
+              <input type="number" id="create-pcv" name="packed_cell_volume_percent" class="form-control" min="4.0" max="65.0" step="0.5" value="13.5" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-bilirubin">Total Bilirubin (mg/dL)</label>
+              <input type="number" id="create-bilirubin" name="total_bilirubin_mg_dl" class="form-control" min="0.0" max="50.0" step="0.1" value="5.2" required>
+            </div>
+            <div class="form-group">
+              <label for="create-platelets">Platelet Count (K/&micro;L)</label>
+              <input type="number" id="create-platelets" name="platelet_count_k_ul" class="form-control" min="0.0" max="1000.0" step="1.0" value="92.0" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-spherocytes">Spherocytes per 100x HPF</label>
+              <input type="number" id="create-spherocytes" name="spherocytes_per_hpf" class="form-control" min="0" max="100" step="1" value="16" required>
+            </div>
+            <div class="form-group imha-checkbox-group">
+              <label class="imha-checkbox-item">
+                <input type="checkbox" id="create-saline-agglutination" name="saline_agglutination_4_to_1_positive" checked>
+                <span>1:4 Saline Dilution Macro/Micro-Agglutination Positive</span>
+              </label>
+              <label class="imha-checkbox-item">
+                <input type="checkbox" id="create-hemoglobinuria" name="intravascular_hemoglobinuria" checked>
+                <span>Intravascular Hemolysis / Port-Wine Hemoglobinuria</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-create-imha-op" class="btn btn-primary">Create IMHA &amp; Thrombosis Operation</button>
+        </form>
+
+        <hr class="imha-divider">
+
+        <!-- Stage Prednisolone, Mycophenolate, Clopidogrel/Rivaroxaban & pRBC Regimen Form -->
+        <div class="trust-subsection" id="stage-regimen-section">
+          <h3 id="heading-stage-regimen">2. Stage Prednisolone, Mycophenolate, Thromboprophylaxis &amp; pRBC Regimen</h3>
+          <form id="stage-regimen-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-weight-kg">Weight (kg)</label>
+                <input type="number" id="stage-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.WeightKg }}{{ else }}11.5{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-species">IMHA / IMTP Syndrome</label>
+                <select id="stage-species" name="species" class="form-control" required>
+                  <option value="CANINE_PRIMARY_IMHA">CANINE_PRIMARY_IMHA</option>
+                  <option value="CANINE_EVANS_SYNDROME_IMTP">CANINE_EVANS_SYNDROME_IMTP</option>
+                  <option value="FELINE_MYCOPLASMA_SECONDARY_IMHA">FELINE_MYCOPLASMA_SECONDARY_IMHA</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-pcv">Packed Cell Volume PCV (%)</label>
+                <input type="number" id="stage-pcv" name="packed_cell_volume_percent" class="form-control" min="4.0" max="65.0" step="0.5" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.PackedCellVolumePercent }}{{ else }}12.0{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-bilirubin">Total Bilirubin (mg/dL)</label>
+                <input type="number" id="stage-bilirubin" name="total_bilirubin_mg_dl" class="form-control" min="0.0" max="50.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.TotalBilirubinMgDl }}{{ else }}6.4{{ end }}" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-platelets">Platelet Count (K/&micro;L)</label>
+                <input type="number" id="stage-platelets" name="platelet_count_k_ul" class="form-control" min="0.0" max="1000.0" step="1.0" value="{{ if .ActiveOperation }}{{ printf "%.0f" .ActiveOperation.PatientProfile.PlateletCountKUl }}{{ else }}85{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-spherocytes">Spherocytes per HPF</label>
+                <input type="number" id="stage-spherocytes" name="spherocytes_per_hpf" class="form-control" min="0" max="100" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.SpherocytesPerHPF }}{{ else }}18{{ end }}" required>
+              </div>
+            </div>
+            <button type="submit" id="btn-stage-regimen" class="btn btn-secondary">🩸 Stage Prednisolone / Clopidogrel / pRBC Regimen</button>
+          </form>
+        </div>
+
+        <hr class="imha-divider">
+
+        <!-- Serial q6h Hemolysis, Reticulocyte, Bilirubin & Respiratory Rate Check Form -->
+        <div class="trust-subsection" id="hemolysis-check-section">
+          <h3 id="heading-hemolysis-check">3. Record Serial q6h PCV, Reticulocyte, Bilirubin &amp; PTE Respiratory Check</h3>
+          <form id="hemolysis-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-pcv">Packed Cell Volume PCV (%)</label>
+                <input type="number" id="check-pcv" name="packed_cell_volume_percent" class="form-control" min="4.0" max="65.0" step="0.5" value="23.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-reticulocytes">Reticulocyte Count (K/&micro;L)</label>
+                <input type="number" id="check-reticulocytes" name="reticulocyte_count_k_ul" class="form-control" min="0.0" max="1000.0" step="1.0" value="110.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-bilirubin">Total Bilirubin (mg/dL)</label>
+                <input type="number" id="check-bilirubin" name="total_bilirubin_mg_dl" class="form-control" min="0.0" max="50.0" step="0.1" value="1.8" required>
+              </div>
+              <div class="form-group">
+                <label for="check-respiratory-rate">Resting Respiratory Rate (bpm)</label>
+                <input type="number" id="check-respiratory-rate" name="resting_respiratory_rate_bpm" class="form-control" min="6" max="140" step="1" value="24" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-callsign">Clinician Callsign</label>
+                <input type="text" id="check-callsign" name="clinician_callsign" class="form-control" value="DR-HEME-11" required>
+              </div>
+              <div class="form-group">
+                <label for="check-notes">Serial Hemolysis &amp; PTE Surveillance Notes</label>
+                <input type="text" id="check-notes" name="notes" class="form-control" value="Post-pRBC PCV rose to 23.0%, regenerative reticulocytosis 110 K/uL, plasma clearing, eupneic (24 bpm).">
+              </div>
+            </div>
+            <label class="imha-checkbox-item">
+              <input type="checkbox" id="check-saline-persistent" name="saline_agglutination_persistent">
+              <span>1:4 Saline Dilution Autoagglutination Still Persistent</span>
+            </label>
+            <button type="submit" id="btn-record-hemolysis-check" class="btn btn-secondary">🩺 Log q6h PCV, Reticulocyte &amp; PTE Check</button>
+          </form>
+        </div>
+
+        <hr class="imha-divider">
+
+        <!-- Discharge Clearance Form -->
+        <div class="trust-subsection" id="discharge-clearance-section">
+          <h3 id="heading-discharge-clearance">4. Issue 48h Stable PCV &amp; Regenerative Reticulocytosis Taper Clearance</h3>
+          <form id="discharge-clearance-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-final-pcv">Final 48h Stable PCV (%, &ge; 25.0)</label>
+                <input type="number" id="clearance-final-pcv" name="final_pcv_stable_48_hr_percent" class="form-control" min="25.0" max="65.0" step="0.5" value="28.5" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-final-reticulocytes">Final Reticulocytes (K/&micro;L, &ge; 60.0)</label>
+                <input type="number" id="clearance-final-reticulocytes" name="final_reticulocyte_count_k_ul" class="form-control" min="60.0" max="1000.0" step="1.0" value="138.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-vet-license">Attending Veterinarian License</label>
+                <input type="text" id="clearance-vet-license" name="vet_license" class="form-control" value="VET-IM-97410" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-summary">Discharge Summary &amp; Slow Taper Protocol</label>
+                <input type="text" id="clearance-summary" name="summary" class="form-control" value="PCV stable at 28.5% for 48h; reticulocytes 138 K/uL; 1:4 saline agglutination resolved; Clopidogrel + Rivaroxaban &amp; slow Prednisolone taper dispensed.">
+              </div>
+            </div>
+            <div class="imha-checkbox-group">
+              <label class="imha-checkbox-item">
+                <input type="checkbox" id="clearance-agglutination-resolved" name="saline_agglutination_resolved" checked>
+                <span>1:4 Saline Dilution Autoagglutination Resolved (Negative)</span>
+              </label>
+              <label class="imha-checkbox-item">
+                <input type="checkbox" id="clearance-no-pte-dyspnea" name="no_pulmonary_thromboembolism_dyspnea" checked>
+                <span>Eupneic — Zero Signs of Pulmonary Thromboembolism (PTE) Dyspnea</span>
+              </label>
+              <label class="imha-checkbox-item">
+                <input type="checkbox" id="clearance-thromboprophylaxis-dispensed" name="thromboprophylaxis_dispensed" checked>
+                <span>Outpatient Thromboprophylaxis (Clopidogrel / Rivaroxaban) &amp; 2-Week CBC Taper Schedule Dispensed</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-issue-discharge-clearance" class="btn btn-primary">🛡️ Issue PCV-Stable Reticulocytosis Taper Clearance</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Queue -->
+      <section class="glass-card trust-panel" id="imha-ops-panel" aria-labelledby="heading-imha-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-imha-ops">Active IMHA, Evans Syndrome &amp; Thromboprophylaxis Operations</h2>
+          <span id="imha-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col imha-filter-bar" role="region" aria-label="Filter IMHA Operations">
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="HEMOLYTIC_AGGLUTINATION_CRISIS_CRITICAL">HEMOLYTIC_AGGLUTINATION_CRISIS_CRITICAL</option>
+              <option value="PREDNISOLONE_CLOPIDOGREL_PRBC_STAGED">PREDNISOLONE_CLOPIDOGREL_PRBC_STAGED</option>
+              <option value="PCV_STABLE_RETICULOCYTOSIS_TAPER_SAFE">PCV_STABLE_RETICULOCYTOSIS_TAPER_SAFE</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-species">Filter by IMHA Syndrome</label>
+            <select id="filter-species" class="form-control">
+              <option value="">All IMHA Syndromes</option>
+              <option value="CANINE_PRIMARY_IMHA">CANINE_PRIMARY_IMHA</option>
+              <option value="CANINE_EVANS_SYNDROME_IMTP">CANINE_EVANS_SYNDROME_IMTP</option>
+              <option value="FELINE_MYCOPLASMA_SECONDARY_IMHA">FELINE_MYCOPLASMA_SECONDARY_IMHA</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="imha-active-workspace" role="region" aria-label="Active IMHA Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="imha-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-pet-title">Active Workspace: {{ $active.PetName }} ({{ $active.PatientProfile.Species }}{{ if $active.PatientProfile.Breed }} · {{ $active.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $active.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id" id="workspace-op-code">{{ $active.ID }} · {{ $active.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species" id="workspace-species-pill">{{ $active.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $active.Status) "HEMOLYTIC_AGGLUTINATION_CRISIS_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $active.Status) "PREDNISOLONE_CLOPIDOGREL_PRBC_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}" id="workspace-status-pill">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="imha-vitals-summary" id="workspace-vitals-summary">
+              <span><strong>PCV:</strong> {{ printf "%.1f" $active.PatientProfile.PackedCellVolumePercent }}%</span>
+              <span><strong>Total Bilirubin:</strong> {{ printf "%.1f" $active.PatientProfile.TotalBilirubinMgDl }} mg/dL</span>
+              <span><strong>Platelets:</strong> {{ printf "%.0f" $active.PatientProfile.PlateletCountKUl }} K/&micro;L</span>
+              <span><strong>Spherocytes:</strong> {{ $active.PatientProfile.SpherocytesPerHPF }}/HPF</span>
+              <span><strong>1:4 Saline Agglutination:</strong> {{ if $active.PatientProfile.SalineAgglutination4To1Positive }}POSITIVE{{ else }}NEGATIVE{{ end }}</span>
+              <span><strong>Hemoglobinuria:</strong> {{ if $active.PatientProfile.IntravascularHemoglobinuria }}PRESENT{{ else }}ABSENT{{ end }}</span>
+            </div>
+
+            {{ if $active.ImmunosuppressiveRegimen }}
+            <div class="imha-regimen-box" id="workspace-regimen-box">
+              <h4>Calculated Immunosuppressive, Thromboprophylaxis &amp; Crossmatched pRBC Regimen</h4>
+              <div class="imha-doses-grid">
+                <div><strong>Prednisolone (2 mg/kg/day):</strong> <span id="regimen-prednisolone-mg">{{ printf "%.1f" $active.ImmunosuppressiveRegimen.Prednisolone2MgKgDayMg }} mg/day</span></div>
+                <div><strong>Mycophenolate (10 mg/kg BID):</strong> <span id="regimen-mycophenolate-mg">{{ printf "%.1f" $active.ImmunosuppressiveRegimen.Mycophenolate10MgKgBIDMg }} mg BID</span></div>
+                <div><strong>Clopidogrel (2 mg/kg/day):</strong> <span id="regimen-clopidogrel-mg">{{ printf "%.1f" $active.ImmunosuppressiveRegimen.Clopidogrel2MgKgDayMg }} mg/day</span></div>
+                <div><strong>Rivaroxaban (1 mg/kg/day):</strong> <span id="regimen-rivaroxaban-mg">{{ printf "%.1f" $active.ImmunosuppressiveRegimen.Rivaroxaban1MgKgDayMg }} mg/day</span></div>
+                <div><strong>Vincristine (0.02 mg/kg IV):</strong> <span id="regimen-vincristine-mg">{{ printf "%.2f" $active.ImmunosuppressiveRegimen.Vincristine002MgKgIMTPMg }} mg</span></div>
+                <div><strong>Crossmatched pRBC (15 mL/kg):</strong> <span id="regimen-prbc-ml">{{ printf "%.1f" $active.ImmunosuppressiveRegimen.PackedRBCTransfusionMl }} mL</span></div>
+                <div><strong>Zero-Jugular Venipuncture Guard:</strong> <span id="regimen-jugular-guard">{{ if $active.ImmunosuppressiveRegimen.ZeroJugularVenipunctureGuard }}ENFORCED{{ else }}OFF{{ end }}</span></div>
+              </div>
+              <p class="imha-rationale-text" id="workspace-clinical-rationale">{{ $active.ImmunosuppressiveRegimen.ClinicalRationale }}</p>
+            </div>
+            {{ end }}
+
+            <div class="imha-serial-checks-box">
+              <h4>Serial q6h Hemolysis, Reticulocyte &amp; PTE Respiratory Checks (<span id="workspace-checks-count">{{ len $active.HemolysisChecks }}</span>)</h4>
+              <ul id="hemolysis-checks-list" class="imha-checks-list">
+                {{ range $chk := $active.HemolysisChecks }}
+                <li class="imha-check-item">
+                  <strong>{{ $chk.ClinicianCallsign }}</strong> · PCV {{ printf "%.1f" $chk.PackedCellVolumePercent }}% · Reticulocytes {{ printf "%.0f" $chk.ReticulocyteCountKUl }} K/&micro;L · TBili {{ printf "%.1f" $chk.TotalBilirubinMgDl }} mg/dL · 1:4 Saline {{ if $chk.SalineAgglutinationPersistent }}PERSISTENT{{ else }}RESOLVED{{ end }} · RR {{ $chk.RestingRespiratoryRateBpm }} bpm — {{ $chk.Notes }}
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="imha-operations-list" class="trust-screenings-list imha-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card imha-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-species="{{ $op.PatientProfile.Species }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.PatientProfile.Species }}{{ if $op.PatientProfile.Breed }} · {{ $op.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $op.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species">{{ $op.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $op.Status) "HEMOLYTIC_AGGLUTINATION_CRISIS_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $op.Status) "PREDNISOLONE_CLOPIDOGREL_PRBC_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row imha-metrics-row">
+              <span class="status-pill status-pill-species">PCV: {{ printf "%.1f" $op.PatientProfile.PackedCellVolumePercent }}% • TBili: {{ printf "%.1f" $op.PatientProfile.TotalBilirubinMgDl }} mg/dL • Platelets: {{ printf "%.0f" $op.PatientProfile.PlateletCountKUl }} K/&micro;L • Spherocytes: {{ $op.PatientProfile.SpherocytesPerHPF }}/HPF • 1:4 Saline: {{ if $op.PatientProfile.SalineAgglutination4To1Positive }}POS{{ else }}NEG{{ end }}</span>
+            </div>
+
+            {{ if $op.PulmonaryThromboembolismAlert }}
+            <div class="imha-alert-banner">
+              ⚠️ PULMONARY THROMBOEMBOLISM (PTE) &amp; ZERO-JUGULAR VENIPUNCTURE ALERT (PCV {{ printf "%.1f" $op.PatientProfile.PackedCellVolumePercent }}% · Platelets {{ printf "%.0f" $op.PatientProfile.PlateletCountKUl }} K/&micro;L): {{ if $op.ImmunosuppressiveRegimen }}{{ $op.ImmunosuppressiveRegimen.IMHAPitfallAlert }}{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if $op.DischargeClearance }}
+            <div class="imha-clearance-banner">
+              ✅ 48H STABLE PCV &amp; RETICULOCYTOSIS TAPER SAFE ({{ $op.DischargeClearance.VetLicense }}): PCV {{ printf "%.1f" $op.DischargeClearance.FinalPCVStable48HrPercent }}% · Reticulocytes {{ printf "%.0f" $op.DischargeClearance.FinalReticulocyteCountKUl }} K/&micro;L
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary imha-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select Operation ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="imha-ops-empty-msg">No IMHA &amp; Thromboprophylaxis triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/imha-thrombosis-triage.js" defer></script>
+</body>
+</html>
