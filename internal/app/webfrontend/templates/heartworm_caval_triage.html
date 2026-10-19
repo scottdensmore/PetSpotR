@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Heartworm Caval Syndrome (Dirofilaria immitis), Vena Cava Worm Burden Echocardiography, Intravascular Hemolysis (Hemoglobinuria), Jugular Venotomy Extraction &amp; Melarsomine Split-Dose / Doxycycline / Macrocyclic Lactone Thromboembolism Prevention Cockpit.">
+  <title>Acute Heartworm Caval Syndrome (Dirofilaria immitis), Vena Cava Worm Burden Echocardiography, Intravascular Hemolysis (Hemoglobinuria), Jugular Venotomy Extraction &amp; Melarsomine Split-Dose / Doxycycline / Macrocyclic Lactone Thromboembolism Prevention Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#heartworm-caval-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/fip-gs441524-triage" class="nav-link nav-link-emergency" id="nav-fip-gs441524-triage">🐈 FIP &amp; GS-441524 ICU</a></li>
+          <li><a href="/heartworm-caval-triage" class="nav-link active nav-link-emergency" id="nav-heartworm-caval-triage">🫀 Heartworm Caval Syndrome ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="heartworm-caval-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header hwc-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🫀 ACUTE HEARTWORM CAVAL SYNDROME (DIROFILARIA IMMITIS) &amp; JUGULAR VENOTOMY EXTRACTION COCKPIT</span>
+        </div>
+        <h1>Acute Heartworm Caval Syndrome (Dirofilaria immitis), Vena Cava Worm Burden Echocardiography, Intravascular Hemolysis (Hemoglobinuria), Jugular Venotomy Extraction &amp; Melarsomine Split-Dose / Doxycycline / Macrocyclic Lactone Thromboembolism Prevention Cockpit</h1>
+        <p class="text-secondary">
+          Class IV Retrograde Tricuspid &amp; Vena Cava Worm Mass Triage, Parallel Hyperechoic "Equal-Sign" Cuticular Echocardiography, Intravascular Mechanical Hemolysis (Port-Wine Hemoglobinuria &amp; Schistocytosis), Right External Jugular Venotomy Extraction (Ishihara Alligator Forceps), Absolute Contraindication of Immediate Melarsomine in Caval Syndrome, 28-Day Wolbachia Doxycycline + Macrocyclic Lactone Pretreatment, Sildenafil Pulmonary Hypertension Support &amp; 3-Dose Split Melarsomine (Days 60, 90, 91).
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid hwc-kpi-grid" aria-label="Heartworm Caval Syndrome KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Heartworm Caval Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Jugular Venotomy &amp; Wolbachia Doxy Staged</span>
+        <strong class="kpi-value" id="kpi-jugular-staged">{{ .JugularVenotomyWolbachiaStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Pulmonary Hypertension &amp; PTE Monitored</span>
+        <strong class="kpi-value" id="kpi-pte-monitored">{{ .PulmonaryHypertensionPTEMonitoredCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Caval Patent &amp; Antigen Negative Cleared</span>
+        <strong class="kpi-value" id="kpi-caval-cleared">{{ .CavalPatentClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Class IV Caval Syndrome Cases</span>
+        <strong class="kpi-value" id="kpi-class-iv-count">{{ .ClassIVCavalSyndromeCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Severe PH (TR Jet &gt; 3.4 m/s · &gt; 46 mmHg)</span>
+        <strong class="kpi-value" id="kpi-severe-ph-count">{{ .SeverePulmonaryHypertensionCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="hwc-live-status" class="humane-traps-live-status hwc-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Acute Heartworm Caval Syndrome (Dirofilaria immitis) &amp; Jugular Venotomy ICU operations.
+    </div>
+
+    <!-- Global Heartworm Caval Syndrome, Ishihara Jugular Extraction, Melarsomine Contraindication, Wolbachia Doxycycline & Sildenafil Alert Banner -->
+    <div id="hwc-alert-banner" class="hwc-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL HEARTWORM CAVAL SYNDROME &amp; ADULTICIDE GUARD: (1) ABSOLUTE CONTRAINDICATION OF IMMEDIATE MELARSOMINE (2.5 mg/kg) in Class IV Caval Syndrome (Parallel Hyperechoic Caval Lines + Port-Wine Hemoglobinuria) — Synchronous worm kill causes fatal pulmonary thromboembolism; Right External Jugular Venotomy Extraction (Ishihara Alligator Forceps / Endoscopic Basket) MUST precede any adulticide; (2) Eliminate endosymbiotic Wolbachia pipientis with Doxycycline 10 mg/kg PO q12h for 28 days + Macrocyclic Lactone pretreatment prior to AHS 3-Dose Split Melarsomine (Day 60, Day 90, Day 91); (3) Initiate Sildenafil (1–3 mg/kg PO q8–12h) when Tricuspid Regurgitation (TR) Jet Velocity &gt; 3.4 m/s (&gt; 46 mmHg) + Prednisone Taper (0.5 mg/kg PO q12h Wk 1, q24h Wk 2, q48h Wks 3–4) &amp; 6–8 Weeks Strict Cage Rest.
+    </div>
+
+    <!-- Global Caval Patency & Antigen-Negative Clearance Banner -->
+    <div id="hwc-clearance-banner" class="hwc-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "CAVAL_PATENT_ANTIGEN_NEGATIVE_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ CAVAL LUMEN PATENT, HEMOGLOBINURIA RESOLVED &amp; STRICT CAGE-REST CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "CAVAL_PATENT_ANTIGEN_NEGATIVE_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Cleared by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting caval worm extraction patency, resolution of hemoglobinuria, TR jet &le; 2.8 m/s, and verified strict cage rest.{{ end }}</span>
+    </div>
+
+    <div id="hwc-error-banner" class="hwc-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card hwc-toolbar-card" aria-label="Heartworm Caval Syndrome Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col hwc-toolbar-row">
+        <div class="form-group">
+          <label for="hwc-status-filter">Filter by Heartworm Caval Syndrome Status</label>
+          <select id="hwc-status-filter" class="form-control">
+            <option value="">All Heartworm Caval Statuses</option>
+            <option value="JUGULAR_VENOTOMY_WOLBACHIA_DOXY_STAGED">JUGULAR_VENOTOMY_WOLBACHIA_DOXY_STAGED (Jugular Venotomy &amp; Wolbachia Doxy Staged)</option>
+            <option value="PULMONARY_HYPERTENSION_PTE_MONITORED">PULMONARY_HYPERTENSION_PTE_MONITORED (Pulmonary Hypertension &amp; PTE Monitored)</option>
+            <option value="CAVAL_PATENT_ANTIGEN_NEGATIVE_CLEARED">CAVAL_PATENT_ANTIGEN_NEGATIVE_CLEARED (Caval Patent &amp; Antigen Negative Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group hwc-sse-controls">
+          <span class="kpi-label">Live ICU Telemetry Stream</span>
+          <div class="hwc-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live Heartworm Caval SSE Stream</button>
+            <span id="sse-status-badge" class="hwc-status-badge hwc-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid hwc-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="hwc-operations-panel" aria-labelledby="heading-hwc-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-hwc-ops">Active Heartworm Caval Syndrome Operations</h2>
+          <span id="hwc-ops-count-badge" class="hwc-status-badge hwc-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="hwc-operations-grid" class="trust-screenings-list hwc-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card hwc-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-severity-class="{{ $op.SeverityClass }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="hwc-status-badge {{ if eq (printf "%s" $op.Status) "JUGULAR_VENOTOMY_WOLBACHIA_DOXY_STAGED" }}hwc-status-critical{{ else if eq (printf "%s" $op.Status) "PULMONARY_HYPERTENSION_PTE_MONITORED" }}hwc-status-staged{{ else }}hwc-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="hwc-card-metrics">
+              <span><strong>Class:</strong> {{ $op.SeverityClass }}</span>
+              <span><strong>Protocol:</strong> {{ $op.Protocol }}</span>
+              <span><strong>TR Jet:</strong> {{ printf "%.2f" $op.TRJetVelocityMS }} m/s ({{ printf "%.1f" $op.EstimatedRVSPMmHg }} mmHg)</span>
+              <span><strong>Worms Extracted:</strong> {{ $op.WormsExtractedCount }}</span>
+              <span><strong>PCV:</strong> {{ printf "%.1f" $op.PCVPercent }}%</span>
+              <span><strong>Hemoglobinuria:</strong> {{ if $op.FreeHemoglobinuriaPresent }}ACTIVE (Port-Wine){{ else }}Resolved{{ end }}</span>
+              <span><strong>Caval Lines:</strong> {{ if $op.ParallelHyperechoicCavalLines }}PRESENT{{ else }}Clear{{ end }}</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary hwc-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open Caval Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="hwc-ops-empty-msg">No Heartworm Caval Syndrome operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="hwc-divider">
+
+        <!-- Admit New Heartworm Caval Syndrome Patient Form -->
+        <div class="trust-subsection" id="create-hwc-section">
+          <h3 id="heading-create-hwc">Admit New Heartworm Caval Syndrome (Dirofilaria immitis) Patient</h3>
+          <form id="create-hwc-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-HWC-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Thibodaux" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species-input">Species</label>
+                <select id="create-species-input" name="species" class="form-control" required>
+                  <option value="Canine" selected>Canine</option>
+                  <option value="Feline">Feline</option>
+                  <option value="Ferret">Ferret</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed-input">Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="Catahoula Leopard Dog" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="110.0" step="0.1" value="26.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-severity-class-input">AHS Heartworm Severity Class</label>
+                <select id="create-severity-class-input" name="severity_class" class="form-control" required>
+                  <option value="CLASS_IV_CAVAL_SYNDROME" selected>CLASS_IV_CAVAL_SYNDROME (Class IV Caval Syndrome — Jugular Extraction Required)</option>
+                  <option value="CLASS_III_SEVERE_PTE_RCHF">CLASS_III_SEVERE_PTE_RCHF (Class III Severe PTE &amp; Right-Sided CHF)</option>
+                  <option value="CLASS_II_MODERATE_ANTIGEN_POS">CLASS_II_MODERATE_ANTIGEN_POS (Class II Moderate Antigen Positive)</option>
+                  <option value="FELINE_HARD_RESPIRATORY_DIROFILARIASIS">FELINE_HARD_RESPIRATORY_DIROFILARIASIS (Feline HARD — Melarsomine Contraindicated)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-protocol-input">Initial Extraction / Adulticide Protocol</label>
+                <select id="create-protocol-input" name="protocol" class="form-control" required>
+                  <option value="RIGHT_JUGULAR_ISHIHARA_FORCEPS_EXTRACTION" selected>RIGHT_JUGULAR_ISHIHARA_FORCEPS_EXTRACTION (Right Jugular Ishihara Forceps Extraction)</option>
+                  <option value="SPLIT_DOSE_MELARSOMINE_DAY60_90_91">SPLIT_DOSE_MELARSOMINE_DAY60_90_91 (Split-Dose Melarsomine Day 60, 90, 91)</option>
+                  <option value="DOXYCYCLINE_WOLBACHIA_28DAY_PRETREAT">DOXYCYCLINE_WOLBACHIA_28DAY_PRETREAT (Doxycycline Wolbachia 28-Day Pretreat)</option>
+                  <option value="SILDENAFIL_PREDNISONE_CAGE_REST">SILDENAFIL_PREDNISONE_CAGE_REST (Sildenafil + Prednisone + Strict Cage Rest)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-tr-jet-input">Tricuspid Regurgitation (TR) Jet Velocity (m/s)</label>
+                <input type="number" id="create-tr-jet-input" name="tr_jet_velocity_ms" class="form-control" min="0.5" max="6.5" step="0.05" value="4.05" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-worms-extracted-input">Initial Worms Extracted Count</label>
+                <input type="number" id="create-worms-extracted-input" name="worms_extracted_count" class="form-control" min="0" max="250" step="1" value="0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pcv-input">Packed Cell Volume PCV (%)</label>
+                <input type="number" id="create-pcv-input" name="pcv_percent" class="form-control" min="5.0" max="70.0" step="0.5" value="19.5" required>
+              </div>
+            </div>
+
+            <div class="form-group hwc-checkbox-group">
+              <label class="hwc-checkbox-item">
+                <input type="checkbox" id="create-hemoglobinuria-checkbox" name="free_hemoglobinuria_present" checked>
+                <span>Free Hemoglobinuria Present (Port-Wine Urine / Intravascular Mechanical Hemolysis)</span>
+              </label>
+              <label class="hwc-checkbox-item">
+                <input type="checkbox" id="create-caval-lines-checkbox" name="parallel_hyperechoic_caval_lines" checked>
+                <span>Parallel Hyperechoic Caval Lines Present (Right Atrium / Caudal Vena Cava Worm Mass)</span>
+              </label>
+            </div>
+
+            <button type="submit" id="create-hwc-op-btn" class="btn btn-primary">➕ Admit Heartworm Caval Patient to ICU Cockpit</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active Heartworm Caval Workspace & Intervention / Hemodynamic Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="hwc-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="hwc-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · Class: <strong id="active-severity-class">{{ $active.SeverityClass }}</strong> · Protocol: <strong id="active-protocol">{{ $active.Protocol }}</strong> · Immediate Melarsomine Contraindicated: <strong id="active-melarsomine-guard">{{ if $active.ImmediateMelarsomineContraindicated }}YES (EXTRACT FIRST){{ else }}NO (STAGED){{ end }}</strong></p>
+          </div>
+          <span id="active-op-status-badge" class="hwc-status-badge {{ if eq (printf "%s" $active.Status) "JUGULAR_VENOTOMY_WOLBACHIA_DOXY_STAGED" }}hwc-status-critical{{ else if eq (printf "%s" $active.Status) "PULMONARY_HYPERTENSION_PTE_MONITORED" }}hwc-status-staged{{ else }}hwc-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- Echocardiography & Hemolysis Telemetry Bar -->
+        <div class="hwc-vitals-summary" id="active-vitals-summary">
+          <div class="hwc-vital-chip">
+            <span class="kpi-label">TR Jet Velocity / Est. RVSP</span>
+            <strong id="active-tr-jet">{{ printf "%.2f" $active.TRJetVelocityMS }} m/s ({{ printf "%.1f" $active.EstimatedRVSPMmHg }} mmHg)</strong>
+          </div>
+          <div class="hwc-vital-chip">
+            <span class="kpi-label">Worms Extracted Count</span>
+            <strong id="active-worms-extracted">{{ $active.WormsExtractedCount }} worms</strong>
+          </div>
+          <div class="hwc-vital-chip">
+            <span class="kpi-label">Packed Cell Volume (PCV)</span>
+            <strong id="active-pcv">{{ printf "%.1f" $active.PCVPercent }}%</strong>
+          </div>
+          <div class="hwc-vital-chip">
+            <span class="kpi-label">Hemoglobinuria / Caval Lines</span>
+            <strong id="active-hemoglobinuria">{{ if $active.FreeHemoglobinuriaPresent }}ACTIVE{{ else }}RESOLVED{{ end }} · {{ if $active.ParallelHyperechoicCavalLines }}LINES PRESENT{{ else }}PATENT{{ end }}</strong>
+          </div>
+        </div>
+
+        <!-- Echocardiography & Intravascular Hemolysis Pathophysiology Box -->
+        <div class="hwc-plan-box" id="active-patho-plan-box">
+          <h3>Vena Cava Worm Burden Echocardiography &amp; Intravascular Mechanical Hemolysis Profile</h3>
+          <div class="hwc-plan-grid">
+            <div><strong>Class Pathophysiology:</strong> <span id="plan-patho-summary">{{ $active.PathophysiologySummary }}</span></div>
+            <div><strong>Echocardiography &amp; Bernoulli RVSP:</strong> <span id="plan-echo-caval">{{ $active.EchocardiographyCavalNote }}</span></div>
+            <div><strong>Intravascular Hemolysis &amp; Hemoglobinuria:</strong> <span id="plan-hemolysis-note">{{ $active.HemolysisHemoglobinuriaNote }}</span></div>
+            <div><strong>Adulticide Contraindication Guard:</strong> <span id="plan-adulticide-guard">{{ $active.InterventionStaging.AdulticideContraindicationGuardNote }}</span></div>
+          </div>
+        </div>
+
+        <!-- Jugular Venotomy, Wolbachia Doxycycline & Split-Dose Melarsomine Staging Box -->
+        <div class="hwc-plan-box" id="active-intervention-plan-box">
+          <h3>Jugular Venotomy Extraction, Wolbachia Doxycycline &amp; Split-Dose Melarsomine Protocol</h3>
+          <div class="hwc-plan-grid">
+            <div><strong>Right Jugular Venotomy Extraction Plan:</strong> <span id="plan-jugular-extraction">{{ $active.InterventionStaging.RightJugularVenotomyExtractionPlan }}</span></div>
+            <div><strong>28-Day Wolbachia Doxycycline (10 mg/kg PO q12h):</strong> <span id="plan-wolbachia-doxy">{{ $active.InterventionStaging.WolbachiaDoxycycline28DayPlan }}</span></div>
+            <div><strong>Macrocyclic Lactone &amp; Microfilaricidal Shock Pretreat:</strong> <span id="plan-lactone-pretreat">{{ $active.InterventionStaging.MacrocyclicLactonePretreatPlan }}</span></div>
+            <div><strong>Prednisone Anti-Inflammatory Taper:</strong> <span id="plan-prednisone-taper">{{ $active.InterventionStaging.PrednisoneAntiInflammatoryTaperPlan }}</span></div>
+            <div><strong>Sildenafil Pulmonary Hypertension Support:</strong> <span id="plan-sildenafil-ph">{{ $active.InterventionStaging.SildenafilPulmonaryHypertensionPlan }}</span></div>
+            <div><strong>AHS 3-Dose Split Melarsomine (Days 60, 90, 91) &amp; Cage Rest:</strong> <span id="plan-split-melarsomine">{{ $active.InterventionStaging.SplitDoseMelarsomineScheduleNote }} (Strict Cage Rest: {{ $active.StrictCageRestWeeks }} Weeks)</span></div>
+          </div>
+        </div>
+        {{ end }}
+
+        <hr class="hwc-divider">
+
+        <!-- 1. Stage Jugular Venotomy Extraction & Wolbachia / Split-Dose Melarsomine Intervention Form -->
+        <div class="trust-subsection" id="stage-intervention-section">
+          <h3>1. Stage Right Jugular Venotomy Extraction, 28-Day Wolbachia Doxycycline &amp; Split-Dose Melarsomine Protocol</h3>
+          <form id="stage-intervention-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-protocol-input">Selected Extraction / Adulticide Protocol</label>
+                <select id="stage-protocol-input" name="protocol" class="form-control" required>
+                  <option value="RIGHT_JUGULAR_ISHIHARA_FORCEPS_EXTRACTION" selected>RIGHT_JUGULAR_ISHIHARA_FORCEPS_EXTRACTION (Right Jugular Ishihara Forceps Extraction)</option>
+                  <option value="SPLIT_DOSE_MELARSOMINE_DAY60_90_91">SPLIT_DOSE_MELARSOMINE_DAY60_90_91 (Split-Dose Melarsomine Day 60, 90, 91)</option>
+                  <option value="DOXYCYCLINE_WOLBACHIA_28DAY_PRETREAT">DOXYCYCLINE_WOLBACHIA_28DAY_PRETREAT (Doxycycline Wolbachia 28-Day Pretreat)</option>
+                  <option value="SILDENAFIL_PREDNISONE_CAGE_REST">SILDENAFIL_PREDNISONE_CAGE_REST (Sildenafil + Prednisone + Strict Cage Rest)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="stage-doxy-dose-input">Wolbachia Doxycycline Daily Dose (mg/kg/day · 10 mg/kg PO q12h = 20)</label>
+                <input type="number" id="stage-doxy-dose-input" name="wolbachia_doxycycline_mg_kg_day" class="form-control" min="10.0" max="30.0" step="1.0" value="20.0" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="stage-jugular-plan-input">Right External Jugular Venotomy &amp; Ishihara Alligator Forceps Extraction Plan</label>
+              <input
+                type="text"
+                id="stage-jugular-plan-input"
+                name="right_jugular_venotomy_extraction_plan"
+                class="form-control"
+                value="Right external jugular venotomy with flexible Ishihara alligator forceps under fluoroscopic/echocardiographic guidance until right atrium and vena cava are clear of parallel hyperechoic lines"
+                required
+              >
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-doxy-plan-input">28-Day Wolbachia pipientis Doxycycline Plan (10 mg/kg PO q12h)</label>
+                <input
+                  type="text"
+                  id="stage-doxy-plan-input"
+                  name="wolbachia_doxycycline_28day_plan"
+                  class="form-control"
+                  value="Doxycycline 10 mg/kg PO q12h for 28 days (Days 1–28) to eliminate endosymbiotic Wolbachia pipientis and attenuate pulmonary arterial inflammation"
+                  required
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-lactone-plan-input">Macrocyclic Lactone &amp; Antihistamine/Steroid Pretreatment Plan</label>
+                <input
+                  type="text"
+                  id="stage-lactone-plan-input"
+                  name="macrocyclic_lactone_pretreat_plan"
+                  class="form-control"
+                  value="Macrocyclic lactone preventive Day 1, 30, 60 with Diphenhydramine 2 mg/kg IM + Prednisone 0.5 mg/kg PO to prevent microfilaricidal shock"
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-pred-dose-input">Prednisone Taper Starting Dose (mg/kg/day · 0.5 mg/kg q12h = 1.0)</label>
+                <input type="number" id="stage-pred-dose-input" name="prednisone_taper_mg_kg_day" class="form-control" min="0.25" max="4.0" step="0.25" value="1.0" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-cage-rest-weeks-input">Strict Cage Rest Duration (Weeks · 6–8 Weeks Required)</label>
+                <input type="number" id="stage-cage-rest-weeks-input" name="strict_cage_rest_weeks" class="form-control" min="6" max="16" step="1" value="8" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-sildenafil-plan-input">Sildenafil Pulmonary Hypertension Support (1–3 mg/kg PO q8–12h)</label>
+                <input
+                  type="text"
+                  id="stage-sildenafil-plan-input"
+                  name="sildenafil_pulmonary_hypertension_plan"
+                  class="form-control"
+                  value="Sildenafil 2.0 mg/kg PO q8h + Pimobendan 0.25 mg/kg PO q12h for severe pulmonary hypertension (TR Jet > 3.4 m/s, ΔP > 46 mmHg)"
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-melarsomine-note-input">AHS 3-Dose Split Melarsomine Schedule (Days 60, 90, 91)</label>
+                <input
+                  type="text"
+                  id="stage-melarsomine-note-input"
+                  name="split_dose_melarsomine_schedule_note"
+                  class="form-control"
+                  value="Defer Melarsomine 2.5 mg/kg deep lumbar IM until Day 60 (1st dose) and Days 90 & 91 (2nd/3rd doses 24h apart) after caval extraction and 28-day Wolbachia Doxycycline"
+                >
+              </div>
+            </div>
+
+            <button type="submit" id="stage-intervention-btn" class="btn btn-secondary">🛠️ Stage Jugular Venotomy &amp; Wolbachia / Split-Dose Protocol</button>
+          </form>
+        </div>
+
+        <hr class="hwc-divider">
+
+        <!-- 2. Record Serial Echocardiography & Intravascular Hemolysis Check Form -->
+        <div class="trust-subsection" id="record-hemodynamic-check-section">
+          <h3>2. Record Serial Echocardiography (TR Jet m/s, Caval Lines, Worms Extracted) &amp; Hemolysis (PCV %, Hemoglobinuria) Check</h3>
+          <form id="record-hemodynamic-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-tr-jet-input">Tricuspid Regurgitation (TR) Jet Velocity (m/s)</label>
+                <input type="number" id="check-tr-jet-input" name="tr_jet_velocity_ms" class="form-control" min="0.5" max="6.5" step="0.05" value="2.35" required>
+              </div>
+              <div class="form-group">
+                <label for="check-worms-extracted-input">Cumulative Worms Extracted Count</label>
+                <input type="number" id="check-worms-extracted-input" name="worms_extracted_count" class="form-control" min="0" max="250" step="1" value="31" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-pcv-input">Packed Cell Volume PCV (%)</label>
+                <input type="number" id="check-pcv-input" name="pcv_percent" class="form-control" min="5.0" max="70.0" step="0.5" value="36.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-sildenafil-dose-input">Sildenafil Dose (mg/kg PO q8h)</label>
+                <input type="number" id="check-sildenafil-dose-input" name="sildenafil_mg_kg_dose" class="form-control" min="0.0" max="10.0" step="0.5" value="1.5" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group hwc-checkbox-group">
+                <label class="hwc-checkbox-item">
+                  <input type="checkbox" id="check-hemoglobinuria-checkbox" name="free_hemoglobinuria_present">
+                  <span>Free Hemoglobinuria Still Present</span>
+                </label>
+                <label class="hwc-checkbox-item">
+                  <input type="checkbox" id="check-caval-lines-checkbox" name="parallel_hyperechoic_caval_lines">
+                  <span>Parallel Hyperechoic Caval Lines Still Present</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (Cardiologist / Criticalist)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Thibodaux Broussard, DACVIM (Cardiology)" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="check-note-input">Post-Venotomy Echocardiography &amp; Hemolysis Clinical Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="Post-jugular venotomy check: 31 adult Dirofilaria immitis extracted; parallel hyperechoic caval lines abolished, urine clear straw-yellow (hemoglobinuria resolved), PCV 36.0%, TR jet improved to 2.35 m/s." required>
+            </div>
+
+            <button type="submit" id="record-hemodynamic-check-btn" class="btn btn-secondary">🫀 Record Echocardiography &amp; Hemolysis Check</button>
+          </form>
+
+          <div class="hwc-checks-box">
+            <h4>Serial Echocardiography &amp; Hemolysis Telemetry Checks (<span id="hemodynamic-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.HemodynamicChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="hemodynamic-checks-list" class="hwc-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.HemodynamicChecks }}
+              <li class="hwc-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · TR Jet {{ printf "%.2f" $chk.TRJetVelocityMS }} m/s ({{ printf "%.1f" $chk.EstimatedRVSPMmHg }} mmHg) · Worms Extracted: {{ $chk.WormsExtractedCount }} · PCV {{ printf "%.1f" $chk.PCVPercent }}% · Hemoglobinuria: {{ if $chk.FreeHemoglobinuriaPresent }}ACTIVE{{ else }}Resolved{{ end }} · Caval Lines: {{ if $chk.ParallelHyperechoicCavalLines }}PRESENT{{ else }}Clear{{ end }} — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="hwc-divider">
+
+        <!-- 3. Clear Heartworm Caval Operation for Patent Vena Cava & Antigen-Negative Step-Down Form -->
+        <div class="trust-subsection" id="clear-hwc-section">
+          <h3>3. Clear Caval Patent, Hemoglobinuria Resolved &amp; Strict Cage-Rest Verified Patient for Discharge</h3>
+          <form id="clear-hwc-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clear-tr-jet-input">Final Verified TR Jet Velocity (&le; 2.80 m/s Required)</label>
+                <input type="number" id="clear-tr-jet-input" name="tr_jet_velocity_ms" class="form-control" min="0.5" max="2.8" step="0.05" value="2.35" required>
+              </div>
+              <div class="form-group hwc-checkbox-group">
+                <label class="hwc-checkbox-item">
+                  <input type="checkbox" id="clear-cage-rest-checkbox" name="strict_cage_rest_verified" checked>
+                  <span>Strict 6–8 Week Cage Rest &amp; Leash-Walk Protocol Verified</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="clear-cleared-by-input">Clearing Cardiologist / Criticalist</label>
+              <input type="text" id="clear-cleared-by-input" name="cleared_by" class="form-control" value="Dr. Thibodaux Broussard, DACVIM (Cardiology)" required>
+            </div>
+            <div class="form-group">
+              <label for="clear-summary-input">Caval Patency, Hemolysis Resolution &amp; Thromboembolism Prevention Clearance Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="clearance_summary"
+                class="form-control"
+                value="Caval and right atrial lumen 100% patent (0 parallel hyperechoic lines), intravascular hemolysis and hemoglobinuria resolved, PCV 36.0%, TR jet velocity 2.35 m/s (<= 2.8 m/s), 28-day Wolbachia Doxycycline + 3-dose split Melarsomine and 8-week strict cage rest verified; cleared."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-hwc-btn" class="btn btn-primary">🛡️ Clear Heartworm Caval Patient for Patent Discharge</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/heartworm-caval-triage.js" defer></script>
+</body>
+</html>

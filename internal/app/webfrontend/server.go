@@ -44,6 +44,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/fipgs441524"
 	"github.com/scottdensmore/petspotr/pkg/gdvbloat"
 	"github.com/scottdensmore/petspotr/pkg/hazmatdecon"
+	"github.com/scottdensmore/petspotr/pkg/heartwormcaval"
 	"github.com/scottdensmore/petspotr/pkg/hemoabdomen"
 	"github.com/scottdensmore/petspotr/pkg/hepaticencephalopathy"
 	"github.com/scottdensmore/petspotr/pkg/hyperbaricco"
@@ -160,6 +161,7 @@ type Server struct {
 	ncpeService               *ncpeelectrocution.NCPEService
 	fipService                *fipgs441524.FIPService
 	tetanusBotulismService    *tetanusbotulism.TetanusBotulismService
+	heartwormService          *heartwormcaval.HeartwormService
 	handler                   http.Handler
 }
 
@@ -361,6 +363,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		megaService:               megaesophagusfb.NewMegaesophagusService(),
 		tlsService:                oncologictls.NewTLSService(),
 		orthoService:              polytraumaortho.NewOrthoService(),
+		heartwormService:          heartwormcaval.NewHeartwormService(),
 	}
 	if s.smsWebhookSecret == "" {
 		s.smsWebhookSecret = strings.TrimSpace(os.Getenv("PETSPOTR_SMS_WEBHOOK_SECRET"))
@@ -737,6 +740,8 @@ func (s *Server) routes() {
 	s.registerFIPGS441524Routes()
 	// Acute Tetanus (Clostridium tetani) & Botulism (Clostridium botulinum), Risus Sardonicus / Sawhorse Stance vs. Ascending Flaccid Lower Motor Neuron Paralysis, Equine Tetanus Antitoxin (TAT) Intradermal Test, Metronidazole (vs. Penicillin GABA Antagonism) & Dark/Quiet Sensory-Isolation Cockpit routes (Milestone 25.2)
 	s.registerTetanusBotulismRoutes()
+	// Acute Heartworm Caval Syndrome (Dirofilaria immitis), Vena Cava Worm Burden Echocardiography, Intravascular Hemolysis (Hemoglobinuria), Jugular Venotomy Extraction & Melarsomine Split-Dose / Doxycycline / Macrocyclic Lactone Thromboembolism Prevention Cockpit routes (Milestone 25.1)
+	s.registerHeartwormCavalRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
