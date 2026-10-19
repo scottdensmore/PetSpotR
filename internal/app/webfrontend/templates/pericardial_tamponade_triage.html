@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Pericardial Effusion, Cardiac Tamponade, Electrical Alternans &amp; Right-Sided 4th–5th ICS Pericardiocentesis Cockpit.">
+  <title>Pericardial Effusion, Cardiac Tamponade, Electrical Alternans &amp; Right-Sided 4th–5th ICS Pericardiocentesis Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#pericardial-tamponade-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/cardiogenic-edema-triage" class="nav-link nav-link-emergency" id="nav-cardiogenic-edema-triage">🫁 Cardiogenic Edema ICU</a></li>
+          <li><a href="/pericardial-tamponade-triage" class="nav-link active nav-link-emergency" id="nav-pericardial-tamponade-triage">🫀 Pericardial Tamponade &amp; Centesis ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="pericardial-tamponade-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header tamponade-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🫀 PERICARDIAL EFFUSION, CARDIAC TAMPONADE, ELECTRICAL ALTERNANS &amp; RIGHT-SIDED 4TH–5TH ICS PERICARDIOCENTESIS COCKPIT</span>
+        </div>
+        <h1>Pericardial Effusion, Cardiac Tamponade, Electrical Alternans &amp; Right-Sided 4th–5th ICS Pericardiocentesis Cockpit</h1>
+        <p class="text-secondary">
+          Right Atrial Diastolic Collapse TFAST Detection, Electrical Alternans &amp; Beck's Triad Telemetry, Right 4th–5th ICS Cardiac Notch Pericardiocentesis (Cranial to 5th Rib at Costochondral Junction — Zero Left Paraconal Coronary Artery Laceration Risk), Zero Furosemide/Diuretic Preload Depletion Guard, 2% Lidocaine Block &amp; IV Lidocaine (2.0 mg/kg) VPC Standby, and Red-Top Clot Tube Non-Clotting Verification.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid tamponade-kpi-grid" aria-label="Pericardial Effusion &amp; Cardiac Tamponade KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Pericardial Tamponade Ops</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Tamponade / RA Collapse Critical</span>
+        <strong class="kpi-value" id="kpi-critical-tamponade">{{ .CriticalTamponadeCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Right 4th–5th ICS Centesis Staged</span>
+        <strong class="kpi-value" id="kpi-staged-centesis">{{ .RightICS45TapStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Decompressed &amp; Sinus Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-decompressed">{{ .DecompressedSinusClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Furosemide &amp; Left Coronary Hazards</span>
+        <strong class="kpi-value" id="kpi-furosemide-coronary-alerts">{{ .FurosemideLeftCoronaryHazardAlerts }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="tamponade-live-status" class="humane-traps-live-status tamponade-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} pericardial effusion, cardiac tamponade &amp; right 4th–5th ICS pericardiocentesis operations.
+    </div>
+
+    <!-- Global Furosemide Preload Depletion & Left Coronary Artery Laceration Pitfall Alert Banner -->
+    <div id="tamponade-alert-banner" class="tamponade-alert-banner" role="alert" aria-live="assertive">
+      {{ if and .ActiveOperation .ActiveOperation.CentresisPlan }}
+      ⚠️ PERICARDIAL TAMPONADE, FUROSEMIDE PRELOAD &amp; LEFT CORONARY ARTERY GUARD ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }} · Approach {{ .ActiveOperation.CentresisPlan.ApproachSideAndICS }} · HR {{ .ActiveOperation.PatientProfile.HeartRateBpm }} bpm · MAP {{ .ActiveOperation.PatientProfile.MeanArterialPressureMmHg }} mmHg · Pulsus Paradoxus {{ .ActiveOperation.PatientProfile.PulsusParadoxusMmHg }} mmHg): {{ .ActiveOperation.CentresisPlan.TamponadePitfallAlert }}
+      {{ else }}
+      ⚠️ CRITICAL PERICARDIAL TAMPONADE, FUROSEMIDE PRELOAD &amp; LEFT CORONARY ARTERY PITFALL ALERT: NEVER administer Furosemide or diuretics in cardiac tamponade (diuretics deplete right ventricular preload and precipitate immediate fatal cardiovascular collapse); NEVER perform left-sided pericardiocentesis (which risks lacerating the left paraconal interventricular coronary artery — always use the RIGHT 4th–5th ICS cardiac notch); and ALWAYS test the first aspirated aliquot in a red-top clot tube to rule out intracardiac ventricular puncture.
+      {{ end }}
+    </div>
+
+    <!-- Global Decompressed Pericardial Sac & Sinus Rhythm Discharge Clearance Banner -->
+    <div id="tamponade-clearance-banner" class="tamponade-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation .ActiveOperation.DischargeClearance) }}hidden{{ end }}>
+      {{ if and .ActiveOperation .ActiveOperation.DischargeClearance }}
+      ✅ PERICARDIOCENTESIS DECOMPRESSION &amp; SINUS RHYTHM DISCHARGE CLEARANCE VERIFIED ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }}): Final MAP {{ .ActiveOperation.DischargeClearance.FinalMAPMmHg }} mmHg · Vet License {{ .ActiveOperation.DischargeClearance.VetLicense }} — {{ .ActiveOperation.DischargeClearance.Summary }}
+      {{ else }}
+      ✅ PERICARDIOCENTESIS DECOMPRESSION &amp; SINUS RHYTHM DISCHARGE CLEARANCE VERIFIED
+      {{ end }}
+    </div>
+
+    <div class="trust-cockpit-grid tamponade-cockpit-grid">
+      <!-- Left Column: Intake Form & Active Operation Plan / Tap Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="tamponade-forms-panel" aria-labelledby="heading-tamponade-intake">
+        <div class="trust-panel-header">
+          <h2 id="heading-tamponade-intake">1. Pericardial Effusion &amp; Cardiac Tamponade Intake</h2>
+          <span class="status-pill status-pill-staged">Right 4th–5th ICS · Clot Tube · Zero Furosemide</span>
+        </div>
+
+        <div id="tamponade-error-banner" class="tamponade-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="create-tamponade-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-incident-id">Incident ID</label>
+              <input type="text" id="create-incident-id" name="incident_id" class="form-control" value="INC-PT-9924" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pet-name">Pet Name</label>
+              <input type="text" id="create-pet-name" name="pet_name" class="form-control" value="Goliath" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-species">Pericardial Effusion Etiology Classification</label>
+              <select id="create-species" name="species" class="form-control" required>
+                <option value="CANINE_RIGHT_ATRIAL_HEMANGIOSARCOMA" selected>CANINE_RIGHT_ATRIAL_HEMANGIOSARCOMA (Right Atrial Appendage Hemangiosarcoma)</option>
+                <option value="CANINE_HEART_BASE_CHEMODECTOMA">CANINE_HEART_BASE_CHEMODECTOMA (Brachycephalic Aortic Body / Chemodectoma)</option>
+                <option value="CANINE_IDIOPATHIC_PERICARDITIS">CANINE_IDIOPATHIC_PERICARDITIS (Idiopathic Hemorrhagic Pericardial Effusion)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-breed">Breed</label>
+              <input type="text" id="create-breed" name="breed" class="form-control" value="German Shepherd">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-weight-kg">Weight (kg)</label>
+              <input type="number" id="create-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="36.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-heart-rate">Heart Rate (bpm)</label>
+              <input type="number" id="create-heart-rate" name="heart_rate_bpm" class="form-control" min="30" max="300" step="1" value="190" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-map">Mean Arterial Pressure MAP (mmHg)</label>
+              <input type="number" id="create-map" name="mean_arterial_pressure_mmhg" class="form-control" min="25" max="200" step="1" value="50" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pulsus-paradoxus">Pulsus Paradoxus (mmHg)</label>
+              <input type="number" id="create-pulsus-paradoxus" name="pulsus_paradoxus_mmhg" class="form-control" min="0" max="60" step="1" value="20" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="create-effusion-pcv">Pericardial Effusion PCV (%)</label>
+            <input type="number" id="create-effusion-pcv" name="effusion_pcv_percent" class="form-control" min="0.0" max="75.0" step="0.5" value="30.0" required>
+          </div>
+
+          <div class="tamponade-checkbox-group">
+            <label class="tamponade-checkbox-item">
+              <input type="checkbox" id="create-ra-collapse" name="right_atrial_diastolic_collapse" checked>
+              <span>Right Atrial &amp; Ventricular Diastolic Collapse Present on TFAST / Echocardiogram</span>
+            </label>
+            <label class="tamponade-checkbox-item">
+              <input type="checkbox" id="create-electrical-alternans" name="electrical_alternans_present" checked>
+              <span>Electrical Alternans (Beat-to-Beat QRS Amplitude Swinging) Present on Lead II ECG</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-create-tamponade-op" class="btn btn-primary">Create Pericardial Tamponade Operation</button>
+        </form>
+
+        <hr class="tamponade-divider">
+
+        <!-- Stage Right 4th-5th ICS Pericardiocentesis Plan Form -->
+        <div class="trust-subsection" id="stage-plan-section">
+          <h3 id="heading-stage-plan">2. Stage Right 4th–5th ICS Cardiac Notch Pericardiocentesis Plan</h3>
+          <form id="stage-plan-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-weight-kg">Weight (kg)</label>
+                <input type="number" id="stage-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.WeightKg }}{{ else }}33.0{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-species">Pericardial Effusion Etiology</label>
+                <select id="stage-species" name="species" class="form-control" required>
+                  <option value="CANINE_RIGHT_ATRIAL_HEMANGIOSARCOMA">CANINE_RIGHT_ATRIAL_HEMANGIOSARCOMA (RA Hemangiosarcoma)</option>
+                  <option value="CANINE_HEART_BASE_CHEMODECTOMA">CANINE_HEART_BASE_CHEMODECTOMA (Heart Base Chemodectoma)</option>
+                  <option value="CANINE_IDIOPATHIC_PERICARDITIS">CANINE_IDIOPATHIC_PERICARDITIS (Idiopathic Pericarditis)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-heart-rate">Heart Rate (bpm)</label>
+                <input type="number" id="stage-heart-rate" name="heart_rate_bpm" class="form-control" min="30" max="300" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.HeartRateBpm }}{{ else }}185{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-map">Mean Arterial Pressure MAP (mmHg)</label>
+                <input type="number" id="stage-map" name="mean_arterial_pressure_mmhg" class="form-control" min="25" max="200" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.MeanArterialPressureMmHg }}{{ else }}52{{ end }}" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-pulsus-paradoxus">Pulsus Paradoxus (mmHg)</label>
+                <input type="number" id="stage-pulsus-paradoxus" name="pulsus_paradoxus_mmhg" class="form-control" min="0" max="60" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.PulsusParadoxusMmHg }}{{ else }}18{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-effusion-pcv">Effusion PCV (%)</label>
+                <input type="number" id="stage-effusion-pcv" name="effusion_pcv_percent" class="form-control" min="0.0" max="75.0" step="0.5" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.EffusionPCVPercent }}{{ else }}28.0{{ end }}" required>
+              </div>
+            </div>
+            <button type="submit" id="btn-stage-plan" class="btn btn-secondary">🫀 Stage Right 4th–5th ICS Pericardiocentesis Plan</button>
+          </form>
+        </div>
+
+        <hr class="tamponade-divider">
+
+        <!-- Pericardiocentesis Tap & Red-Top Clot Tube Non-Clotting Check Form -->
+        <div class="trust-subsection" id="tap-check-section">
+          <h3 id="heading-tap-check">3. Record Pericardiocentesis Tap &amp; Red-Top Clot Tube Non-Clotting Check</h3>
+          <form id="tap-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-volume-aspirated">Volume Aspirated (mL)</label>
+                <input type="number" id="check-volume-aspirated" name="volume_aspirated_ml" class="form-control" min="1.0" max="2500.0" step="1.0" value="260.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-post-tap-map">Post-Tap MAP (mmHg)</label>
+                <input type="number" id="check-post-tap-map" name="post_tap_map_mmhg" class="form-control" min="25" max="200" step="1" value="88" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-post-tap-hr">Post-Tap Heart Rate (bpm)</label>
+                <input type="number" id="check-post-tap-hr" name="post_tap_heart_rate_bpm" class="form-control" min="30" max="300" step="1" value="108" required>
+              </div>
+              <div class="form-group">
+                <label for="check-callsign">Clinician Callsign</label>
+                <input type="text" id="check-callsign" name="clinician_callsign" class="form-control" value="DR-CARDIO-11" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-notes">Pericardiocentesis Tap, Clot Tube &amp; ECG Notes</label>
+              <input type="text" id="check-notes" name="notes" class="form-control" value="260 mL non-clotting port-wine effusion aspirated via right 4th-5th ICS; RA diastolic collapse and electrical alternans resolved.">
+            </div>
+            <div class="tamponade-checkbox-group">
+              <label class="tamponade-checkbox-item">
+                <input type="checkbox" id="check-non-clotting-verified" name="sample_non_clotting_verified" checked>
+                <span>First Aliquot Tested in Red-Top Clot Tube &amp; Verified Non-Clotting (Rules Out Intracardiac Chamber Puncture)</span>
+              </label>
+              <label class="tamponade-checkbox-item">
+                <input type="checkbox" id="check-ventricular-arrhythmias" name="ventricular_arrhythmias_noted">
+                <span>Catheter-Induced Ventricular Premature Complexes (VPCs) Noted on Continuous ECG</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-record-tap-check" class="btn btn-secondary">🩺 Log Pericardiocentesis Tap &amp; Clot-Tube Check</button>
+          </form>
+        </div>
+
+        <hr class="tamponade-divider">
+
+        <!-- Discharge Clearance Form -->
+        <div class="trust-subsection" id="discharge-clearance-section">
+          <h3 id="heading-discharge-clearance">4. Issue Decompressed Pericardial Sac &amp; Sinus Rhythm Clearance</h3>
+          <form id="discharge-clearance-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-final-map">Final MAP (mmHg, 75–120)</label>
+                <input type="number" id="clearance-final-map" name="final_map_mmhg" class="form-control" min="75" max="120" step="1" value="94" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-vet-license">Attending Veterinarian License</label>
+                <input type="text" id="clearance-vet-license" name="vet_license" class="form-control" value="VET-CARDIO-99210" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="clearance-summary">Discharge Summary &amp; Oncology / Yunnan Baiyao Plan</label>
+              <input type="text" id="clearance-summary" name="summary" class="form-control" value="Right 4th-5th ICS pericardiocentesis decompression complete; 24h repeat TFAST negative for reaccumulation; sinus rhythm without VPCs; Yunnan Baiyao &amp; oncology staging scheduled.">
+            </div>
+            <div class="tamponade-checkbox-group">
+              <label class="tamponade-checkbox-item">
+                <input type="checkbox" id="clearance-ra-collapse-resolved" name="right_atrial_collapse_resolved" checked>
+                <span>Right Atrial &amp; Ventricular Diastolic Collapse Resolved on Post-Tap TFAST / Echocardiogram</span>
+              </label>
+              <label class="tamponade-checkbox-item">
+                <input type="checkbox" id="clearance-tfast-no-reaccumulation" name="repeat_tfast_24hr_no_reaccumulation" checked>
+                <span>24-Hour Serial Repeat TFAST Confirmed Zero Pericardial Effusion Reaccumulation</span>
+              </label>
+              <label class="tamponade-checkbox-item">
+                <input type="checkbox" id="clearance-sinus-no-vpcs" name="sinus_rhythm_no_vpcs" checked>
+                <span>Normal Sinus Rhythm Without Ventricular Premature Complexes (VPCs) or Electrical Alternans</span>
+              </label>
+              <label class="tamponade-checkbox-item">
+                <input type="checkbox" id="clearance-oncology-educated" name="yunnan_baiyao_or_oncology_plan_educated" checked>
+                <span>Yunnan Baiyao Hemostatic Support, Pericardiectomy / Oncology Consult &amp; Recurrence Signs Educated</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-issue-discharge-clearance" class="btn btn-primary">🛡️ Issue Pericardiocentesis Decompression Clearance</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Queue -->
+      <section class="glass-card trust-panel" id="tamponade-ops-panel" aria-labelledby="heading-tamponade-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-tamponade-ops">Active Pericardial Tamponade &amp; Centesis Operations</h2>
+          <span id="tamponade-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col tamponade-filter-bar" role="region" aria-label="Filter Pericardial Tamponade Operations">
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="TAMPONADE_RA_COLLAPSE_ALTERNANS_CRITICAL">TAMPONADE_RA_COLLAPSE_ALTERNANS_CRITICAL</option>
+              <option value="RIGHT_ICS_4_5_PERICARDIOCENTESIS_STAGED">RIGHT_ICS_4_5_PERICARDIOCENTESIS_STAGED</option>
+              <option value="DECOMPRESSED_RA_EXPANDED_SINUS_CLEARED">DECOMPRESSED_RA_EXPANDED_SINUS_CLEARED</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-species">Filter by Pericardial Effusion Etiology</label>
+            <select id="filter-species" class="form-control">
+              <option value="">All Pericardial Etiologies</option>
+              <option value="CANINE_RIGHT_ATRIAL_HEMANGIOSARCOMA">CANINE_RIGHT_ATRIAL_HEMANGIOSARCOMA</option>
+              <option value="CANINE_HEART_BASE_CHEMODECTOMA">CANINE_HEART_BASE_CHEMODECTOMA</option>
+              <option value="CANINE_IDIOPATHIC_PERICARDITIS">CANINE_IDIOPATHIC_PERICARDITIS</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="tamponade-active-workspace" role="region" aria-label="Active Pericardial Tamponade Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="tamponade-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-pet-title">Active Workspace: {{ $active.PetName }} ({{ $active.PatientProfile.Species }}{{ if $active.PatientProfile.Breed }} · {{ $active.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $active.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id" id="workspace-op-code">{{ $active.ID }} · {{ $active.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species" id="workspace-species-pill">{{ $active.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $active.Status) "TAMPONADE_RA_COLLAPSE_ALTERNANS_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $active.Status) "RIGHT_ICS_4_5_PERICARDIOCENTESIS_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}" id="workspace-status-pill">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="tamponade-vitals-summary" id="workspace-vitals-summary">
+              <span><strong>HR:</strong> {{ $active.PatientProfile.HeartRateBpm }} bpm</span>
+              <span><strong>MAP:</strong> {{ $active.PatientProfile.MeanArterialPressureMmHg }} mmHg</span>
+              <span><strong>RA Diastolic Collapse:</strong> {{ if $active.PatientProfile.RightAtrialDiastolicCollapse }}YES{{ else }}NO{{ end }}</span>
+              <span><strong>Electrical Alternans:</strong> {{ if $active.PatientProfile.ElectricalAlternansPresent }}YES{{ else }}NO{{ end }}</span>
+              <span><strong>Pulsus Paradoxus:</strong> {{ $active.PatientProfile.PulsusParadoxusMmHg }} mmHg</span>
+              <span><strong>Effusion PCV:</strong> {{ printf "%.1f" $active.PatientProfile.EffusionPCVPercent }}%</span>
+            </div>
+
+            {{ if $active.CentresisPlan }}
+            <div class="tamponade-plan-box" id="workspace-plan-box">
+              <h4>Calculated Right 4th–5th ICS Pericardiocentesis, Lidocaine &amp; Preload Expansion Plan</h4>
+              <div class="tamponade-doses-grid">
+                <div><strong>Approach Side &amp; ICS:</strong> <span id="plan-approach-ics">{{ $active.CentresisPlan.ApproachSideAndICS }}</span></div>
+                <div><strong>Anatomic Landmark:</strong> <span id="plan-landmark">{{ $active.CentresisPlan.CostochondralJunctionLandmark }}</span></div>
+                <div><strong>2% Lidocaine Block:</strong> <span id="plan-lidocaine-infilt">{{ printf "%.2f" $active.CentresisPlan.Lidocaine2PctInfiltrationMl }} mL</span></div>
+                <div><strong>IV Lidocaine (2 mg/kg):</strong> <span id="plan-lidocaine-iv">{{ printf "%.1f" $active.CentresisPlan.LidocaineIV2MgKgArrhythmiaMg }} mg IV</span></div>
+                <div><strong>Crystalloid Preload (10 mL/kg):</strong> <span id="plan-crystalloid-bolus">{{ printf "%.1f" $active.CentresisPlan.CrystalloidPreloadExpansionMl }} mL IV</span></div>
+                <div><strong>Clot-Tube Non-Clotting Check:</strong> <span id="plan-clot-tube-guard">{{ if $active.CentresisPlan.ClotTubeIatrogenicPunctureCheck }}REQUIRED{{ else }}OFF{{ end }}</span></div>
+                <div><strong>Zero Furosemide Diuretic Guard:</strong> <span id="plan-furosemide-guard">{{ if $active.CentresisPlan.ZeroFurosemideDiureticGuard }}ENFORCED{{ else }}OFF{{ end }}</span></div>
+              </div>
+              <p class="tamponade-rationale-text" id="workspace-clinical-rationale">{{ $active.CentresisPlan.ClinicalRationale }}</p>
+            </div>
+            {{ end }}
+
+            <div class="tamponade-tap-checks-box">
+              <h4>Pericardiocentesis Tap &amp; Red-Top Clot Tube Checks (<span id="workspace-checks-count">{{ len $active.TapChecks }}</span>)</h4>
+              <ul id="tap-checks-list" class="tamponade-checks-list">
+                {{ range $chk := $active.TapChecks }}
+                <li class="tamponade-check-item">
+                  <strong>{{ $chk.ClinicianCallsign }}</strong> · Aspirated {{ printf "%.1f" $chk.VolumeAspiratedMl }} mL · Non-Clotting Verified: {{ if $chk.SampleNonClottingVerified }}YES{{ else }}NO{{ end }} · Post-Tap MAP {{ $chk.PostTapMAPMmHg }} mmHg · Post-Tap HR {{ $chk.PostTapHeartRateBpm }} bpm — {{ $chk.Notes }}
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="tamponade-operations-list" class="trust-screenings-list tamponade-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card tamponade-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-species="{{ $op.PatientProfile.Species }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.PatientProfile.Species }}{{ if $op.PatientProfile.Breed }} · {{ $op.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $op.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species">{{ $op.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $op.Status) "TAMPONADE_RA_COLLAPSE_ALTERNANS_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $op.Status) "RIGHT_ICS_4_5_PERICARDIOCENTESIS_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row tamponade-metrics-row">
+              <span class="status-pill status-pill-species">HR: {{ $op.PatientProfile.HeartRateBpm }} bpm • MAP: {{ $op.PatientProfile.MeanArterialPressureMmHg }} mmHg • RA Collapse: {{ if $op.PatientProfile.RightAtrialDiastolicCollapse }}YES{{ else }}NO{{ end }} • Alternans: {{ if $op.PatientProfile.ElectricalAlternansPresent }}YES{{ else }}NO{{ end }} • Effusion PCV: {{ printf "%.1f" $op.PatientProfile.EffusionPCVPercent }}%</span>
+            </div>
+
+            {{ if $op.FurosemideLeftCorpnaryHazardAlert }}
+            <div class="tamponade-alert-banner">
+              ⚠️ FUROSEMIDE PRELOAD &amp; LEFT CORONARY ARTERY GUARD (Approach Right 4th-5th ICS Cardiac Notch · HR {{ $op.PatientProfile.HeartRateBpm }} bpm · MAP {{ $op.PatientProfile.MeanArterialPressureMmHg }} mmHg): {{ if $op.CentresisPlan }}{{ $op.CentresisPlan.TamponadePitfallAlert }}{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if $op.DischargeClearance }}
+            <div class="tamponade-clearance-banner">
+              ✅ DECOMPRESSED &amp; SINUS CLEARED ({{ $op.DischargeClearance.VetLicense }}): Final MAP {{ $op.DischargeClearance.FinalMAPMmHg }} mmHg · 24h TFAST Clear
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary tamponade-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select Operation ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="tamponade-ops-empty-msg">No Pericardial Tamponade &amp; Pericardiocentesis triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/pericardial-tamponade-triage.js" defer></script>
+</body>
+</html>

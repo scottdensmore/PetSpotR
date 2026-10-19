@@ -48,6 +48,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/neonatalincubator"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
+	"github.com/scottdensmore/petspotr/pkg/pericardialtamponade"
 	"github.com/scottdensmore/petspotr/pkg/pubsub"
 	"github.com/scottdensmore/petspotr/pkg/ratelimit"
 	"github.com/scottdensmore/petspotr/pkg/reptileectotherm"
@@ -122,6 +123,7 @@ type Server struct {
 	imhaService               *imhathrombosis.IMHAService
 	tbiService                *traumaticbrain.TBIService
 	addisonianService         *addisoniancrisis.AddisonianService
+	tamponadeService          *pericardialtamponade.TamponadeService
 	handler                   http.Handler
 }
 
@@ -305,6 +307,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		dkaService:                dkainsulin.NewDKAService(),
 		tbiService:                traumaticbrain.NewTBIService(),
 		addisonianService:         addisoniancrisis.NewAddisonianService(),
+		tamponadeService:          pericardialtamponade.NewTamponadeService(),
 		imhaService:               imhathrombosis.NewIMHAService(),
 		peritonitisService:        septicperitonitis.NewPeritonitisService(),
 	}
@@ -645,6 +648,8 @@ func (s *Server) routes() {
 	s.registerTraumaticBrainRoutes()
 	// Hypoadrenocorticism (Addisonian Crisis), Na:K Ratio < 27, Dexamethasone-SP & DOCP Triage Cockpit routes (Milestone 20.4)
 	s.registerAddisonianCrisisRoutes()
+	// Pericardial Effusion, Cardiac Tamponade, Electrical Alternans & Right-Sided 4th–5th ICS Pericardiocentesis Cockpit routes (Milestone 21.4)
+	s.registerPericardialTamponadeRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
