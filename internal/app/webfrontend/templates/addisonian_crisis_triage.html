@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Hypoadrenocorticism (Addisonian Crisis), Na:K Ratio &lt; 27, Dexamethasone-SP (Zero Prednisolone Assay Cross-Reactivity) &amp; DOCP Triage Cockpit.">
+  <title>Hypoadrenocorticism (Addisonian Crisis), Na:K Ratio &lt; 27, Dexamethasone-SP &amp; DOCP Triage Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#addisonian-crisis-triage-main" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/dka-insulin-triage" class="nav-link nav-link-emergency" id="nav-dka-insulin-triage">💉 DKA &amp; Insulin CRI ICU</a></li>
+          <li><a href="/addisonian-crisis-triage" class="nav-link active nav-link-emergency" id="nav-addisonian-crisis-triage">🧪 Addisonian Crisis &amp; DOCP ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="addisonian-crisis-triage-main" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header addisonian-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🧪 HYPOADRENOCORTICISM (ADDISONIAN CRISIS), Na:K RATIO &lt; 27, DEXAMETHASONE-SP &amp; DOCP TRIAGE COCKPIT</span>
+        </div>
+        <h1>Hypoadrenocorticism (Addisonian Crisis), Na:K Ratio &lt; 27, Dexamethasone-SP &amp; DOCP Triage Cockpit</h1>
+        <p class="text-secondary">
+          0.9% Isotonic NaCl Shock Aliquot (20 mL/kg), Dexamethasone-SP (0.25 mg/kg IV — Zero Prednisolone/Hydrocortisone Cortisol Immunoassay Cross-Reactivity), Cosyntropin ACTH Stimulation Test (5 mcg/kg IV, Max 250 mcg), 10% Calcium Gluconate Cardioprotection (0.5 mL/kg IV for K+ &ge; 7.0 mEq/L or HR &lt; 60 bpm), Osmotic Demyelination Syndrome Guard (Max Na+ Rise &le; 10–12 mEq/L/24h) &amp; Desoxycorticosterone Pivalate (DOCP 2.2 mg/kg SubQ) Maintenance.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid addisonian-kpi-grid" aria-label="Hypoadrenocorticism &amp; Addisonian Crisis KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Addisonian ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Addisonian Shock / Hyperkalemia Critical</span>
+        <strong class="kpi-value" id="kpi-critical-shock">{{ .CriticalShockCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Dex-SP / 0.9% NaCl / ACTH Stim Staged</span>
+        <strong class="kpi-value" id="kpi-staged-dex-sp">{{ .DexSPACTHStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">DOCP &amp; Prednisone Eukalemic Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-docp">{{ .DOCPEukalemicClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Osmotic Myelinolysis &amp; Assay Alerts</span>
+        <strong class="kpi-value" id="kpi-myelinolysis-alerts">{{ .MyelinolysisAssayAlertCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="addisonian-live-status" class="humane-traps-live-status addisonian-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} hypoadrenocorticism (Addisonian crisis), Dexamethasone-SP &amp; DOCP operations.
+    </div>
+
+    <!-- Global Prednisolone Cross-Reactivity & Osmotic Demyelination Syndrome Pitfall Alert Banner -->
+    <div id="addisonian-alert-banner" class="addisonian-alert-banner" role="alert" aria-live="assertive">
+      {{ if and .ActiveOperation .ActiveOperation.ResuscitationRegimen }}
+      ⚠️ ADDISONIAN CRISIS, CORTISOL ASSAY &amp; OSMOTIC DEMYELINATION GUARD ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }} · Na:K {{ printf "%.1f" .ActiveOperation.ResuscitationRegimen.SodiumPotassiumRatio }} · Na+ {{ printf "%.1f" .ActiveOperation.PatientProfile.SerumSodiumMeqL }} mEq/L · K+ {{ printf "%.1f" .ActiveOperation.PatientProfile.SerumPotassiumMeqL }} mEq/L · Max Na+ Rise &le; {{ printf "%.1f" .ActiveOperation.ResuscitationRegimen.MaxSodiumRiseRateMeqLDay }} mEq/L/day): {{ .ActiveOperation.ResuscitationRegimen.AddisonianPitfallAlert }}
+      {{ else }}
+      ⚠️ CRITICAL ADDISONIAN CRISIS &amp; OSMOTIC DEMYELINATION PITFALL ALERT: NEVER administer Prednisone, Prednisolone, or Hydrocortisone before completing the ACTH stimulation test (they cross-react with the cortisol immunoassay — use Dexamethasone-SP 0.25 mg/kg IV instead); and NEVER raise serum Sodium &gt; 10–12 mEq/L/24h in chronic hyponatremia (&lt; 125 mEq/L), which causes fatal central pontine myelinolysis.
+      {{ end }}
+    </div>
+
+    <!-- Global DOCP & Oral Prednisone Eukalemic Discharge Clearance Banner -->
+    <div id="addisonian-clearance-banner" class="addisonian-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation .ActiveOperation.DischargeClearance) }}hidden{{ end }}>
+      {{ if and .ActiveOperation .ActiveOperation.DischargeClearance }}
+      ✅ DOCP &amp; ORAL PREDNISONE EUKALEMIC DISCHARGE CLEARANCE VERIFIED ({{ .ActiveOperation.ID }} — {{ .ActiveOperation.PetName }}): Na:K Ratio {{ printf "%.1f" .ActiveOperation.DischargeClearance.FinalSodiumPotassiumRatio }} · K+ {{ printf "%.1f" .ActiveOperation.DischargeClearance.FinalSerumPotassiumMeqL }} mEq/L · Vet License {{ .ActiveOperation.DischargeClearance.VetLicense }} — {{ .ActiveOperation.DischargeClearance.Summary }}
+      {{ else }}
+      ✅ DOCP &amp; ORAL PREDNISONE EUKALEMIC DISCHARGE CLEARANCE VERIFIED
+      {{ end }}
+    </div>
+
+    <div class="trust-cockpit-grid addisonian-cockpit-grid">
+      <!-- Left Column: Intake Form & Active Operation Regimen / Electrolyte Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="addisonian-forms-panel" aria-labelledby="heading-addisonian-intake">
+        <div class="trust-panel-header">
+          <h2 id="heading-addisonian-intake">1. Hypoadrenocorticism (Addisonian Crisis) Intake</h2>
+          <span class="status-pill status-pill-staged">Dex-SP · 0.9% NaCl · ACTH Stim</span>
+        </div>
+
+        <div id="addisonian-error-banner" class="addisonian-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+        <form id="create-addisonian-form" class="trust-form" novalidate>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-incident-id">Incident ID</label>
+              <input type="text" id="create-incident-id" name="incident_id" class="form-control" value="INC-AC-9604" required>
+            </div>
+            <div class="form-group">
+              <label for="create-pet-name">Pet Name</label>
+              <input type="text" id="create-pet-name" name="pet_name" class="form-control" value="Louie" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-species">Hypoadrenocorticism Syndrome Classification</label>
+              <select id="create-species" name="species" class="form-control" required>
+                <option value="CANINE_TYPICAL_ADDISONS" selected>CANINE_TYPICAL_ADDISONS (Mineralocorticoid + Glucocorticoid Deficiency — Na:K &lt; 27)</option>
+                <option value="CANINE_ATYPICAL_GLUCOCORTICOID">CANINE_ATYPICAL_GLUCOCORTICOID (Isolated Glucocorticoid Deficiency — Normal Na:K)</option>
+                <option value="FELINE_HYPOADRENOCORTICISM">FELINE_HYPOADRENOCORTICISM (Primary Feline Adrenocortical Insufficiency)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="create-breed">Breed</label>
+              <input type="text" id="create-breed" name="breed" class="form-control" value="Bearded Collie">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-weight-kg">Weight (kg)</label>
+              <input type="number" id="create-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="22.0" required>
+            </div>
+            <div class="form-group">
+              <label for="create-sodium">Serum Sodium Na+ (mEq/L)</label>
+              <input type="number" id="create-sodium" name="serum_sodium_meq_l" class="form-control" min="95.0" max="180.0" step="0.5" value="123.0" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-potassium">Serum Potassium K+ (mEq/L)</label>
+              <input type="number" id="create-potassium" name="serum_potassium_meq_l" class="form-control" min="2.0" max="12.0" step="0.1" value="7.5" required>
+            </div>
+            <div class="form-group">
+              <label for="create-blood-glucose">Blood Glucose (mg/dL)</label>
+              <input type="number" id="create-blood-glucose" name="blood_glucose_mg_dl" class="form-control" min="15.0" max="600.0" step="1.0" value="56.0" required>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="create-heart-rate">Heart Rate (bpm)</label>
+              <input type="number" id="create-heart-rate" name="heart_rate_bpm" class="form-control" min="25" max="300" step="1" value="54" required>
+            </div>
+            <div class="form-group">
+              <label for="create-systolic-bp">Systolic Blood Pressure (mmHg)</label>
+              <input type="number" id="create-systolic-bp" name="systolic_blood_pressure_mmhg" class="form-control" min="30" max="260" step="1" value="70" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="create-resting-cortisol">Resting Basal Cortisol (mcg/dL)</label>
+            <input type="number" id="create-resting-cortisol" name="resting_cortisol_mcg_dl" class="form-control" min="0.0" max="25.0" step="0.1" value="0.2" required>
+          </div>
+
+          <button type="submit" id="btn-create-addisonian-op" class="btn btn-primary">Create Addisonian Crisis Operation</button>
+        </form>
+
+        <hr class="addisonian-divider">
+
+        <!-- Stage 0.9% NaCl, Dexamethasone-SP & Cosyntropin ACTH Stim Regimen Form -->
+        <div class="trust-subsection" id="stage-regimen-section">
+          <h3 id="heading-stage-regimen">2. Stage 0.9% NaCl, Dexamethasone-SP &amp; Cosyntropin ACTH Stim Regimen</h3>
+          <form id="stage-regimen-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-weight-kg">Weight (kg)</label>
+                <input type="number" id="stage-weight-kg" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.WeightKg }}{{ else }}23.5{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-species">Addisonian Syndrome</label>
+                <select id="stage-species" name="species" class="form-control" required>
+                  <option value="CANINE_TYPICAL_ADDISONS">CANINE_TYPICAL_ADDISONS (Typical Na:K &lt; 27)</option>
+                  <option value="CANINE_ATYPICAL_GLUCOCORTICOID">CANINE_ATYPICAL_GLUCOCORTICOID (Atypical)</option>
+                  <option value="FELINE_HYPOADRENOCORTICISM">FELINE_HYPOADRENOCORTICISM (Feline)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-sodium">Serum Sodium Na+ (mEq/L)</label>
+                <input type="number" id="stage-sodium" name="serum_sodium_meq_l" class="form-control" min="95.0" max="180.0" step="0.5" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.SerumSodiumMeqL }}{{ else }}124.0{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-potassium">Serum Potassium K+ (mEq/L)</label>
+                <input type="number" id="stage-potassium" name="serum_potassium_meq_l" class="form-control" min="2.0" max="12.0" step="0.1" value="{{ if .ActiveOperation }}{{ printf "%.1f" .ActiveOperation.PatientProfile.SerumPotassiumMeqL }}{{ else }}7.8{{ end }}" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-heart-rate">Heart Rate (bpm)</label>
+                <input type="number" id="stage-heart-rate" name="heart_rate_bpm" class="form-control" min="25" max="300" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.HeartRateBpm }}{{ else }}52{{ end }}" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-systolic-bp">Systolic BP (mmHg)</label>
+                <input type="number" id="stage-systolic-bp" name="systolic_blood_pressure_mmhg" class="form-control" min="30" max="260" step="1" value="{{ if .ActiveOperation }}{{ .ActiveOperation.PatientProfile.SystolicBloodPressureMmHg }}{{ else }}68{{ end }}" required>
+              </div>
+            </div>
+            <button type="submit" id="btn-stage-regimen" class="btn btn-secondary">🧪 Stage 0.9% NaCl / Dexamethasone-SP / ACTH Stim Regimen</button>
+          </form>
+        </div>
+
+        <hr class="addisonian-divider">
+
+        <!-- Serial Electrolyte, 24h Na+ Rise & Post-ACTH Cortisol Check Form -->
+        <div class="trust-subsection" id="electrolyte-check-section">
+          <h3 id="heading-electrolyte-check">3. Record Serial Electrolyte, 24h Na+ Rise &amp; Post-ACTH Cortisol Check</h3>
+          <form id="electrolyte-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-sodium">Serum Sodium Na+ (mEq/L)</label>
+                <input type="number" id="check-sodium" name="serum_sodium_meq_l" class="form-control" min="95.0" max="180.0" step="0.5" value="131.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-potassium">Serum Potassium K+ (mEq/L)</label>
+                <input type="number" id="check-potassium" name="serum_potassium_meq_l" class="form-control" min="2.0" max="12.0" step="0.1" value="5.2" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-sodium-rise">24h Na+ Rise Rate (mEq/L, &le; 12.0)</label>
+                <input type="number" id="check-sodium-rise" name="sodium_rise_24hr_meq_l" class="form-control" min="0.0" max="12.0" step="0.5" value="7.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-post-acth-cortisol">Post-ACTH Cortisol (mcg/dL)</label>
+                <input type="number" id="check-post-acth-cortisol" name="post_acth_cortisol_mcg_dl" class="form-control" min="0.0" max="25.0" step="0.1" value="0.3" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-heart-rate">Heart Rate (bpm)</label>
+                <input type="number" id="check-heart-rate" name="heart_rate_bpm" class="form-control" min="25" max="300" step="1" value="88" required>
+              </div>
+              <div class="form-group">
+                <label for="check-callsign">Clinician Callsign</label>
+                <input type="text" id="check-callsign" name="clinician_callsign" class="form-control" value="DR-ENDO-19" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-notes">Serial Electrolyte, ECG &amp; ACTH Stim Notes</label>
+              <input type="text" id="check-notes" name="notes" class="form-control" value="Post-ACTH cortisol 0.3 mcg/dL (< 2.0 mcg/dL); Na+ rose 7.0 mEq/L/24h (<= 10.0 mEq/L/day limit); sinus rhythm restored.">
+            </div>
+            <button type="submit" id="btn-record-electrolyte-check" class="btn btn-secondary">🩺 Log Electrolyte &amp; Post-ACTH Cortisol Check</button>
+          </form>
+        </div>
+
+        <hr class="addisonian-divider">
+
+        <!-- Discharge Clearance Form -->
+        <div class="trust-subsection" id="discharge-clearance-section">
+          <h3 id="heading-discharge-clearance">4. Issue DOCP 2.2 mg/kg SubQ &amp; Oral Prednisone Eukalemic Clearance</h3>
+          <form id="discharge-clearance-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-final-ratio">Final Na:K Ratio (&ge; 27.0)</label>
+                <input type="number" id="clearance-final-ratio" name="final_sodium_potassium_ratio" class="form-control" min="27.0" max="50.0" step="0.1" value="31.5" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-final-potassium">Final Serum K+ (mEq/L, 3.5–5.5)</label>
+                <input type="number" id="clearance-final-potassium" name="final_serum_potassium_meq_l" class="form-control" min="3.5" max="5.5" step="0.1" value="4.4" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clearance-vet-license">Attending Veterinarian License</label>
+                <input type="text" id="clearance-vet-license" name="vet_license" class="form-control" value="VET-ENDO-96108" required>
+              </div>
+              <div class="form-group">
+                <label for="clearance-summary">Discharge Summary &amp; DOCP / Prednisone Regimen</label>
+                <input type="text" id="clearance-summary" name="summary" class="form-control" value="Post-ACTH cortisol confirmed < 2.0 mcg/dL; eukalemic (Na:K 31.5, K+ 4.4 mEq/L); DOCP 2.2 mg/kg SubQ + oral Prednisone started.">
+              </div>
+            </div>
+            <div class="addisonian-checkbox-group">
+              <label class="addisonian-checkbox-item">
+                <input type="checkbox" id="clearance-cortisol-confirmed" name="post_acth_cortisol_confirmed_low" checked>
+                <span>Post-ACTH Stimulation Cortisol Confirmed &lt; 2.0 mcg/dL (Zero Prednisolone Assay Interference)</span>
+              </label>
+              <label class="addisonian-checkbox-item">
+                <input type="checkbox" id="clearance-docp-administered" name="docp_22_mg_kg_subq_administered" checked>
+                <span>Desoxycorticosterone Pivalate (DOCP 2.2 mg/kg SubQ q25–28d) Mineralocorticoid Administered</span>
+              </label>
+              <label class="addisonian-checkbox-item">
+                <input type="checkbox" id="clearance-prednisone-started" name="oral_prednisone_physiologic_started" checked>
+                <span>Oral Physiologic Prednisone (0.1–0.22 mg/kg/day) Maintenance Initiated</span>
+              </label>
+            </div>
+            <button type="submit" id="btn-issue-discharge-clearance" class="btn btn-primary">🛡️ Issue DOCP &amp; Eukalemic Discharge Clearance</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Filter Bar, Active Operation Workspace & Operations Queue -->
+      <section class="glass-card trust-panel" id="addisonian-ops-panel" aria-labelledby="heading-addisonian-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-addisonian-ops">Active Addisonian Crisis &amp; DOCP Operations</h2>
+          <span id="addisonian-ops-count-badge" class="badge badge-secondary">{{ len .Operations }} Ops</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="form-row-2col addisonian-filter-bar" role="region" aria-label="Filter Addisonian Crisis Operations">
+          <div class="form-group">
+            <label for="filter-status">Filter by Triage Status</label>
+            <select id="filter-status" class="form-control">
+              <option value="">All Triage Statuses</option>
+              <option value="ADDISONIAN_SHOCK_HYPERKALEMIA_CRITICAL">ADDISONIAN_SHOCK_HYPERKALEMIA_CRITICAL</option>
+              <option value="DEX_SP_NACL_ACTH_STIM_STAGED">DEX_SP_NACL_ACTH_STIM_STAGED</option>
+              <option value="DOCP_PREDNISONE_EUKALEMIC_CLEARED">DOCP_PREDNISONE_EUKALEMIC_CLEARED</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-species">Filter by Addisonian Syndrome</label>
+            <select id="filter-species" class="form-control">
+              <option value="">All Addisonian Syndromes</option>
+              <option value="CANINE_TYPICAL_ADDISONS">CANINE_TYPICAL_ADDISONS</option>
+              <option value="CANINE_ATYPICAL_GLUCOCORTICOID">CANINE_ATYPICAL_GLUCOCORTICOID</option>
+              <option value="FELINE_HYPOADRENOCORTICISM">FELINE_HYPOADRENOCORTICISM</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Active Operation Workspace -->
+        <div id="active-operation-workspace" class="addisonian-active-workspace" role="region" aria-label="Active Addisonian Crisis Workspace">
+          {{ if .ActiveOperation }}
+          {{ $active := .ActiveOperation }}
+          <div class="addisonian-workspace-card" data-workspace-op-id="{{ $active.ID }}">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name" id="workspace-pet-title">Active Workspace: {{ $active.PetName }} ({{ $active.PatientProfile.Species }}{{ if $active.PatientProfile.Breed }} · {{ $active.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $active.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id" id="workspace-op-code">{{ $active.ID }} · {{ $active.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species" id="workspace-species-pill">{{ $active.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $active.Status) "ADDISONIAN_SHOCK_HYPERKALEMIA_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $active.Status) "DEX_SP_NACL_ACTH_STIM_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}" id="workspace-status-pill">{{ $active.Status }}</span>
+              </div>
+            </div>
+
+            <div class="addisonian-vitals-summary" id="workspace-vitals-summary">
+              <span><strong>Serum Na+:</strong> {{ printf "%.1f" $active.PatientProfile.SerumSodiumMeqL }} mEq/L</span>
+              <span><strong>Serum K+:</strong> {{ printf "%.1f" $active.PatientProfile.SerumPotassiumMeqL }} mEq/L</span>
+              <span><strong>BG:</strong> {{ printf "%.0f" $active.PatientProfile.BloodGlucoseMgDl }} mg/dL</span>
+              <span><strong>HR:</strong> {{ $active.PatientProfile.HeartRateBpm }} bpm</span>
+              <span><strong>Systolic BP:</strong> {{ $active.PatientProfile.SystolicBloodPressureMmHg }} mmHg</span>
+              <span><strong>Resting Cortisol:</strong> {{ printf "%.1f" $active.PatientProfile.RestingCortisolMcgDl }} mcg/dL</span>
+            </div>
+
+            {{ if $active.ResuscitationRegimen }}
+            <div class="addisonian-regimen-box" id="workspace-regimen-box">
+              <h4>Calculated Na:K Ratio, 0.9% NaCl Shock Bolus, Dexamethasone-SP &amp; Cosyntropin ACTH Stim Regimen</h4>
+              <div class="addisonian-doses-grid">
+                <div><strong>Na:K Ratio:</strong> <span id="regimen-nak-ratio">{{ printf "%.1f" $active.ResuscitationRegimen.SodiumPotassiumRatio }}</span></div>
+                <div><strong>0.9% NaCl Bolus (20 mL/kg):</strong> <span id="regimen-nacl-bolus">{{ printf "%.1f" $active.ResuscitationRegimen.IsotonicNaCl09BolusMl }} mL</span></div>
+                <div><strong>Dexamethasone-SP (0.25 mg/kg):</strong> <span id="regimen-dex-sp">{{ printf "%.2f" $active.ResuscitationRegimen.DexamethasoneSP025MgKgMg }} mg IV</span></div>
+                <div><strong>Cosyntropin ACTH Stim:</strong> <span id="regimen-cosyntropin">{{ printf "%.1f" $active.ResuscitationRegimen.CosyntropinACTHStimDoseMcg }} mcg IV</span></div>
+                <div><strong>10% Calcium Gluconate:</strong> <span id="regimen-ca-gluconate">{{ printf "%.2f" $active.ResuscitationRegimen.CalciumGluconate10PctMl }} mL IV</span></div>
+                <div><strong>Max Na+ Rise Rate:</strong> <span id="regimen-max-na-rise">&le; {{ printf "%.1f" $active.ResuscitationRegimen.MaxSodiumRiseRateMeqLDay }} mEq/L/day</span></div>
+                <div><strong>Zero Prednisolone Pre-ACTH Guard:</strong> <span id="regimen-pred-guard">{{ if $active.ResuscitationRegimen.ZeroPrednisolonePreACTHGuard }}ENFORCED{{ else }}OFF{{ end }}</span></div>
+              </div>
+              <p class="addisonian-rationale-text" id="workspace-clinical-rationale">{{ $active.ResuscitationRegimen.ClinicalRationale }}</p>
+            </div>
+            {{ end }}
+
+            <div class="addisonian-electrolyte-checks-box">
+              <h4>Serial Electrolyte, 24h Na+ Rise &amp; Post-ACTH Cortisol Checks (<span id="workspace-checks-count">{{ len $active.ElectrolyteChecks }}</span>)</h4>
+              <ul id="electrolyte-checks-list" class="addisonian-checks-list">
+                {{ range $chk := $active.ElectrolyteChecks }}
+                <li class="addisonian-check-item">
+                  <strong>{{ $chk.ClinicianCallsign }}</strong> · Na+ {{ printf "%.1f" $chk.SerumSodiumMeqL }} mEq/L · K+ {{ printf "%.1f" $chk.SerumPotassiumMeqL }} mEq/L · 24h Na+ Rise {{ printf "%.1f" $chk.SodiumRise24HrMeqL }} mEq/L · Post-ACTH Cortisol {{ printf "%.1f" $chk.PostACTHCortisolMcgDl }} mcg/dL · HR {{ $chk.HeartRateBpm }} bpm — {{ $chk.Notes }}
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Operations List -->
+        <div id="addisonian-operations-list" class="trust-screenings-list addisonian-ops-list" role="list">
+          {{ range $op := .Operations }}
+          <article class="trust-screening-card addisonian-op-card" data-operation-id="{{ $op.ID }}" data-op-id="{{ $op.ID }}" data-status="{{ $op.Status }}" data-species="{{ $op.PatientProfile.Species }}" role="listitem">
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.PatientProfile.Species }}{{ if $op.PatientProfile.Breed }} · {{ $op.PatientProfile.Breed }}{{ end }} · {{ printf "%.1f" $op.PatientProfile.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.IncidentID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="status-pill status-pill-species">{{ $op.PatientProfile.Species }}</span>
+                <span class="status-pill {{ if eq (printf "%s" $op.Status) "ADDISONIAN_SHOCK_HYPERKALEMIA_CRITICAL" }}status-pill-critical{{ else if eq (printf "%s" $op.Status) "DEX_SP_NACL_ACTH_STIM_STAGED" }}status-pill-staged{{ else }}status-pill-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="trust-kinematics-row addisonian-metrics-row">
+              <span class="status-pill status-pill-species">Na+: {{ printf "%.1f" $op.PatientProfile.SerumSodiumMeqL }} mEq/L • K+: {{ printf "%.1f" $op.PatientProfile.SerumPotassiumMeqL }} mEq/L • Na:K: {{ if $op.ResuscitationRegimen }}{{ printf "%.1f" $op.ResuscitationRegimen.SodiumPotassiumRatio }}{{ else }}0.0{{ end }} • HR: {{ $op.PatientProfile.HeartRateBpm }} bpm • SBP: {{ $op.PatientProfile.SystolicBloodPressureMmHg }} mmHg</span>
+            </div>
+
+            {{ if $op.OsmoticMyelinolysisAssayAlert }}
+            <div class="addisonian-alert-banner">
+              ⚠️ OSMOTIC DEMYELINATION &amp; CORTISOL ASSAY GUARD (Na+ {{ printf "%.1f" $op.PatientProfile.SerumSodiumMeqL }} mEq/L · K+ {{ printf "%.1f" $op.PatientProfile.SerumPotassiumMeqL }} mEq/L · Max Na+ Rise &le; 10.0 mEq/L/day): {{ if $op.ResuscitationRegimen }}{{ $op.ResuscitationRegimen.AddisonianPitfallAlert }}{{ end }}
+            </div>
+            {{ end }}
+
+            {{ if $op.DischargeClearance }}
+            <div class="addisonian-clearance-banner">
+              ✅ DOCP &amp; PREDNISONE EUKALEMIC CLEARED ({{ $op.DischargeClearance.VetLicense }}): Na:K {{ printf "%.1f" $op.DischargeClearance.FinalSodiumPotassiumRatio }} · K+ {{ printf "%.1f" $op.DischargeClearance.FinalSerumPotassiumMeqL }} mEq/L
+            </div>
+            {{ end }}
+
+            <div class="trust-moderator-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary addisonian-select-op-btn"
+                data-op-id="{{ $op.ID }}"
+              >
+                🔍 Select Operation ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="addisonian-ops-empty-msg">No Addisonian Crisis &amp; DOCP triage operations recorded yet.</p>
+          {{ end }}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/addisonian-crisis-triage.js" defer></script>
+</body>
+</html>

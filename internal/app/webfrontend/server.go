@@ -25,6 +25,7 @@ import (
 	"github.com/scottdensmore/petspotr/internal/app/foundpet"
 	"github.com/scottdensmore/petspotr/internal/app/lostpet"
 	"github.com/scottdensmore/petspotr/pkg/acousticpanic"
+	"github.com/scottdensmore/petspotr/pkg/addisoniancrisis"
 	"github.com/scottdensmore/petspotr/pkg/airwaytracheostomy"
 	"github.com/scottdensmore/petspotr/pkg/avalanchewinter"
 	"github.com/scottdensmore/petspotr/pkg/avianrecovery"
@@ -120,6 +121,7 @@ type Server struct {
 	dkaService                *dkainsulin.DKAService
 	imhaService               *imhathrombosis.IMHAService
 	tbiService                *traumaticbrain.TBIService
+	addisonianService         *addisoniancrisis.AddisonianService
 	handler                   http.Handler
 }
 
@@ -302,6 +304,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		hemoabdomenService:        hemoabdomen.NewHemoabdomenService(),
 		dkaService:                dkainsulin.NewDKAService(),
 		tbiService:                traumaticbrain.NewTBIService(),
+		addisonianService:         addisoniancrisis.NewAddisonianService(),
 		imhaService:               imhathrombosis.NewIMHAService(),
 		peritonitisService:        septicperitonitis.NewPeritonitisService(),
 	}
@@ -640,6 +643,8 @@ func (s *Server) routes() {
 	s.registerIMHAThrombosisRoutes()
 	// Traumatic Brain Injury (TBI), Modified Glasgow Coma Scale (MGCS), Cushing's Reflex & Hypertonic Saline/Mannitol Cockpit routes (Milestone 21.1)
 	s.registerTraumaticBrainRoutes()
+	// Hypoadrenocorticism (Addisonian Crisis), Na:K Ratio < 27, Dexamethasone-SP & DOCP Triage Cockpit routes (Milestone 20.4)
+	s.registerAddisonianCrisisRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
