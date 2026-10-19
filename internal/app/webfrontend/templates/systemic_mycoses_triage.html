@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Systemic Mycoses &amp; Fungal Emergencies (Blastomycosis, Histoplasmosis, Coccidioidomycosis, Cryptococcosis &amp; Sinonasal Aspergillosis), Urine/Serum MiraVista Antigen EIA, Itraconazole/Fluconazole, Amphotericin B Lipid Complex Nephrotoxicity Guard &amp; Clotrimazole Trephination Cockpit.">
+  <title>Acute Systemic Mycoses &amp; Fungal Emergencies (Blastomycosis, Histoplasmosis, Coccidioidomycosis, Cryptococcosis &amp; Sinonasal Aspergillosis), Urine/Serum MiraVista Antigen EIA, Itraconazole/Fluconazole, Amphotericin B Lipid Complex Nephrotoxicity Guard &amp; Clotrimazole Trephination Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#systemic-mycoses-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/heartworm-caval-triage" class="nav-link nav-link-emergency" id="nav-heartworm-caval-triage">🫀 Heartworm Caval ICU</a></li>
+          <li><a href="/systemic-mycoses-fungal-triage" class="nav-link active nav-link-emergency" id="nav-systemic-mycoses-triage">🍄 Systemic Mycoses &amp; Fungal ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="systemic-mycoses-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header myc-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🍄 ACUTE SYSTEMIC MYCOSES &amp; FUNGAL EMERGENCIES (MIRAVISTA ANTIGEN EIA, AZOLES &amp; AMPHOTERICIN B) COCKPIT</span>
+        </div>
+        <h1>Acute Systemic Mycoses &amp; Fungal Emergencies (Blastomycosis, Histoplasmosis, Coccidioidomycosis, Cryptococcosis &amp; Sinonasal Aspergillosis), Urine/Serum MiraVista Antigen EIA, Itraconazole/Fluconazole, Amphotericin B Lipid Complex Nephrotoxicity Guard &amp; Clotrimazole Trephination Cockpit</h1>
+        <p class="text-secondary">
+          Broad-Based Budding Yeast (Blastomyces), Intracellular Macrophage Yeast (Histoplasma), Endospore Spherules (Coccidioides), Encapsulated "Soap-Bubble" Yeast (Cryptococcus) &amp; Turbinate-Destructive Sinonasal Aspergillosis Triage, Quantitative MiraVista Urine/Serum Antigen EIA (ng/mL), Compounded Bulk-Powder Itraconazole Bioavailability Block, Skull CT Cribriform Plate Breach Contraindication on 1% Clotrimazole Sinus Trephination, Amphotericin B Lipid Complex 0.9% NaCl Diuresis &amp; Creatinine &le; 2.5 mg/dL Nephrotoxicity Guard, and Pulmonary Die-Off ARDS Dexamethasone-SP Prophylaxis.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid myc-kpi-grid" aria-label="Systemic Mycoses &amp; Fungal Emergencies KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total Systemic Mycoses Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Azole / Amphotericin / Trephination Staged</span>
+        <strong class="kpi-value" id="kpi-azole-staged">{{ .AzoleAmphotericinTrephinationStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Antigen EIA &amp; Creatinine Monitored</span>
+        <strong class="kpi-value" id="kpi-antigen-monitored">{{ .AntigenEIACreaOphthalmicMonitoredCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Two Negative Antigen EIA Cleared</span>
+        <strong class="kpi-value" id="kpi-antigen-cleared">{{ .TwoNegativeAntigenEIAClearedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Blastomycosis &amp; Histoplasmosis Cases</span>
+        <strong class="kpi-value" id="kpi-blasto-histo-count">{{ .BlastomycosisHistoplasmosisCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Cribriform Breach / Trephination Blocked</span>
+        <strong class="kpi-value" id="kpi-cribriform-breach-count">{{ .CribriformBreachContraindicatedCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="myc-live-status" class="humane-traps-live-status myc-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Acute Systemic Mycoses &amp; Fungal Emergencies ICU operations.
+    </div>
+
+    <!-- Global Systemic Mycoses, Cribriform Plate Breach, Compounded Itraconazole & Amphotericin B Nephrotoxicity Alert Banner -->
+    <div id="myc-alert-banner" class="myc-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL SYSTEMIC MYCOSES &amp; ANTIFUNGAL SAFETY GUARD: (1) ABSOLUTE CLOTRIMAZOLE TREPHINATION CONTRAINDICATION IN CRIBRIFORM PLATE BREACH — In Sinonasal Aspergillosis, topical 1% Clotrimazole or Enilconazole frontal sinus infusion is strictly contraindicated if skull CT shows cribriform plate osteolysis/breach (causes fatal meningoencephalitis); (2) BLOCK COMPOUNDED BULK-POWDER ITRACONAZOLE (&lt; 10% oral bioavailability causes fatal relapse; use ONLY FDA-approved innovator capsules with food or oral solution 5 mg/kg/day, or Fluconazole 10 mg/kg PO q12h for CNS/Ocular penetration); (3) AMPHOTERICIN B LIPID COMPLEX NEPHROTOXICITY GUARD (1–3 mg/kg IV 3x/wk) requires mandatory 0.9% NaCl pre/post-diuresis and holding dose if Serum Creatinine &gt; 2.5 mg/dL; (4) Administer short-course Dexamethasone-SP (0.1 mg/kg IV) when pulmonary Blastomycosis SpO2 &lt; 92% to blunt acute yeast die-off ARDS.
+    </div>
+
+    <!-- Global Two Consecutive Negative MiraVista Antigen EIA & Minimum 6-Month Azole Clearance Banner -->
+    <div id="myc-clearance-banner" class="myc-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "TWO_NEGATIVE_ANTIGEN_EIA_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ TWO CONSECUTIVE NEGATIVE MIRAVISTA ANTIGEN EIA (0.0 ng/mL) &amp; 6-MONTH AZOLE CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "TWO_NEGATIVE_ANTIGEN_EIA_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Cleared by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting MiraVista Antigen EIA 0.0 ng/mL across two consecutive tests 1 month apart, Serum Creatinine &le; 1.8 mg/dL, and verified 6-month azole course.{{ end }}</span>
+    </div>
+
+    <div id="myc-error-banner" class="myc-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card myc-toolbar-card" aria-label="Systemic Mycoses Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col myc-toolbar-row">
+        <div class="form-group">
+          <label for="myc-status-filter">Filter by Systemic Mycoses Status</label>
+          <select id="myc-status-filter" class="form-control">
+            <option value="">All Systemic Mycoses Statuses</option>
+            <option value="AZOLE_AMPHOTERICIN_TREPHINATION_STAGED">AZOLE_AMPHOTERICIN_TREPHINATION_STAGED (Azole / Amphotericin / Trephination Staged)</option>
+            <option value="ANTIGEN_EIA_CREA_OPHTHALMIC_MONITORED">ANTIGEN_EIA_CREA_OPHTHALMIC_MONITORED (Antigen EIA, Creatinine &amp; Ophthalmic Monitored)</option>
+            <option value="TWO_NEGATIVE_ANTIGEN_EIA_CLEARED">TWO_NEGATIVE_ANTIGEN_EIA_CLEARED (Two Negative Antigen EIA Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group myc-sse-controls">
+          <span class="kpi-label">Live ICU Telemetry Stream</span>
+          <div class="myc-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live Systemic Mycoses SSE Stream</button>
+            <span id="sse-status-badge" class="myc-status-badge myc-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid myc-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="myc-operations-panel" aria-labelledby="heading-myc-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-myc-ops">Active Systemic Mycoses &amp; Fungal Operations</h2>
+          <span id="myc-ops-count-badge" class="myc-status-badge myc-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="myc-operations-grid" class="trust-screenings-list myc-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card myc-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-syndrome="{{ $op.Syndrome }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="myc-status-badge {{ if eq (printf "%s" $op.Status) "AZOLE_AMPHOTERICIN_TREPHINATION_STAGED" }}myc-status-critical{{ else if eq (printf "%s" $op.Status) "ANTIGEN_EIA_CREA_OPHTHALMIC_MONITORED" }}myc-status-staged{{ else }}myc-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="myc-card-metrics">
+              <span><strong>Syndrome:</strong> {{ $op.Syndrome }}</span>
+              <span><strong>Protocol:</strong> {{ $op.Protocol }}</span>
+              <span><strong>MiraVista EIA:</strong> {{ printf "%.2f" $op.MiraVistaAntigenNgML }} ng/mL</span>
+              <span><strong>Creatinine:</strong> {{ printf "%.2f" $op.SerumCreatinineMgDL }} mg/dL</span>
+              <span><strong>ALT:</strong> {{ printf "%.0f" $op.ALTActivityUL }} U/L</span>
+              <span><strong>SpO2:</strong> {{ printf "%.1f" $op.SpO2Percent }}%</span>
+              <span><strong>Cribriform CT:</strong> {{ if $op.CribriformPlateIntactOnCT }}Intact{{ else }}BREACHED (No Trephination){{ end }}</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary myc-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open Mycoses Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="myc-ops-empty-msg">No Systemic Mycoses operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="myc-divider">
+
+        <!-- Admit New Systemic Mycoses Patient Form -->
+        <div class="trust-subsection" id="create-myc-section">
+          <h3 id="heading-create-myc">Admit New Systemic Mycoses &amp; Fungal Emergency Patient</h3>
+          <form id="create-myc-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-MYC-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Voyageur" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species-input">Species</label>
+                <select id="create-species-input" name="species" class="form-control" required>
+                  <option value="Canine" selected>Canine</option>
+                  <option value="Feline">Feline</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed-input">Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="German Shorthaired Pointer" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="110.0" step="0.1" value="27.5" required>
+              </div>
+              <div class="form-group">
+                <label for="create-syndrome-input">Systemic Fungal Syndrome</label>
+                <select id="create-syndrome-input" name="syndrome" class="form-control" required>
+                  <option value="BLASTOMYCOSIS_BROAD_BASED_BUDDING_YEAST" selected>BLASTOMYCOSIS_BROAD_BASED_BUDDING_YEAST (Blastomycosis — Broad-Based Budding Yeast)</option>
+                  <option value="HISTOPLASMOSIS_INTRACELLULAR_MACROPHAGE">HISTOPLASMOSIS_INTRACELLULAR_MACROPHAGE (Histoplasmosis — Intracellular Macrophage Yeast)</option>
+                  <option value="COCCIDIOIDOMYCOSIS_SPHERULE_VALLEY_FEVER">COCCIDIOIDOMYCOSIS_SPHERULE_VALLEY_FEVER (Coccidioidomycosis — Endospore Spherule Valley Fever)</option>
+                  <option value="CRYPTOCOCCOSIS_ENCAPSULATED_CNS_OCULAR">CRYPTOCOCCOSIS_ENCAPSULATED_CNS_OCULAR (Cryptococcosis — Encapsulated Soap-Bubble CNS/Ocular)</option>
+                  <option value="SINONASAL_ASPERGILLOSIS_CRIBRIFORM_CHECK">SINONASAL_ASPERGILLOSIS_CRIBRIFORM_CHECK (Sinonasal Aspergillosis — Skull CT Cribriform Check)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-protocol-input">Initial Antifungal Protocol</label>
+                <select id="create-protocol-input" name="protocol" class="form-control" required>
+                  <option value="ITRACONAZOLE_5MG_KG_BRAND_OR_SOLUTION" selected>ITRACONAZOLE_5MG_KG_BRAND_OR_SOLUTION (FDA Innovator Itraconazole 5 mg/kg/day)</option>
+                  <option value="FLUCONAZOLE_10MG_KG_BID_CNS_OCULAR">FLUCONAZOLE_10MG_KG_BID_CNS_OCULAR (Fluconazole 10 mg/kg PO q12h CNS/Ocular)</option>
+                  <option value="AMPHOTERICIN_B_LIPID_COMPLEX_SALINE_DIURESIS">AMPHOTERICIN_B_LIPID_COMPLEX_SALINE_DIURESIS (Amphotericin B Lipid Complex + 0.9% NaCl Diuresis)</option>
+                  <option value="CLOTRIMAZOLE_1PCT_FRONTAL_SINUS_INFUSION">CLOTRIMAZOLE_1PCT_FRONTAL_SINUS_INFUSION (1% Clotrimazole Frontal Sinus Trephination)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-antigen-input">MiraVista Urine/Serum Antigen EIA (ng/mL)</label>
+                <input type="number" id="create-antigen-input" name="miravista_antigen_ng_ml" class="form-control" min="0.0" max="50.0" step="0.1" value="12.6" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-creatinine-input">Serum Creatinine (mg/dL)</label>
+                <input type="number" id="create-creatinine-input" name="serum_creatinine_mg_dl" class="form-control" min="0.2" max="15.0" step="0.05" value="1.25" required>
+              </div>
+              <div class="form-group">
+                <label for="create-alt-input">Hepatic ALT Activity (U/L)</label>
+                <input type="number" id="create-alt-input" name="alt_activity_u_l" class="form-control" min="5" max="4000" step="1" value="74" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-spo2-input">Pulse Oximetry SpO2 (%)</label>
+                <input type="number" id="create-spo2-input" name="spo2_percent" class="form-control" min="55.0" max="100.0" step="0.5" value="90.5" required>
+              </div>
+              <div class="form-group myc-checkbox-group">
+                <label class="myc-checkbox-item">
+                  <input type="checkbox" id="create-cribriform-intact-checkbox" name="cribriform_plate_intact_on_ct" checked>
+                  <span>Cribriform Plate Intact on Skull CT (Required for Clotrimazole Trephination)</span>
+                </label>
+                <label class="myc-checkbox-item">
+                  <input type="checkbox" id="create-compounded-blocked-checkbox" name="compounded_bulk_itraconazole_blocked" checked>
+                  <span>Compounded Bulk-Powder Itraconazole Blocked (&lt; 10% Bioavailability Guard)</span>
+                </label>
+                <label class="myc-checkbox-item">
+                  <input type="checkbox" id="create-saline-diuresis-checkbox" name="amphotericin_lipid_saline_diuresis_verified" checked>
+                  <span>Amphotericin B Lipid Complex 0.9% NaCl Pre/Post-Diuresis Verified</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" id="create-myc-op-btn" class="btn btn-primary">➕ Admit Systemic Mycoses Patient to ICU Cockpit</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active Systemic Mycoses Workspace & Therapy / Antigen Check / Clearance Forms -->
+      <section class="glass-card trust-panel" id="myc-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="myc-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · Syndrome: <strong id="active-syndrome">{{ $active.Syndrome }}</strong> · Protocol: <strong id="active-protocol">{{ $active.Protocol }}</strong> · Compounded Bulk Itraconazole Blocked: <strong id="active-compounded-guard">{{ if $active.CompoundedBulkItraconazoleBlocked }}YES (INNOVATOR/SOLUTION ONLY){{ else }}NO (UNSAFE){{ end }}</strong></p>
+          </div>
+          <span id="active-op-status-badge" class="myc-status-badge {{ if eq (printf "%s" $active.Status) "AZOLE_AMPHOTERICIN_TREPHINATION_STAGED" }}myc-status-critical{{ else if eq (printf "%s" $active.Status) "ANTIGEN_EIA_CREA_OPHTHALMIC_MONITORED" }}myc-status-staged{{ else }}myc-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- MiraVista Antigen, Renal, Hepatic & Oxygenation Telemetry Bar -->
+        <div class="myc-vitals-summary" id="active-vitals-summary">
+          <div class="myc-vital-chip">
+            <span class="kpi-label">MiraVista Antigen EIA</span>
+            <strong id="active-antigen">{{ printf "%.2f" $active.MiraVistaAntigenNgML }} ng/mL</strong>
+          </div>
+          <div class="myc-vital-chip">
+            <span class="kpi-label">Serum Creatinine (Renal Guard)</span>
+            <strong id="active-creatinine">{{ printf "%.2f" $active.SerumCreatinineMgDL }} mg/dL</strong>
+          </div>
+          <div class="myc-vital-chip">
+            <span class="kpi-label">Hepatic ALT Activity</span>
+            <strong id="active-alt">{{ printf "%.0f" $active.ALTActivityUL }} U/L</strong>
+          </div>
+          <div class="myc-vital-chip">
+            <span class="kpi-label">SpO2 / Cribriform CT</span>
+            <strong id="active-spo2-cribriform">{{ printf "%.1f" $active.SpO2Percent }}% · {{ if $active.CribriformPlateIntactOnCT }}CT INTACT{{ else }}CT BREACHED{{ end }}</strong>
+          </div>
+        </div>
+
+        <!-- Cytology, MiraVista Antigen EIA & Renal/Hepatic Safety Box -->
+        <div class="myc-plan-box" id="active-patho-plan-box">
+          <h3>Fungal Cytology, MiraVista Antigen EIA &amp; Nephrotoxicity / Cribriform Safety Profile</h3>
+          <div class="myc-plan-grid">
+            <div><strong>Fungal Pathophysiology:</strong> <span id="plan-patho-summary">{{ $active.PathophysiologySummary }}</span></div>
+            <div><strong>Cytology &amp; MiraVista Antigen EIA:</strong> <span id="plan-cytology-antigen">{{ $active.CytologyAntigenDiagnosticNote }}</span></div>
+            <div><strong>Renal, Hepatic &amp; Die-Off Telemetry:</strong> <span id="plan-renal-hepatic">{{ $active.RenalHepaticSafetyNote }}</span></div>
+            <div><strong>Cribriform Plate Trephination Guard:</strong> <span id="plan-cribriform-guard">{{ $active.TherapyStaging.CribriformPlateTrephinationGuardNote }}</span></div>
+          </div>
+        </div>
+
+        <!-- Systemic Azole, Amphotericin B Lipid Complex & Pulmonary Die-Off Staging Box -->
+        <div class="myc-plan-box" id="active-therapy-plan-box">
+          <h3>Systemic Itraconazole / Fluconazole, Amphotericin B Lipid Complex &amp; Die-Off ARDS Regimen</h3>
+          <div class="myc-plan-grid">
+            <div><strong>Compounded Itraconazole Bioavailability Guard:</strong> <span id="plan-compounded-guard">{{ $active.TherapyStaging.CompoundedItraconazoleGuardNote }}</span></div>
+            <div><strong>Amphotericin B Lipid Complex &amp; 0.9% NaCl Diuresis Guard:</strong> <span id="plan-ampho-guard">{{ $active.TherapyStaging.AmphotericinNephrotoxicityGuardNote }}</span></div>
+            <div><strong>Systemic Azole &amp; Polyene Regimen:</strong> <span id="plan-azole-regimen">{{ $active.TherapyStaging.SystemicAzoleAndPolyeneRegimenPlan }} (Minimum Duration: {{ $active.TherapyStaging.MinimumAzoleDurationMonths }} Months)</span></div>
+            <div><strong>Pulmonary Fungal Die-Off ARDS Prophylaxis:</strong> <span id="plan-die-off-ards">{{ $active.TherapyStaging.PulmonaryDieOffARDSPlan }}</span></div>
+            <div><strong>Ophthalmic Chorioretinitis &amp; CNS Surveillance:</strong> <span id="plan-ophthalmic-neuro">{{ $active.TherapyStaging.OphthalmicChorioretinitisNeuroPlan }}</span></div>
+          </div>
+        </div>
+        {{ end }}
+
+        <hr class="myc-divider">
+
+        <!-- 1. Stage Systemic Azole, Amphotericin B Lipid Complex or Clotrimazole Trephination Form -->
+        <div class="trust-subsection" id="stage-therapy-section">
+          <h3>1. Stage Systemic Itraconazole / Fluconazole, Amphotericin B Lipid Complex (0.9% NaCl Diuresis) or 1% Clotrimazole Trephination</h3>
+          <form id="stage-therapy-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-protocol-input">Selected Antifungal Protocol</label>
+                <select id="stage-protocol-input" name="protocol" class="form-control" required>
+                  <option value="ITRACONAZOLE_5MG_KG_BRAND_OR_SOLUTION" selected>ITRACONAZOLE_5MG_KG_BRAND_OR_SOLUTION (FDA Innovator Itraconazole 5 mg/kg/day)</option>
+                  <option value="FLUCONAZOLE_10MG_KG_BID_CNS_OCULAR">FLUCONAZOLE_10MG_KG_BID_CNS_OCULAR (Fluconazole 10 mg/kg PO q12h CNS/Ocular)</option>
+                  <option value="AMPHOTERICIN_B_LIPID_COMPLEX_SALINE_DIURESIS">AMPHOTERICIN_B_LIPID_COMPLEX_SALINE_DIURESIS (Amphotericin B Lipid Complex + 0.9% NaCl Diuresis)</option>
+                  <option value="CLOTRIMAZOLE_1PCT_FRONTAL_SINUS_INFUSION">CLOTRIMAZOLE_1PCT_FRONTAL_SINUS_INFUSION (1% Clotrimazole Frontal Sinus Trephination)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="stage-itraconazole-dose-input">Itraconazole Dose (mg/kg/day · Standard 5.0)</label>
+                <input type="number" id="stage-itraconazole-dose-input" name="itraconazole_mg_kg_day" class="form-control" min="2.5" max="15.0" step="0.5" value="5.0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-fluconazole-dose-input">Fluconazole Daily Dose (mg/kg/day · 10 mg/kg BID = 20.0)</label>
+                <input type="number" id="stage-fluconazole-dose-input" name="fluconazole_mg_kg_day" class="form-control" min="5.0" max="40.0" step="1.0" value="20.0" required>
+              </div>
+              <div class="form-group">
+                <label for="stage-ampho-dose-input">Amphotericin B Lipid Complex Dose (mg/kg IV 3x/wk · 1.0–3.0)</label>
+                <input type="number" id="stage-ampho-dose-input" name="amphotericin_b_lipid_mg_kg_dose" class="form-control" min="0.5" max="5.0" step="0.25" value="2.0" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="stage-azole-plan-input">Systemic Azole / Polyene / Sinus Trephination Regimen Plan</label>
+              <input
+                type="text"
+                id="stage-azole-plan-input"
+                name="systemic_azole_and_polyene_regimen_plan"
+                class="form-control"
+                value="FDA-approved innovator Itraconazole 5.0 mg/kg/day PO with high-fat meal + Amphotericin B Lipid Complex 2.0 mg/kg IV 3x/wk with 0.9% NaCl pre/post-diuresis; compounded bulk powder strictly blocked"
+                required
+              >
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-die-off-plan-input">Pulmonary Fungal Die-Off ARDS Mitigation Plan (Dexamethasone-SP 0.1 mg/kg)</label>
+                <input
+                  type="text"
+                  id="stage-die-off-plan-input"
+                  name="pulmonary_die_off_ards_plan"
+                  class="form-control"
+                  value="Dexamethasone-SP 0.1 mg/kg IV q24h for 3 days + oxygen cage support during initial Blastomyces yeast die-off to prevent ARDS cytokine storm"
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-duration-months-input">Minimum Azole Course Duration (Months · &ge; 6 Months Required)</label>
+                <input type="number" id="stage-duration-months-input" name="minimum_azole_duration_months" class="form-control" min="6" max="24" step="1" value="6" required>
+              </div>
+            </div>
+
+            <div class="form-group myc-checkbox-group">
+              <label class="myc-checkbox-item">
+                <input type="checkbox" id="stage-compounded-blocked-checkbox" name="compounded_bulk_itraconazole_blocked" checked>
+                <span>Compounded Bulk-Powder Itraconazole Blocked (Enforce FDA Innovator Capsules or Oral Solution)</span>
+              </label>
+              <label class="myc-checkbox-item">
+                <input type="checkbox" id="stage-cribriform-intact-checkbox" name="cribriform_plate_intact_on_ct" checked>
+                <span>Skull CT Cribriform Plate Intact (Mandatory for 1% Clotrimazole Trephination)</span>
+              </label>
+              <label class="myc-checkbox-item">
+                <input type="checkbox" id="stage-saline-diuresis-checkbox" name="amphotericin_lipid_saline_diuresis_verified" checked>
+                <span>0.9% NaCl Pre/Post-Infusion Saline Diuresis Verified for Amphotericin B Lipid Complex</span>
+              </label>
+              <label class="myc-checkbox-item">
+                <input type="checkbox" id="stage-die-off-dex-checkbox" name="die_off_dexamethasone_anti_inflammatory_staged" checked>
+                <span>Short-Course Anti-Inflammatory Dexamethasone-SP (0.1 mg/kg) Staged for Pulmonary Die-Off</span>
+              </label>
+            </div>
+
+            <button type="submit" id="stage-therapy-btn" class="btn btn-secondary">🛠️ Stage Systemic Antifungal &amp; Nephrotoxicity Guard Protocol</button>
+          </form>
+        </div>
+
+        <hr class="myc-divider">
+
+        <!-- 2. Record Serial MiraVista Antigen EIA, Serum Creatinine, Hepatic ALT & SpO2 Check Form -->
+        <div class="trust-subsection" id="record-antigen-check-section">
+          <h3>2. Record Serial Urine/Serum MiraVista Antigen EIA (ng/mL), Serum Creatinine (mg/dL), ALT (U/L) &amp; SpO2 (%) Check</h3>
+          <form id="record-antigen-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-antigen-input">MiraVista Urine/Serum Antigen EIA (ng/mL)</label>
+                <input type="number" id="check-antigen-input" name="miravista_antigen_ng_ml" class="form-control" min="0.0" max="50.0" step="0.1" value="0.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-creatinine-input">Serum Creatinine (mg/dL · Hold Ampho B if &gt; 2.5)</label>
+                <input type="number" id="check-creatinine-input" name="serum_creatinine_mg_dl" class="form-control" min="0.2" max="15.0" step="0.05" value="1.15" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-alt-input">Hepatic ALT Activity (U/L)</label>
+                <input type="number" id="check-alt-input" name="alt_activity_u_l" class="form-control" min="5" max="4000" step="1" value="58" required>
+              </div>
+              <div class="form-group">
+                <label for="check-spo2-input">Pulse Oximetry SpO2 (%)</label>
+                <input type="number" id="check-spo2-input" name="spo2_percent" class="form-control" min="55.0" max="100.0" step="0.5" value="98.0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group myc-checkbox-group">
+                <label class="myc-checkbox-item">
+                  <input type="checkbox" id="check-cribriform-intact-checkbox" name="cribriform_plate_intact_on_ct" checked>
+                  <span>Cribriform Plate Intact on Skull CT</span>
+                </label>
+                <label class="myc-checkbox-item">
+                  <input type="checkbox" id="check-ampho-held-checkbox" name="amphotericin_dose_held_for_azotemia">
+                  <span>Amphotericin B Dose Held for Azotemia (Creatinine &gt; 2.5 mg/dL)</span>
+                </label>
+                <label class="myc-checkbox-item">
+                  <input type="checkbox" id="check-chorioretinitis-resolved-checkbox" name="ophthalmic_chorioretinitis_resolved" checked>
+                  <span>Granulomatous Chorioretinitis &amp; Pulmonary Nodules Resolved</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (Internist / Infectious Disease Specialist)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Arlette Thibodeaux, DACVIM (Internal Medicine &amp; Infectious Disease)" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="check-note-input">MiraVista Antigen EIA, Renal &amp; Ophthalmic Clinical Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="Month 6 &amp; Month 7 MiraVista urine antigen EIA both 0.00 ng/mL, Serum Creatinine 1.15 mg/dL, ALT 58 U/L, SpO2 98.0%, thoracic radiographs and chorioretinitis completely resolved." required>
+            </div>
+
+            <button type="submit" id="record-antigen-check-btn" class="btn btn-secondary">🍄 Record MiraVista Antigen EIA &amp; Renal Check</button>
+          </form>
+
+          <div class="myc-checks-box">
+            <h4>Serial MiraVista Antigen EIA, Renal &amp; Hepatic Telemetry Checks (<span id="antigen-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.AntigenRenalChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="antigen-checks-list" class="myc-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.AntigenRenalChecks }}
+              <li class="myc-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · MiraVista EIA {{ printf "%.2f" $chk.MiraVistaAntigenNgML }} ng/mL · Creatinine {{ printf "%.2f" $chk.SerumCreatinineMgDL }} mg/dL · ALT {{ printf "%.0f" $chk.ALTActivityUL }} U/L · SpO2 {{ printf "%.1f" $chk.SpO2Percent }}% · Chorioretinitis: {{ if $chk.OphthalmicChorioretinitisResolved }}Resolved{{ else }}Active{{ end }} — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="myc-divider">
+
+        <!-- 3. Clear Systemic Mycoses Operation for Two Negative Antigen EIA & 6-Month Azole Cure Form -->
+        <div class="trust-subsection" id="clear-myc-section">
+          <h3>3. Clear Patient After Two Consecutive Negative MiraVista Antigen EIA Tests (0.0 ng/mL) &amp; &ge; 6-Month Azole Course</h3>
+          <form id="clear-myc-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="clear-antigen-input">Final MiraVista Antigen EIA (0.0 ng/mL Required)</label>
+                <input type="number" id="clear-antigen-input" name="miravista_antigen_ng_ml" class="form-control" min="0.0" max="0.0" step="0.01" value="0.0" required>
+              </div>
+              <div class="form-group">
+                <label for="clear-creatinine-input">Final Verified Serum Creatinine (&le; 1.80 mg/dL Required)</label>
+                <input type="number" id="clear-creatinine-input" name="serum_creatinine_mg_dl" class="form-control" min="0.2" max="1.8" step="0.05" value="1.15" required>
+              </div>
+            </div>
+
+            <div class="form-group myc-checkbox-group">
+              <label class="myc-checkbox-item">
+                <input type="checkbox" id="clear-two-negative-eia-checkbox" name="two_consecutive_negative_eia_verified" checked>
+                <span>Two Consecutive Negative MiraVista Antigen EIA Tests (0.0 ng/mL) 1 Month Apart Verified</span>
+              </label>
+              <label class="myc-checkbox-item">
+                <input type="checkbox" id="clear-six-month-azole-checkbox" name="minimum_6month_azole_course_verified" checked>
+                <span>Minimum 6-Month FDA-Approved Azole Course (&ge; 1 Month Past Radiographic/Clinical Resolution) Verified</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label for="clear-cleared-by-input">Clearing Internist / Infectious Disease Specialist</label>
+              <input type="text" id="clear-cleared-by-input" name="cleared_by" class="form-control" value="Dr. Arlette Thibodeaux, DACVIM (Internal Medicine &amp; Infectious Disease)" required>
+            </div>
+            <div class="form-group">
+              <label for="clear-summary-input">Two-Negative MiraVista Antigen EIA &amp; Antifungal Cure Clearance Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="clearance_summary"
+                class="form-control"
+                value="Two consecutive negative MiraVista urine/serum antigen EIA tests (0.00 ng/mL) 30 days apart, Serum Creatinine 1.15 mg/dL (<= 1.8 mg/dL), ALT 58 U/L, SpO2 98.0%, and 6-month FDA-approved Itraconazole 5 mg/kg/day regimen verified; cleared."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-myc-btn" class="btn btn-primary">🛡️ Clear Systemic Mycoses Patient for Antigen-Negative Cure</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/systemic-mycoses-triage.js" defer></script>
+</body>
+</html>
