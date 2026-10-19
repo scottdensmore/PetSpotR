@@ -32,6 +32,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/blob"
 	"github.com/scottdensmore/petspotr/pkg/cardiogenicedema"
 	"github.com/scottdensmore/petspotr/pkg/confinedspace"
+	"github.com/scottdensmore/petspotr/pkg/dkainsulin"
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/dystociaeclampsia"
 	"github.com/scottdensmore/petspotr/pkg/envenomationtoxin"
@@ -114,6 +115,7 @@ type Server struct {
 	cardiogenicService        *cardiogenicedema.CardiogenicService
 	peritonitisService        *septicperitonitis.PeritonitisService
 	hemoabdomenService        *hemoabdomen.HemoabdomenService
+	dkaService                *dkainsulin.DKAService
 	handler                   http.Handler
 }
 
@@ -294,6 +296,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		toxicologyPoisonStore:     toxicologypoison.NewStore(),
 		epilepticusService:        statusepilepticus.NewEpilepticusService(),
 		hemoabdomenService:        hemoabdomen.NewHemoabdomenService(),
+		dkaService:                dkainsulin.NewDKAService(),
 		peritonitisService:        septicperitonitis.NewPeritonitisService(),
 	}
 	if s.smsWebhookSecret == "" {
@@ -625,6 +628,8 @@ func (s *Server) routes() {
 	s.registerSepticPeritonitisRoutes()
 	// Acute Traumatic Hemoabdomen, Autotransfusion, Centesis Non-Clotting & Norepinephrine/TXA Resuscitation Cockpit routes (Milestone 20.2)
 	s.registerHemoabdomenRoutes()
+	// Diabetic Ketoacidosis (DKA), Regular Insulin CRI, Hypokalemia/Hypophosphatemia & Cerebral Edema Triage Cockpit routes (Milestone 20.1)
+	s.registerDKAInsulinRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
