@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Acute Non-Cardiogenic Pulmonary Edema (NCPE), Electrocution (Oral Cord Bite), Upper Airway Obstruction / Post-Ictal Neurogenic Edema, Low-Dose Furosemide Controversy &amp; CPAP/PEEP Mechanical Ventilation Cockpit.">
+  <title>Acute Non-Cardiogenic Pulmonary Edema (NCPE), Electrocution (Oral Cord Bite), Upper Airway Obstruction / Post-Ictal Neurogenic Edema, Low-Dose Furosemide Controversy &amp; CPAP/PEEP Mechanical Ventilation Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#ncpe-electrocution-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/cardiogenic-edema-triage" class="nav-link nav-link-emergency" id="nav-cardiogenic-edema-triage">🫀 Cardiogenic Edema ICU</a></li>
+          <li><a href="/ncpe-electrocution-triage" class="nav-link active nav-link-emergency" id="nav-ncpe-electrocution-triage">⚡ NCPE &amp; Electrocution ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="ncpe-electrocution-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header ncpe-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>⚡ ACUTE NON-CARDIOGENIC PULMONARY EDEMA (NCPE) &amp; ORAL CORD ELECTROCUTION COCKPIT</span>
+        </div>
+        <h1>Acute Non-Cardiogenic Pulmonary Edema (NCPE), Electrocution (Oral Cord Bite), Upper Airway Obstruction / Post-Ictal Neurogenic Edema, Low-Dose Furosemide Controversy &amp; CPAP/PEEP Mechanical Ventilation Cockpit</h1>
+        <p class="text-secondary">
+          Oral Electrical Cord Bite Catecholamine Surge, Post-Obstructive Negative-Pressure (Müller Maneuver) &amp; Post-Ictal Neurogenic Pulmonary Edema Triage, VetBLUE Caudodorsal B-Lines + Normal Left Atrium (LA:Ao &lt; 1.5) Cardiogenic Rule-Out, Strict Contraindication of High-Dose Furosemide Diuresis (4–8 mg/kg), Butorphanol Anxiolysis, Helmet CPAP / HFNC / PEEP Mechanical Ventilation &amp; 5–7 Day Delayed Oral Commissure Eschar Necrosis Surveillance.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid ncpe-kpi-grid" aria-label="NCPE &amp; Electrocution KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total NCPE ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Acute Caudodorsal NCPE Triage</span>
+        <strong class="kpi-value" id="kpi-acute-triage">{{ .AcuteNCPETriageCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">O2 / Butorphanol / CPAP / PEEP Staged</span>
+        <strong class="kpi-value" id="kpi-cpap-staged">{{ .CPAPOxygenStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">B-Lines Resolved Room Air Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-room-air">{{ .ClearedRoomAirCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Oral Cord Bite Electrocution</span>
+        <strong class="kpi-value" id="kpi-electrocution-count">{{ .OralCordElectrocutionCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Severe Hypoxemia (PaO2/FiO2 &lt; 200)</span>
+        <strong class="kpi-value" id="kpi-severe-pf-count">{{ .SeverePaO2FiO2Under200Count }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="ncpe-live-status" class="humane-traps-live-status ncpe-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Acute Non-Cardiogenic Pulmonary Edema (NCPE) &amp; Electrocution ICU operations.
+    </div>
+
+    <!-- Global Caudodorsal NCPE, LA:Ao < 1.5 Rule-Out, High-Dose Furosemide Contraindication, Butorphanol/CPAP/PEEP & Oral Eschar Alert Banner -->
+    <div id="ncpe-alert-banner" class="ncpe-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL NCPE &amp; ORAL CORD ELECTROCUTION GUARD: (1) Caudodorsal Lung Field B-Lines + Normal Left Atrium (LA:Ao &lt; 1.5) Distinguishes High-Protein Permeability NCPE from Perihilar Cardiogenic Edema; (2) STRICT CONTRAINDICATION of Aggressive High-Dose Furosemide Diuresis (4–8 mg/kg) Which Induces Severe Hypovolemic Shock in Normovolemic/Euvolemic NCPE Patients (Use Only Optional Low-Dose 0.5–1.0 mg/kg IV Once for Bronchodilation/Venodilation if Indicated); (3) Administer Butorphanol 0.2 mg/kg IV/IM Anxiolysis to Break Negative-Pressure Inspiratory Müller Maneuver; (4) Escalate to Helmet CPAP / HFNC / Mechanical Ventilation with PEEP (5–10 cmH2O) when PaO2/FiO2 &lt; 200; (5) Monitor 5–7 Day Delayed Oral Commissure/Lingual Eschar Necrosis &amp; Palatal Fistula After Electrical Cord Bite.
+    </div>
+
+    <!-- Global B-Lines Resolved & Room Air Normocapnic Clearance Banner -->
+    <div id="ncpe-clearance-banner" class="ncpe-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "BLINES_RESOLVED_ROOM_AIR_NORMOCAPNIC_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ CAUDODORSAL B-LINES RESOLVED &amp; ROOM AIR NORMOCAPNIC CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "BLINES_RESOLVED_ROOM_AIR_NORMOCAPNIC_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Discharged by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting caudodorsal B-line resolution, PaO2/FiO2 &gt; 350 &amp; room-air normoxemia.{{ end }}</span>
+    </div>
+
+    <div id="ncpe-error-banner" class="ncpe-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card ncpe-toolbar-card" aria-label="NCPE &amp; Electrocution Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col ncpe-toolbar-row">
+        <div class="form-group">
+          <label for="ncpe-status-filter">Filter by NCPE / Electrocution Status</label>
+          <select id="ncpe-status-filter" class="form-control">
+            <option value="">All NCPE &amp; Electrocution Statuses</option>
+            <option value="ACUTE_CAUDODORSAL_NCPE_HYPOXEMIA_TRIAGE">ACUTE_CAUDODORSAL_NCPE_HYPOXEMIA_TRIAGE (Acute Caudodorsal NCPE Hypoxemia Triage)</option>
+            <option value="OXYGEN_BUTORPHANOL_CPAP_PEEP_STAGED">OXYGEN_BUTORPHANOL_CPAP_PEEP_STAGED (O2 / Butorphanol / CPAP / PEEP Staged)</option>
+            <option value="BLINES_RESOLVED_ROOM_AIR_NORMOCAPNIC_CLEARED">BLINES_RESOLVED_ROOM_AIR_NORMOCAPNIC_CLEARED (B-Lines Resolved Room Air Normocapnic Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group ncpe-sse-controls">
+          <span class="kpi-label">Live ICU Telemetry Stream</span>
+          <div class="ncpe-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live NCPE &amp; Electrocution SSE Stream</button>
+            <span id="sse-status-badge" class="ncpe-status-badge ncpe-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid ncpe-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="ncpe-operations-panel" aria-labelledby="heading-ncpe-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-ncpe-ops">Active NCPE &amp; Oral Cord Electrocution Operations</h2>
+          <span id="ncpe-ops-count-badge" class="ncpe-status-badge ncpe-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="ncpe-operations-grid" class="trust-screenings-list ncpe-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card ncpe-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-etiology-class="{{ $op.EtiologyClass }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="ncpe-status-badge {{ if eq (printf "%s" $op.Status) "ACUTE_CAUDODORSAL_NCPE_HYPOXEMIA_TRIAGE" }}ncpe-status-critical{{ else if eq (printf "%s" $op.Status) "OXYGEN_BUTORPHANOL_CPAP_PEEP_STAGED" }}ncpe-status-staged{{ else }}ncpe-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="ncpe-card-metrics">
+              <span><strong>Etiology:</strong> {{ $op.EtiologyClass }}</span>
+              <span><strong>PaO2/FiO2:</strong> {{ printf "%.1f" $op.PaO2FiO2Ratio }}</span>
+              <span><strong>SpO2:</strong> {{ printf "%.1f" $op.SpO2Percent }}%</span>
+              <span><strong>RR:</strong> {{ $op.RespiratoryRateBpm }} bpm</span>
+              <span><strong>Caudodorsal B-Lines:</strong> {{ $op.CaudodorsalBLinesCount }}</span>
+              <span><strong>LA:Ao Ratio:</strong> {{ printf "%.2f" $op.LA2AoRatio }}</span>
+              <span><strong>Oral Eschar:</strong> {{ if $op.OralElectricalEscharPresent }}YES{{ else }}NO{{ end }}</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary ncpe-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open NCPE Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="ncpe-ops-empty-msg">No NCPE &amp; Electrocution operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="ncpe-divider">
+
+        <!-- Admit New NCPE / Electrocution Patient Form -->
+        <div class="trust-subsection" id="create-ncpe-section">
+          <h3 id="heading-create-ncpe">Admit New NCPE / Oral Cord Electrocution Patient</h3>
+          <form id="create-ncpe-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-NCPE-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Volt" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-species-input">Species</label>
+                <select id="create-species-input" name="species" class="form-control" required>
+                  <option value="Canine" selected>Canine</option>
+                  <option value="Feline">Feline</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="create-breed-input">Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="Labrador Retriever Puppy" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="120.0" step="0.1" value="7.2" required>
+              </div>
+              <div class="form-group">
+                <label for="create-etiology-input">NCPE Etiology Classification</label>
+                <select id="create-etiology-input" name="etiology_class" class="form-control" required>
+                  <option value="ORAL_ELECTRICAL_CORD_BITE_NEUROGENIC" selected>ORAL_ELECTRICAL_CORD_BITE_NEUROGENIC (Oral Electrical Cord Bite Neurogenic)</option>
+                  <option value="POST_OBSTRUCTIVE_CHOKING_STRANGULATION_NCPE">POST_OBSTRUCTIVE_CHOKING_STRANGULATION_NCPE (Post-Obstructive Choking / Strangulation)</option>
+                  <option value="POST_ICTAL_SEIZURE_TBI_CATECHOLAMINE_SURGE">POST_ICTAL_SEIZURE_TBI_CATECHOLAMINE_SURGE (Post-Ictal Seizure / TBI Catecholamine Surge)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-pf-ratio-input">PaO2 / FiO2 Ratio</label>
+                <input type="number" id="create-pf-ratio-input" name="pao2_fio2_ratio" class="form-control" min="40.0" max="550.0" step="1.0" value="155.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-spo2-input">SpO2 (%)</label>
+                <input type="number" id="create-spo2-input" name="spo2_percent" class="form-control" min="50.0" max="100.0" step="0.5" value="85.0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-rr-input">Respiratory Rate (bpm)</label>
+                <input type="number" id="create-rr-input" name="respiratory_rate_bpm" class="form-control" min="8" max="160" step="1" value="72" required>
+              </div>
+              <div class="form-group">
+                <label for="create-blines-input">Caudodorsal VetBLUE B-Lines Count</label>
+                <input type="number" id="create-blines-input" name="caudodorsal_blines_count" class="form-control" min="0" max="40" step="1" value="16" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-la2ao-input">Echocardiographic LA:Ao Ratio (&lt; 1.5 Normal)</label>
+                <input type="number" id="create-la2ao-input" name="la2ao_ratio" class="form-control" min="0.60" max="3.20" step="0.01" value="1.20" required>
+              </div>
+              <div class="form-group ncpe-checkbox-group">
+                <label class="ncpe-checkbox-item">
+                  <input type="checkbox" id="create-eschar-checkbox" name="oral_electrical_eschar_present" checked>
+                  <span>Oral Commissure / Lingual Electrical Eschar Present</span>
+                </label>
+                <label class="ncpe-checkbox-item">
+                  <input type="checkbox" id="create-froth-checkbox" name="pink_frothy_airway_fluid" checked>
+                  <span>Pink Frothy High-Protein Airway Fluid</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" id="create-ncpe-op-btn" class="btn btn-primary">➕ Admit NCPE / Electrocution Patient</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active NCPE Workspace & Clinical Staging / Respiratory Check / Discharge Clearance Forms -->
+      <section class="glass-card trust-panel" id="ncpe-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="ncpe-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · Etiology: <strong id="active-etiology-class">{{ $active.EtiologyClass }}</strong> · LA:Ao Ratio: <strong id="active-la2ao-ratio">{{ printf "%.2f" $active.LA2AoRatio }}</strong> · Oral Eschar: <strong id="active-eschar-flag">{{ if $active.OralElectricalEscharPresent }}YES{{ else }}NO{{ end }}</strong></p>
+          </div>
+          <span id="active-op-status-badge" class="ncpe-status-badge {{ if eq (printf "%s" $active.Status) "ACUTE_CAUDODORSAL_NCPE_HYPOXEMIA_TRIAGE" }}ncpe-status-critical{{ else if eq (printf "%s" $active.Status) "OXYGEN_BUTORPHANOL_CPAP_PEEP_STAGED" }}ncpe-status-staged{{ else }}ncpe-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- Oxygenation & VetBLUE POCUS Telemetry Bar -->
+        <div class="ncpe-vitals-summary" id="active-vitals-summary">
+          <div class="ncpe-vital-chip">
+            <span class="kpi-label">PaO2 / FiO2 Ratio</span>
+            <strong id="active-pf-ratio">{{ printf "%.1f" $active.PaO2FiO2Ratio }}</strong>
+          </div>
+          <div class="ncpe-vital-chip">
+            <span class="kpi-label">Caudodorsal B-Lines</span>
+            <strong id="active-blines-count">{{ $active.CaudodorsalBLinesCount }} B-Lines</strong>
+          </div>
+          <div class="ncpe-vital-chip">
+            <span class="kpi-label">Pulse Oximetry (SpO2)</span>
+            <strong id="active-spo2">{{ printf "%.1f" $active.SpO2Percent }}%</strong>
+          </div>
+          <div class="ncpe-vital-chip">
+            <span class="kpi-label">Resp Rate / LA:Ao</span>
+            <strong id="active-rr-la2ao">{{ $active.RespiratoryRateBpm }} bpm · LA:Ao {{ printf "%.2f" $active.LA2AoRatio }}</strong>
+          </div>
+        </div>
+
+        <!-- Caudodorsal NCPE Assessment & Contraindication Box -->
+        <div class="ncpe-plan-box" id="active-assessment-plan-box">
+          <h3>Caudodorsal NCPE Pathophysiology, LA:Ao Rule-Out &amp; Furosemide Contraindication Profile</h3>
+          <div class="ncpe-plan-grid">
+            <div><strong>Etiology Pathophysiology:</strong> <span id="plan-etiology-patho">{{ $active.AssessmentPlan.EtiologyPathophysiology }}</span></div>
+            <div><strong>Caudodorsal vs. Perihilar POCUS:</strong> <span id="plan-pocus-note">{{ $active.AssessmentPlan.CaudodorsalVsPerihilarPOCUSNote }}</span></div>
+            <div><strong>Normal LA:Ao Cardiogenic Rule-Out:</strong> <span id="plan-la2ao-ruleout">{{ $active.AssessmentPlan.NormalLA2AoCardiogenicRuleOut }}</span></div>
+            <div><strong>High-Dose Furosemide Contraindication:</strong> <span id="plan-furosemide-guard">{{ $active.AssessmentPlan.HighDoseFurosemideContraindication }}</span></div>
+            <div><strong>Oral Electrical Burn Delayed Necrosis:</strong> <span id="plan-oral-eschar">{{ $active.AssessmentPlan.OralElectricalBurnDelayedNecrosis }}</span></div>
+            <div><strong>Capillary Leak Fluid Overload Guard:</strong> <span id="plan-fluid-warning">{{ $active.AssessmentPlan.FluidOverloadCapillaryLeakWarning }}</span></div>
+          </div>
+        </div>
+
+        <!-- Oxygen, Butorphanol Anxiolysis & CPAP/PEEP Ventilation Plan Box -->
+        <div class="ncpe-plan-box" id="active-ventilation-plan-box">
+          <h3>Oxygen / HFNC, Butorphanol Anxiolysis &amp; Helmet CPAP / PEEP Mechanical Ventilation Plan</h3>
+          <div class="ncpe-plan-grid">
+            <div><strong>Oxygen / HFNC Protocol:</strong> <span id="plan-oxygen-protocol">{{ $active.VentilationPlan.OxygenFiO2OrHFNCProtocol }}</span></div>
+            <div><strong>Butorphanol / Acepromazine Anxiolysis:</strong> <span id="plan-anxiolytic">{{ $active.VentilationPlan.AnxiolyticButorphanolAcepromazine }}</span></div>
+            <div><strong>Low-Dose Furosemide Controversy Note:</strong> <span id="plan-low-furosemide">{{ $active.VentilationPlan.LowDoseFurosemideBronchodilatorNote }}</span></div>
+            <div><strong>CPAP / PEEP Mechanical Ventilation:</strong> <span id="plan-cpap-peep">{{ $active.VentilationPlan.CPAPOrPEEPMechanicalVentilation }}</span></div>
+            <div><strong>Conservative Fluid Maintenance Plan:</strong> <span id="plan-conservative-fluid">{{ $active.VentilationPlan.ConservativeFluidMaintenancePlan }}</span></div>
+            <div><strong>Oral Commissure Burn Analgesia Plan:</strong> <span id="plan-oral-analgesia">{{ $active.VentilationPlan.OralCommissureBurnAnalgesiaPlan }}</span></div>
+          </div>
+        </div>
+        {{ end }}
+
+        <hr class="ncpe-divider">
+
+        <!-- 1. Stage Oxygen / HFNC, Butorphanol Anxiolysis & Helmet CPAP / PEEP Protocol Form -->
+        <div class="trust-subsection" id="stage-cpap-section">
+          <h3>1. Stage Oxygen / HFNC, Butorphanol Anxiolysis &amp; Helmet CPAP / PEEP Ventilation Protocol</h3>
+          <form id="stage-cpap-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="stage-oxygen-protocol-input">Oxygen Cage (FiO2 40–60%) or High-Flow Nasal Cannula (HFNC) Protocol</label>
+              <input
+                type="text"
+                id="stage-oxygen-protocol-input"
+                name="oxygen_fio2_or_hfnc_protocol"
+                class="form-control"
+                value="High-Flow Nasal Cannula (HFNC) at 1.5–2.0 L/kg/min warm humidified O2 (FiO2 60%) or temperature-controlled O2 cage"
+                required
+              >
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-anxiolytic-input">Butorphanol (0.2 mg/kg IV/IM) / Acepromazine Anxiolysis Plan</label>
+                <input
+                  type="text"
+                  id="stage-anxiolytic-input"
+                  name="anxiolytic_butorphanol_acepromazine"
+                  class="form-control"
+                  value="Butorphanol 0.2 mg/kg IV/IM q4h +/- Acepromazine 0.01 mg/kg IV to break negative-pressure inspiratory Müller maneuver"
+                  required
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-cpap-peep-input">Helmet CPAP / PEEP (5–10 cmH2O) Mechanical Ventilation Plan</label>
+                <input
+                  type="text"
+                  id="stage-cpap-peep-input"
+                  name="cpap_or_peep_mechanical_ventilation"
+                  class="form-control"
+                  value="Helmet CPAP (6 cmH2O PEEP) or Lung-Protective Mechanical Ventilation with PEEP 5–10 cmH2O (tidal volume 6–8 mL/kg) for PaO2/FiO2 < 200"
+                  required
+                >
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-furosemide-note-input">High-Dose Furosemide Contraindication &amp; Optional Low-Dose Bronchodilator Note</label>
+                <input
+                  type="text"
+                  id="stage-furosemide-note-input"
+                  name="low_dose_furosemide_bronchodilator_note"
+                  class="form-control"
+                  value="STRICTLY AVOID 4–8 mg/kg Furosemide diuresis (causes hypovolemic shock in normovolemic NCPE); optional single low-dose 0.5–1.0 mg/kg IV once for bronchodilation"
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-fluid-plan-input">Conservative Euvolemic IV Fluid Maintenance Plan</label>
+                <input
+                  type="text"
+                  id="stage-fluid-plan-input"
+                  name="conservative_fluid_maintenance_plan"
+                  class="form-control"
+                  value="Restrict IV crystalloids to 50–75% maintenance (~1.5 mL/kg/hr) to prevent extravasation across leaky alveolar-capillary endothelium"
+                >
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="stage-oral-analgesia-input">Oral Commissure / Lingual Electrical Burn Analgesia &amp; 5–7 Day Eschar Plan</label>
+              <input
+                type="text"
+                id="stage-oral-analgesia-input"
+                name="oral_commissure_burn_analgesia_plan"
+                class="form-control"
+                value="Methadone/Buprenorphine opioid analgesia + 0.12% Chlorhexidine oral rinse + Sucralfate slurry; monitor 5–7 days for delayed eschar sloughing and palatal fistula"
+              >
+            </div>
+            <button type="submit" id="stage-cpap-btn" class="btn btn-secondary">🫁 Stage O2 / Butorphanol / CPAP / PEEP Protocol</button>
+          </form>
+        </div>
+
+        <hr class="ncpe-divider">
+
+        <!-- 2. Record Serial Oxygenation, VetBLUE Caudodorsal B-Line & LA:Ao Check Form -->
+        <div class="trust-subsection" id="record-respiratory-check-section">
+          <h3>2. Record Serial PaO2/FiO2, SpO2, VetBLUE Caudodorsal B-Lines &amp; LA:Ao Check</h3>
+          <form id="record-respiratory-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-pf-ratio-input">PaO2 / FiO2 Ratio</label>
+                <input type="number" id="check-pf-ratio-input" name="pao2_fio2_ratio" class="form-control" min="40.0" max="550.0" step="1.0" value="395.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-spo2-input">SpO2 (%)</label>
+                <input type="number" id="check-spo2-input" name="spo2_percent" class="form-control" min="50.0" max="100.0" step="0.5" value="98.0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-rr-input">Respiratory Rate (bpm)</label>
+                <input type="number" id="check-rr-input" name="respiratory_rate_bpm" class="form-control" min="8" max="160" step="1" value="28" required>
+              </div>
+              <div class="form-group">
+                <label for="check-blines-input">Caudodorsal VetBLUE B-Lines Count</label>
+                <input type="number" id="check-blines-input" name="caudodorsal_blines_count" class="form-control" min="0" max="40" step="1" value="0" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-la2ao-input">Echocardiographic LA:Ao Ratio</label>
+                <input type="number" id="check-la2ao-input" name="la2ao_ratio" class="form-control" min="0.60" max="3.20" step="0.01" value="1.22" required>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (Clinician)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Nadia Varma, DACVECC" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-note-input">Clinical Oxygenation, VetBLUE POCUS &amp; Oral Eschar Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="Post-HFNC, Helmet CPAP &amp; Butorphanol anxiolysis: caudodorsal B-lines resolved (0 B-lines, dry A-lines), PaO2/FiO2 395, SpO2 98% on room air, LA:Ao 1.22." required>
+            </div>
+            <button type="submit" id="record-respiratory-check-btn" class="btn btn-secondary">🩺 Record Respiratory &amp; VetBLUE B-Line Check</button>
+          </form>
+
+          <div class="ncpe-checks-box">
+            <h4>Serial Oxygenation &amp; VetBLUE Caudodorsal B-Line Checks (<span id="respiratory-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.RespiratoryChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="respiratory-checks-list" class="ncpe-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.RespiratoryChecks }}
+              <li class="ncpe-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · PaO2/FiO2 {{ printf "%.1f" $chk.PaO2FiO2Ratio }} · SpO2 {{ printf "%.1f" $chk.SpO2Percent }}% · RR {{ $chk.RespiratoryRateBpm }} bpm · Caudodorsal B-Lines {{ $chk.CaudodorsalBLinesCount }} · LA:Ao {{ printf "%.2f" $chk.LA2AoRatio }} — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="ncpe-divider">
+
+        <!-- 3. Clear NCPE / Electrocution Operation for Room Air Normocapnic Discharge Form -->
+        <div class="trust-subsection" id="clear-ncpe-section">
+          <h3>3. Clear B-Lines Resolved &amp; Room-Air Normoxemic Patient for Discharge</h3>
+          <form id="clear-ncpe-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="clear-discharged-by-input">Discharging Criticalist / Emergency Veterinarian</label>
+              <input type="text" id="clear-discharged-by-input" name="discharged_by" class="form-control" value="Dr. Nadia Varma, DACVECC" required>
+            </div>
+            <div class="form-group">
+              <label for="clear-summary-input">Room-Air Normoxemic &amp; 5–7 Day Oral Eschar Follow-Up Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="discharge_summary"
+                class="form-control"
+                value="Caudodorsal VetBLUE B-lines completely resolved (0 B-lines), normoxemic and eupneic on room air (PaO2/FiO2 395, SpO2 98%, RR 28 bpm, LA:Ao 1.22), soft diet and 5–7 day oral commissure eschar recheck scheduled."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-ncpe-btn" class="btn btn-primary">🛡️ Clear NCPE Patient for Room-Air Discharge</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/ncpe-electrocution-triage.js" defer></script>
+</body>
+</html>

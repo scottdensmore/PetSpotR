@@ -52,6 +52,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/maritimecoastal"
 	"github.com/scottdensmore/petspotr/pkg/megaesophagusfb"
 	"github.com/scottdensmore/petspotr/pkg/mesh"
+	"github.com/scottdensmore/petspotr/pkg/ncpeelectrocution"
 	"github.com/scottdensmore/petspotr/pkg/neonatalincubator"
 	"github.com/scottdensmore/petspotr/pkg/ollama"
 	"github.com/scottdensmore/petspotr/pkg/oncologictls"
@@ -154,6 +155,7 @@ type Server struct {
 	burnService               *thermalburnparkland.BurnService
 	megaService               *megaesophagusfb.MegaesophagusService
 	orthoService              *polytraumaortho.OrthoService
+	ncpeService               *ncpeelectrocution.NCPEService
 	handler                   http.Handler
 }
 
@@ -725,6 +727,8 @@ func (s *Server) routes() {
 	s.registerMegaesophagusForeignBodyRoutes()
 	// Acute Bite Wound, Vehicular Polytrauma, Degloving/Shearing Injury, Open Fracture Gustilo-Anderson Classification, Wet-to-Dry/NPWT Vacuum-Assisted Closure & Damage-Control Orthopedics Cockpit routes (Milestone 24.2)
 	s.registerPolytraumaOrthopedicRoutes()
+	// Acute Non-Cardiogenic Pulmonary Edema (NCPE), Electrocution (Oral Cord Bite), Upper Airway Obstruction / Post-Ictal Neurogenic Edema, Low-Dose Furosemide Controversy & CPAP/PEEP Mechanical Ventilation Cockpit routes (Milestone 24.3)
+	s.registerNCPEElectrocutionRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
