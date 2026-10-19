@@ -52,6 +52,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/identity"
 	"github.com/scottdensmore/petspotr/pkg/imhathrombosis"
 	"github.com/scottdensmore/petspotr/pkg/maritimecoastal"
+	"github.com/scottdensmore/petspotr/pkg/masscasualtyvmat"
 	"github.com/scottdensmore/petspotr/pkg/megaesophagusfb"
 	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/ncpeelectrocution"
@@ -168,6 +169,7 @@ type Server struct {
 	vectorBorneService        *vectorbornerickettsial.VectorBorneService
 	rabiesQuarantineService   *rabiesquarantine.RabiesQuarantineService
 	systemicMycosesService    *systemicmycoses.SystemicMycosesService
+	massCasualtyVMATService   *masscasualtyvmat.MassCasualtyVMATService
 	handler                   http.Handler
 }
 
@@ -372,6 +374,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		heartwormService:          heartwormcaval.NewHeartwormService(),
 		vectorBorneService:        vectorbornerickettsial.NewVectorBorneService(),
 		systemicMycosesService:    systemicmycoses.NewSystemicMycosesService(),
+		massCasualtyVMATService:   masscasualtyvmat.NewMassCasualtyVMATService(),
 		rabiesQuarantineService:   rabiesquarantine.NewRabiesQuarantineService(),
 	}
 	if s.smsWebhookSecret == "" {
@@ -757,6 +760,8 @@ func (s *Server) routes() {
 	s.registerRabiesQuarantineRoutes()
 	// Acute Systemic Mycoses & Fungal Emergencies (Blastomycosis, Histoplasmosis, Coccidioidomycosis, Cryptococcosis & Sinonasal Aspergillosis), Urine/Serum MiraVista Antigen EIA, Itraconazole/Fluconazole, Amphotericin B Lipid Complex Nephrotoxicity Guard & Clotrimazole Trephination Cockpit routes (Milestone 25.3)
 	s.registerSystemicMycosesRoutes()
+	// Acute Disaster Mass-Casualty Veterinary Triage (START/SALT Veterinary Color-Tagging: Immediate Red, Delayed Yellow, Minimal Green, Expectant Black), Decontamination Corridor, Field Hospital Surge Capacity & FEMA/AVMA VMAT Deployment Command Cockpit routes (Milestone 25.5)
+	s.registerMassCasualtyVMATRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{
