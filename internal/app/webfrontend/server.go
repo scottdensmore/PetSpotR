@@ -39,6 +39,7 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/dystociaeclampsia"
 	"github.com/scottdensmore/petspotr/pkg/envenomationtoxin"
+	"github.com/scottdensmore/petspotr/pkg/fatethrombus"
 	"github.com/scottdensmore/petspotr/pkg/gdvbloat"
 	"github.com/scottdensmore/petspotr/pkg/hazmatdecon"
 	"github.com/scottdensmore/petspotr/pkg/hemoabdomen"
@@ -138,6 +139,7 @@ type Server struct {
 	akiService                *akidialysis.AKIService
 	pancreatitisService       *pancreatitiscpl.PancreatitisService
 	spinalService             *spinalivdd.IVDDService
+	fateService               *fatethrombus.FATEService
 	handler                   http.Handler
 }
 
@@ -330,6 +332,7 @@ func NewServerWithOptions(st store.StateStore, options ServerOptions) *Server {
 		imhaService:               imhathrombosis.NewIMHAService(),
 		peritonitisService:        septicperitonitis.NewPeritonitisService(),
 		spinalService:             spinalivdd.NewIVDDService(),
+		fateService:               fatethrombus.NewFATEService(),
 		pancreatitisService:       pancreatitiscpl.NewPancreatitisService(),
 	}
 	if s.smsWebhookSecret == "" {
@@ -685,6 +688,8 @@ func (s *Server) routes() {
 	s.registerPancreatitisCPLRoutes()
 	// Acute Spinal Cord Injury, Intervertebral Disc Extrusion (IVDD), Deep Pain Nociception, Schiff-Sherrington Posture & Hemilaminectomy Cockpit routes (Milestone 22.3)
 	s.registerSpinalIVDDRoutes()
+	// Feline Aortic Thromboembolism (FATE / Saddle Thrombus), 5 Ps, Paired Glucose/Lactate Limb Gradient & Clopidogrel/Rivaroxaban Cockpit routes (Milestone 22.5)
+	s.registerFATEThrombusRoutes()
 
 	s.mux.Handle("/metrics", s.metrics.MetricsHandler())
 	telemetry.RegisterHealthRoutes(s.mux, map[string]telemetry.ReadinessChecker{

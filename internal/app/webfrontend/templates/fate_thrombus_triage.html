@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="{{ if .Locale }}{{ .Locale }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PetSpotR Feline Aortic Thromboembolism (FATE / Saddle Thrombus), 5 Ps (Pain, Pallor, Pulselessness, Paresis, Poikilothermy), Paired Glucose/Lactate Limb Gradient &amp; Clopidogrel/Rivaroxaban Cockpit.">
+  <title>Feline Aortic Thromboembolism (FATE / Saddle Thrombus), 5 Ps, Paired Glucose/Lactate Limb Gradient &amp; Clopidogrel/Rivaroxaban Cockpit — PetSpotR AI</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a href="#fate-thrombus-cockpit" class="skip-link">Skip to main content</a>
+
+  <header class="glass-nav" role="banner">
+    <div class="container navbar">
+      <a href="/" class="brand-logo" id="brand-link">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+          <path d="M12 8v8"></path>
+          <path d="M8 12h8"></path>
+        </svg>
+        <span>Pet<span class="brand-badge">SpotR</span></span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link" id="nav-home">Home</a></li>
+          <li><a href="/pets" class="nav-link" id="nav-directory">Pet Directory</a></li>
+          <li><a href="/matches" class="nav-link" id="nav-matches">Match Dashboard</a></li>
+          <li><a href="/evacuation" class="nav-link nav-link-emergency" id="nav-evacuation">🚨 Disaster Hub</a></li>
+          <li><a href="/triage" class="nav-link nav-link-emergency" id="nav-triage">🩺 Veterinary Triage</a></li>
+          <li><a href="/cardiogenic-edema-triage" class="nav-link nav-link-emergency" id="nav-cardiogenic-edema-triage">🫀 Cardiogenic Edema ICU</a></li>
+          <li><a href="/fate-thrombus-triage" class="nav-link active nav-link-emergency" id="nav-fate-thrombus-triage">🐈‍⬛ FATE Saddle Thrombus ICU</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <div id="offline-indicator" class="offline-pill" role="status" aria-live="polite" hidden>
+          <span class="offline-dot" aria-hidden="true"></span>
+          <span id="offline-status-text">Offline</span>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle dark/light mode"></button>
+        <a href="/report-lost" class="btn btn-primary">Report Lost Pet</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="fate-thrombus-cockpit" class="container page-main" role="main">
+    <!-- Header Banner -->
+    <div class="emergency-operations-header fate-header-banner">
+      <div class="dashboard-heading">
+        <div class="emergency-status-pill">
+          <span class="pulse-beacon" aria-hidden="true"></span>
+          <span>🐈‍⬛ FELINE AORTIC THROMBOEMBOLISM (FATE / SADDLE THROMBUS), 5 PS &amp; CLOPIDOGREL/RIVAROXABAN COCKPIT</span>
+        </div>
+        <h1>Feline Aortic Thromboembolism (FATE / Saddle Thrombus), 5 Ps (Pain, Pallor, Pulselessness, Paresis, Poikilothermy), Paired Glucose/Lactate Limb Gradient &amp; Clopidogrel/Rivaroxaban Cockpit</h1>
+        <p class="text-secondary">
+          Acute 5 Ps Triage (Vocalizing Ischemic Pain, Cyanotic/Pale Paw Pads, Absent Femoral/Dorsal Pedal Pulses, Pelvic Limb Paresis/Paralysis, Poikilothermy), Paired Systemic-to-Affected-Limb Glucose Gradient (&gt; 30 mg/dL Diagnostic), Limb-to-Systemic Lactate Gradient, Full-Mu Opioid Analgesia (Fentanyl CRI / Methadone IV), Clopidogrel 75 mg PO Loading Dose (FAT CAT Trial) + Rivaroxaban/Enoxaparin Dual Antithrombotic Therapy, Direct Heating Pad Contraindication Guard &amp; Reperfusion Hyperkalemia Washout Surveillance.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary KPI Bar -->
+    <section class="humane-traps-kpi-grid fate-kpi-grid" aria-label="FATE Saddle Thrombus KPI Telemetry">
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Total FATE ICU Operations</span>
+        <strong class="kpi-value" id="kpi-total-ops">{{ .TotalOperations }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Acute Saddle 5 Ps Triage</span>
+        <strong class="kpi-value" id="kpi-acute-saddle">{{ .AcuteSaddleTriageCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Methadone / Clopidogrel Staged</span>
+        <strong class="kpi-value" id="kpi-anticoag-staged">{{ .AnticoagStagedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Reperfused &amp; Normokalemic Cleared</span>
+        <strong class="kpi-value" id="kpi-cleared-reperfused">{{ .ClearedReperfusedCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Bilateral Aortic Saddle Count</span>
+        <strong class="kpi-value" id="kpi-bilateral-saddle">{{ .BilateralSaddleCount }}</strong>
+      </div>
+      <div class="glass-card humane-trap-kpi-card">
+        <span class="kpi-label">Concurrent Cardiogenic CHF</span>
+        <strong class="kpi-value" id="kpi-concurrent-chf">{{ .ConcurrentCHFCount }}</strong>
+      </div>
+    </section>
+
+    <!-- ARIA Live Status Banner -->
+    <div id="fate-live-status" class="humane-traps-live-status fate-live-status" role="status" aria-live="polite">
+      Monitoring {{ .TotalOperations }} Feline Aortic Thromboembolism (FATE / Saddle Thrombus) ICU operations.
+    </div>
+
+    <!-- Global FATE 5 Ps, Glucose Delta > 30 mg/dL, Full-Mu Opioid, Clopidogrel 75 mg Load, Direct Heating Pad Contraindication & Reperfusion Hyperkalemia Alert Banner -->
+    <div id="fate-alert-banner" class="fate-alert-banner" role="alert" aria-live="assertive">
+      ⚠️ CRITICAL FATE / SADDLE THROMBUS 5 Ps &amp; REPERFUSION GUARD: (1) 5 Ps &amp; Paired Glucose Delta &gt; 30 mg/dL (Systemic minus Affected Limb Blood Glucose &gt; 30 mg/dL &amp; Elevated Limb-to-Systemic Lactate Gradient confirm arterial thromboembolism); (2) Full-Mu Opioid Priority — Administer Fentanyl CRI or Methadone IV immediately (NEVER rely on partial agonist Buprenorphine alone for severe acute ischemic neuritis); (3) FAT CAT Trial Antithrombotic Loading — Administer Clopidogrel 75 mg PO loading dose (followed by 18.75 mg PO q24h) + Rivaroxaban 2.5 mg PO q24h or Enoxaparin 0.8–1.0 mg/kg SC q6–8h dual therapy; (4) Direct Heating Pad Contraindication — NEVER apply direct heating pads or active heat sources to ischemic/poikilothermic limbs (causes severe thermal burns and accelerates ischemic myonecrosis); (5) Life-Threatening Reperfusion Hyperkalemia Washout — Monitor serial K+ &amp; continuous ECG q2–4h for lethal hyperkalemic bradycardia/asystole as limb circulation returns.
+    </div>
+
+    <!-- Global Reperfused & Normokalemic Dual Therapy Clearance Banner -->
+    <div id="fate-clearance-banner" class="fate-clearance-banner" role="status" aria-live="polite" {{ if not (and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "REPERFUSED_NORMOKALEMIC_DUAL_THERAPY_CLEARED")) }}hidden{{ end }}>
+      <strong>✅ REPERFUSED, NORMOKALEMIC &amp; DUAL ANTITHROMBOTIC THERAPY CLEARANCE VERIFIED:</strong>
+      <span id="clearance-summary-text">{{ if and .ActiveOperation (eq (printf "%s" .ActiveOperation.Status) "REPERFUSED_NORMOKALEMIC_DUAL_THERAPY_CLEARED") }}{{ .ActiveOperation.ID }} ({{ .ActiveOperation.PetName }}) — Discharged by {{ .ActiveOperation.DischargedBy }}: {{ .ActiveOperation.DischargeSummary }}{{ else }}Awaiting reperfusion, normokalemia &amp; Clopidogrel + Rivaroxaban dual therapy clearance.{{ end }}</span>
+    </div>
+
+    <div id="fate-error-banner" class="fate-alert-banner" role="alert" aria-live="assertive" hidden></div>
+
+    <!-- Filter & SSE Controls Toolbar -->
+    <section class="glass-card fate-toolbar-card" aria-label="FATE Triage Filter &amp; Live Telemetry Controls">
+      <div class="form-row-2col fate-toolbar-row">
+        <div class="form-group">
+          <label for="fate-status-filter">Filter by FATE Triage Status</label>
+          <select id="fate-status-filter" class="form-control">
+            <option value="">All FATE Triage Statuses</option>
+            <option value="ACUTE_SADDLE_THROMBUS_5PS_TRIAGE">ACUTE_SADDLE_THROMBUS_5PS_TRIAGE (Acute Saddle Thrombus 5 Ps Triage)</option>
+            <option value="METHADONE_CLOPIDOGREL_ANTICOAG_STAGED">METHADONE_CLOPIDOGREL_ANTICOAG_STAGED (Methadone / Clopidogrel 75 mg / Anticoag Staged)</option>
+            <option value="REPERFUSED_NORMOKALEMIC_DUAL_THERAPY_CLEARED">REPERFUSED_NORMOKALEMIC_DUAL_THERAPY_CLEARED (Reperfused Normokalemic Dual Therapy Cleared)</option>
+          </select>
+        </div>
+        <div class="form-group fate-sse-controls">
+          <span class="kpi-label">Live ICU Telemetry Stream</span>
+          <div class="fate-sse-actions">
+            <button type="button" id="connect-sse-btn" class="btn btn-secondary">📡 Connect Live FATE SSE Stream</button>
+            <span id="sse-status-badge" class="fate-status-badge fate-status-staged">SSE Disconnected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-cockpit-grid fate-cockpit-grid">
+      <!-- Left Column: Operations Grid & New Operation Intake -->
+      <section class="glass-card trust-panel" id="fate-operations-panel" aria-labelledby="heading-fate-ops">
+        <div class="trust-panel-header">
+          <h2 id="heading-fate-ops">Active FATE / Saddle Thrombus Operations</h2>
+          <span id="fate-ops-count-badge" class="fate-status-badge fate-status-staged">{{ len .Operations }} Ops</span>
+        </div>
+
+        <div id="fate-operations-grid" class="trust-screenings-list fate-ops-grid" role="list">
+          {{ range $op := .Operations }}
+          <article
+            class="trust-screening-card fate-op-card"
+            data-op-id="{{ $op.ID }}"
+            data-operation-id="{{ $op.ID }}"
+            data-status="{{ $op.Status }}"
+            data-distribution="{{ $op.DistributionType }}"
+            role="listitem"
+          >
+            <div class="trust-screening-card-header">
+              <div class="trust-screening-identity">
+                <strong class="trust-pet-name">{{ $op.PetName }} ({{ $op.Species }} — {{ $op.Breed }} · {{ printf "%.1f" $op.WeightKg }} kg)</strong>
+                <code class="trust-pet-id">{{ $op.ID }} · {{ $op.CaseID }}</code>
+              </div>
+              <div class="trust-screening-verdict-wrap">
+                <span class="fate-status-badge {{ if eq (printf "%s" $op.Status) "ACUTE_SADDLE_THROMBUS_5PS_TRIAGE" }}fate-status-critical{{ else if eq (printf "%s" $op.Status) "METHADONE_CLOPIDOGREL_ANTICOAG_STAGED" }}fate-status-staged{{ else }}fate-status-cleared{{ end }}">{{ $op.Status }}</span>
+              </div>
+            </div>
+
+            <div class="fate-card-metrics">
+              <span><strong>Distribution:</strong> {{ $op.DistributionType }}</span>
+              <span><strong>ΔGlucose:</strong> {{ printf "%.1f" $op.GlucoseDeltaMgDL }} mg/dL (Sys {{ printf "%.1f" $op.SystemicGlucoseMgDL }} / Limb {{ printf "%.1f" $op.AffectedLimbGlucoseMgDL }})</span>
+              <span><strong>ΔLactate:</strong> {{ printf "%.1f" $op.LactateDeltaMmolL }} mmol/L</span>
+              <span><strong>Serum K+:</strong> {{ printf "%.1f" $op.SerumPotassiumMmolL }} mmol/L</span>
+              <span><strong>Limb Temp:</strong> {{ printf "%.1f" $op.DistalLimbTempC }} °C</span>
+              <span><strong>LA:Ao:</strong> {{ printf "%.2f" $op.LA2AoRatio }}</span>
+              <span><strong>Concurrent CHF:</strong> {{ if $op.ConcurrentCardiogenicCHF }}YES (Furosemide + O2){{ else }}NO{{ end }}</span>
+            </div>
+
+            <div class="trust-moderator-actions">
+              <button type="button" class="btn btn-sm btn-secondary fate-select-op-btn" data-op-id="{{ $op.ID }}">
+                🔍 Open FATE Workspace ({{ $op.ID }})
+              </button>
+            </div>
+          </article>
+          {{ else }}
+          <p class="trust-empty-hint" id="fate-ops-empty-msg">No FATE / Saddle Thrombus operations match the selected filter.</p>
+          {{ end }}
+        </div>
+
+        <hr class="fate-divider">
+
+        <!-- Admit New FATE Patient Form -->
+        <div class="trust-subsection" id="create-fate-section">
+          <h3 id="heading-create-fate">Admit New FATE / Saddle Thrombus Patient</h3>
+          <form id="create-fate-op-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-case-id-input">Case ID</label>
+                <input type="text" id="create-case-id-input" name="case_id" class="form-control" value="CASE-FATE-104" required>
+              </div>
+              <div class="form-group">
+                <label for="create-pet-name-input">Pet Name</label>
+                <input type="text" id="create-pet-name-input" name="pet_name" class="form-control" value="Oliver" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-breed-input">Feline Breed</label>
+                <input type="text" id="create-breed-input" name="breed" class="form-control" value="Domestic Shorthair" required>
+              </div>
+              <div class="form-group">
+                <label for="create-weight-input">Weight (kg)</label>
+                <input type="number" id="create-weight-input" name="weight_kg" class="form-control" min="0.5" max="30.0" step="0.1" value="5.6" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="create-distribution-input">Arterial Thromboembolism Distribution</label>
+              <select id="create-distribution-input" name="distribution_type" class="form-control" required>
+                <option value="BILATERAL_AORTIC_TRIFURCATION_SADDLE" selected>BILATERAL_AORTIC_TRIFURCATION_SADDLE (Bilateral Aortic Trifurcation Saddle Thrombus)</option>
+                <option value="UNILATERAL_ILIAC_FEMORAL_THROMBUS">UNILATERAL_ILIAC_FEMORAL_THROMBUS (Unilateral External Iliac / Femoral Thrombus)</option>
+                <option value="RIGHT_FORE_BRACHIAL_THROMBOEMBOLISM">RIGHT_FORE_BRACHIAL_THROMBOEMBOLISM (Right Forelimb Brachial Artery Thromboembolism)</option>
+              </select>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-sys-glucose-input">Systemic Blood Glucose (mg/dL)</label>
+                <input type="number" id="create-sys-glucose-input" name="systemic_glucose_mg_dl" class="form-control" min="20" max="600" step="0.1" value="192.0" required>
+              </div>
+              <div class="form-group">
+                <label for="create-limb-glucose-input">Affected Limb Blood Glucose (mg/dL)</label>
+                <input type="number" id="create-limb-glucose-input" name="affected_limb_glucose_mg_dl" class="form-control" min="10" max="600" step="0.1" value="88.0" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-sys-lactate-input">Systemic Lactate (mmol/L)</label>
+                <input type="number" id="create-sys-lactate-input" name="systemic_lactate_mmol_l" class="form-control" min="0.1" max="30.0" step="0.1" value="2.2" required>
+              </div>
+              <div class="form-group">
+                <label for="create-limb-lactate-input">Affected Limb Lactate (mmol/L)</label>
+                <input type="number" id="create-limb-lactate-input" name="affected_limb_lactate_mmol_l" class="form-control" min="0.1" max="30.0" step="0.1" value="12.6" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-potassium-input">Serum Potassium K+ (mmol/L)</label>
+                <input type="number" id="create-potassium-input" name="serum_potassium_mmol_l" class="form-control" min="2.0" max="12.0" step="0.1" value="4.8" required>
+              </div>
+              <div class="form-group">
+                <label for="create-limb-temp-input">Distal Limb Temp (°C)</label>
+                <input type="number" id="create-limb-temp-input" name="distal_limb_temp_c" class="form-control" min="20.0" max="41.5" step="0.1" value="28.9" required>
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="create-la2ao-input">Echocardiographic LA:Ao Ratio</label>
+                <input type="number" id="create-la2ao-input" name="la2ao_ratio" class="form-control" min="0.8" max="4.5" step="0.01" value="2.40" required>
+              </div>
+              <div class="form-group fate-checkbox-group">
+                <label class="fate-checkbox-item">
+                  <input type="checkbox" id="create-chf-checkbox" name="concurrent_cardiogenic_chf" checked>
+                  <span>Concurrent Cardiogenic CHF / Pulmonary Edema Present</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" id="create-fate-op-btn" class="btn btn-primary">➕ Admit FATE Saddle Thrombus Patient</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Column: Active FATE Workspace & Clinical Staging / Perfusion Check / Discharge Clearance Forms -->
+      <section class="glass-card trust-panel" id="fate-active-workspace" aria-labelledby="active-op-title">
+        {{ if .ActiveOperation }}
+        {{ $active := .ActiveOperation }}
+        <div class="fate-workspace-header">
+          <div>
+            <h2 id="active-op-title">{{ $active.ID }} — {{ $active.PetName }} ({{ $active.Species }} · {{ $active.Breed }} · {{ printf "%.1f" $active.WeightKg }} kg)</h2>
+            <p class="text-secondary" id="active-op-subtitle">Case {{ $active.CaseID }} · Distribution: <strong id="active-distribution-type">{{ $active.DistributionType }}</strong> · LA:Ao: <strong id="active-la2ao-ratio">{{ printf "%.2f" $active.LA2AoRatio }}</strong> · Concurrent CHF: <strong id="active-chf-flag">{{ if $active.ConcurrentCardiogenicCHF }}YES{{ else }}NO{{ end }}</strong></p>
+          </div>
+          <span id="active-op-status-badge" class="fate-status-badge {{ if eq (printf "%s" $active.Status) "ACUTE_SADDLE_THROMBUS_5PS_TRIAGE" }}fate-status-critical{{ else if eq (printf "%s" $active.Status) "METHADONE_CLOPIDOGREL_ANTICOAG_STAGED" }}fate-status-staged{{ else }}fate-status-cleared{{ end }}">{{ $active.Status }}</span>
+        </div>
+
+        <!-- Paired Glucose / Lactate & Limb Perfusion Telemetry Bar -->
+        <div class="fate-vitals-summary" id="active-vitals-summary">
+          <div class="fate-vital-chip">
+            <span class="kpi-label">Paired Glucose Delta (Sys − Limb)</span>
+            <strong id="active-glucose-delta">{{ printf "%.1f" $active.GlucoseDeltaMgDL }} mg/dL</strong>
+          </div>
+          <div class="fate-vital-chip">
+            <span class="kpi-label">Limb-to-Systemic Lactate Delta</span>
+            <strong id="active-lactate-delta">{{ printf "%.1f" $active.LactateDeltaMmolL }} mmol/L</strong>
+          </div>
+          <div class="fate-vital-chip">
+            <span class="kpi-label">Serum Potassium (K+)</span>
+            <strong id="active-serum-potassium">{{ printf "%.1f" $active.SerumPotassiumMmolL }} mmol/L</strong>
+          </div>
+          <div class="fate-vital-chip">
+            <span class="kpi-label">Distal Limb Temperature</span>
+            <strong id="active-limb-temp">{{ printf "%.1f" $active.DistalLimbTempC }} °C</strong>
+          </div>
+        </div>
+
+        <!-- Metabolic Gradient & 5 Ps Plan Box -->
+        <div class="fate-plan-box" id="active-gradient-plan-box">
+          <h3>5 Ps Clinical Triage &amp; Paired Glucose/Lactate Limb Gradient Plan</h3>
+          <div class="fate-plan-grid">
+            <div><strong>5 Ps Summary:</strong> <span id="plan-five-ps">{{ $active.GradientPlan.FivePsClinicalSummary }}</span></div>
+            <div><strong>Paired Glucose Gradient:</strong> <span id="plan-glucose-delta">{{ $active.GradientPlan.SystemicToLimbGlucoseDelta }}</span></div>
+            <div><strong>Paired Lactate Gradient:</strong> <span id="plan-lactate-delta">{{ $active.GradientPlan.LimbToSystemicLactateDelta }}</span></div>
+            <div><strong>Echocardiographic LA:Ao &amp; Smoke:</strong> <span id="plan-la2ao-smoke">{{ $active.GradientPlan.LeftAtrialSmokeLA2AoRatio }}</span></div>
+            <div><strong>Reperfusion Hyperkalemia Alert:</strong> <span id="plan-hyperkalemia-alert">{{ $active.GradientPlan.ReperfusionHyperkalemiaAlert }}</span></div>
+            <div><strong>Passive Warming Contraindication:</strong> <span id="plan-passive-warming">{{ $active.GradientPlan.PassiveWarmingContraindication }}</span></div>
+          </div>
+        </div>
+
+        <!-- Antithrombotic & Analgesia Plan Box -->
+        <div class="fate-plan-box" id="active-antithrombotic-plan-box">
+          <h3>Full-Mu Opioid Analgesia &amp; Clopidogrel 75 mg / Rivaroxaban / Enoxaparin Plan</h3>
+          <div class="fate-plan-grid">
+            <div><strong>Full-Mu Opioid CRI Protocol:</strong> <span id="plan-opioid-protocol">{{ $active.AntithromboticPlan.FullMuOpioidCRIProtocol }}</span></div>
+            <div><strong>Clopidogrel 75 mg Loading (FAT CAT):</strong> <span id="plan-clopidogrel-protocol">{{ $active.AntithromboticPlan.ClopidogrelLoadingProtocol }}</span></div>
+            <div><strong>Factor Xa / LMWH Protocol:</strong> <span id="plan-factor-xa-protocol">{{ $active.AntithromboticPlan.FactorXaOrHeparinProtocol }}</span></div>
+            <div><strong>Concurrent CHF Furosemide Plan:</strong> <span id="plan-chf-furosemide">{{ $active.AntithromboticPlan.ConcurrentCHFFurosemidePlan }}</span></div>
+            <div><strong>Serial K+ &amp; ECG Monitoring:</strong> <span id="plan-potassium-monitoring">{{ $active.AntithromboticPlan.SerialPotassiumMonitoring }}</span></div>
+            <div><strong>Pimobendan LVOT Guard:</strong> <span id="plan-pimobendan-lvot">{{ $active.AntithromboticPlan.PimobendanLVOTNote }}</span></div>
+          </div>
+        </div>
+        {{ end }}
+
+        <hr class="fate-divider">
+
+        <!-- 1. Stage Methadone/Fentanyl CRI, Clopidogrel 75 mg Load & Rivaroxaban/Enoxaparin Form -->
+        <div class="trust-subsection" id="stage-antithrombotic-section">
+          <h3>1. Stage Full-Mu Opioid Analgesia, Clopidogrel 75 mg Loading (FAT CAT Trial) &amp; Dual Antithrombotic Protocol</h3>
+          <form id="stage-antithrombotic-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="stage-opioid-protocol-input">Full-Mu Opioid CRI / Bolus Protocol (Fentanyl / Methadone — Avoid Partial Agonist Buprenorphine Alone)</label>
+              <input
+                type="text"
+                id="stage-opioid-protocol-input"
+                name="full_mu_opioid_cri_protocol"
+                class="form-control"
+                value="Methadone 0.25 mg/kg IV q4h transitioning to Fentanyl CRI 3–5 mcg/kg/hr IV (Full-Mu Agonist Priority)"
+                required
+              >
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-clopidogrel-loading-input">Clopidogrel 75 mg Oral Loading Dose (FAT CAT Trial) &amp; Maintenance</label>
+                <input
+                  type="text"
+                  id="stage-clopidogrel-loading-input"
+                  name="clopidogrel_loading_protocol"
+                  class="form-control"
+                  value="Clopidogrel 75 mg PO one-time oral loading dose (4 × 18.75 mg), followed by 18.75 mg PO q24h"
+                  required
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-factor-xa-protocol-input">Factor Xa Inhibitor (Rivaroxaban) / LMWH (Enoxaparin) Protocol</label>
+                <input
+                  type="text"
+                  id="stage-factor-xa-protocol-input"
+                  name="factor_xa_or_heparin_protocol"
+                  class="form-control"
+                  value="Enoxaparin 0.9 mg/kg SC q8h acutely, transitioning to Rivaroxaban 2.5 mg PO q24h dual therapy"
+                  required
+                >
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="stage-chf-furosemide-input">Concurrent Cardiogenic CHF Furosemide &amp; Oxygen Cage Plan</label>
+                <input
+                  type="text"
+                  id="stage-chf-furosemide-input"
+                  name="concurrent_chf_furosemide_plan"
+                  class="form-control"
+                  value="Furosemide 2.0 mg/kg IV bolus + Oxygen Cage 45% FiO2; strictly avoid IV crystalloid fluid overload"
+                >
+              </div>
+              <div class="form-group">
+                <label for="stage-potassium-monitoring-input">Serial Potassium (K+) &amp; Reperfusion Washout Monitoring</label>
+                <input
+                  type="text"
+                  id="stage-potassium-monitoring-input"
+                  name="serial_potassium_monitoring"
+                  class="form-control"
+                  value="Serial venous K+ &amp; lactate q2–4h + continuous ECG telemetry for reperfusion hyperkalemia"
+                >
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="stage-pimobendan-note-input">Pimobendan LVOT Obstruction (DLVOTO / SAM) Guard Note</label>
+              <input
+                type="text"
+                id="stage-pimobendan-note-input"
+                name="pimobendan_lvot_note"
+                class="form-control"
+                value="Verify absence of dynamic LVOT obstruction (DLVOTO) on echo before initiating Pimobendan 1.25 mg PO q12h"
+              >
+            </div>
+            <button type="submit" id="stage-antithrombotic-btn" class="btn btn-secondary">💊 Stage Methadone / Clopidogrel 75 mg / Anticoagulant Protocol</button>
+          </form>
+        </div>
+
+        <hr class="fate-divider">
+
+        <!-- 2. Record Serial Limb Perfusion, Paired Glucose/Lactate Delta & Serum Potassium Check Form -->
+        <div class="trust-subsection" id="record-perfusion-check-section">
+          <h3>2. Record Serial Paired Glucose/Lactate Gradient, Serum Potassium (K+) &amp; Limb Perfusion Check</h3>
+          <form id="record-perfusion-check-form" class="trust-form" novalidate>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-glucose-delta-input">Paired Glucose Delta (Systemic − Limb, mg/dL)</label>
+                <input type="number" id="check-glucose-delta-input" name="glucose_delta_mg_dl" class="form-control" min="0" max="400" step="0.1" value="18.0" required>
+              </div>
+              <div class="form-group">
+                <label for="check-lactate-delta-input">Paired Lactate Delta (Limb − Systemic, mmol/L)</label>
+                <input type="number" id="check-lactate-delta-input" name="lactate_delta_mmol_l" class="form-control" min="0" max="25" step="0.1" value="1.5" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-potassium-input">Serum Potassium K+ (mmol/L)</label>
+                <input type="number" id="check-potassium-input" name="serum_potassium_mmol_l" class="form-control" min="2.0" max="12.0" step="0.1" value="4.4" required>
+              </div>
+              <div class="form-group">
+                <label for="check-limb-temp-input">Distal Limb Temperature (°C)</label>
+                <input type="number" id="check-limb-temp-input" name="distal_limb_temp_c" class="form-control" min="20.0" max="41.5" step="0.1" value="36.8" required>
+              </div>
+            </div>
+            <div class="form-row-2col">
+              <div class="form-group">
+                <label for="check-pulse-status-input">Femoral / Dorsal Pedal Pulse &amp; Doppler Flow Status</label>
+                <input type="text" id="check-pulse-status-input" name="femoral_pulse_status" class="form-control" value="BILATERAL_DOPPLER_AUDIBLE_WARMING_PADS" required>
+              </div>
+              <div class="form-group">
+                <label for="check-recorded-by-input">Recorded By (Clinician)</label>
+                <input type="text" id="check-recorded-by-input" name="recorded_by" class="form-control" value="Dr. Maya Lin, DVM, DACVECC" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="check-note-input">Clinical Perfusion &amp; Reperfusion Potassium Note</label>
+              <input type="text" id="check-note-input" name="clinical_note" class="form-control" value="Collateral reperfusion progressing; glucose delta decreased to 18.0 mg/dL, limb temp rose to 36.8°C, normokalemic K+ 4.4 mmol/L with normal sinus rhythm." required>
+            </div>
+            <button type="submit" id="record-perfusion-check-btn" class="btn btn-secondary">🩺 Record Limb Perfusion &amp; Potassium Check</button>
+          </form>
+
+          <div class="fate-checks-box">
+            <h4>Serial Limb Perfusion, Paired Glucose/Lactate &amp; Potassium Checks (<span id="perfusion-checks-count">{{ if .ActiveOperation }}{{ len .ActiveOperation.PerfusionChecks }}{{ else }}0{{ end }}</span>)</h4>
+            <ul id="perfusion-checks-list" class="fate-checks-list">
+              {{ if .ActiveOperation }}
+              {{ range $chk := .ActiveOperation.PerfusionChecks }}
+              <li class="fate-check-item" data-check-id="{{ $chk.ID }}">
+                <strong>{{ $chk.RecordedBy }}</strong> · ΔGlucose {{ printf "%.1f" $chk.GlucoseDeltaMgDL }} mg/dL · ΔLactate {{ printf "%.1f" $chk.LactateDeltaMmolL }} mmol/L · K+ {{ printf "%.1f" $chk.SerumPotassiumMmolL }} mmol/L · Limb Temp {{ printf "%.1f" $chk.DistalLimbTempC }} °C · Pulse: <code>{{ $chk.FemoralPulseStatus }}</code> — {{ $chk.ClinicalNote }}
+              </li>
+              {{ end }}
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+
+        <hr class="fate-divider">
+
+        <!-- 3. Clear FATE Operation for Reperfused Normokalemic Dual Therapy Discharge Form -->
+        <div class="trust-subsection" id="clear-fate-section">
+          <h3>3. Clear Reperfused, Normokalemic Patient on Dual Antithrombotic Therapy (Clopidogrel + Rivaroxaban)</h3>
+          <form id="clear-fate-form" class="trust-form" novalidate>
+            <div class="form-group">
+              <label for="clear-discharged-by-input">Discharging Cardiologist / Emergency Clinician</label>
+              <input type="text" id="clear-discharged-by-input" name="discharged_by" class="form-control" value="Dr. Julian Vance, DACVIM (Cardiology)" required>
+            </div>
+            <div class="form-group">
+              <label for="clear-summary-input">Reperfusion, Normokalemia &amp; Dual Antithrombotic Discharge Summary</label>
+              <input
+                type="text"
+                id="clear-summary-input"
+                name="discharge_summary"
+                class="form-control"
+                value="Bilateral pelvic limb perfusion restored (ΔGlucose 12.0 mg/dL, limb temp 37.5°C), normokalemia verified (K+ 4.2 mmol/L) without reperfusion arrhythmia, CHF controlled on oral Furosemide, discharged on Clopidogrel 18.75 mg PO q24h + Rivaroxaban 2.5 mg PO q24h."
+                required
+              >
+            </div>
+            <button type="submit" id="clear-fate-btn" class="btn btn-primary">🛡️ Clear FATE Patient for Dual-Therapy Discharge</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/js/fate-thrombus-triage.js" defer></script>
+</body>
+</html>
