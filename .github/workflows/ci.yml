@@ -1,0 +1,87 @@
+name: Go build and test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+      GOENV: 'off'
+      GOOGLE_APPLICATION_CREDENTIALS: /nonexistent/ci-no-cloud-credentials.json
+      GCE_METADATA_HOST: 127.0.0.1:9
+      FIRESTORE_EMULATOR_HOST: ''
+      PUBSUB_EMULATOR_HOST: ''
+      FIREBASE_AUTH_EMULATOR_HOST: ''
+      PETSPOTR_GCS_INTEGRATION_BUCKET: ''
+      GO_INTEGRATION_OLLAMA: ''
+      SENDGRID_API_KEY: ''
+      TWILIO_ACCOUNT_SID: ''
+      TWILIO_AUTH_TOKEN: ''
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Select existing Go without a toolchain download
+        run: |
+          set -euo pipefail
+          go_bin="$(find "$RUNNER_TOOL_CACHE/go" -mindepth 3 -maxdepth 3 -type d -path '*/x64/bin' | sort -V | tail -1)"
+          test -n "$go_bin"
+          test -x "$go_bin/go"
+          "$go_bin/go" version
+          "$go_bin/go" list -m
+          echo "$go_bin" >> "$GITHUB_PATH"
+      - name: Fetch and verify only locked project modules
+        run: |
+          go mod download
+          go mod verify
+      - name: Vet and compile every package
+        run: |
+          set -euo pipefail
+          go vet ./...
+          go build ./...
+      - name: Run the complete default suite with race detection and coverage
+        run: |
+          set -euo pipefail
+          go test -race -json -coverprofile="$RUNNER_TEMP/coverage.out" ./... | tee "$RUNNER_TEMP/go-tests.jsonl"
+          go tool cover -func="$RUNNER_TEMP/coverage.out" | tail -1
+          python3 -I - "$RUNNER_TEMP/go-tests.jsonl" <<'PYCODE'
+          import collections, json, sys
+          counts = collections.Counter()
+          skipped = []
+          with open(sys.argv[1]) as events:
+              for line in events:
+                  event = json.loads(line)
+                  if event.get("Test") and event.get("Action") in ("pass", "fail", "skip"):
+                      counts[event["Action"]] += 1
+                      if event["Action"] == "skip":
+                          skipped.append(event["Package"] + "/" + event["Test"])
+          print("Actual test/subtest outcomes:", dict(counts))
+          print("Existing opt-in tests not executed:")
+          print("\n".join(skipped))
+          PYCODE
+      - name: Verify tracked source and module locks were preserved
+        run: git diff --quiet --exit-code
+      - name: Retain failure diagnostics only
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: go-failure-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/go-tests.jsonl
+            ${{ runner.temp }}/coverage.out
+          retention-days: 3
