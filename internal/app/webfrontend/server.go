@@ -228,11 +228,8 @@ func NewServer() *Server {
 // NewDemoServer initializes a demo/test Server with explicit seeded match data.
 func NewDemoServer() *Server {
 	memory := store.NewMemoryStore()
-	if err := SeedDemoMatches(context.Background(), memory); err != nil {
-		panic(fmt.Sprintf("seed demo matches: %v", err))
-	}
-	if err := SeedDemoPets(context.Background(), memory); err != nil {
-		panic(fmt.Sprintf("seed demo pets: %v", err))
+	if err := SeedDemoData(context.Background(), memory); err != nil {
+		panic(err.Error())
 	}
 	return NewServerWithOptions(memory, ServerOptions{AllowPrivilegedMutations: true})
 }
@@ -1485,6 +1482,17 @@ func demoMatchRecords() []MatchRecord {
 			},
 		},
 	}
+}
+
+// SeedDemoData writes the fixed-ID demo match and pet fixtures.
+func SeedDemoData(ctx context.Context, stateStore store.StateStore) error {
+	if err := SeedDemoMatches(ctx, stateStore); err != nil {
+		return fmt.Errorf("seed demo matches: %w", err)
+	}
+	if err := SeedDemoPets(ctx, stateStore); err != nil {
+		return fmt.Errorf("seed demo pets: %w", err)
+	}
+	return nil
 }
 
 // SeedDemoMatches replaces the fixed-ID development match fixtures.

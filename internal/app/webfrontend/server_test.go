@@ -608,6 +608,19 @@ func TestSeedDemoMatchesExplicitly(t *testing.T) {
 	}
 }
 
+func TestSeedDemoData(t *testing.T) {
+	memory := store.NewMemoryStore()
+	if err := SeedDemoData(context.Background(), memory); err != nil {
+		t.Fatalf("SeedDemoData() error = %v", err)
+	}
+	for _, collection := range []string{store.MatchesCollection, store.LostPetsCollection, store.FoundPetsCollection} {
+		docs, err := memory.ListState(context.Background(), collection)
+		if err != nil || len(docs) == 0 {
+			t.Fatalf("expected %s to be seeded, got %d (err=%v)", collection, len(docs), err)
+		}
+	}
+}
+
 func TestSecurityHeaders(t *testing.T) {
 	t.Parallel()
 

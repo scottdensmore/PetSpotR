@@ -1,5 +1,6 @@
 // Command emulator-init initializes local Pub/Sub and Firestore emulators with
-// canonical topics and push subscriptions for PetSpotR microservices.
+// canonical topics and push subscriptions for PetSpotR microservices, then seeds
+// demo data into Firestore unless SEED_DEMO_DATA is false.
 package main
 
 import (
@@ -10,8 +11,12 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/scottdensmore/petspotr/internal/app/webfrontend"
+	"github.com/scottdensmore/petspotr/pkg/runtimeconfig"
 )
 
 type config struct {
@@ -20,6 +25,7 @@ type config struct {
 	projectID     string
 	maxRetries    int
 	retryInterval time.Duration
+	seedDemoData  bool
 }
 
 type subscriptionSpec struct {
@@ -62,14 +68,19 @@ var canonicalSubscriptions = []subscriptionSpec{
 	},
 }
 
-func loadConfigFromEnv() config {
+func loadConfigFromEnv() (config, error) {
+	seedDemoData, err := strconv.ParseBool(envOrDefault("SEED_DEMO_DATA", "true"))
+	if err != nil {
+		return config{}, fmt.Errorf("invalid SEED_DEMO_DATA: %w", err)
+	}
 	return config{
 		pubsubHost:    envOrDefault("PUBSUB_EMULATOR_HOST", "localhost:8086"),
 		firestoreHost: envOrDefault("FIRESTORE_EMULATOR_HOST", "localhost:8085"),
 		projectID:     envOrDefault("GOOGLE_CLOUD_PROJECT", "petspotr-local"),
 		maxRetries:    30,
 		retryInterval: time.Second,
-	}
+		seedDemoData:  seedDemoData,
+	}, nil
 }
 
 func envOrDefault(key, fallback string) string {
@@ -174,10 +185,35 @@ func run(ctx context.Context, cfg config, client *http.Client, out io.Writer) er
 	return nil
 }
 
+func seedDemoData(ctx context.Context, cfg config, out io.Writer) error {
+	_, _ = fmt.Fprintln(out, "==> Seeding demo data in Firestore emulator...")
+	runtime, err := runtimeconfig.NewStateRuntime(ctx, runtimeconfig.StateConfig{
+		Mode:                  runtimeconfig.ModeLocalEmulator,
+		ProjectID:             cfg.projectID,
+		FirestoreEmulatorHost: cfg.firestoreHost,
+	})
+	if err != nil {
+		return fmt.Errorf("initialize state runtime: %w", err)
+	}
+	defer func() { _ = runtime.Close() }()
+
+	if err := webfrontend.SeedDemoData(ctx, runtime.Store); err != nil {
+		return err
+	}
+	_, _ = fmt.Fprintln(out, "    Seeded demo matches and pets.")
+	return nil
+}
+
 func main() {
-	cfg := loadConfigFromEnv()
-	client := &http.Client{Timeout: 5 * time.Second}
-	if err := run(context.Background(), cfg, client, os.Stdout); err != nil {
+	ctx := context.Background()
+	cfg, err := loadConfigFromEnv()
+	if err == nil {
+		err = run(ctx, cfg, &http.Client{Timeout: 5 * time.Second}, os.Stdout)
+	}
+	if err == nil && cfg.seedDemoData {
+		err = seedDemoData(ctx, cfg, os.Stdout)
+	}
+	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 		os.Exit(1)
 	}
