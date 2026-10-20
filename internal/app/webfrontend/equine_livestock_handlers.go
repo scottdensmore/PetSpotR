@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"sort"
 	"strings"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/equinelivestock"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
@@ -176,14 +174,6 @@ func (s *Server) loadEquineLivestockDispatches(ctx context.Context, petIDFilter,
 	return dispatches
 }
 
-func writeEquineJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
-}
-
 func (s *Server) handleEquineLivestockPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		w.Header().Set("Allow", "GET, HEAD")
@@ -193,12 +183,6 @@ func (s *Server) handleEquineLivestockPage(w http.ResponseWriter, r *http.Reques
 
 	s.ensureDefaultEquineLivestockDispatches(r.Context())
 	dispatches := s.loadEquineLivestockDispatches(r.Context(), "", "")
-
-	tmpl, err := template.New("equine_livestock.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/equine_livestock.html")
-	if err != nil {
-		http.Error(w, "Failed to load Equine Livestock template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
 
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
@@ -210,12 +194,7 @@ func (s *Server) handleEquineLivestockPage(w http.ResponseWriter, r *http.Reques
 		Locale:     locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "equine_livestock.html", "Equine Livestock", data)
 }
 
 func (s *Server) handleListEquineLivestockDispatches(w http.ResponseWriter, r *http.Request) {
@@ -225,7 +204,7 @@ func (s *Server) handleListEquineLivestockDispatches(w http.ResponseWriter, r *h
 		return
 	}
 	if s.stateStore == nil {
-		writeEquineJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
@@ -237,9 +216,7 @@ func (s *Server) handleListEquineLivestockDispatches(w http.ResponseWriter, r *h
 		strings.TrimSpace(q.Get("status")),
 	)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"dispatches": dispatches,
 	})
 }
@@ -251,14 +228,14 @@ func (s *Server) handleCreateEquineLivestockDispatch(w http.ResponseWriter, r *h
 		return
 	}
 	if s.stateStore == nil {
-		writeEquineJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req createEquineLivestockDispatchRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeEquineJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -284,17 +261,17 @@ func (s *Server) handleCreateEquineLivestockDispatch(w http.ResponseWriter, r *h
 		CorralPanelsErected:    req.CorralPanelsErected,
 	}, now)
 	if err != nil {
-		writeEquineJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	dispatchBytes, err := json.Marshal(dispatch)
 	if err != nil {
-		writeEquineJSONError(w, http.StatusInternalServerError, "Failed to encode equine livestock dispatch")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to encode equine livestock dispatch")
 		return
 	}
 	if err := s.stateStore.SaveState(r.Context(), store.CollectionEquineLivestockDispatches, dispatch.DispatchID, dispatchBytes); err != nil {
-		writeEquineJSONError(w, http.StatusInternalServerError, "Failed to save equine livestock dispatch")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to save equine livestock dispatch")
 		return
 	}
 
@@ -303,9 +280,7 @@ func (s *Server) handleCreateEquineLivestockDispatch(w http.ResponseWriter, r *h
 		"dispatch": dispatch,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(dispatch)
+	writeCockpitJSON(w, http.StatusCreated, dispatch)
 }
 
 func (s *Server) handleContainEquineLivestockDispatch(w http.ResponseWriter, r *http.Request) {
@@ -315,20 +290,20 @@ func (s *Server) handleContainEquineLivestockDispatch(w http.ResponseWriter, r *
 		return
 	}
 	if s.stateStore == nil {
-		writeEquineJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	dispatchID := strings.TrimSpace(r.PathValue("id"))
 	if dispatchID == "" {
-		writeEquineJSONError(w, http.StatusBadRequest, "dispatch id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "dispatch id is required")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req containEquineLivestockDispatchRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeEquineJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -363,14 +338,14 @@ func (s *Server) handleContainEquineLivestockDispatch(w http.ResponseWriter, r *
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-			writeEquineJSONError(w, http.StatusNotFound, "Equine livestock dispatch not found")
+			writeCockpitJSONError(w, http.StatusNotFound, "Equine livestock dispatch not found")
 			return
 		}
 		if containErr != nil {
-			writeEquineJSONError(w, http.StatusBadRequest, containErr.Error())
+			writeCockpitJSONError(w, http.StatusBadRequest, containErr.Error())
 			return
 		}
-		writeEquineJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to contain equine livestock dispatch: %v", err))
+		writeCockpitJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to contain equine livestock dispatch: %v", err))
 		return
 	}
 
@@ -379,92 +354,13 @@ func (s *Server) handleContainEquineLivestockDispatch(w http.ResponseWriter, r *
 		"dispatch": updatedDispatch,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updatedDispatch)
+	writeCockpitJSON(w, http.StatusOK, updatedDispatch)
 }
 
 func (s *Server) handleEquineLivestockStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("equine_livestock")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "equine_livestock")
 }
 
 func (s *Server) broadcastEquineLivestockEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextEquineNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "equine_livestock",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "equine_livestock",
-			SenderNodeID:  "equine-livestock-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("equine_livestock", "equine-livestock-hub", eventType, payload, now)
 }

@@ -2,34 +2,14 @@ package webfrontend
 
 import (
 	"encoding/json"
-	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/pancreatitiscpl"
 )
-
-var lastPancreatitisCPLNano atomic.Int64
-
-func nextPancreatitisCPLNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastPancreatitisCPLNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastPancreatitisCPLNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // PancreatitisCPLPageData represents template data passed to templates/pancreatitis_cpl_triage.html.
 type PancreatitisCPLPageData struct {
@@ -88,30 +68,13 @@ func (s *Server) ensurePancreatitisService() *pancreatitiscpl.PancreatitisServic
 func (s *Server) registerPancreatitisCPLRoutes() {
 	s.mux.HandleFunc("GET /pancreatitis-cpl-triage", s.handlePancreatitisCPLTriagePage)
 
-	s.mux.HandleFunc("GET /api/pancreatitis-cpl/operations", s.handleListPancreatitisCPLOperations)
-	s.mux.HandleFunc("POST /api/pancreatitis-cpl/operations", s.handleCreatePancreatitisCPLOperation)
-	s.mux.HandleFunc("GET /api/pancreatitis-cpl/operations/{id}", s.handleGetPancreatitisCPLOperation)
-	s.mux.HandleFunc("POST /api/pancreatitis-cpl/operations/{id}/stage-nutrition", s.handleStagePancreatitisCPLNutrition)
-	s.mux.HandleFunc("POST /api/pancreatitis-cpl/operations/{id}/record-check", s.handleRecordPancreatitisCPLCheck)
-	s.mux.HandleFunc("POST /api/pancreatitis-cpl/operations/{id}/clear-discharge", s.handleClearPancreatitisCPLDischarge)
-	s.mux.HandleFunc("GET /api/pancreatitis-cpl/stream", s.handlePancreatitisCPLStream)
-
-	// v1 aliases for consistency
-	s.mux.HandleFunc("GET /api/v1/pancreatitis-cpl/operations", s.handleListPancreatitisCPLOperations)
-	s.mux.HandleFunc("POST /api/v1/pancreatitis-cpl/operations", s.handleCreatePancreatitisCPLOperation)
-	s.mux.HandleFunc("GET /api/v1/pancreatitis-cpl/operations/{id}", s.handleGetPancreatitisCPLOperation)
-	s.mux.HandleFunc("POST /api/v1/pancreatitis-cpl/operations/{id}/stage-nutrition", s.handleStagePancreatitisCPLNutrition)
-	s.mux.HandleFunc("POST /api/v1/pancreatitis-cpl/operations/{id}/record-check", s.handleRecordPancreatitisCPLCheck)
-	s.mux.HandleFunc("POST /api/v1/pancreatitis-cpl/operations/{id}/clear-discharge", s.handleClearPancreatitisCPLDischarge)
-	s.mux.HandleFunc("GET /api/v1/pancreatitis-cpl/stream", s.handlePancreatitisCPLStream)
-}
-
-func writePancreatitisCPLJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
+	s.registerDualAPIRoute("GET", "pancreatitis-cpl/operations", s.handleListPancreatitisCPLOperations)
+	s.registerDualAPIRoute("POST", "pancreatitis-cpl/operations", s.handleCreatePancreatitisCPLOperation)
+	s.registerDualAPIRoute("GET", "pancreatitis-cpl/operations/{id}", s.handleGetPancreatitisCPLOperation)
+	s.registerDualAPIRoute("POST", "pancreatitis-cpl/operations/{id}/stage-nutrition", s.handleStagePancreatitisCPLNutrition)
+	s.registerDualAPIRoute("POST", "pancreatitis-cpl/operations/{id}/record-check", s.handleRecordPancreatitisCPLCheck)
+	s.registerDualAPIRoute("POST", "pancreatitis-cpl/operations/{id}/clear-discharge", s.handleClearPancreatitisCPLDischarge)
+	s.registerDualAPIRoute("GET", "pancreatitis-cpl/stream", s.handlePancreatitisCPLStream)
 }
 
 func (s *Server) handlePancreatitisCPLTriagePage(w http.ResponseWriter, r *http.Request) {
@@ -131,12 +94,6 @@ func (s *Server) handlePancreatitisCPLTriagePage(w http.ResponseWriter, r *http.
 		activeOp = &first
 	}
 
-	tmpl, err := template.New("pancreatitis_cpl_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/pancreatitis_cpl_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load Pancreatitis cPL/fPL Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
 		locale = "en"
@@ -149,12 +106,7 @@ func (s *Server) handlePancreatitisCPLTriagePage(w http.ResponseWriter, r *http.
 		Locale:          locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "pancreatitis_cpl_triage.html", "Pancreatitis cPL/fPL Triage", data)
 }
 
 func (s *Server) handleListPancreatitisCPLOperations(w http.ResponseWriter, r *http.Request) {
@@ -170,9 +122,7 @@ func (s *Server) handleListPancreatitisCPLOperations(w http.ResponseWriter, r *h
 	ops := svc.ListOperations(statusFilter)
 	metrics := svc.GetOverviewMetrics()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": ops,
 		"ops":        ops,
 		"metrics":    metrics,
@@ -188,20 +138,18 @@ func (s *Server) handleGetPancreatitisCPLOperation(w http.ResponseWriter, r *htt
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writePancreatitisCPLJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensurePancreatitisService()
 	op, err := svc.GetOperation(id)
 	if err != nil {
-		writePancreatitisCPLJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusOK, op)
 }
 
 func (s *Server) handleCreatePancreatitisCPLOperation(w http.ResponseWriter, r *http.Request) {
@@ -214,7 +162,7 @@ func (s *Server) handleCreatePancreatitisCPLOperation(w http.ResponseWriter, r *
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload createPancreatitisOperationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writePancreatitisCPLJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -235,19 +183,17 @@ func (s *Server) handleCreatePancreatitisCPLOperation(w http.ResponseWriter, r *
 		payload.FelineTriaditisSuspected,
 	)
 	if err != nil {
-		writePancreatitisCPLJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextPancreatitisCPLNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastPancreatitisCPLEvent("pancreatitis_cpl_updated", map[string]any{
 		"type":      "pancreatitis_cpl_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleStagePancreatitisCPLNutrition(w http.ResponseWriter, r *http.Request) {
@@ -259,20 +205,20 @@ func (s *Server) handleStagePancreatitisCPLNutrition(w http.ResponseWriter, r *h
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writePancreatitisCPLJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensurePancreatitisService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writePancreatitisCPLJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload stagePancreatitisNutritionPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && err != io.EOF {
-		writePancreatitisCPLJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -286,19 +232,17 @@ func (s *Server) handleStagePancreatitisCPLNutrition(w http.ResponseWriter, r *h
 		payload.FluidCrystalloidPlan,
 	)
 	if err != nil {
-		writePancreatitisCPLJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextPancreatitisCPLNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastPancreatitisCPLEvent("pancreatitis_cpl_updated", map[string]any{
 		"type":      "pancreatitis_cpl_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRecordPancreatitisCPLCheck(w http.ResponseWriter, r *http.Request) {
@@ -310,20 +254,20 @@ func (s *Server) handleRecordPancreatitisCPLCheck(w http.ResponseWriter, r *http
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writePancreatitisCPLJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensurePancreatitisService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writePancreatitisCPLJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload recordPancreatitisCheckPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writePancreatitisCPLJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -337,19 +281,17 @@ func (s *Server) handleRecordPancreatitisCPLCheck(w http.ResponseWriter, r *http
 		payload.ClinicalNote,
 	)
 	if err != nil {
-		writePancreatitisCPLJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextPancreatitisCPLNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastPancreatitisCPLEvent("pancreatitis_cpl_updated", map[string]any{
 		"type":      "pancreatitis_cpl_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleClearPancreatitisCPLDischarge(w http.ResponseWriter, r *http.Request) {
@@ -361,20 +303,20 @@ func (s *Server) handleClearPancreatitisCPLDischarge(w http.ResponseWriter, r *h
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writePancreatitisCPLJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensurePancreatitisService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writePancreatitisCPLJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload clearPancreatitisDischargePayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writePancreatitisCPLJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -384,102 +326,23 @@ func (s *Server) handleClearPancreatitisCPLDischarge(w http.ResponseWriter, r *h
 		payload.Summary,
 	)
 	if err != nil {
-		writePancreatitisCPLJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextPancreatitisCPLNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastPancreatitisCPLEvent("pancreatitis_cpl_updated", map[string]any{
 		"type":      "pancreatitis_cpl_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handlePancreatitisCPLStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("pancreatitis_cpl")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "pancreatitis_cpl")
 }
 
 func (s *Server) broadcastPancreatitisCPLEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextPancreatitisCPLNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "pancreatitis_cpl",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "pancreatitis_cpl",
-			SenderNodeID:  "pancreatitis-cpl-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("pancreatitis_cpl", "pancreatitis-cpl-hub", eventType, payload, now)
 }

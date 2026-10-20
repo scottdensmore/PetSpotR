@@ -2,7 +2,6 @@ package webfrontend
 
 import (
 	"encoding/json"
-	"html/template"
 	"net/http"
 	"strings"
 	"time"
@@ -37,14 +36,6 @@ func (s *Server) registerVerticalRescueRoutes() {
 	s.mux.HandleFunc("POST /api/v1/vertical-rescue/operations/{id}/clearance", s.handleIssueVerticalRescueClearance)
 }
 
-func writeVerticalRescueJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
-}
-
 func computeVerticalRescueStats(ops []domain.VerticalRescueOperation) (total, critical, rigged, lowered int) {
 	total = len(ops)
 	for _, op := range ops {
@@ -72,12 +63,6 @@ func (s *Server) handleVerticalRescuePage(w http.ResponseWriter, r *http.Request
 	ops := vrStore.List()
 	total, critical, rigged, lowered := computeVerticalRescueStats(ops)
 
-	tmpl, err := template.New("vertical_rope_rescue.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/vertical_rope_rescue.html")
-	if err != nil {
-		http.Error(w, "Failed to load Vertical Rope Rescue template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
 		locale = "en"
@@ -92,12 +77,7 @@ func (s *Server) handleVerticalRescuePage(w http.ResponseWriter, r *http.Request
 		Locale:            locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "vertical_rope_rescue.html", "Vertical Rope Rescue", data)
 }
 
 func (s *Server) handleListVerticalRescueOperations(w http.ResponseWriter, r *http.Request) {
@@ -125,9 +105,7 @@ func (s *Server) handleListVerticalRescueOperations(w http.ResponseWriter, r *ht
 
 	total, critical, rigged, lowered := computeVerticalRescueStats(ops)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations":        ops,
 		"ops":               ops,
 		"total":             total,
@@ -147,14 +125,14 @@ func (s *Server) handleEvaluateVerticalRescue(w http.ResponseWriter, r *http.Req
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req domain.VerticalRescueEvaluationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeVerticalRescueJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	vrStore := s.ensureVerticalRescueStore()
 	op, err := vrStore.Evaluate(req)
 	if err != nil {
-		writeVerticalRescueJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -163,9 +141,7 @@ func (s *Server) handleEvaluateVerticalRescue(w http.ResponseWriter, r *http.Req
 		"operation": op,
 	})
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusCreated, op)
 }
 
 func (s *Server) handleUpdateVerticalRescueStep(w http.ResponseWriter, r *http.Request) {
@@ -177,26 +153,26 @@ func (s *Server) handleUpdateVerticalRescueStep(w http.ResponseWriter, r *http.R
 
 	opID := strings.TrimSpace(r.PathValue("id"))
 	if opID == "" {
-		writeVerticalRescueJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req domain.VerticalStepUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeVerticalRescueJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	vrStore := s.ensureVerticalRescueStore()
 	if _, exists := vrStore.Get(opID); !exists {
-		writeVerticalRescueJSONError(w, http.StatusNotFound, "Vertical rescue operation not found")
+		writeCockpitJSONError(w, http.StatusNotFound, "Vertical rescue operation not found")
 		return
 	}
 
 	updated, err := vrStore.UpdateStep(opID, req)
 	if err != nil {
-		writeVerticalRescueJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -205,9 +181,7 @@ func (s *Server) handleUpdateVerticalRescueStep(w http.ResponseWriter, r *http.R
 		"operation": updated,
 	})
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleIssueVerticalRescueClearance(w http.ResponseWriter, r *http.Request) {
@@ -219,19 +193,19 @@ func (s *Server) handleIssueVerticalRescueClearance(w http.ResponseWriter, r *ht
 
 	opID := strings.TrimSpace(r.PathValue("id"))
 	if opID == "" {
-		writeVerticalRescueJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	vrStore := s.ensureVerticalRescueStore()
 	if _, exists := vrStore.Get(opID); !exists {
-		writeVerticalRescueJSONError(w, http.StatusNotFound, "Vertical rescue operation not found")
+		writeCockpitJSONError(w, http.StatusNotFound, "Vertical rescue operation not found")
 		return
 	}
 
 	cleared, err := vrStore.IssueClearance(opID)
 	if err != nil {
-		writeVerticalRescueJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -240,9 +214,7 @@ func (s *Server) handleIssueVerticalRescueClearance(w http.ResponseWriter, r *ht
 		"operation": cleared,
 	})
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(cleared)
+	writeCockpitJSON(w, http.StatusOK, cleared)
 }
 
 func (s *Server) broadcastVerticalRescueEvent(eventType string, payload map[string]any) {

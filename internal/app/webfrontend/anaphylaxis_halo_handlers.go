@@ -3,33 +3,14 @@ package webfrontend
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/anaphylaxishalo"
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 )
-
-var lastAnaphylaxisHaloNano atomic.Int64
-
-func nextAnaphylaxisHaloNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastAnaphylaxisHaloNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastAnaphylaxisHaloNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // AnaphylaxisHaloPageData represents template data passed to templates/anaphylaxis_halo_triage.html.
 type AnaphylaxisHaloPageData struct {
@@ -81,30 +62,13 @@ func (s *Server) ensureAnaphylaxisService() *anaphylaxishalo.AnaphylaxisService 
 func (s *Server) registerAnaphylaxisHaloRoutes() {
 	s.mux.HandleFunc("GET /anaphylaxis-halo-triage", s.handleAnaphylaxisHaloTriagePage)
 
-	s.mux.HandleFunc("GET /api/anaphylaxis-halo/operations", s.handleListAnaphylaxisHaloOperations)
-	s.mux.HandleFunc("POST /api/anaphylaxis-halo/operations", s.handleCreateAnaphylaxisHaloOperation)
-	s.mux.HandleFunc("GET /api/anaphylaxis-halo/operations/{id}", s.handleGetAnaphylaxisHaloOperation)
-	s.mux.HandleFunc("POST /api/anaphylaxis-halo/operations/{id}/stage-plan", s.handleStageAnaphylaxisHaloPlan)
-	s.mux.HandleFunc("POST /api/anaphylaxis-halo/operations/{id}/biphasic-check", s.handleRecordAnaphylaxisHaloBiphasicCheck)
-	s.mux.HandleFunc("POST /api/anaphylaxis-halo/operations/{id}/discharge-clearance", s.handleIssueAnaphylaxisHaloDischargeClearance)
-	s.mux.HandleFunc("GET /api/anaphylaxis-halo/stream", s.handleAnaphylaxisHaloStream)
-
-	// v1 aliases for consistency
-	s.mux.HandleFunc("GET /api/v1/anaphylaxis-halo/operations", s.handleListAnaphylaxisHaloOperations)
-	s.mux.HandleFunc("POST /api/v1/anaphylaxis-halo/operations", s.handleCreateAnaphylaxisHaloOperation)
-	s.mux.HandleFunc("GET /api/v1/anaphylaxis-halo/operations/{id}", s.handleGetAnaphylaxisHaloOperation)
-	s.mux.HandleFunc("POST /api/v1/anaphylaxis-halo/operations/{id}/stage-plan", s.handleStageAnaphylaxisHaloPlan)
-	s.mux.HandleFunc("POST /api/v1/anaphylaxis-halo/operations/{id}/biphasic-check", s.handleRecordAnaphylaxisHaloBiphasicCheck)
-	s.mux.HandleFunc("POST /api/v1/anaphylaxis-halo/operations/{id}/discharge-clearance", s.handleIssueAnaphylaxisHaloDischargeClearance)
-	s.mux.HandleFunc("GET /api/v1/anaphylaxis-halo/stream", s.handleAnaphylaxisHaloStream)
-}
-
-func writeAnaphylaxisHaloJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
+	s.registerDualAPIRoute("GET", "anaphylaxis-halo/operations", s.handleListAnaphylaxisHaloOperations)
+	s.registerDualAPIRoute("POST", "anaphylaxis-halo/operations", s.handleCreateAnaphylaxisHaloOperation)
+	s.registerDualAPIRoute("GET", "anaphylaxis-halo/operations/{id}", s.handleGetAnaphylaxisHaloOperation)
+	s.registerDualAPIRoute("POST", "anaphylaxis-halo/operations/{id}/stage-plan", s.handleStageAnaphylaxisHaloPlan)
+	s.registerDualAPIRoute("POST", "anaphylaxis-halo/operations/{id}/biphasic-check", s.handleRecordAnaphylaxisHaloBiphasicCheck)
+	s.registerDualAPIRoute("POST", "anaphylaxis-halo/operations/{id}/discharge-clearance", s.handleIssueAnaphylaxisHaloDischargeClearance)
+	s.registerDualAPIRoute("GET", "anaphylaxis-halo/stream", s.handleAnaphylaxisHaloStream)
 }
 
 func (s *Server) handleAnaphylaxisHaloTriagePage(w http.ResponseWriter, r *http.Request) {
@@ -124,12 +88,6 @@ func (s *Server) handleAnaphylaxisHaloTriagePage(w http.ResponseWriter, r *http.
 		activeOp = &first
 	}
 
-	tmpl, err := template.New("anaphylaxis_halo_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/anaphylaxis_halo_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load Anaphylaxis Halo Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
 		locale = "en"
@@ -146,12 +104,7 @@ func (s *Server) handleAnaphylaxisHaloTriagePage(w http.ResponseWriter, r *http.
 		Locale:                        locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "anaphylaxis_halo_triage.html", "Anaphylaxis Halo Triage", data)
 }
 
 func (s *Server) handleListAnaphylaxisHaloOperations(w http.ResponseWriter, r *http.Request) {
@@ -178,9 +131,7 @@ func (s *Server) handleListAnaphylaxisHaloOperations(w http.ResponseWriter, r *h
 
 	metrics := svc.ComputeMetrics()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": ops,
 		"ops":        ops,
 		"metrics":    metrics,
@@ -196,20 +147,18 @@ func (s *Server) handleGetAnaphylaxisHaloOperation(w http.ResponseWriter, r *htt
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeAnaphylaxisHaloJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureAnaphylaxisService()
 	op, err := svc.GetOperation(id)
 	if err != nil {
-		writeAnaphylaxisHaloJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusOK, op)
 }
 
 func (s *Server) handleCreateAnaphylaxisHaloOperation(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +171,7 @@ func (s *Server) handleCreateAnaphylaxisHaloOperation(w http.ResponseWriter, r *
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload createAnaphylaxisOperationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeAnaphylaxisHaloJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -251,19 +200,17 @@ func (s *Server) handleCreateAnaphylaxisHaloOperation(w http.ResponseWriter, r *
 	svc := s.ensureAnaphylaxisService()
 	created, err := svc.CreateOperation(incidentID, payload.PetName, profile)
 	if err != nil {
-		writeAnaphylaxisHaloJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextAnaphylaxisHaloNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastAnaphylaxisHaloEvent("anaphylaxis_halo_updated", map[string]any{
 		"type":      "anaphylaxis_halo_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleStageAnaphylaxisHaloPlan(w http.ResponseWriter, r *http.Request) {
@@ -275,21 +222,21 @@ func (s *Server) handleStageAnaphylaxisHaloPlan(w http.ResponseWriter, r *http.R
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeAnaphylaxisHaloJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureAnaphylaxisService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeAnaphylaxisHaloJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload stageAnaphylaxisPlanPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && err != io.EOF {
-		writeAnaphylaxisHaloJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -328,19 +275,17 @@ func (s *Server) handleStageAnaphylaxisHaloPlan(w http.ResponseWriter, r *http.R
 
 	updated, err := svc.StageResuscitationPlan(id, profile)
 	if err != nil {
-		writeAnaphylaxisHaloJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextAnaphylaxisHaloNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastAnaphylaxisHaloEvent("anaphylaxis_halo_updated", map[string]any{
 		"type":      "anaphylaxis_halo_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRecordAnaphylaxisHaloBiphasicCheck(w http.ResponseWriter, r *http.Request) {
@@ -352,38 +297,36 @@ func (s *Server) handleRecordAnaphylaxisHaloBiphasicCheck(w http.ResponseWriter,
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeAnaphylaxisHaloJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureAnaphylaxisService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeAnaphylaxisHaloJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var check domain.AnaphylaxisBiphasicCheck
 	if err := json.NewDecoder(r.Body).Decode(&check); err != nil {
-		writeAnaphylaxisHaloJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	updated, err := svc.RecordBiphasicCheck(id, check)
 	if err != nil {
-		writeAnaphylaxisHaloJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextAnaphylaxisHaloNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastAnaphylaxisHaloEvent("anaphylaxis_halo_updated", map[string]any{
 		"type":      "anaphylaxis_halo_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleIssueAnaphylaxisHaloDischargeClearance(w http.ResponseWriter, r *http.Request) {
@@ -395,121 +338,42 @@ func (s *Server) handleIssueAnaphylaxisHaloDischargeClearance(w http.ResponseWri
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeAnaphylaxisHaloJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureAnaphylaxisService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeAnaphylaxisHaloJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var clearance domain.AnaphylaxisDischargeClearance
 	if err := json.NewDecoder(r.Body).Decode(&clearance); err != nil {
-		writeAnaphylaxisHaloJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	updated, err := svc.IssueDischargeClearance(id, clearance)
 	if err != nil {
-		writeAnaphylaxisHaloJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextAnaphylaxisHaloNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastAnaphylaxisHaloEvent("anaphylaxis_halo_updated", map[string]any{
 		"type":      "anaphylaxis_halo_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleAnaphylaxisHaloStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("anaphylaxis_halo")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "anaphylaxis_halo")
 }
 
 func (s *Server) broadcastAnaphylaxisHaloEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextAnaphylaxisHaloNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "anaphylaxis_halo",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "anaphylaxis_halo",
-			SenderNodeID:  "anaphylaxis-halo-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("anaphylaxis_halo", "anaphylaxis-halo-hub", eventType, payload, now)
 }

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"sort"
 	"strings"
@@ -14,7 +13,6 @@ import (
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/municipalcad"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
@@ -184,14 +182,6 @@ func (s *Server) loadMunicipalCADIncidents(ctx context.Context, petIDFilter, sta
 	return incidents
 }
 
-func writeCADJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
-}
-
 func (s *Server) handleMunicipalCADPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		w.Header().Set("Allow", "GET, HEAD")
@@ -201,12 +191,6 @@ func (s *Server) handleMunicipalCADPage(w http.ResponseWriter, r *http.Request) 
 
 	s.ensureDefaultMunicipalCADIncidents(r.Context())
 	incidents := s.loadMunicipalCADIncidents(r.Context(), "", "")
-
-	tmpl, err := template.New("municipal_cad.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/municipal_cad.html")
-	if err != nil {
-		http.Error(w, "Failed to load Municipal CAD template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
 
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
@@ -218,12 +202,7 @@ func (s *Server) handleMunicipalCADPage(w http.ResponseWriter, r *http.Request) 
 		Locale:    locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "municipal_cad.html", "Municipal CAD", data)
 }
 
 func (s *Server) handleListMunicipalCADIncidents(w http.ResponseWriter, r *http.Request) {
@@ -233,7 +212,7 @@ func (s *Server) handleListMunicipalCADIncidents(w http.ResponseWriter, r *http.
 		return
 	}
 	if s.stateStore == nil {
-		writeCADJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
@@ -245,9 +224,7 @@ func (s *Server) handleListMunicipalCADIncidents(w http.ResponseWriter, r *http.
 		strings.TrimSpace(q.Get("status")),
 	)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"incidents": incidents,
 	})
 }
@@ -259,14 +236,14 @@ func (s *Server) handleCreateMunicipalCADIncident(w http.ResponseWriter, r *http
 		return
 	}
 	if s.stateStore == nil {
-		writeCADJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req createCADIncidentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeCADJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -294,17 +271,17 @@ func (s *Server) handleCreateMunicipalCADIncident(w http.ResponseWriter, r *http
 		DOTSignAdvisoryActive: req.DOTSignAdvisoryActive,
 	}, now)
 	if err != nil {
-		writeCADJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	incBytes, err := json.Marshal(incident)
 	if err != nil {
-		writeCADJSONError(w, http.StatusInternalServerError, "Failed to encode municipal CAD incident")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to encode municipal CAD incident")
 		return
 	}
 	if err := s.stateStore.SaveState(r.Context(), store.CollectionMunicipalCADIncidents, incident.IncidentID, incBytes); err != nil {
-		writeCADJSONError(w, http.StatusInternalServerError, "Failed to save municipal CAD incident")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to save municipal CAD incident")
 		return
 	}
 
@@ -313,9 +290,7 @@ func (s *Server) handleCreateMunicipalCADIncident(w http.ResponseWriter, r *http
 		"incident": incident,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(incident)
+	writeCockpitJSON(w, http.StatusCreated, incident)
 }
 
 func (s *Server) handleDispatchMunicipalCADIncident(w http.ResponseWriter, r *http.Request) {
@@ -325,20 +300,20 @@ func (s *Server) handleDispatchMunicipalCADIncident(w http.ResponseWriter, r *ht
 		return
 	}
 	if s.stateStore == nil {
-		writeCADJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	incidentID := strings.TrimSpace(r.PathValue("id"))
 	if incidentID == "" {
-		writeCADJSONError(w, http.StatusBadRequest, "incident id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "incident id is required")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req dispatchCADIncidentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeCADJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -373,14 +348,14 @@ func (s *Server) handleDispatchMunicipalCADIncident(w http.ResponseWriter, r *ht
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-			writeCADJSONError(w, http.StatusNotFound, "Municipal CAD incident not found")
+			writeCockpitJSONError(w, http.StatusNotFound, "Municipal CAD incident not found")
 			return
 		}
 		if dispErr != nil {
-			writeCADJSONError(w, http.StatusBadRequest, dispErr.Error())
+			writeCockpitJSONError(w, http.StatusBadRequest, dispErr.Error())
 			return
 		}
-		writeCADJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update municipal CAD incident: %v", err))
+		writeCockpitJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update municipal CAD incident: %v", err))
 		return
 	}
 
@@ -389,92 +364,13 @@ func (s *Server) handleDispatchMunicipalCADIncident(w http.ResponseWriter, r *ht
 		"incident": updatedIncident,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updatedIncident)
+	writeCockpitJSON(w, http.StatusOK, updatedIncident)
 }
 
 func (s *Server) handleMunicipalCADStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("municipal_cad")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "municipal_cad")
 }
 
 func (s *Server) broadcastMunicipalCADEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextCADNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "municipal_cad",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "municipal_cad",
-			SenderNodeID:  "municipal-cad-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("municipal_cad", "municipal-cad-hub", eventType, payload, now)
 }

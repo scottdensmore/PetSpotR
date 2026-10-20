@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"sort"
 	"strings"
@@ -14,7 +13,6 @@ import (
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/serviceanimal"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
@@ -180,14 +178,6 @@ func (s *Server) loadServiceAnimalCases(ctx context.Context, petIDFilter, status
 	return cases
 }
 
-func writeServiceAnimalJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
-}
-
 func (s *Server) handleServiceAnimalPriorityPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		w.Header().Set("Allow", "GET, HEAD")
@@ -197,12 +187,6 @@ func (s *Server) handleServiceAnimalPriorityPage(w http.ResponseWriter, r *http.
 
 	s.ensureDefaultServiceAnimalCases(r.Context())
 	cases := s.loadServiceAnimalCases(r.Context(), "", "")
-
-	tmpl, err := template.New("service_animal_priority.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/service_animal_priority.html")
-	if err != nil {
-		http.Error(w, "Failed to load Service Animal Priority template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
 
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
@@ -214,12 +198,7 @@ func (s *Server) handleServiceAnimalPriorityPage(w http.ResponseWriter, r *http.
 		Locale: locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "service_animal_priority.html", "Service Animal Priority", data)
 }
 
 func (s *Server) handleListServiceAnimalCases(w http.ResponseWriter, r *http.Request) {
@@ -229,7 +208,7 @@ func (s *Server) handleListServiceAnimalCases(w http.ResponseWriter, r *http.Req
 		return
 	}
 	if s.stateStore == nil {
-		writeServiceAnimalJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
@@ -241,9 +220,7 @@ func (s *Server) handleListServiceAnimalCases(w http.ResponseWriter, r *http.Req
 		strings.TrimSpace(q.Get("status")),
 	)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"cases": cases,
 	})
 }
@@ -255,14 +232,14 @@ func (s *Server) handleCreateServiceAnimalCase(w http.ResponseWriter, r *http.Re
 		return
 	}
 	if s.stateStore == nil {
-		writeServiceAnimalJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req createServiceAnimalCaseRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeServiceAnimalJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -289,17 +266,17 @@ func (s *Server) handleCreateServiceAnimalCase(w http.ResponseWriter, r *http.Re
 		RecallCueBroadcasted: req.RecallCueBroadcasted,
 	}, now)
 	if err != nil {
-		writeServiceAnimalJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	caseBytes, err := json.Marshal(serviceCase)
 	if err != nil {
-		writeServiceAnimalJSONError(w, http.StatusInternalServerError, "Failed to encode service animal case")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to encode service animal case")
 		return
 	}
 	if err := s.stateStore.SaveState(r.Context(), store.CollectionServiceAnimalCases, serviceCase.CaseID, caseBytes); err != nil {
-		writeServiceAnimalJSONError(w, http.StatusInternalServerError, "Failed to save service animal case")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to save service animal case")
 		return
 	}
 
@@ -308,9 +285,7 @@ func (s *Server) handleCreateServiceAnimalCase(w http.ResponseWriter, r *http.Re
 		"serviceAnimalCase": serviceCase,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(serviceCase)
+	writeCockpitJSON(w, http.StatusCreated, serviceCase)
 }
 
 func (s *Server) handleRecoverServiceAnimalCase(w http.ResponseWriter, r *http.Request) {
@@ -320,20 +295,20 @@ func (s *Server) handleRecoverServiceAnimalCase(w http.ResponseWriter, r *http.R
 		return
 	}
 	if s.stateStore == nil {
-		writeServiceAnimalJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	caseID := strings.TrimSpace(r.PathValue("id"))
 	if caseID == "" {
-		writeServiceAnimalJSONError(w, http.StatusBadRequest, "case id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "case id is required")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req recoverServiceAnimalCaseRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeServiceAnimalJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -368,14 +343,14 @@ func (s *Server) handleRecoverServiceAnimalCase(w http.ResponseWriter, r *http.R
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-			writeServiceAnimalJSONError(w, http.StatusNotFound, "Service animal case not found")
+			writeCockpitJSONError(w, http.StatusNotFound, "Service animal case not found")
 			return
 		}
 		if recoverErr != nil {
-			writeServiceAnimalJSONError(w, http.StatusBadRequest, recoverErr.Error())
+			writeCockpitJSONError(w, http.StatusBadRequest, recoverErr.Error())
 			return
 		}
-		writeServiceAnimalJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to recover service animal case: %v", err))
+		writeCockpitJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to recover service animal case: %v", err))
 		return
 	}
 
@@ -384,92 +359,13 @@ func (s *Server) handleRecoverServiceAnimalCase(w http.ResponseWriter, r *http.R
 		"serviceAnimalCase": updatedCase,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updatedCase)
+	writeCockpitJSON(w, http.StatusOK, updatedCase)
 }
 
 func (s *Server) handleServiceAnimalStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("service_animal_priority")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "service_animal_priority")
 }
 
 func (s *Server) broadcastServiceAnimalEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextServiceAnimalNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "service_animal_priority",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "service_animal_priority",
-			SenderNodeID:  "service-animal-priority-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("service_animal_priority", "service-animal-priority-hub", eventType, payload, now)
 }

@@ -3,33 +3,14 @@ package webfrontend
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/diccoagulopathy"
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 )
-
-var lastDICCoagulopathyNano atomic.Int64
-
-func nextDICCoagulopathyNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastDICCoagulopathyNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastDICCoagulopathyNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // DICCoagulopathyPageData represents template data passed to templates/dic_coagulopathy_triage.html.
 type DICCoagulopathyPageData struct {
@@ -103,30 +84,13 @@ func (s *Server) ensureDICService() *diccoagulopathy.DICService {
 func (s *Server) registerDICCoagulopathyRoutes() {
 	s.mux.HandleFunc("GET /dic-coagulopathy-triage", s.handleDICCoagulopathyTriagePage)
 
-	s.mux.HandleFunc("GET /api/dic-coagulopathy/operations", s.handleListDICCoagulopathyOperations)
-	s.mux.HandleFunc("POST /api/dic-coagulopathy/operations", s.handleCreateDICCoagulopathyOperation)
-	s.mux.HandleFunc("GET /api/dic-coagulopathy/operations/{id}", s.handleGetDICCoagulopathyOperation)
-	s.mux.HandleFunc("POST /api/dic-coagulopathy/operations/{id}/stage-therapy", s.handleStageDICComponentTherapy)
-	s.mux.HandleFunc("POST /api/dic-coagulopathy/operations/{id}/record-check", s.handleRecordDICCoagCheck)
-	s.mux.HandleFunc("POST /api/dic-coagulopathy/operations/{id}/clear-discharge", s.handleClearDICDischarge)
-	s.mux.HandleFunc("GET /api/dic-coagulopathy/stream", s.handleDICCoagulopathyStream)
-
-	// v1 aliases for consistency
-	s.mux.HandleFunc("GET /api/v1/dic-coagulopathy/operations", s.handleListDICCoagulopathyOperations)
-	s.mux.HandleFunc("POST /api/v1/dic-coagulopathy/operations", s.handleCreateDICCoagulopathyOperation)
-	s.mux.HandleFunc("GET /api/v1/dic-coagulopathy/operations/{id}", s.handleGetDICCoagulopathyOperation)
-	s.mux.HandleFunc("POST /api/v1/dic-coagulopathy/operations/{id}/stage-therapy", s.handleStageDICComponentTherapy)
-	s.mux.HandleFunc("POST /api/v1/dic-coagulopathy/operations/{id}/record-check", s.handleRecordDICCoagCheck)
-	s.mux.HandleFunc("POST /api/v1/dic-coagulopathy/operations/{id}/clear-discharge", s.handleClearDICDischarge)
-	s.mux.HandleFunc("GET /api/v1/dic-coagulopathy/stream", s.handleDICCoagulopathyStream)
-}
-
-func writeDICCoagulopathyJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
+	s.registerDualAPIRoute("GET", "dic-coagulopathy/operations", s.handleListDICCoagulopathyOperations)
+	s.registerDualAPIRoute("POST", "dic-coagulopathy/operations", s.handleCreateDICCoagulopathyOperation)
+	s.registerDualAPIRoute("GET", "dic-coagulopathy/operations/{id}", s.handleGetDICCoagulopathyOperation)
+	s.registerDualAPIRoute("POST", "dic-coagulopathy/operations/{id}/stage-therapy", s.handleStageDICComponentTherapy)
+	s.registerDualAPIRoute("POST", "dic-coagulopathy/operations/{id}/record-check", s.handleRecordDICCoagCheck)
+	s.registerDualAPIRoute("POST", "dic-coagulopathy/operations/{id}/clear-discharge", s.handleClearDICDischarge)
+	s.registerDualAPIRoute("GET", "dic-coagulopathy/stream", s.handleDICCoagulopathyStream)
 }
 
 func (s *Server) handleDICCoagulopathyTriagePage(w http.ResponseWriter, r *http.Request) {
@@ -144,12 +108,6 @@ func (s *Server) handleDICCoagulopathyTriagePage(w http.ResponseWriter, r *http.
 	if len(ops) > 0 {
 		first := ops[0]
 		activeOp = &first
-	}
-
-	tmpl, err := template.New("dic_coagulopathy_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/dic_coagulopathy_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load DIC Coagulopathy Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	locale := LocaleFromContext(r.Context())
@@ -170,12 +128,7 @@ func (s *Server) handleDICCoagulopathyTriagePage(w http.ResponseWriter, r *http.
 		Locale:                          locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "dic_coagulopathy_triage.html", "DIC Coagulopathy Triage", data)
 }
 
 func (s *Server) handleListDICCoagulopathyOperations(w http.ResponseWriter, r *http.Request) {
@@ -202,9 +155,7 @@ func (s *Server) handleListDICCoagulopathyOperations(w http.ResponseWriter, r *h
 
 	metrics := svc.GetOverviewMetrics()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": ops,
 		"ops":        ops,
 		"metrics":    metrics,
@@ -220,20 +171,18 @@ func (s *Server) handleGetDICCoagulopathyOperation(w http.ResponseWriter, r *htt
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeDICCoagulopathyJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureDICService()
 	op, err := svc.GetOperation(id)
 	if err != nil {
-		writeDICCoagulopathyJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusOK, op)
 }
 
 func (s *Server) handleCreateDICCoagulopathyOperation(w http.ResponseWriter, r *http.Request) {
@@ -246,7 +195,7 @@ func (s *Server) handleCreateDICCoagulopathyOperation(w http.ResponseWriter, r *
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload createDICOperationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeDICCoagulopathyJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -273,19 +222,17 @@ func (s *Server) handleCreateDICCoagulopathyOperation(w http.ResponseWriter, r *
 		payload.SpontaneousMucosalBleeding,
 	)
 	if err != nil {
-		writeDICCoagulopathyJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextDICCoagulopathyNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastDICCoagulopathyEvent("dic_coagulopathy_updated", map[string]any{
 		"type":      "dic_coagulopathy_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleStageDICComponentTherapy(w http.ResponseWriter, r *http.Request) {
@@ -297,21 +244,21 @@ func (s *Server) handleStageDICComponentTherapy(w http.ResponseWriter, r *http.R
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeDICCoagulopathyJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureDICService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeDICCoagulopathyJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload stageDICComponentTherapyPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && err != io.EOF {
-		writeDICCoagulopathyJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -324,19 +271,17 @@ func (s *Server) handleStageDICComponentTherapy(w http.ResponseWriter, r *http.R
 
 	updated, err := svc.StageComponentTherapy(id, ffp, cryo, txa, heparin, trigger, schedule)
 	if err != nil {
-		writeDICCoagulopathyJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextDICCoagulopathyNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastDICCoagulopathyEvent("dic_coagulopathy_updated", map[string]any{
 		"type":      "dic_coagulopathy_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRecordDICCoagCheck(w http.ResponseWriter, r *http.Request) {
@@ -348,20 +293,20 @@ func (s *Server) handleRecordDICCoagCheck(w http.ResponseWriter, r *http.Request
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeDICCoagulopathyJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureDICService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeDICCoagulopathyJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload recordDICCoagCheckPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeDICCoagulopathyJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -376,19 +321,17 @@ func (s *Server) handleRecordDICCoagCheck(w http.ResponseWriter, r *http.Request
 		payload.ClinicalNote,
 	)
 	if err != nil {
-		writeDICCoagulopathyJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextDICCoagulopathyNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastDICCoagulopathyEvent("dic_coagulopathy_updated", map[string]any{
 		"type":      "dic_coagulopathy_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleClearDICDischarge(w http.ResponseWriter, r *http.Request) {
@@ -400,122 +343,43 @@ func (s *Server) handleClearDICDischarge(w http.ResponseWriter, r *http.Request)
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeDICCoagulopathyJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureDICService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeDICCoagulopathyJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload clearDICDischargePayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeDICCoagulopathyJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	summary := firstNonEmpty(payload.DischargeSummary, payload.Summary)
 	updated, err := svc.ClearDICDischarge(id, payload.DischargedBy, summary)
 	if err != nil {
-		writeDICCoagulopathyJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextDICCoagulopathyNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastDICCoagulopathyEvent("dic_coagulopathy_updated", map[string]any{
 		"type":      "dic_coagulopathy_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleDICCoagulopathyStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("dic_coagulopathy")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "dic_coagulopathy")
 }
 
 func (s *Server) broadcastDICCoagulopathyEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextDICCoagulopathyNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "dic_coagulopathy",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "dic_coagulopathy",
-			SenderNodeID:  "dic-coagulopathy-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("dic_coagulopathy", "dic-coagulopathy-hub", eventType, payload, now)
 }

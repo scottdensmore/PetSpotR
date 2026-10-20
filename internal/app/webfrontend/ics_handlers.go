@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"os"
 	"sort"
@@ -16,7 +15,6 @@ import (
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/ics"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
@@ -264,14 +262,6 @@ func (s *Server) loadICSShifts(ctx context.Context, incidentIDFilter, statusFilt
 	return shifts
 }
 
-func writeICSJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
-}
-
 func (s *Server) handleICSCommandPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		w.Header().Set("Allow", "GET, HEAD")
@@ -283,24 +273,13 @@ func (s *Server) handleICSCommandPage(w http.ResponseWriter, r *http.Request) {
 	volunteers := s.loadICSVolunteers(r.Context())
 	shifts := s.loadICSShifts(r.Context(), "", "")
 
-	tmpl, err := template.New("ics_command.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/ics_command.html")
-	if err != nil {
-		http.Error(w, "Failed to load ICS Command template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	data := ICSCommandPageData{
 		Volunteers: volunteers,
 		Shifts:     shifts,
 		Locale:     LocaleFromContext(r.Context()),
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "ics_command.html", "ICS Command", data)
 }
 
 func (s *Server) handleListICSVolunteers(w http.ResponseWriter, r *http.Request) {
@@ -310,16 +289,14 @@ func (s *Server) handleListICSVolunteers(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	if s.stateStore == nil {
-		writeICSJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	s.ensureDefaultICSVolunteers(r.Context())
 	volunteers := s.loadICSVolunteers(r.Context())
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"volunteers": volunteers,
 	})
 }
@@ -331,14 +308,14 @@ func (s *Server) handleCreateICSVolunteer(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if s.stateStore == nil {
-		writeICSJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req createICSVolunteerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeICSJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -373,7 +350,7 @@ func (s *Server) handleCreateICSVolunteer(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := profile.Validate(); err != nil {
-		writeICSJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -401,11 +378,11 @@ func (s *Server) handleCreateICSVolunteer(w http.ResponseWriter, r *http.Request
 
 	profileBytes, err := json.Marshal(profile)
 	if err != nil {
-		writeICSJSONError(w, http.StatusInternalServerError, "Failed to encode volunteer profile")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to encode volunteer profile")
 		return
 	}
 	if err := s.stateStore.SaveState(r.Context(), store.CollectionVolunteerProfiles, profile.VolunteerID, profileBytes); err != nil {
-		writeICSJSONError(w, http.StatusInternalServerError, "Failed to save volunteer profile")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to save volunteer profile")
 		return
 	}
 
@@ -429,20 +406,20 @@ func (s *Server) handleIssueVolunteerCredential(w http.ResponseWriter, r *http.R
 		return
 	}
 	if s.stateStore == nil {
-		writeICSJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	volunteerID := strings.TrimSpace(r.PathValue("id"))
 	if volunteerID == "" {
-		writeICSJSONError(w, http.StatusBadRequest, "volunteer id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "volunteer id is required")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req issueCredentialRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeICSJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -450,7 +427,7 @@ func (s *Server) handleIssueVolunteerCredential(w http.ResponseWriter, r *http.R
 
 	req.Role = domain.SARRoleCredential(strings.ToUpper(strings.TrimSpace(string(req.Role))))
 	if !req.Role.IsValid() {
-		writeICSJSONError(w, http.StatusBadRequest, "Invalid SAR role credential")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid SAR role credential")
 		return
 	}
 
@@ -471,7 +448,7 @@ func (s *Server) handleIssueVolunteerCredential(w http.ResponseWriter, r *http.R
 		ExpiresAt:     now.Add(365 * 24 * time.Hour),
 	}, getICSCredentialSecretKey())
 	if err != nil {
-		writeICSJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -492,10 +469,10 @@ func (s *Server) handleIssueVolunteerCredential(w http.ResponseWriter, r *http.R
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-			writeICSJSONError(w, http.StatusNotFound, "Volunteer not found")
+			writeCockpitJSONError(w, http.StatusNotFound, "Volunteer not found")
 			return
 		}
-		writeICSJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update volunteer credentials: %v", err))
+		writeCockpitJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update volunteer credentials: %v", err))
 		return
 	}
 
@@ -521,14 +498,14 @@ func (s *Server) handleCreateICSShift(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.stateStore == nil {
-		writeICSJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req createICSShiftRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeICSJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -536,23 +513,23 @@ func (s *Server) handleCreateICSShift(w http.ResponseWriter, r *http.Request) {
 
 	volunteerID := strings.TrimSpace(req.VolunteerID)
 	if volunteerID == "" {
-		writeICSJSONError(w, http.StatusBadRequest, "volunteerId is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "volunteerId is required")
 		return
 	}
 
 	volBytes, err := s.stateStore.GetState(r.Context(), store.CollectionVolunteerProfiles, volunteerID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-			writeICSJSONError(w, http.StatusNotFound, "Volunteer not found")
+			writeCockpitJSONError(w, http.StatusNotFound, "Volunteer not found")
 			return
 		}
-		writeICSJSONError(w, http.StatusInternalServerError, "Failed to load volunteer")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to load volunteer")
 		return
 	}
 
 	var volunteer domain.VolunteerProfile
 	if err := json.Unmarshal(volBytes, &volunteer); err != nil {
-		writeICSJSONError(w, http.StatusInternalServerError, "Corrupt volunteer profile")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Corrupt volunteer profile")
 		return
 	}
 
@@ -561,7 +538,7 @@ func (s *Server) handleCreateICSShift(w http.ResponseWriter, r *http.Request) {
 		assignedRole = volunteer.PrimaryRole
 	}
 	if !assignedRole.IsValid() {
-		writeICSJSONError(w, http.StatusBadRequest, "Invalid assigned SAR role")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid assigned SAR role")
 		return
 	}
 
@@ -576,7 +553,7 @@ func (s *Server) handleCreateICSShift(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now().UTC()
 	if !ics.HasVerifiedRole(volunteer, assignedRole, getICSCredentialSecretKey(), now) {
-		writeICSJSONError(
+		writeCockpitJSONError(
 			w,
 			http.StatusForbidden,
 			fmt.Sprintf("volunteer %s (%s) lacks a verified cryptographic credential for role %s", volunteer.Name, volunteer.Callsign, assignedRole),
@@ -607,11 +584,11 @@ func (s *Server) handleCreateICSShift(w http.ResponseWriter, r *http.Request) {
 
 	shiftBytes, err := json.Marshal(shift)
 	if err != nil {
-		writeICSJSONError(w, http.StatusInternalServerError, "Failed to encode shift entry")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to encode shift entry")
 		return
 	}
 	if err := s.stateStore.SaveState(r.Context(), store.CollectionICSShiftEntries, shift.ShiftID, shiftBytes); err != nil {
-		writeICSJSONError(w, http.StatusInternalServerError, "Failed to save shift entry")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to save shift entry")
 		return
 	}
 
@@ -635,7 +612,7 @@ func (s *Server) handleListICSShifts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.stateStore == nil {
-		writeICSJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
@@ -647,7 +624,7 @@ func (s *Server) handleListICSShifts(w http.ResponseWriter, r *http.Request) {
 	if strings.EqualFold(strings.TrimSpace(q.Get("format")), "csv") {
 		csvContent, err := ics.ExportICS204RosterCSV(shifts)
 		if err != nil {
-			writeICSJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to format ICS-204 CSV: %v", err))
+			writeCockpitJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to format ICS-204 CSV: %v", err))
 			return
 		}
 		w.Header().Set("Content-Type", "text/csv; charset=utf-8")
@@ -657,9 +634,7 @@ func (s *Server) handleListICSShifts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"shifts": shifts,
 	})
 }
@@ -671,20 +646,20 @@ func (s *Server) handleUpdateICSShiftProgress(w http.ResponseWriter, r *http.Req
 		return
 	}
 	if s.stateStore == nil {
-		writeICSJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	shiftID := strings.TrimSpace(r.PathValue("id"))
 	if shiftID == "" {
-		writeICSJSONError(w, http.StatusBadRequest, "shift id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "shift id is required")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req updateICSShiftProgressRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeICSJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -736,10 +711,10 @@ func (s *Server) handleUpdateICSShiftProgress(w http.ResponseWriter, r *http.Req
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-			writeICSJSONError(w, http.StatusNotFound, "Shift not found")
+			writeCockpitJSONError(w, http.StatusNotFound, "Shift not found")
 			return
 		}
-		writeICSJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update shift: %v", err))
+		writeCockpitJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update shift: %v", err))
 		return
 	}
 
@@ -787,86 +762,9 @@ func (s *Server) handleUpdateICSShiftProgress(w http.ResponseWriter, r *http.Req
 }
 
 func (s *Server) handleICSStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("ics")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "ics")
 }
 
 func (s *Server) broadcastICSEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextICSNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "ics",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "ics",
-			SenderNodeID:  "ics-command-authority",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("ics", "ics-command-authority", eventType, payload, now)
 }

@@ -153,9 +153,7 @@ func (s *Server) handleApiMeshSignalMessage(w http.ResponseWriter, r *http.Reque
 		s.signalingHub.Relay(envelope)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	writeCockpitJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 // handleApiMeshUplinkSync processes WAN cloud uplink reconciliation requests from off-grid mesh peers.
@@ -199,9 +197,7 @@ func (s *Server) handleApiMeshUplinkSync(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(resp)
+	writeCockpitJSON(w, http.StatusOK, resp)
 }
 
 // handleApiMeshQRSignaling generates a pure Go SVG QR code for optical WebRTC signaling payloads.

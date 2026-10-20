@@ -124,9 +124,7 @@ func (s *Server) handleCreateReconMission(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(mission)
+	writeCockpitJSON(w, http.StatusCreated, mission)
 }
 
 // handleGetReconMissions retrieves drone missions, optionally filtered by petId.
@@ -168,9 +166,7 @@ func (s *Server) handleGetReconMissions(w http.ResponseWriter, r *http.Request) 
 		return missions[i].ID > missions[j].ID
 	})
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(missions)
+	writeCockpitJSON(w, http.StatusOK, missions)
 }
 
 // handleApiReconTelemetryParse parses flight logs (.srt, .kml, .geojson) and returns waypoints, footprint, and swept sectors.
@@ -361,9 +357,7 @@ func (s *Server) handleParseReconTelemetry(w http.ResponseWriter, r *http.Reques
 		CoveredSectorIDs:  coveredSectorIDs,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(resp)
+	writeCockpitJSON(w, http.StatusOK, resp)
 }
 
 // handleApiReconThermalScan runs pure Go radiometric thermal analysis on aerial frames.
@@ -550,9 +544,7 @@ func (s *Server) handleScanReconThermal(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(hotspots)
+	writeCockpitJSON(w, http.StatusOK, hotspots)
 }
 
 // handleApiReconHotspotStatus updates the operator/AI status of a thermal hotspot.
@@ -783,9 +775,7 @@ func (s *Server) handleUpdateReconHotspotStatus(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(hotspot)
+	writeCockpitJSON(w, http.StatusOK, hotspot)
 }
 
 // handleApiReconMissionExport exports mission telemetry and hotspots as GeoJSON FeatureCollection.

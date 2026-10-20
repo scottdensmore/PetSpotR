@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"sort"
 	"strings"
@@ -14,7 +13,6 @@ import (
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/store"
 	"github.com/scottdensmore/petspotr/pkg/transportrelay"
 )
@@ -188,14 +186,6 @@ func (s *Server) loadTransportRelayMissions(ctx context.Context, petIDFilter, st
 	return missions
 }
 
-func writeTransportRelayJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
-}
-
 func (s *Server) handleTransportRelayPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		w.Header().Set("Allow", "GET, HEAD")
@@ -205,12 +195,6 @@ func (s *Server) handleTransportRelayPage(w http.ResponseWriter, r *http.Request
 
 	s.ensureDefaultTransportRelayMissions(r.Context())
 	missions := s.loadTransportRelayMissions(r.Context(), "", "")
-
-	tmpl, err := template.New("transport_relay.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/transport_relay.html")
-	if err != nil {
-		http.Error(w, "Failed to load Transport Relay template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
 
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
@@ -222,12 +206,7 @@ func (s *Server) handleTransportRelayPage(w http.ResponseWriter, r *http.Request
 		Locale:   locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "transport_relay.html", "Transport Relay", data)
 }
 
 func (s *Server) handleListTransportRelayMissions(w http.ResponseWriter, r *http.Request) {
@@ -237,7 +216,7 @@ func (s *Server) handleListTransportRelayMissions(w http.ResponseWriter, r *http
 		return
 	}
 	if s.stateStore == nil {
-		writeTransportRelayJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
@@ -249,9 +228,7 @@ func (s *Server) handleListTransportRelayMissions(w http.ResponseWriter, r *http
 		strings.TrimSpace(q.Get("status")),
 	)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"missions": missions,
 	})
 }
@@ -263,14 +240,14 @@ func (s *Server) handleCreateTransportRelayMission(w http.ResponseWriter, r *htt
 		return
 	}
 	if s.stateStore == nil {
-		writeTransportRelayJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req createTransportRelayMissionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeTransportRelayJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -299,17 +276,17 @@ func (s *Server) handleCreateTransportRelayMission(w http.ResponseWriter, r *htt
 		IATACrateVerified:  req.IATACrateVerified,
 	}, now)
 	if err != nil {
-		writeTransportRelayJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	missionBytes, err := json.Marshal(mission)
 	if err != nil {
-		writeTransportRelayJSONError(w, http.StatusInternalServerError, "Failed to encode transport relay mission")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to encode transport relay mission")
 		return
 	}
 	if err := s.stateStore.SaveState(r.Context(), store.CollectionTransportRelayMissions, mission.MissionID, missionBytes); err != nil {
-		writeTransportRelayJSONError(w, http.StatusInternalServerError, "Failed to save transport relay mission")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to save transport relay mission")
 		return
 	}
 
@@ -318,9 +295,7 @@ func (s *Server) handleCreateTransportRelayMission(w http.ResponseWriter, r *htt
 		"mission": mission,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(mission)
+	writeCockpitJSON(w, http.StatusCreated, mission)
 }
 
 func (s *Server) handleAdvanceTransportRelayMission(w http.ResponseWriter, r *http.Request) {
@@ -330,20 +305,20 @@ func (s *Server) handleAdvanceTransportRelayMission(w http.ResponseWriter, r *ht
 		return
 	}
 	if s.stateStore == nil {
-		writeTransportRelayJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	missionID := strings.TrimSpace(r.PathValue("id"))
 	if missionID == "" {
-		writeTransportRelayJSONError(w, http.StatusBadRequest, "mission id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "mission id is required")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req advanceTransportRelayMissionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeTransportRelayJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -378,14 +353,14 @@ func (s *Server) handleAdvanceTransportRelayMission(w http.ResponseWriter, r *ht
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-			writeTransportRelayJSONError(w, http.StatusNotFound, "Transport relay mission not found")
+			writeCockpitJSONError(w, http.StatusNotFound, "Transport relay mission not found")
 			return
 		}
 		if advErr != nil {
-			writeTransportRelayJSONError(w, http.StatusBadRequest, advErr.Error())
+			writeCockpitJSONError(w, http.StatusBadRequest, advErr.Error())
 			return
 		}
-		writeTransportRelayJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to advance transport relay mission: %v", err))
+		writeCockpitJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to advance transport relay mission: %v", err))
 		return
 	}
 
@@ -394,92 +369,13 @@ func (s *Server) handleAdvanceTransportRelayMission(w http.ResponseWriter, r *ht
 		"mission": updatedMission,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updatedMission)
+	writeCockpitJSON(w, http.StatusOK, updatedMission)
 }
 
 func (s *Server) handleTransportRelayStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("transport_relay")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "transport_relay")
 }
 
 func (s *Server) broadcastTransportRelayEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextTransportRelayNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "transport_relay",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "transport_relay",
-			SenderNodeID:  "transport-relay-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("transport_relay", "transport-relay-hub", eventType, payload, now)
 }

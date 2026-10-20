@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"os"
 	"sort"
@@ -16,7 +15,6 @@ import (
 
 	"github.com/scottdensmore/petspotr/pkg/custody"
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
@@ -214,14 +212,6 @@ func (s *Server) loadCustodyChains(ctx context.Context, petIDFilter, stageFilter
 	return chains
 }
 
-func writeCustodyJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
-}
-
 func (s *Server) handleCustodyLedgerPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		w.Header().Set("Allow", "GET, HEAD")
@@ -231,12 +221,6 @@ func (s *Server) handleCustodyLedgerPage(w http.ResponseWriter, r *http.Request)
 
 	s.ensureDefaultCustodyChains(r.Context())
 	chains := s.loadCustodyChains(r.Context(), "", "")
-
-	tmpl, err := template.New("custody_ledger.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/custody_ledger.html")
-	if err != nil {
-		http.Error(w, "Failed to load Custody Ledger template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
 
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
@@ -248,12 +232,7 @@ func (s *Server) handleCustodyLedgerPage(w http.ResponseWriter, r *http.Request)
 		Locale: locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "custody_ledger.html", "Custody Ledger", data)
 }
 
 func (s *Server) handleListCustodyChains(w http.ResponseWriter, r *http.Request) {
@@ -263,7 +242,7 @@ func (s *Server) handleListCustodyChains(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	if s.stateStore == nil {
-		writeCustodyJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
@@ -275,9 +254,7 @@ func (s *Server) handleListCustodyChains(w http.ResponseWriter, r *http.Request)
 		strings.TrimSpace(q.Get("stage")),
 	)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"chains": chains,
 	})
 }
@@ -289,14 +266,14 @@ func (s *Server) handleCreateCustodyChain(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if s.stateStore == nil {
-		writeCustodyJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req createCustodyChainRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeCustodyJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -305,7 +282,7 @@ func (s *Server) handleCreateCustodyChain(w http.ResponseWriter, r *http.Request
 	petID := strings.TrimSpace(req.PetID)
 	petName := strings.TrimSpace(req.PetName)
 	if petID == "" || petName == "" {
-		writeCustodyJSONError(w, http.StatusBadRequest, "petId and petName are required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "petId and petName are required")
 		return
 	}
 
@@ -361,21 +338,21 @@ func (s *Server) handleCreateCustodyChain(w http.ResponseWriter, r *http.Request
 
 	chain, err := custody.AppendCustodyHop(chain, genesisHop, secret)
 	if err != nil {
-		writeCustodyJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	if err := chain.Validate(); err != nil {
-		writeCustodyJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	chainBytes, err := json.Marshal(chain)
 	if err != nil {
-		writeCustodyJSONError(w, http.StatusInternalServerError, "Failed to encode custody chain")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to encode custody chain")
 		return
 	}
 	if err := s.stateStore.SaveState(r.Context(), store.CollectionPetCustodyChains, chain.ChainID, chainBytes); err != nil {
-		writeCustodyJSONError(w, http.StatusInternalServerError, "Failed to save custody chain")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to save custody chain")
 		return
 	}
 
@@ -399,20 +376,20 @@ func (s *Server) handleAppendCustodyTransfer(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	if s.stateStore == nil {
-		writeCustodyJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	chainID := strings.TrimSpace(r.PathValue("id"))
 	if chainID == "" {
-		writeCustodyJSONError(w, http.StatusBadRequest, "chain id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "chain id is required")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req appendCustodyTransferRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeCustodyJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -420,7 +397,7 @@ func (s *Server) handleAppendCustodyTransfer(w http.ResponseWriter, r *http.Requ
 
 	stage := domain.CustodyStage(strings.ToUpper(strings.TrimSpace(string(req.Stage))))
 	if !stage.IsValid() {
-		writeCustodyJSONError(w, http.StatusBadRequest, "invalid custody stage")
+		writeCockpitJSONError(w, http.StatusBadRequest, "invalid custody stage")
 		return
 	}
 
@@ -469,18 +446,18 @@ func (s *Server) handleAppendCustodyTransfer(w http.ResponseWriter, r *http.Requ
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-			writeCustodyJSONError(w, http.StatusNotFound, "Custody chain not found")
+			writeCockpitJSONError(w, http.StatusNotFound, "Custody chain not found")
 			return
 		}
 		if errors.Is(err, errAlready) {
-			writeCustodyJSONError(w, http.StatusConflict, "Custody chain has already completed reunion handover")
+			writeCockpitJSONError(w, http.StatusConflict, "Custody chain has already completed reunion handover")
 			return
 		}
 		if errValidation != nil {
-			writeCustodyJSONError(w, http.StatusBadRequest, errValidation.Error())
+			writeCockpitJSONError(w, http.StatusBadRequest, errValidation.Error())
 			return
 		}
-		writeCustodyJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update custody chain: %v", err))
+		writeCockpitJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update custody chain: %v", err))
 		return
 	}
 
@@ -504,20 +481,20 @@ func (s *Server) handleCompleteReunionHandover(w http.ResponseWriter, r *http.Re
 		return
 	}
 	if s.stateStore == nil {
-		writeCustodyJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	chainID := strings.TrimSpace(r.PathValue("id"))
 	if chainID == "" {
-		writeCustodyJSONError(w, http.StatusBadRequest, "chain id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "chain id is required")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req completeReunionHandoverRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeCustodyJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -561,22 +538,22 @@ func (s *Server) handleCompleteReunionHandover(w http.ResponseWriter, r *http.Re
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-			writeCustodyJSONError(w, http.StatusNotFound, "Custody chain not found")
+			writeCockpitJSONError(w, http.StatusNotFound, "Custody chain not found")
 			return
 		}
 		if errors.Is(err, custody.ErrInvalidHandoverPIN) || errors.Is(handoverErr, custody.ErrInvalidHandoverPIN) {
-			writeCustodyJSONError(w, http.StatusForbidden, "Handover PIN rejected: invalid 6-digit cryptographic escrow PIN — custody release denied")
+			writeCockpitJSONError(w, http.StatusForbidden, "Handover PIN rejected: invalid 6-digit cryptographic escrow PIN — custody release denied")
 			return
 		}
 		if errors.Is(err, errAlready) {
-			writeCustodyJSONError(w, http.StatusConflict, "Custody chain is already reunited and released")
+			writeCockpitJSONError(w, http.StatusConflict, "Custody chain is already reunited and released")
 			return
 		}
 		if handoverErr != nil {
-			writeCustodyJSONError(w, http.StatusBadRequest, handoverErr.Error())
+			writeCockpitJSONError(w, http.StatusBadRequest, handoverErr.Error())
 			return
 		}
-		writeCustodyJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to complete reunion handover: %v", err))
+		writeCockpitJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to complete reunion handover: %v", err))
 		return
 	}
 
@@ -600,13 +577,13 @@ func (s *Server) handleVerifyCustodyChain(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if s.stateStore == nil {
-		writeCustodyJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	chainID := strings.TrimSpace(r.PathValue("id"))
 	if chainID == "" {
-		writeCustodyJSONError(w, http.StatusBadRequest, "chain id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "chain id is required")
 		return
 	}
 
@@ -615,25 +592,23 @@ func (s *Server) handleVerifyCustodyChain(w http.ResponseWriter, r *http.Request
 	raw, err := s.stateStore.GetState(r.Context(), store.CollectionPetCustodyChains, chainID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-			writeCustodyJSONError(w, http.StatusNotFound, "Custody chain not found")
+			writeCockpitJSONError(w, http.StatusNotFound, "Custody chain not found")
 			return
 		}
-		writeCustodyJSONError(w, http.StatusInternalServerError, "Failed to load custody chain")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to load custody chain")
 		return
 	}
 
 	var chain domain.PetCustodyChain
 	if err := json.Unmarshal(raw, &chain); err != nil {
-		writeCustodyJSONError(w, http.StatusInternalServerError, "Corrupt custody chain record")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Corrupt custody chain record")
 		return
 	}
 
 	secret := getCustodyLedgerSecretKey()
 	intact, hopCount, msg := custody.VerifyCustodyChainIntegrity(chain, secret)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"chainId":            chain.ChainID,
 		"verifiedIntact":     intact,
 		"hopCount":           hopCount,
@@ -643,86 +618,9 @@ func (s *Server) handleVerifyCustodyChain(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) handleCustodyStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("custody")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "custody")
 }
 
 func (s *Server) broadcastCustodyEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextCustodyNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "custody",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "custody",
-			SenderNodeID:  "custody-ledger-escrow-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("custody", "custody-ledger-escrow-hub", eventType, payload, now)
 }

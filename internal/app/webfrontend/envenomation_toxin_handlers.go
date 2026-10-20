@@ -2,34 +2,14 @@ package webfrontend
 
 import (
 	"encoding/json"
-	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/envenomationtoxin"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 )
-
-var lastEnvenomationToxinNano atomic.Int64
-
-func nextEnvenomationToxinNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastEnvenomationToxinNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastEnvenomationToxinNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // EnvenomationToxinPageData represents template data passed to templates/envenomation_toxin_triage.html.
 type EnvenomationToxinPageData struct {
@@ -80,14 +60,6 @@ func computeEnvenomationToxinSummary(ops []domain.EnvenomationTriageOperation) (
 	return total, criticalToxin, stagedAntivenom, stabilizedSafe
 }
 
-func writeEnvenomationToxinJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
-}
-
 func (s *Server) handleEnvenomationToxinTriagePage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		w.Header().Set("Allow", "GET, HEAD")
@@ -105,12 +77,6 @@ func (s *Server) handleEnvenomationToxinTriagePage(w http.ResponseWriter, r *htt
 		activeOp = &first
 	}
 
-	tmpl, err := template.New("envenomation_toxin_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/envenomation_toxin_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load Envenomation & Toxin Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
 		locale = "en"
@@ -126,12 +92,7 @@ func (s *Server) handleEnvenomationToxinTriagePage(w http.ResponseWriter, r *htt
 		Locale:               locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "envenomation_toxin_triage.html", "Envenomation & Toxin Triage", data)
 }
 
 func (s *Server) handleListEnvenomationToxinOperations(w http.ResponseWriter, r *http.Request) {
@@ -163,9 +124,7 @@ func (s *Server) handleListEnvenomationToxinOperations(w http.ResponseWriter, r 
 
 	total, criticalToxin, stagedAntivenom, stabilizedSafe := computeEnvenomationToxinSummary(filtered)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": filtered,
 		"ops":        filtered,
 		"summary": map[string]int{
@@ -187,26 +146,24 @@ func (s *Server) handleEvaluateEnvenomationToxinOperation(w http.ResponseWriter,
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req domain.EnvenomationEvaluationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeEnvenomationToxinJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	etStore := s.ensureEnvenomationToxinStore()
 	created, err := etStore.EvaluateAndSave(req)
 	if err != nil {
-		writeEnvenomationToxinJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextEnvenomationToxinNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastEnvenomationToxinEvent("envenomation_toxin_updated", map[string]any{
 		"type":      "envenomation_toxin_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleUpdateEnvenomationToxinStep(w http.ResponseWriter, r *http.Request) {
@@ -218,14 +175,14 @@ func (s *Server) handleUpdateEnvenomationToxinStep(w http.ResponseWriter, r *htt
 
 	opID := strings.TrimSpace(r.PathValue("id"))
 	if opID == "" {
-		writeEnvenomationToxinJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload envenomationStepPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeEnvenomationToxinJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -236,25 +193,23 @@ func (s *Server) handleUpdateEnvenomationToxinStep(w http.ResponseWriter, r *htt
 
 	etStore := s.ensureEnvenomationToxinStore()
 	if _, exists := etStore.Get(opID); !exists {
-		writeEnvenomationToxinJSONError(w, http.StatusNotFound, "Envenomation toxin triage operation not found")
+		writeCockpitJSONError(w, http.StatusNotFound, "Envenomation toxin triage operation not found")
 		return
 	}
 
 	updated, err := etStore.UpdateStep(opID, stepID, payload.Completed)
 	if err != nil {
-		writeEnvenomationToxinJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextEnvenomationToxinNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastEnvenomationToxinEvent("envenomation_toxin_updated", map[string]any{
 		"type":      "envenomation_toxin_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleIssueEnvenomationToxinClearance(w http.ResponseWriter, r *http.Request) {
@@ -266,121 +221,42 @@ func (s *Server) handleIssueEnvenomationToxinClearance(w http.ResponseWriter, r 
 
 	opID := strings.TrimSpace(r.PathValue("id"))
 	if opID == "" {
-		writeEnvenomationToxinJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var discard map[string]any
 	if err := json.NewDecoder(r.Body).Decode(&discard); err != nil && err != io.EOF {
-		writeEnvenomationToxinJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	etStore := s.ensureEnvenomationToxinStore()
 	if _, exists := etStore.Get(opID); !exists {
-		writeEnvenomationToxinJSONError(w, http.StatusNotFound, "Envenomation toxin triage operation not found")
+		writeCockpitJSONError(w, http.StatusNotFound, "Envenomation toxin triage operation not found")
 		return
 	}
 
 	updated, err := etStore.IssueClearance(opID)
 	if err != nil {
-		writeEnvenomationToxinJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextEnvenomationToxinNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastEnvenomationToxinEvent("envenomation_toxin_updated", map[string]any{
 		"type":      "envenomation_toxin_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleEnvenomationToxinStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("envenomation_toxin")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "envenomation_toxin")
 }
 
 func (s *Server) broadcastEnvenomationToxinEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextEnvenomationToxinNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "envenomation_toxin",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "envenomation_toxin",
-			SenderNodeID:  "envenomation-toxin-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("envenomation_toxin", "envenomation-toxin-hub", eventType, payload, now)
 }

@@ -3,33 +3,14 @@ package webfrontend
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/imhathrombosis"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 )
-
-var lastIMHAThrombosisNano atomic.Int64
-
-func nextIMHAThrombosisNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastIMHAThrombosisNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastIMHAThrombosisNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // IMHAThrombosisPageData represents template data passed to templates/imha_thrombosis_triage.html.
 type IMHAThrombosisPageData struct {
@@ -81,30 +62,13 @@ func (s *Server) ensureIMHAService() *imhathrombosis.IMHAService {
 func (s *Server) registerIMHAThrombosisRoutes() {
 	s.mux.HandleFunc("GET /imha-thrombosis-triage", s.handleIMHAThrombosisTriagePage)
 
-	s.mux.HandleFunc("GET /api/imha-thrombosis/operations", s.handleListIMHAThrombosisOperations)
-	s.mux.HandleFunc("POST /api/imha-thrombosis/operations", s.handleCreateIMHAThrombosisOperation)
-	s.mux.HandleFunc("GET /api/imha-thrombosis/operations/{id}", s.handleGetIMHAThrombosisOperation)
-	s.mux.HandleFunc("POST /api/imha-thrombosis/operations/{id}/stage-regimen", s.handleStageIMHAThrombosisRegimen)
-	s.mux.HandleFunc("POST /api/imha-thrombosis/operations/{id}/hemolysis-check", s.handleRecordIMHAThrombosisHemolysisCheck)
-	s.mux.HandleFunc("POST /api/imha-thrombosis/operations/{id}/discharge-clearance", s.handleIssueIMHAThrombosisDischargeClearance)
-	s.mux.HandleFunc("GET /api/imha-thrombosis/stream", s.handleIMHAThrombosisStream)
-
-	// v1 aliases for consistency
-	s.mux.HandleFunc("GET /api/v1/imha-thrombosis/operations", s.handleListIMHAThrombosisOperations)
-	s.mux.HandleFunc("POST /api/v1/imha-thrombosis/operations", s.handleCreateIMHAThrombosisOperation)
-	s.mux.HandleFunc("GET /api/v1/imha-thrombosis/operations/{id}", s.handleGetIMHAThrombosisOperation)
-	s.mux.HandleFunc("POST /api/v1/imha-thrombosis/operations/{id}/stage-regimen", s.handleStageIMHAThrombosisRegimen)
-	s.mux.HandleFunc("POST /api/v1/imha-thrombosis/operations/{id}/hemolysis-check", s.handleRecordIMHAThrombosisHemolysisCheck)
-	s.mux.HandleFunc("POST /api/v1/imha-thrombosis/operations/{id}/discharge-clearance", s.handleIssueIMHAThrombosisDischargeClearance)
-	s.mux.HandleFunc("GET /api/v1/imha-thrombosis/stream", s.handleIMHAThrombosisStream)
-}
-
-func writeIMHAThrombosisJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
+	s.registerDualAPIRoute("GET", "imha-thrombosis/operations", s.handleListIMHAThrombosisOperations)
+	s.registerDualAPIRoute("POST", "imha-thrombosis/operations", s.handleCreateIMHAThrombosisOperation)
+	s.registerDualAPIRoute("GET", "imha-thrombosis/operations/{id}", s.handleGetIMHAThrombosisOperation)
+	s.registerDualAPIRoute("POST", "imha-thrombosis/operations/{id}/stage-regimen", s.handleStageIMHAThrombosisRegimen)
+	s.registerDualAPIRoute("POST", "imha-thrombosis/operations/{id}/hemolysis-check", s.handleRecordIMHAThrombosisHemolysisCheck)
+	s.registerDualAPIRoute("POST", "imha-thrombosis/operations/{id}/discharge-clearance", s.handleIssueIMHAThrombosisDischargeClearance)
+	s.registerDualAPIRoute("GET", "imha-thrombosis/stream", s.handleIMHAThrombosisStream)
 }
 
 func (s *Server) handleIMHAThrombosisTriagePage(w http.ResponseWriter, r *http.Request) {
@@ -124,12 +88,6 @@ func (s *Server) handleIMHAThrombosisTriagePage(w http.ResponseWriter, r *http.R
 		activeOp = &first
 	}
 
-	tmpl, err := template.New("imha_thrombosis_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/imha_thrombosis_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load IMHA Thrombosis Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
 		locale = "en"
@@ -146,12 +104,7 @@ func (s *Server) handleIMHAThrombosisTriagePage(w http.ResponseWriter, r *http.R
 		Locale:                 locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "imha_thrombosis_triage.html", "IMHA Thrombosis Triage", data)
 }
 
 func (s *Server) handleListIMHAThrombosisOperations(w http.ResponseWriter, r *http.Request) {
@@ -178,9 +131,7 @@ func (s *Server) handleListIMHAThrombosisOperations(w http.ResponseWriter, r *ht
 
 	metrics := svc.ComputeMetrics()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": ops,
 		"ops":        ops,
 		"metrics":    metrics,
@@ -196,20 +147,18 @@ func (s *Server) handleGetIMHAThrombosisOperation(w http.ResponseWriter, r *http
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeIMHAThrombosisJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureIMHAService()
 	op, err := svc.GetOperation(id)
 	if err != nil {
-		writeIMHAThrombosisJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusOK, op)
 }
 
 func (s *Server) handleCreateIMHAThrombosisOperation(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +171,7 @@ func (s *Server) handleCreateIMHAThrombosisOperation(w http.ResponseWriter, r *h
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload createIMHAOperationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeIMHAThrombosisJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -251,19 +200,17 @@ func (s *Server) handleCreateIMHAThrombosisOperation(w http.ResponseWriter, r *h
 	svc := s.ensureIMHAService()
 	created, err := svc.CreateOperation(incidentID, payload.PetName, profile)
 	if err != nil {
-		writeIMHAThrombosisJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextIMHAThrombosisNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastIMHAThrombosisEvent("imha_thrombosis_updated", map[string]any{
 		"type":      "imha_thrombosis_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleStageIMHAThrombosisRegimen(w http.ResponseWriter, r *http.Request) {
@@ -275,21 +222,21 @@ func (s *Server) handleStageIMHAThrombosisRegimen(w http.ResponseWriter, r *http
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeIMHAThrombosisJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureIMHAService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeIMHAThrombosisJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload stageIMHARegimenPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && err != io.EOF {
-		writeIMHAThrombosisJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -328,19 +275,17 @@ func (s *Server) handleStageIMHAThrombosisRegimen(w http.ResponseWriter, r *http
 
 	updated, err := svc.StageImmunosuppressiveRegimen(id, profile)
 	if err != nil {
-		writeIMHAThrombosisJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextIMHAThrombosisNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastIMHAThrombosisEvent("imha_thrombosis_updated", map[string]any{
 		"type":      "imha_thrombosis_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRecordIMHAThrombosisHemolysisCheck(w http.ResponseWriter, r *http.Request) {
@@ -352,38 +297,36 @@ func (s *Server) handleRecordIMHAThrombosisHemolysisCheck(w http.ResponseWriter,
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeIMHAThrombosisJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureIMHAService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeIMHAThrombosisJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var check domain.IMHAHemolysisSerialCheck
 	if err := json.NewDecoder(r.Body).Decode(&check); err != nil {
-		writeIMHAThrombosisJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	updated, err := svc.RecordHemolysisCheck(id, check)
 	if err != nil {
-		writeIMHAThrombosisJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextIMHAThrombosisNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastIMHAThrombosisEvent("imha_thrombosis_updated", map[string]any{
 		"type":      "imha_thrombosis_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleIssueIMHAThrombosisDischargeClearance(w http.ResponseWriter, r *http.Request) {
@@ -395,121 +338,42 @@ func (s *Server) handleIssueIMHAThrombosisDischargeClearance(w http.ResponseWrit
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeIMHAThrombosisJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureIMHAService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeIMHAThrombosisJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var clearance domain.IMHADischargeClearance
 	if err := json.NewDecoder(r.Body).Decode(&clearance); err != nil {
-		writeIMHAThrombosisJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	updated, err := svc.IssueDischargeClearance(id, clearance)
 	if err != nil {
-		writeIMHAThrombosisJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextIMHAThrombosisNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastIMHAThrombosisEvent("imha_thrombosis_updated", map[string]any{
 		"type":      "imha_thrombosis_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleIMHAThrombosisStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("imha_thrombosis")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "imha_thrombosis")
 }
 
 func (s *Server) broadcastIMHAThrombosisEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextIMHAThrombosisNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "imha_thrombosis",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "imha_thrombosis",
-			SenderNodeID:  "imha-thrombosis-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("imha_thrombosis", "imha-thrombosis-hub", eventType, payload, now)
 }

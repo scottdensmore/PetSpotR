@@ -3,33 +3,14 @@ package webfrontend
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/traumaticbrain"
 )
-
-var lastTraumaticBrainNano atomic.Int64
-
-func nextTraumaticBrainNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastTraumaticBrainNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastTraumaticBrainNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // TraumaticBrainPageData represents template data passed to templates/traumatic_brain_triage.html.
 type TraumaticBrainPageData struct {
@@ -81,30 +62,13 @@ func (s *Server) ensureTBIService() *traumaticbrain.TBIService {
 func (s *Server) registerTraumaticBrainRoutes() {
 	s.mux.HandleFunc("GET /traumatic-brain-triage", s.handleTraumaticBrainTriagePage)
 
-	s.mux.HandleFunc("GET /api/traumatic-brain/operations", s.handleListTraumaticBrainOperations)
-	s.mux.HandleFunc("POST /api/traumatic-brain/operations", s.handleCreateTraumaticBrainOperation)
-	s.mux.HandleFunc("GET /api/traumatic-brain/operations/{id}", s.handleGetTraumaticBrainOperation)
-	s.mux.HandleFunc("POST /api/traumatic-brain/operations/{id}/stage-plan", s.handleStageTraumaticBrainPlan)
-	s.mux.HandleFunc("POST /api/traumatic-brain/operations/{id}/neuro-check", s.handleRecordTraumaticBrainCheck)
-	s.mux.HandleFunc("POST /api/traumatic-brain/operations/{id}/discharge-clearance", s.handleIssueTraumaticBrainDischargeClearance)
-	s.mux.HandleFunc("GET /api/traumatic-brain/stream", s.handleTraumaticBrainStream)
-
-	// v1 aliases for consistency
-	s.mux.HandleFunc("GET /api/v1/traumatic-brain/operations", s.handleListTraumaticBrainOperations)
-	s.mux.HandleFunc("POST /api/v1/traumatic-brain/operations", s.handleCreateTraumaticBrainOperation)
-	s.mux.HandleFunc("GET /api/v1/traumatic-brain/operations/{id}", s.handleGetTraumaticBrainOperation)
-	s.mux.HandleFunc("POST /api/v1/traumatic-brain/operations/{id}/stage-plan", s.handleStageTraumaticBrainPlan)
-	s.mux.HandleFunc("POST /api/v1/traumatic-brain/operations/{id}/neuro-check", s.handleRecordTraumaticBrainCheck)
-	s.mux.HandleFunc("POST /api/v1/traumatic-brain/operations/{id}/discharge-clearance", s.handleIssueTraumaticBrainDischargeClearance)
-	s.mux.HandleFunc("GET /api/v1/traumatic-brain/stream", s.handleTraumaticBrainStream)
-}
-
-func writeTraumaticBrainJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
+	s.registerDualAPIRoute("GET", "traumatic-brain/operations", s.handleListTraumaticBrainOperations)
+	s.registerDualAPIRoute("POST", "traumatic-brain/operations", s.handleCreateTraumaticBrainOperation)
+	s.registerDualAPIRoute("GET", "traumatic-brain/operations/{id}", s.handleGetTraumaticBrainOperation)
+	s.registerDualAPIRoute("POST", "traumatic-brain/operations/{id}/stage-plan", s.handleStageTraumaticBrainPlan)
+	s.registerDualAPIRoute("POST", "traumatic-brain/operations/{id}/neuro-check", s.handleRecordTraumaticBrainCheck)
+	s.registerDualAPIRoute("POST", "traumatic-brain/operations/{id}/discharge-clearance", s.handleIssueTraumaticBrainDischargeClearance)
+	s.registerDualAPIRoute("GET", "traumatic-brain/stream", s.handleTraumaticBrainStream)
 }
 
 func (s *Server) handleTraumaticBrainTriagePage(w http.ResponseWriter, r *http.Request) {
@@ -124,12 +88,6 @@ func (s *Server) handleTraumaticBrainTriagePage(w http.ResponseWriter, r *http.R
 		activeOp = &first
 	}
 
-	tmpl, err := template.New("traumatic_brain_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/traumatic_brain_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load Traumatic Brain Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
 		locale = "en"
@@ -146,12 +104,7 @@ func (s *Server) handleTraumaticBrainTriagePage(w http.ResponseWriter, r *http.R
 		Locale:                    locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "traumatic_brain_triage.html", "Traumatic Brain Triage", data)
 }
 
 func (s *Server) handleListTraumaticBrainOperations(w http.ResponseWriter, r *http.Request) {
@@ -178,9 +131,7 @@ func (s *Server) handleListTraumaticBrainOperations(w http.ResponseWriter, r *ht
 
 	metrics := svc.ComputeMetrics()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": ops,
 		"ops":        ops,
 		"metrics":    metrics,
@@ -196,20 +147,18 @@ func (s *Server) handleGetTraumaticBrainOperation(w http.ResponseWriter, r *http
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeTraumaticBrainJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureTBIService()
 	op, err := svc.GetOperation(id)
 	if err != nil {
-		writeTraumaticBrainJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusOK, op)
 }
 
 func (s *Server) handleCreateTraumaticBrainOperation(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +171,7 @@ func (s *Server) handleCreateTraumaticBrainOperation(w http.ResponseWriter, r *h
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload createTBIOperationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeTraumaticBrainJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -251,19 +200,17 @@ func (s *Server) handleCreateTraumaticBrainOperation(w http.ResponseWriter, r *h
 	svc := s.ensureTBIService()
 	created, err := svc.CreateOperation(incidentID, payload.PetName, profile)
 	if err != nil {
-		writeTraumaticBrainJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextTraumaticBrainNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastTraumaticBrainEvent("traumatic_brain_updated", map[string]any{
 		"type":      "traumatic_brain_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleStageTraumaticBrainPlan(w http.ResponseWriter, r *http.Request) {
@@ -275,21 +222,21 @@ func (s *Server) handleStageTraumaticBrainPlan(w http.ResponseWriter, r *http.Re
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeTraumaticBrainJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureTBIService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeTraumaticBrainJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload stageTBIPlanPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && err != io.EOF {
-		writeTraumaticBrainJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -328,19 +275,17 @@ func (s *Server) handleStageTraumaticBrainPlan(w http.ResponseWriter, r *http.Re
 
 	updated, err := svc.StageNeuroprotectivePlan(id, profile)
 	if err != nil {
-		writeTraumaticBrainJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextTraumaticBrainNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastTraumaticBrainEvent("traumatic_brain_updated", map[string]any{
 		"type":      "traumatic_brain_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRecordTraumaticBrainCheck(w http.ResponseWriter, r *http.Request) {
@@ -352,38 +297,36 @@ func (s *Server) handleRecordTraumaticBrainCheck(w http.ResponseWriter, r *http.
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeTraumaticBrainJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureTBIService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeTraumaticBrainJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var check domain.TBINeuroSerialCheck
 	if err := json.NewDecoder(r.Body).Decode(&check); err != nil {
-		writeTraumaticBrainJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	updated, err := svc.RecordNeuroCheck(id, check)
 	if err != nil {
-		writeTraumaticBrainJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextTraumaticBrainNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastTraumaticBrainEvent("traumatic_brain_updated", map[string]any{
 		"type":      "traumatic_brain_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleIssueTraumaticBrainDischargeClearance(w http.ResponseWriter, r *http.Request) {
@@ -395,121 +338,42 @@ func (s *Server) handleIssueTraumaticBrainDischargeClearance(w http.ResponseWrit
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeTraumaticBrainJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureTBIService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeTraumaticBrainJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var clearance domain.TBIDischargeClearance
 	if err := json.NewDecoder(r.Body).Decode(&clearance); err != nil {
-		writeTraumaticBrainJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	updated, err := svc.IssueDischargeClearance(id, clearance)
 	if err != nil {
-		writeTraumaticBrainJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextTraumaticBrainNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastTraumaticBrainEvent("traumatic_brain_updated", map[string]any{
 		"type":      "traumatic_brain_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleTraumaticBrainStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("traumatic_brain")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "traumatic_brain")
 }
 
 func (s *Server) broadcastTraumaticBrainEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextTraumaticBrainNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "traumatic_brain",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "traumatic_brain",
-			SenderNodeID:  "traumatic-brain-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("traumatic_brain", "traumatic-brain-hub", eventType, payload, now)
 }

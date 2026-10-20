@@ -3,33 +3,14 @@ package webfrontend
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/tetanusbotulism"
 )
-
-var lastTetanusBotulismNano atomic.Int64
-
-func nextTetanusBotulismNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastTetanusBotulismNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastTetanusBotulismNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // TetanusBotulismPageData represents template data passed to templates/tetanus_botulism_triage.html.
 type TetanusBotulismPageData struct {
@@ -116,32 +97,14 @@ func (s *Server) ensureTetanusBotulismService() *tetanusbotulism.TetanusBotulism
 func (s *Server) registerTetanusBotulismRoutes() {
 	s.mux.HandleFunc("GET /tetanus-botulism-triage", s.handleTetanusBotulismTriagePage)
 
-	s.mux.HandleFunc("GET /api/tetanus-botulism/overview", s.handleGetTetanusBotulismOverview)
-	s.mux.HandleFunc("GET /api/tetanus-botulism/operations", s.handleListTetanusBotulismOperations)
-	s.mux.HandleFunc("POST /api/tetanus-botulism/operations", s.handleCreateTetanusBotulismOperation)
-	s.mux.HandleFunc("GET /api/tetanus-botulism/operations/{id}", s.handleGetTetanusBotulismOperation)
-	s.mux.HandleFunc("POST /api/tetanus-botulism/operations/{id}/therapy", s.handleStageTetanusBotulismTherapy)
-	s.mux.HandleFunc("POST /api/tetanus-botulism/operations/{id}/neuro-check", s.handleRecordTetanusBotulismNeuroCheck)
-	s.mux.HandleFunc("POST /api/tetanus-botulism/operations/{id}/clearance", s.handleEvaluateTetanusBotulismClearance)
-	s.mux.HandleFunc("GET /api/tetanus-botulism/stream", s.handleTetanusBotulismStream)
-
-	// v1 aliases for consistency
-	s.mux.HandleFunc("GET /api/v1/tetanus-botulism/overview", s.handleGetTetanusBotulismOverview)
-	s.mux.HandleFunc("GET /api/v1/tetanus-botulism/operations", s.handleListTetanusBotulismOperations)
-	s.mux.HandleFunc("POST /api/v1/tetanus-botulism/operations", s.handleCreateTetanusBotulismOperation)
-	s.mux.HandleFunc("GET /api/v1/tetanus-botulism/operations/{id}", s.handleGetTetanusBotulismOperation)
-	s.mux.HandleFunc("POST /api/v1/tetanus-botulism/operations/{id}/therapy", s.handleStageTetanusBotulismTherapy)
-	s.mux.HandleFunc("POST /api/v1/tetanus-botulism/operations/{id}/neuro-check", s.handleRecordTetanusBotulismNeuroCheck)
-	s.mux.HandleFunc("POST /api/v1/tetanus-botulism/operations/{id}/clearance", s.handleEvaluateTetanusBotulismClearance)
-	s.mux.HandleFunc("GET /api/v1/tetanus-botulism/stream", s.handleTetanusBotulismStream)
-}
-
-func writeTetanusBotulismJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
+	s.registerDualAPIRoute("GET", "tetanus-botulism/overview", s.handleGetTetanusBotulismOverview)
+	s.registerDualAPIRoute("GET", "tetanus-botulism/operations", s.handleListTetanusBotulismOperations)
+	s.registerDualAPIRoute("POST", "tetanus-botulism/operations", s.handleCreateTetanusBotulismOperation)
+	s.registerDualAPIRoute("GET", "tetanus-botulism/operations/{id}", s.handleGetTetanusBotulismOperation)
+	s.registerDualAPIRoute("POST", "tetanus-botulism/operations/{id}/therapy", s.handleStageTetanusBotulismTherapy)
+	s.registerDualAPIRoute("POST", "tetanus-botulism/operations/{id}/neuro-check", s.handleRecordTetanusBotulismNeuroCheck)
+	s.registerDualAPIRoute("POST", "tetanus-botulism/operations/{id}/clearance", s.handleEvaluateTetanusBotulismClearance)
+	s.registerDualAPIRoute("GET", "tetanus-botulism/stream", s.handleTetanusBotulismStream)
 }
 
 func (s *Server) handleTetanusBotulismTriagePage(w http.ResponseWriter, r *http.Request) {
@@ -159,12 +122,6 @@ func (s *Server) handleTetanusBotulismTriagePage(w http.ResponseWriter, r *http.
 	if len(ops) > 0 {
 		first := ops[0]
 		activeOp = &first
-	}
-
-	tmpl, err := template.New("tetanus_botulism_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/tetanus_botulism_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load Tetanus & Botulism Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	locale := LocaleFromContext(r.Context())
@@ -185,12 +142,7 @@ func (s *Server) handleTetanusBotulismTriagePage(w http.ResponseWriter, r *http.
 		Locale:                         locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "tetanus_botulism_triage.html", "Tetanus & Botulism Triage", data)
 }
 
 func (s *Server) handleGetTetanusBotulismOverview(w http.ResponseWriter, r *http.Request) {
@@ -203,9 +155,7 @@ func (s *Server) handleGetTetanusBotulismOverview(w http.ResponseWriter, r *http
 	svc := s.ensureTetanusBotulismService()
 	overview := svc.CalculateOverview()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(overview)
+	writeCockpitJSON(w, http.StatusOK, overview)
 }
 
 func (s *Server) handleListTetanusBotulismOperations(w http.ResponseWriter, r *http.Request) {
@@ -232,9 +182,7 @@ func (s *Server) handleListTetanusBotulismOperations(w http.ResponseWriter, r *h
 
 	overview := svc.CalculateOverview()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": ops,
 		"ops":        ops,
 		"overview":   overview,
@@ -251,20 +199,18 @@ func (s *Server) handleGetTetanusBotulismOperation(w http.ResponseWriter, r *htt
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeTetanusBotulismJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureTetanusBotulismService()
 	op, err := svc.GetOperation(id)
 	if err != nil {
-		writeTetanusBotulismJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusOK, op)
 }
 
 func (s *Server) handleCreateTetanusBotulismOperation(w http.ResponseWriter, r *http.Request) {
@@ -277,7 +223,7 @@ func (s *Server) handleCreateTetanusBotulismOperation(w http.ResponseWriter, r *
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload createTetanusBotulismOperationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeTetanusBotulismJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -310,19 +256,17 @@ func (s *Server) handleCreateTetanusBotulismOperation(w http.ResponseWriter, r *
 		payload.AminoglycosideContraindicatedInBotulism,
 	)
 	if err != nil {
-		writeTetanusBotulismJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextTetanusBotulismNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastTetanusBotulismEvent("tetanus_botulism_updated", map[string]any{
 		"type":      "tetanus_botulism_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleStageTetanusBotulismTherapy(w http.ResponseWriter, r *http.Request) {
@@ -334,21 +278,21 @@ func (s *Server) handleStageTetanusBotulismTherapy(w http.ResponseWriter, r *htt
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeTetanusBotulismJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureTetanusBotulismService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeTetanusBotulismJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload stageTetanusBotulismTherapyPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && err != io.EOF {
-		writeTetanusBotulismJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -401,19 +345,17 @@ func (s *Server) handleStageTetanusBotulismTherapy(w http.ResponseWriter, r *htt
 		stagedBy,
 	)
 	if err != nil {
-		writeTetanusBotulismJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextTetanusBotulismNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastTetanusBotulismEvent("tetanus_botulism_updated", map[string]any{
 		"type":      "tetanus_botulism_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRecordTetanusBotulismNeuroCheck(w http.ResponseWriter, r *http.Request) {
@@ -425,21 +367,21 @@ func (s *Server) handleRecordTetanusBotulismNeuroCheck(w http.ResponseWriter, r 
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeTetanusBotulismJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureTetanusBotulismService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeTetanusBotulismJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload recordTetanusBotulismNeuroCheckPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeTetanusBotulismJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -461,19 +403,17 @@ func (s *Server) handleRecordTetanusBotulismNeuroCheck(w http.ResponseWriter, r 
 		payload.ClinicalNote,
 	)
 	if err != nil {
-		writeTetanusBotulismJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextTetanusBotulismNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastTetanusBotulismEvent("tetanus_botulism_updated", map[string]any{
 		"type":      "tetanus_botulism_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleEvaluateTetanusBotulismClearance(w http.ResponseWriter, r *http.Request) {
@@ -485,20 +425,20 @@ func (s *Server) handleEvaluateTetanusBotulismClearance(w http.ResponseWriter, r
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeTetanusBotulismJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureTetanusBotulismService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeTetanusBotulismJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload evaluateTetanusBotulismClearancePayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeTetanusBotulismJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -527,102 +467,23 @@ func (s *Server) handleEvaluateTetanusBotulismClearance(w http.ResponseWriter, r
 		summary,
 	)
 	if err != nil {
-		writeTetanusBotulismJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextTetanusBotulismNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastTetanusBotulismEvent("tetanus_botulism_updated", map[string]any{
 		"type":      "tetanus_botulism_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleTetanusBotulismStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("tetanus_botulism")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "tetanus_botulism")
 }
 
 func (s *Server) broadcastTetanusBotulismEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextTetanusBotulismNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "tetanus_botulism",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "tetanus_botulism",
-			SenderNodeID:  "tetanus-botulism-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("tetanus_botulism", "tetanus-botulism-hub", eventType, payload, now)
 }
