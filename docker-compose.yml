@@ -12,6 +12,8 @@ services:
     command: ["gcloud", "beta", "emulators", "pubsub", "start", "--host-port=0.0.0.0:8086"]
     ports:
       - "8086:8086"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   emulator-init:
     build:

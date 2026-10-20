@@ -273,7 +273,7 @@ func (s *FirestoreStore) changeRoleAssignment(
 	if err != nil {
 		return domain.RoleAssignment{}, false, err
 	}
-	auditDoc := assignmentDoc.Collection(roleAssignmentAudit).Doc(firestoreDocumentID(auditID))
+	auditDoc := assignmentDoc.Collection(roleAssignmentAudit).Doc(FirestoreDocumentID(auditID))
 
 	var result domain.RoleAssignment
 	var changed bool
@@ -386,7 +386,7 @@ func (s *FirestoreStore) ListRoleAssignmentAudit(
 		if decodeErr := snapshot.DataTo(&record); decodeErr != nil {
 			return nil, fmt.Errorf("store: decode role assignment audit record: %w", decodeErr)
 		}
-		if snapshot.Ref.ID != firestoreDocumentID(record.Key) {
+		if snapshot.Ref.ID != FirestoreDocumentID(record.Key) {
 			return nil, errors.New("store: role assignment audit document key mismatch")
 		}
 		audit, decodeErr := decodeRoleAssignmentAudit(record.Data)
@@ -415,7 +415,7 @@ func roleAssignmentFromSnapshot(
 	if err := snapshot.DataTo(&record); err != nil {
 		return domain.RoleAssignment{}, err
 	}
-	if record.Key != assignmentID || snapshot.Ref.ID != firestoreDocumentID(assignmentID) {
+	if record.Key != assignmentID || snapshot.Ref.ID != FirestoreDocumentID(assignmentID) {
 		return domain.RoleAssignment{}, errors.New("store: role assignment key mismatch")
 	}
 	assignment, err := decodeRoleAssignment(bytes.Clone(record.Data))
@@ -437,7 +437,7 @@ func roleAssignmentAuditFromSnapshot(
 	if err := snapshot.DataTo(&record); err != nil {
 		return domain.RoleAssignmentAudit{}, err
 	}
-	if record.Key != auditID || snapshot.Ref.ID != firestoreDocumentID(auditID) {
+	if record.Key != auditID || snapshot.Ref.ID != FirestoreDocumentID(auditID) {
 		return domain.RoleAssignmentAudit{}, errors.New("store: role assignment audit key mismatch")
 	}
 	audit, err := decodeRoleAssignmentAudit(bytes.Clone(record.Data))

@@ -201,7 +201,7 @@ test.describe('User Journey: EXIF Auto-Extraction and Image Enhancer', () => {
     await btnAutoEnhance.click();
 
     // Verify /api/v1/images/enhance was invoked
-    expect(enhanceApiCalled).toBe(true);
+    await expect.poll(() => enhanceApiCalled).toBe(true);
 
     // Verify slider view is displayed
     const sliderView = page.locator('#enhance-slider-view');

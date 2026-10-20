@@ -121,7 +121,7 @@ test.describe('User Journey: Drone / UAV Aerial Reconnaissance & Thermal Hotspot
         breed: 'Husky',
         primaryColor: 'Gray',
         secondaryColor: 'White',
-        description: 'Energetic husky lost near Presidio forest buffer.',
+        description: `Energetic husky lost near Presidio forest buffer (${petId}).`,
         location: 'San Francisco, CA',
         reporterEmail: 'apollo-owner@example.com',
         phone: '(415) 555-0188',
@@ -147,7 +147,10 @@ test.describe('User Journey: Drone / UAV Aerial Reconnaissance & Thermal Hotspot
     // ------------------------------------------------------------------------
     // Step 1: Open /pets and launch cockpit via #btn-open-drone-recon
     // ------------------------------------------------------------------------
-    await page.goto(`${WEB_FRONTEND_URL}/pets`);
+    // Filter the directory to this pet: the cockpit binds to the first pet card,
+    // and parallel specs keep adding newer lost pets.
+    await page.goto(`${WEB_FRONTEND_URL}/pets?q=${encodeURIComponent(petId)}`);
+    await expect(page.locator('article.pet-card[data-pet-id]').first()).toHaveAttribute('data-pet-id', petId);
 
     const openReconBtn = page.locator('#btn-open-drone-recon');
     await expect(openReconBtn).toBeVisible();

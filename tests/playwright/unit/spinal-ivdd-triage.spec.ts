@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 /**
  * Milestone 22.3: Acute Spinal Cord Injury, Intervertebral Disc Extrusion (IVDD),
@@ -6,6 +6,11 @@ import { test, expect } from '@playwright/test';
  * Deterministic Playwright Unit Suite
  */
 test.describe('Spinal IVDD & Hemilaminectomy Triage Cockpit Unit Tests (/spinal-ivdd-triage)', () => {
+  test.describe.configure({ mode: 'serial' });
+
+  const seededCard = (page: Page, opId: string) =>
+    page.locator(`#ivdd-operations-grid .ivdd-op-card[data-op-id="${opId}"]`);
+
   test('1. renders initial seeded operations, KPI cards, and Spinal Nociception alert banner', async ({ page }) => {
     await page.goto('/spinal-ivdd-triage');
 
@@ -13,13 +18,14 @@ test.describe('Spinal IVDD & Hemilaminectomy Triage Cockpit Unit Tests (/spinal-
     await expect(page.locator('#ivdd-alert-banner')).toBeVisible();
     await expect(page.locator('#ivdd-alert-banner')).toContainText('CRITICAL SPINAL CORD & IVDD NOCICEPTION GUARD');
 
-    await expect(page.locator('#kpi-total-ops')).toHaveText('3');
-    await expect(page.locator('#kpi-acute-triage')).toHaveText('1');
-    await expect(page.locator('#kpi-staged-hemi')).toHaveText('1');
-    await expect(page.locator('#kpi-cleared-postop')).toHaveText('1');
+    await expect(page.locator('#kpi-total-ops')).toBeVisible();
+    await expect(page.locator('#kpi-acute-triage')).toBeVisible();
+    await expect(page.locator('#kpi-staged-hemi')).toBeVisible();
+    await expect(page.locator('#kpi-cleared-postop')).toBeVisible();
 
-    const cards = page.locator('#ivdd-operations-grid .ivdd-op-card');
-    await expect(cards).toHaveCount(3);
+    await expect(seededCard(page, 'IVDD-OP-101')).toHaveAttribute('data-status', 'ACUTE_PARAPLEGIA_NOCICEPTION_TRIAGE');
+    await expect(seededCard(page, 'IVDD-OP-102')).toHaveAttribute('data-status', 'CT_MYELOGRAM_HEMILAMINECTOMY_STAGED');
+    await expect(seededCard(page, 'IVDD-OP-103')).toHaveAttribute('data-status', 'POSTOP_NOCICEPTION_INTACT_BLADDER_CLEARED');
     await expect(page.locator('#active-op-title')).toContainText('Barnaby');
     await expect(page.locator('#active-op-status-badge')).toHaveText('ACUTE_PARAPLEGIA_NOCICEPTION_TRIAGE');
   });
@@ -28,11 +34,15 @@ test.describe('Spinal IVDD & Hemilaminectomy Triage Cockpit Unit Tests (/spinal-
     await page.goto('/spinal-ivdd-triage');
 
     await page.selectOption('#ivdd-status-filter', 'ACUTE_PARAPLEGIA_NOCICEPTION_TRIAGE');
-    await expect(page.locator('#ivdd-operations-grid .ivdd-op-card')).toHaveCount(1);
-    await expect(page.locator('#ivdd-operations-grid .ivdd-op-card').first()).toContainText('Barnaby');
+    await expect(seededCard(page, 'IVDD-OP-101')).toContainText('Barnaby');
+    await expect(
+      page.locator('#ivdd-operations-grid .ivdd-op-card:not([data-status="ACUTE_PARAPLEGIA_NOCICEPTION_TRIAGE"])')
+    ).toHaveCount(0);
 
     await page.selectOption('#ivdd-status-filter', '');
-    await expect(page.locator('#ivdd-operations-grid .ivdd-op-card')).toHaveCount(3);
+    for (const opId of ['IVDD-OP-101', 'IVDD-OP-102', 'IVDD-OP-103']) {
+      await expect(seededCard(page, opId)).toBeVisible();
+    }
   });
 
   test('3. stages hemilaminectomy decompression and updates status to CT_MYELOGRAM_HEMILAMINECTOMY_STAGED', async ({ page }) => {

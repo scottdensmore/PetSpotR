@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
  * Milestone 22.3: End-to-End Journey Test for Spinal IVDD & Hemilaminectomy Triage Cockpit
  */
 test.describe('Spinal IVDD & Hemilaminectomy Triage E2E Journey (/spinal-ivdd-triage)', () => {
-  test('completes full triage lifecycle: alert -> stage hemilaminectomy -> record neuro check -> clear discharge', async ({ page }) => {
+  test('completes full triage lifecycle: alert -> admit -> stage hemilaminectomy -> record neuro check -> clear discharge', async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on('console', (msg) => {
       if (msg.type() === 'error') {
@@ -19,6 +19,13 @@ test.describe('Spinal IVDD & Hemilaminectomy Triage E2E Journey (/spinal-ivdd-tr
     // Connect SSE stream manually
     await page.click('#connect-sse-btn');
     await expect(page.locator('#sse-status-badge')).toHaveText(/SSE (Connected|Connecting)/);
+
+    // Admit a new operation so the seeded operations stay untouched for specs
+    // running in parallel against the same server.
+    const petName = `Noodle ${Date.now()}`;
+    await page.fill('#create-pet-name-input', petName);
+    await page.click('#create-ivdd-btn');
+    await expect(page.locator('#active-op-title')).toContainText(petName);
 
     // 1. Stage Hemilaminectomy Decompression
     await page.fill('#stage-window-input', 'Emergent Decompression < 12h (Grade 5 Deep Pain Absent); Target MAP >= 85 mmHg');

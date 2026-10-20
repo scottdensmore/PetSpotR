@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -46,7 +49,7 @@ func TestPubSubEmulatorRedeliversWrappedMessageUntilHandlerSucceeds(t *testing.T
 			return nil
 		},
 	)
-	server := httptest.NewServer(handler)
+	server, endpoint := newPushTestServer(t, handler)
 	defer server.Close()
 
 	topic, err := client.TopicAdminClient.CreateTopic(ctx, &pubsubpb.Topic{
@@ -62,7 +65,7 @@ func TestPubSubEmulatorRedeliversWrappedMessageUntilHandlerSucceeds(t *testing.T
 		Name:  fmt.Sprintf("projects/%s/subscriptions/%s", projectID, subscriptionID),
 		Topic: topic.GetName(),
 		PushConfig: &pubsubpb.PushConfig{
-			PushEndpoint: server.URL + "/pubsub/found-pet?token=emulator-secret",
+			PushEndpoint: endpoint + "/pubsub/found-pet?token=emulator-secret",
 		},
 	})
 	if err != nil {
@@ -95,4 +98,27 @@ func TestPubSubEmulatorRedeliversWrappedMessageUntilHandlerSucceeds(t *testing.T
 	case <-ctx.Done():
 		t.Fatalf("wait for emulator push: %v", ctx.Err())
 	}
+}
+
+// newPushTestServer serves handler where the Pub/Sub emulator can push to it
+// and returns the base URL to register as the push endpoint. When the emulator
+// runs in a container, PUBSUB_PUSH_ENDPOINT_HOST names this host as seen from
+// that container (for example host.docker.internal).
+func newPushTestServer(t *testing.T, handler http.Handler) (*httptest.Server, string) {
+	t.Helper()
+	endpointHost := os.Getenv("PUBSUB_PUSH_ENDPOINT_HOST")
+	if endpointHost == "" {
+		server := httptest.NewServer(handler)
+		return server, server.URL
+	}
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		t.Fatalf("listen for emulator push: %v", err)
+	}
+	server := httptest.NewUnstartedServer(handler)
+	_ = server.Listener.Close()
+	server.Listener = listener
+	server.Start()
+	port := listener.Addr().(*net.TCPAddr).Port
+	return server, "http://" + net.JoinHostPort(endpointHost, strconv.Itoa(port))
 }

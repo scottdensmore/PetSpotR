@@ -1,6 +1,22 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 
 const WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || 'http://localhost:8082';
+
+/**
+ * Clicks #btn-sim-fireworks-bolt and returns the card for the plan that click
+ * created, so parallel specs simulating the same case never share a card.
+ */
+async function simulateFireworksBolt(page: Page): Promise<Locator> {
+  const [response] = await Promise.all([
+    page.waitForResponse(
+      (res) =>
+        res.url().endsWith('/api/v1/reunion-decompression/plans') && res.request().method() === 'POST'
+    ),
+    page.locator('#btn-sim-fireworks-bolt').click(),
+  ]);
+  const { planId } = (await response.json()) as { planId: string };
+  return page.locator(`#decomp-plans-list .decomp-plan-card[data-plan-id="${planId}"]`);
+}
 
 /**
  * Helper to parse rgb/rgba string into [r, g, b]
@@ -113,11 +129,7 @@ test.describe('Post-Reunion Cortisol Decompression & Escape-Recidivism Cockpit U
     await page.goto(`${WEB_FRONTEND_URL}/reunion-decompression`);
     await page.waitForLoadState('networkidle');
 
-    await page.locator('#btn-sim-fireworks-bolt').click();
-
-    const boltCard = page.locator('#decomp-plans-list .decomp-plan-card', {
-      hasText: 'SINGLE_BUCKLE_PANIC_SLIP',
-    }).first();
+    const boltCard = await simulateFireworksBolt(page);
     await expect(boltCard).toBeVisible();
     await expect(boltCard).toHaveAttribute('data-plan-phase', 'ACUTE_REFUGE_72H');
     await expect(boltCard.locator('.badge-recidivism-risk.badge-risk-critical')).toContainText('CRITICAL_FLIGHT_RISK');
@@ -133,11 +145,7 @@ test.describe('Post-Reunion Cortisol Decompression & Escape-Recidivism Cockpit U
     await page.goto(`${WEB_FRONTEND_URL}/reunion-decompression`);
     await page.waitForLoadState('networkidle');
 
-    await page.locator('#btn-sim-fireworks-bolt').click();
-
-    const card = page.locator('#decomp-plans-list .decomp-plan-card', {
-      hasText: 'SINGLE_BUCKLE_PANIC_SLIP',
-    }).first();
+    const card = await simulateFireworksBolt(page);
     await expect(card).toBeVisible();
 
     await card.locator('.btn-graduate-decomp-plan').click();

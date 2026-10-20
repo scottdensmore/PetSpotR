@@ -13,6 +13,9 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/scottdensmore/petspotr/pkg/domain"
+	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
 type cascadeConfig struct {
@@ -112,6 +115,13 @@ func getURL(ctx context.Context, client *http.Client, url string) (int, string, 
 	return resp.StatusCode, strings.TrimSpace(string(body)), nil
 }
 
+// firestoreDocumentURL is the emulator REST URL of the document the state store
+// writes for key in collection.
+func firestoreDocumentURL(cfg cascadeConfig, collection, key string) string {
+	return fmt.Sprintf("http://%s/v1/projects/%s/databases/(default)/documents/%s/%s",
+		cfg.firestoreHost, cfg.projectID, collection, store.FirestoreDocumentID(key))
+}
+
 func runCascade(ctx context.Context, cfg cascadeConfig, client *http.Client, out io.Writer) error {
 	_, _ = fmt.Fprintln(out, "============================================================")
 	_, _ = fmt.Fprintln(out, "  PetSpotR End-to-End Shared Emulator Cascade Verification  ")
@@ -171,8 +181,7 @@ func runCascade(ctx context.Context, cfg cascadeConfig, client *http.Client, out
 	_, _ = fmt.Fprintf(out, "    Lost pet reported successfully: %s\n", body)
 
 	_, _ = fmt.Fprintln(out, "\n==> 3. Verifying Lost Pet in Firestore Emulator...")
-	fsLostURL := fmt.Sprintf("http://%s/v1/projects/%s/databases/(default)/documents/lost_pets/%s", cfg.firestoreHost, cfg.projectID, lostPetID)
-	code, _, err = getURL(ctx, client, fsLostURL)
+	code, _, err = getURL(ctx, client, firestoreDocumentURL(cfg, store.LostPetsCollection, lostPetID))
 	if err != nil || code != http.StatusOK {
 		return fmt.Errorf("lost pet %s not found in Firestore (HTTP %d)", lostPetID, code)
 	}
@@ -188,7 +197,7 @@ func runCascade(ctx context.Context, cfg cascadeConfig, client *http.Client, out
 		"finderEmail":         "finder-cascade@example.com",
 		"foundAt":             "2026-09-13T00:05:00Z",
 		"location":            "Capitol Hill, Seattle, WA",
-		"custodyStatus":       "finder_home",
+		"custodyStatus":       domain.CustodyFinderHome,
 		"imageUrl":            fmt.Sprintf("https://storage.petspotr.io/images/%s.jpg", foundPetID),
 	}
 	code, body, err = postJSON(ctx, client, fmt.Sprintf("%s/foundPet", cfg.foundPetURL), foundPayload)
@@ -201,8 +210,7 @@ func runCascade(ctx context.Context, cfg cascadeConfig, client *http.Client, out
 	_, _ = fmt.Fprintf(out, "    Found pet reported successfully: %s\n", body)
 
 	_, _ = fmt.Fprintln(out, "\n==> 5. Verifying Found Pet in Firestore Emulator...")
-	fsFoundURL := fmt.Sprintf("http://%s/v1/projects/%s/databases/(default)/documents/found_pets/%s", cfg.firestoreHost, cfg.projectID, foundPetID)
-	code, _, err = getURL(ctx, client, fsFoundURL)
+	code, _, err = getURL(ctx, client, firestoreDocumentURL(cfg, store.FoundPetsCollection, foundPetID))
 	if err != nil || code != http.StatusOK {
 		return fmt.Errorf("found pet %s not found in Firestore (HTTP %d)", foundPetID, code)
 	}
@@ -228,7 +236,7 @@ func runCascade(ctx context.Context, cfg cascadeConfig, client *http.Client, out
 	}
 
 	if !matchFound {
-		fsMatchesURL := fmt.Sprintf("http://%s/v1/projects/%s/databases/(default)/documents/matches", cfg.firestoreHost, cfg.projectID)
+		fsMatchesURL := fmt.Sprintf("http://%s/v1/projects/%s/databases/(default)/documents/%s", cfg.firestoreHost, cfg.projectID, store.MatchesCollection)
 		_, fsMatchesBody, reqErr := getURL(ctx, client, fsMatchesURL)
 		if reqErr == nil && strings.Contains(fsMatchesBody, lostPetID) {
 			_, _ = fmt.Fprintf(out, "    Match found in Firestore emulator: %s\n", fsMatchesBody)
@@ -238,8 +246,8 @@ func runCascade(ctx context.Context, cfg cascadeConfig, client *http.Client, out
 	}
 
 	_, _ = fmt.Fprintln(out, "\n==> 7. Verifying Notification Service processing...")
-	_, notifBody, err := getURL(ctx, client, fmt.Sprintf("%s/healthz", cfg.notificationURL))
-	if err != nil || notifBody != "OK" {
+	code, _, err = getURL(ctx, client, fmt.Sprintf("%s/healthz", cfg.notificationURL))
+	if err != nil || code != http.StatusOK {
 		return fmt.Errorf("notification service unhealthy")
 	}
 	_, _ = fmt.Fprintln(out, "    Notification Service is healthy and processing events.")

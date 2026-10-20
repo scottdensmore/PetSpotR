@@ -96,7 +96,7 @@ func (s *FirestoreStore) BackfillLostPetCandidateIndexes(ctx context.Context, li
 	if limit < 1 || limit > MaxLostPetCandidateBackfillBatch {
 		return 0, false, errors.New("store: lost-pet candidate index backfill limit must be between 1 and 400")
 	}
-	migrationDoc := s.client.Collection("runtimeMigrations").Doc(firestoreDocumentID(lostPetCandidateIndexMigrationID))
+	migrationDoc := s.client.Collection("runtimeMigrations").Doc(FirestoreDocumentID(lostPetCandidateIndexMigrationID))
 	var migration lostPetCandidateIndexMigration
 	snapshot, err := migrationDoc.Get(ctx)
 	if err == nil {
