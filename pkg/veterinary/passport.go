@@ -3,7 +3,6 @@ package veterinary
 import (
 	"bytes"
 	"compress/zlib"
-	"crypto/ecdh"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -53,11 +52,11 @@ func encodePublicKeyHex(pub *ecdsa.PublicKey) (string, error) {
 	if pub == nil {
 		return "", errors.New("public key is required")
 	}
-	ecdhPub, err := pub.ECDH()
+	pubBytes, err := pub.Bytes()
 	if err != nil {
 		return "", err
 	}
-	return hex.EncodeToString(ecdhPub.Bytes()), nil
+	return hex.EncodeToString(pubBytes), nil
 }
 
 func decodePublicKeyHex(pubHex string) (*ecdsa.PublicKey, error) {
@@ -65,20 +64,11 @@ func decodePublicKeyHex(pubHex string) (*ecdsa.PublicKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	ecdhPub, err := ecdh.P256().NewPublicKey(pubBytes)
+	pub, err := ecdsa.ParseUncompressedPublicKey(elliptic.P256(), pubBytes)
 	if err != nil {
 		return nil, errors.New("invalid public key curve encoding")
 	}
-	raw := ecddhBytes(ecdhPub)
-	return &ecdsa.PublicKey{
-		Curve: elliptic.P256(),
-		X:     new(big.Int).SetBytes(raw[1:33]),
-		Y:     new(big.Int).SetBytes(raw[33:65]),
-	}, nil
-}
-
-func ecddhBytes(pub *ecdh.PublicKey) []byte {
-	return pub.Bytes()
+	return pub, nil
 }
 
 // SignPassport computes an ECDSA P-256 SHA-256 signature for the passport.
