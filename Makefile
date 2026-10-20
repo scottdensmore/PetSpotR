@@ -3,6 +3,7 @@
 SHELL := /usr/bin/env bash
 GOTOOLCHAIN ?= go1.26.5
 TOFU ?= $(shell if command -v tofu >/dev/null 2>&1; then echo "tofu"; elif command -v mise >/dev/null 2>&1; then echo "mise exec -- tofu"; else echo "tofu"; fi)
+LOCAL_EMULATOR_ENV := GOOGLE_CLOUD_PROJECT=$${GOOGLE_CLOUD_PROJECT:-petspotr-local} FIRESTORE_EMULATOR_HOST=$${FIRESTORE_EMULATOR_HOST:-localhost:8085}
 YAMLLINT ?= $(shell if command -v yamllint >/dev/null 2>&1; then echo "yamllint"; elif command -v mise >/dev/null 2>&1; then echo "mise exec -- yamllint"; else echo "yamllint"; fi)
 
 .PHONY: help
@@ -44,16 +45,15 @@ verify: vet lint infra-check yamllint test ## Run complete local verification su
 	@echo "==> All local checks passed successfully!"
 
 .PHONY: emulators-up
-emulators-up: ## Start Firestore and PubSub emulators, initialize topics, and seed demo data
+emulators-up: ## Start Firestore and PubSub emulators, initialize topics, and seed demo data (SEED_DEMO_DATA=false to skip)
 	@echo "==> Starting local emulators..."
 	@docker compose up -d firestore-emulator pubsub-emulator
-	@GOTOOLCHAIN=$(GOTOOLCHAIN) go run ./cmd/emulator-init
-	@$(MAKE) seed
+	@$(LOCAL_EMULATOR_ENV) GOTOOLCHAIN=$(GOTOOLCHAIN) go run ./cmd/emulator-init
 
 .PHONY: seed
 seed: ## Populate demo pets and matches in the local Firestore emulator
 	@echo "==> Seeding demo data in Firestore emulator..."
-	@GOOGLE_CLOUD_PROJECT=$${GOOGLE_CLOUD_PROJECT:-petspotr-local} FIRESTORE_EMULATOR_HOST=$${FIRESTORE_EMULATOR_HOST:-localhost:8085} PETSPOTR_ENV=local-emulator GOTOOLCHAIN=$(GOTOOLCHAIN) go run ./cmd/demo-seed
+	@$(LOCAL_EMULATOR_ENV) PETSPOTR_ENV=local-emulator GOTOOLCHAIN=$(GOTOOLCHAIN) go run ./cmd/demo-seed
 
 .PHONY: emulators-down
 emulators-down: ## Stop local emulators and clean up volumes

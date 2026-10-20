@@ -14,8 +14,12 @@ func TestLoadConfigFromEnv(t *testing.T) {
 	t.Setenv("PUBSUB_EMULATOR_HOST", "pubsub:8086")
 	t.Setenv("FIRESTORE_EMULATOR_HOST", "firestore:8085")
 	t.Setenv("GOOGLE_CLOUD_PROJECT", "test-project")
+	t.Setenv("SEED_DEMO_DATA", "")
 
-	cfg := loadConfigFromEnv()
+	cfg, err := loadConfigFromEnv()
+	if err != nil {
+		t.Fatalf("loadConfigFromEnv() error = %v", err)
+	}
 	if cfg.pubsubHost != "pubsub:8086" {
 		t.Fatalf("expected pubsub:8086, got %s", cfg.pubsubHost)
 	}
@@ -24,6 +28,22 @@ func TestLoadConfigFromEnv(t *testing.T) {
 	}
 	if cfg.projectID != "test-project" {
 		t.Fatalf("expected test-project, got %s", cfg.projectID)
+	}
+	if !cfg.seedDemoData {
+		t.Fatal("expected demo data seeding to default to enabled")
+	}
+}
+
+func TestLoadConfigFromEnvSeedDemoData(t *testing.T) {
+	t.Setenv("SEED_DEMO_DATA", "false")
+	cfg, err := loadConfigFromEnv()
+	if err != nil || cfg.seedDemoData {
+		t.Fatalf("expected seeding disabled, got seedDemoData=%v (err=%v)", cfg.seedDemoData, err)
+	}
+
+	t.Setenv("SEED_DEMO_DATA", "flase")
+	if _, err := loadConfigFromEnv(); err == nil {
+		t.Fatal("expected error for invalid SEED_DEMO_DATA")
 	}
 }
 
