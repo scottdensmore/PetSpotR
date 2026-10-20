@@ -44,10 +44,16 @@ verify: vet lint infra-check yamllint test ## Run complete local verification su
 	@echo "==> All local checks passed successfully!"
 
 .PHONY: emulators-up
-emulators-up: ## Start Firestore and PubSub emulators and initialize topics
+emulators-up: ## Start Firestore and PubSub emulators, initialize topics, and seed demo data
 	@echo "==> Starting local emulators..."
 	@docker compose up -d firestore-emulator pubsub-emulator
 	@GOTOOLCHAIN=$(GOTOOLCHAIN) go run ./cmd/emulator-init
+	@$(MAKE) seed
+
+.PHONY: seed
+seed: ## Populate demo pets and matches in the local Firestore emulator
+	@echo "==> Seeding demo data in Firestore emulator..."
+	@GOOGLE_CLOUD_PROJECT=$${GOOGLE_CLOUD_PROJECT:-petspotr-local} FIRESTORE_EMULATOR_HOST=$${FIRESTORE_EMULATOR_HOST:-localhost:8085} PETSPOTR_ENV=local-emulator GOTOOLCHAIN=$(GOTOOLCHAIN) go run ./cmd/demo-seed
 
 .PHONY: emulators-down
 emulators-down: ## Stop local emulators and clean up volumes

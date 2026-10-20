@@ -44,11 +44,13 @@ go vet ./...
 go test -race -v -cover ./...
 ```
 
-To start the local service containers and Ollama:
+To start the local service containers, emulators, Ollama, and automatically seed demo test data:
 
 ```bash
 docker compose up --build
 ```
+
+By default, the `demo-seed` container populates the Firestore emulator with sample lost pets, found pets, and AI match records on startup (`SEED_DEMO_DATA=true`). Set `SEED_DEMO_DATA=false` to start with an empty state store, or run `make seed` at any time to re-populate the test fixtures.
 
 Compose waits for Ollama to become healthy and downloads `gemma4:e2b` into a
 persistent volume before starting the pet matcher. Subsequent starts reuse the

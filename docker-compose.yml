@@ -31,6 +31,23 @@ services:
         condition: service_started
     restart: "no"
 
+  demo-seed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: demo-seed
+    container_name: petspotr-demo-seed
+    environment:
+      - GOOGLE_CLOUD_PROJECT=petspotr-local
+      - FIRESTORE_EMULATOR_HOST=firestore-emulator:8085
+      - PETSPOTR_ENV=local-emulator
+      - SEED_DEMO_DATA=${SEED_DEMO_DATA:-true}
+    depends_on:
+      emulator-init:
+        condition: service_completed_successfully
+    restart: "no"
+
   ollama:
     image: ollama/ollama:${OLLAMA_VERSION:-0.32.5}
     container_name: petspotr-ollama
@@ -73,6 +90,8 @@ services:
     depends_on:
       emulator-init:
         condition: service_completed_successfully
+      demo-seed:
+        condition: service_completed_successfully
 
   foundpet-service:
     build:
@@ -91,6 +110,8 @@ services:
       - PETSPOTR_ENV=local-emulator
     depends_on:
       emulator-init:
+        condition: service_completed_successfully
+      demo-seed:
         condition: service_completed_successfully
 
   pet-matcher:
@@ -140,6 +161,8 @@ services:
     depends_on:
       emulator-init:
         condition: service_completed_successfully
+      demo-seed:
+        condition: service_completed_successfully
 
   web-frontend:
     build:
@@ -158,6 +181,8 @@ services:
       - PETSPOTR_ENV=local-emulator
     depends_on:
       emulator-init:
+        condition: service_completed_successfully
+      demo-seed:
         condition: service_completed_successfully
 
 volumes:
