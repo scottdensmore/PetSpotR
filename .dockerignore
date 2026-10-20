@@ -4,7 +4,6 @@
 
 # Documentation
 *.md
-docs/
 
 # Go build & test artifacts
 *.test

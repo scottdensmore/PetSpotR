@@ -16,8 +16,6 @@ the **Go 1.26.5 toolchain**, **Ollama**, and **Gemma 4** vision models!
 - **GCP Cloud Infrastructure**: Deployed on Google Cloud Run, Cloud Pub/Sub,
   Cloud Firestore, and GCS using OpenTofu
   ([`infra/opentofu/`](./infra/opentofu)).
-- **Documentation**:
-  - Setup & Deployment Guide: [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md)
 
 ---
 
@@ -56,12 +54,9 @@ Compose waits for Ollama to become healthy and downloads `gemma4:e2b` into a
 persistent volume before starting the pet matcher. Subsequent starts reuse the
 downloaded model. Ollama stays inside the Compose network to avoid conflicting
 with a host installation. Set `OLLAMA_MODEL` to override the default model.
-The default stack uses process-local state and messaging; the development guide
-includes Dockerized Firestore and Pub/Sub emulator contracts for durable,
-cross-process integration testing.
-
-For complete development details and GCP deployment instructions, see
-[`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md).
+The default stack uses process-local state and messaging, with optional
+Dockerized Firestore and Pub/Sub emulators for durable, cross-process
+integration testing.
 
 
 ## Build/test CI
