@@ -60,6 +60,11 @@ emulators-down: ## Stop local emulators and clean up volumes
 	@echo "==> Stopping local emulators..."
 	@docker compose down --volumes --remove-orphans
 
+.PHONY: e2e
+e2e: ## Run end-to-end tests against the local emulators (start them with emulators-up)
+	@echo "==> Running e2e tests against local emulators..."
+	@FIRESTORE_EMULATOR_HOST=$${FIRESTORE_EMULATOR_HOST:-localhost:8085} PUBSUB_EMULATOR_HOST=$${PUBSUB_EMULATOR_HOST:-localhost:8086} PUBSUB_PUSH_ENDPOINT_HOST=$${PUBSUB_PUSH_ENDPOINT_HOST:-host.docker.internal} GOTOOLCHAIN=$(GOTOOLCHAIN) go test -count=1 ./e2e/...
+
 .PHONY: cascade
 cascade: ## Verify full report-to-match event cascade against emulators
 	@echo "==> Verifying emulator cascade..."

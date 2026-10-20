@@ -675,7 +675,7 @@ func (s *FirestoreStore) BackfillOutboxIndexes(ctx context.Context, limit int) (
 	if limit < 1 || limit > 400 {
 		return 0, false, errors.New("store: outbox index backfill limit must be between 1 and 400")
 	}
-	migrationDoc := s.client.Collection("runtimeMigrations").Doc(firestoreDocumentID("outbox-index-v1"))
+	migrationDoc := s.client.Collection("runtimeMigrations").Doc(FirestoreDocumentID("outbox-index-v1"))
 	var migration outboxIndexMigration
 	snapshot, err := migrationDoc.Get(ctx)
 	if err == nil {
@@ -884,10 +884,11 @@ func (s *FirestoreStore) document(storeName, key string) (*firestore.DocumentRef
 	if err != nil {
 		return nil, err
 	}
-	return collection.Doc(firestoreDocumentID(key)), nil
+	return collection.Doc(FirestoreDocumentID(key)), nil
 }
 
-func firestoreDocumentID(key string) string {
+// FirestoreDocumentID returns the Firestore document ID that stores key.
+func FirestoreDocumentID(key string) string {
 	digest := sha256.Sum256([]byte(key))
 	return hex.EncodeToString(digest[:])
 }

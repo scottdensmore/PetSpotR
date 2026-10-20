@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
 func TestLoadConfigFromEnv(t *testing.T) {
@@ -43,10 +45,10 @@ func TestRunCascadeSuccess(t *testing.T) {
 		case r.Method == http.MethodPost && r.URL.Path == "/foundPet":
 			w.WriteHeader(http.StatusCreated)
 			_, _ = w.Write([]byte(`{"status":"created"}`))
-		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/documents/lost_pets/"):
+		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/documents/"+store.LostPetsCollection+"/"):
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"name":"lost_pet"}`))
-		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/documents/found_pets/"):
+		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/documents/"+store.FoundPetsCollection+"/"):
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"name":"found_pet"}`))
 		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/matches":
@@ -124,5 +126,14 @@ func TestRunCascadeFallbackAndErrors(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "NOTE: AI Matcher requires Ollama model inference") {
 		t.Fatalf("expected fallback note, got: %s", out.String())
+	}
+}
+
+func TestFirestoreDocumentURLUsesStoreDocumentID(t *testing.T) {
+	cfg := cascadeConfig{firestoreHost: "firestore:8085", projectID: "cascade-test"}
+	got := firestoreDocumentURL(cfg, store.LostPetsCollection, "lost-1")
+	want := "http://firestore:8085/v1/projects/cascade-test/databases/(default)/documents/lostPets/" + store.FirestoreDocumentID("lost-1")
+	if got != want {
+		t.Fatalf("firestoreDocumentURL() = %s, want %s", got, want)
 	}
 }

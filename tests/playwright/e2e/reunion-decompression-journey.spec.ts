@@ -1,6 +1,22 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 
 const WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || 'http://localhost:8082';
+
+/**
+ * Clicks #btn-sim-fireworks-bolt and returns the card for the plan that click
+ * created, so parallel specs simulating the same case never share a card.
+ */
+async function simulateFireworksBolt(page: Page): Promise<Locator> {
+  const [response] = await Promise.all([
+    page.waitForResponse(
+      (res) =>
+        res.url().endsWith('/api/v1/reunion-decompression/plans') && res.request().method() === 'POST'
+    ),
+    page.locator('#btn-sim-fireworks-bolt').click(),
+  ]);
+  const { planId } = (await response.json()) as { planId: string };
+  return page.locator(`#decomp-plans-list .decomp-plan-card[data-plan-id="${planId}"]`);
+}
 
 test.describe('Post-Reunion Behavioral Reintegration, Cortisol Decompression Tracker & Escape-Recidivism Prevention Plan E2E Journey', () => {
   test('Full 6-step operator journey: seeded cockpit load, starving cat decompression plan generation with refeeding syndrome alert, perimeter fortification & GPS collar verification, 14-day graduation certificate issuance, and fireworks panic-bolt simulation', async ({
@@ -116,21 +132,7 @@ test.describe('Post-Reunion Behavioral Reintegration, Cortisol Decompression Tra
     await expect(cleoCard.locator('.decomp-graduation-banner')).toContainText('CERT-DECOMP-');
 
     // Step 5: Simulate Fireworks Panic-Bolt Dog & Graduate
-    await page.locator('#btn-sim-fireworks-bolt').click();
-
-    const pendingBoltCard = page
-      .locator('#decomp-plans-list .decomp-plan-card[data-plan-phase="ACUTE_REFUGE_72H"]', {
-        hasText: 'SINGLE_BUCKLE_PANIC_SLIP',
-      })
-      .first();
-
-    await expect(pendingBoltCard).toBeVisible();
-    const boltPlanId = await pendingBoltCard.getAttribute('data-plan-id');
-    expect(boltPlanId).toBeTruthy();
-
-    const boltCard = page.locator(
-      `#decomp-plans-list .decomp-plan-card[data-plan-id="${boltPlanId}"]`
-    );
+    const boltCard = await simulateFireworksBolt(page);
     await expect(boltCard).toHaveAttribute('data-plan-phase', 'ACUTE_REFUGE_72H');
     await expect(boltCard.locator('.badge-recidivism-risk.badge-risk-critical')).toContainText(
       'CRITICAL_FLIGHT_RISK'

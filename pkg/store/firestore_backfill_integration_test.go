@@ -44,7 +44,7 @@ func TestFirestoreBackfillRejectsStaleSnapshotAfterConcurrentPublish(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc := stateStore.client.Collection(OutboxCollection).Doc(firestoreDocumentID(record.ID))
+	doc := stateStore.client.Collection(OutboxCollection).Doc(FirestoreDocumentID(record.ID))
 	if _, err := doc.Set(ctx, map[string]any{"key": record.ID, "data": recordData}); err != nil {
 		t.Fatalf("write legacy outbox: %v", err)
 	}

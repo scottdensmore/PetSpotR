@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 const WEB_FRONTEND_URL = process.env.WEB_FRONTEND_URL || 'http://localhost:8082';
 
 test.describe('Acute Pancreatitis, Canine/Feline Spec cPL/fPL, POCUS Hypoechoic Pancreas/Hyperechoic Mesentery, Maropitant/Fuzapladib & Early Enteral Nutrition Cockpit E2E Journey', () => {
-  test('Full operator journey: seeded cockpit load, manual SSE stream connection, staging Fuzapladib & early enteral nutrition, recording Spec cPL/pain/RER check, clearing for pain-free discharge, and filtering by TOLERATING_ENTERAL_PAIN_FREE_CLEARED', async ({
+  test('Full operator journey: seeded cockpit load, manual SSE stream connection, admitting a new operation, staging Fuzapladib & early enteral nutrition, recording Spec cPL/pain/RER check, clearing for pain-free discharge, and filtering by TOLERATING_ENTERAL_PAIN_FREE_CLEARED', async ({
     page,
   }) => {
     const cspErrors: string[] = [];
@@ -43,10 +43,18 @@ test.describe('Acute Pancreatitis, Canine/Feline Spec cPL/fPL, POCUS Hypoechoic 
     await page.locator('#connect-sse-btn').click();
     await expect(page.locator('#sse-status-badge')).toContainText('SSE Connected');
 
-    // Step 3: Select PANC-OP-101 Schnitzel & Stage Fuzapladib, Maropitant & Early Enteral Nutrition
-    await schnitzelCard.click();
-    await expect(page.locator('#active-op-title')).toContainText('Schnitzel');
+    // Step 3: Admit a new operation so the seeded PANC-OP-101 stays untouched
+    // for specs running in parallel against the same server.
+    const petName = `Pretzel ${Date.now()}`;
+    await page.locator('#create-pet-name').fill(petName);
+    await page.locator('#create-pancreatitis-btn').click();
+    await expect(page.locator('#active-op-title')).toContainText(petName);
+    const newCard = page
+      .locator('#pancreatitis-operations-grid .pancreatitis-op-card')
+      .filter({ hasText: petName });
+    await expect(newCard).toBeVisible();
 
+    // Stage Fuzapladib, Maropitant & Early Enteral Nutrition
     await page.locator('#stage-nutrition-btn').click();
     await expect(page.locator('#active-op-status-badge')).toContainText(
       'FUZAPLADIB_MAROPITANT_ENTERAL_STAGED'
@@ -69,7 +77,7 @@ test.describe('Acute Pancreatitis, Canine/Feline Spec cPL/fPL, POCUS Hypoechoic 
       'Spec cPL normalized to 195 ug/L; pain-free (CMPS-SF 2/24); consuming 100% RER.'
     );
 
-    // Step 5: Clear PANC-OP-101 for discharge
+    // Step 5: Clear the new operation for discharge
     await page.locator('#clear-discharged-by-input').fill('Dr. Elena Rostova, DACVECC');
     await page
       .locator('#clear-summary-input')
@@ -90,7 +98,7 @@ test.describe('Acute Pancreatitis, Canine/Feline Spec cPL/fPL, POCUS Hypoechoic 
     await page
       .locator('#pancreatitis-status-filter')
       .selectOption('TOLERATING_ENTERAL_PAIN_FREE_CLEARED');
-    await expect(schnitzelCard).toBeVisible();
+    await expect(newCard).toBeVisible();
     await expect(biscuitCard).toBeVisible();
 
     await page.locator('#pancreatitis-status-filter').selectOption('');

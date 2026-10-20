@@ -22,8 +22,8 @@ func TestFirestoreDocumentIDSupportsOpaqueKeys(t *testing.T) {
 
 	firstKey := "https://push.example.test/send/a/b?token=one"
 	secondKey := "https://push.example.test/send/a/b?token=two"
-	firstID := firestoreDocumentID(firstKey)
-	secondID := firestoreDocumentID(secondKey)
+	firstID := FirestoreDocumentID(firstKey)
+	secondID := FirestoreDocumentID(secondKey)
 
 	if firstID == secondID {
 		t.Fatal("different opaque keys produced the same document ID")
