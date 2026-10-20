@@ -3,33 +3,14 @@ package webfrontend
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/addisoniancrisis"
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 )
-
-var lastAddisonianCrisisNano atomic.Int64
-
-func nextAddisonianCrisisNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastAddisonianCrisisNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastAddisonianCrisisNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // AddisonianCrisisPageData represents template data passed to templates/addisonian_crisis_triage.html.
 type AddisonianCrisisPageData struct {
@@ -81,30 +62,13 @@ func (s *Server) ensureAddisonianService() *addisoniancrisis.AddisonianService {
 func (s *Server) registerAddisonianCrisisRoutes() {
 	s.mux.HandleFunc("GET /addisonian-crisis-triage", s.handleAddisonianCrisisTriagePage)
 
-	s.mux.HandleFunc("GET /api/addisonian-crisis/operations", s.handleListAddisonianCrisisOperations)
-	s.mux.HandleFunc("POST /api/addisonian-crisis/operations", s.handleCreateAddisonianCrisisOperation)
-	s.mux.HandleFunc("GET /api/addisonian-crisis/operations/{id}", s.handleGetAddisonianCrisisOperation)
-	s.mux.HandleFunc("POST /api/addisonian-crisis/operations/{id}/stage-regimen", s.handleStageAddisonianCrisisRegimen)
-	s.mux.HandleFunc("POST /api/addisonian-crisis/operations/{id}/electrolyte-check", s.handleRecordAddisonianCrisisElectrolyteCheck)
-	s.mux.HandleFunc("POST /api/addisonian-crisis/operations/{id}/discharge-clearance", s.handleIssueAddisonianCrisisDischargeClearance)
-	s.mux.HandleFunc("GET /api/addisonian-crisis/stream", s.handleAddisonianCrisisStream)
-
-	// v1 aliases for consistency
-	s.mux.HandleFunc("GET /api/v1/addisonian-crisis/operations", s.handleListAddisonianCrisisOperations)
-	s.mux.HandleFunc("POST /api/v1/addisonian-crisis/operations", s.handleCreateAddisonianCrisisOperation)
-	s.mux.HandleFunc("GET /api/v1/addisonian-crisis/operations/{id}", s.handleGetAddisonianCrisisOperation)
-	s.mux.HandleFunc("POST /api/v1/addisonian-crisis/operations/{id}/stage-regimen", s.handleStageAddisonianCrisisRegimen)
-	s.mux.HandleFunc("POST /api/v1/addisonian-crisis/operations/{id}/electrolyte-check", s.handleRecordAddisonianCrisisElectrolyteCheck)
-	s.mux.HandleFunc("POST /api/v1/addisonian-crisis/operations/{id}/discharge-clearance", s.handleIssueAddisonianCrisisDischargeClearance)
-	s.mux.HandleFunc("GET /api/v1/addisonian-crisis/stream", s.handleAddisonianCrisisStream)
-}
-
-func writeAddisonianCrisisJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
+	s.registerDualAPIRoute("GET", "addisonian-crisis/operations", s.handleListAddisonianCrisisOperations)
+	s.registerDualAPIRoute("POST", "addisonian-crisis/operations", s.handleCreateAddisonianCrisisOperation)
+	s.registerDualAPIRoute("GET", "addisonian-crisis/operations/{id}", s.handleGetAddisonianCrisisOperation)
+	s.registerDualAPIRoute("POST", "addisonian-crisis/operations/{id}/stage-regimen", s.handleStageAddisonianCrisisRegimen)
+	s.registerDualAPIRoute("POST", "addisonian-crisis/operations/{id}/electrolyte-check", s.handleRecordAddisonianCrisisElectrolyteCheck)
+	s.registerDualAPIRoute("POST", "addisonian-crisis/operations/{id}/discharge-clearance", s.handleIssueAddisonianCrisisDischargeClearance)
+	s.registerDualAPIRoute("GET", "addisonian-crisis/stream", s.handleAddisonianCrisisStream)
 }
 
 func (s *Server) handleAddisonianCrisisTriagePage(w http.ResponseWriter, r *http.Request) {
@@ -124,12 +88,6 @@ func (s *Server) handleAddisonianCrisisTriagePage(w http.ResponseWriter, r *http
 		activeOp = &first
 	}
 
-	tmpl, err := template.New("addisonian_crisis_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/addisonian_crisis_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load Addisonian Crisis Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
 		locale = "en"
@@ -146,12 +104,7 @@ func (s *Server) handleAddisonianCrisisTriagePage(w http.ResponseWriter, r *http
 		Locale:                      locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "addisonian_crisis_triage.html", "Addisonian Crisis Triage", data)
 }
 
 func (s *Server) handleListAddisonianCrisisOperations(w http.ResponseWriter, r *http.Request) {
@@ -178,9 +131,7 @@ func (s *Server) handleListAddisonianCrisisOperations(w http.ResponseWriter, r *
 
 	metrics := svc.ComputeMetrics()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": ops,
 		"ops":        ops,
 		"metrics":    metrics,
@@ -196,20 +147,18 @@ func (s *Server) handleGetAddisonianCrisisOperation(w http.ResponseWriter, r *ht
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeAddisonianCrisisJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureAddisonianService()
 	op, err := svc.GetOperation(id)
 	if err != nil {
-		writeAddisonianCrisisJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusOK, op)
 }
 
 func (s *Server) handleCreateAddisonianCrisisOperation(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +171,7 @@ func (s *Server) handleCreateAddisonianCrisisOperation(w http.ResponseWriter, r 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload createAddisonianOperationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeAddisonianCrisisJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -251,19 +200,17 @@ func (s *Server) handleCreateAddisonianCrisisOperation(w http.ResponseWriter, r 
 	svc := s.ensureAddisonianService()
 	created, err := svc.CreateOperation(incidentID, payload.PetName, profile)
 	if err != nil {
-		writeAddisonianCrisisJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextAddisonianCrisisNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastAddisonianCrisisEvent("addisonian_crisis_updated", map[string]any{
 		"type":      "addisonian_crisis_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleStageAddisonianCrisisRegimen(w http.ResponseWriter, r *http.Request) {
@@ -275,21 +222,21 @@ func (s *Server) handleStageAddisonianCrisisRegimen(w http.ResponseWriter, r *ht
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeAddisonianCrisisJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureAddisonianService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeAddisonianCrisisJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload stageAddisonianRegimenPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && err != io.EOF {
-		writeAddisonianCrisisJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -328,19 +275,17 @@ func (s *Server) handleStageAddisonianCrisisRegimen(w http.ResponseWriter, r *ht
 
 	updated, err := svc.StageResuscitationRegimen(id, profile)
 	if err != nil {
-		writeAddisonianCrisisJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextAddisonianCrisisNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastAddisonianCrisisEvent("addisonian_crisis_updated", map[string]any{
 		"type":      "addisonian_crisis_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRecordAddisonianCrisisElectrolyteCheck(w http.ResponseWriter, r *http.Request) {
@@ -352,38 +297,36 @@ func (s *Server) handleRecordAddisonianCrisisElectrolyteCheck(w http.ResponseWri
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeAddisonianCrisisJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureAddisonianService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeAddisonianCrisisJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var check domain.AddisonianElectrolyteCheck
 	if err := json.NewDecoder(r.Body).Decode(&check); err != nil {
-		writeAddisonianCrisisJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	updated, err := svc.RecordElectrolyteCheck(id, check)
 	if err != nil {
-		writeAddisonianCrisisJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextAddisonianCrisisNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastAddisonianCrisisEvent("addisonian_crisis_updated", map[string]any{
 		"type":      "addisonian_crisis_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleIssueAddisonianCrisisDischargeClearance(w http.ResponseWriter, r *http.Request) {
@@ -395,121 +338,42 @@ func (s *Server) handleIssueAddisonianCrisisDischargeClearance(w http.ResponseWr
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeAddisonianCrisisJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureAddisonianService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeAddisonianCrisisJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var clearance domain.AddisonianDischargeClearance
 	if err := json.NewDecoder(r.Body).Decode(&clearance); err != nil {
-		writeAddisonianCrisisJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	updated, err := svc.IssueDischargeClearance(id, clearance)
 	if err != nil {
-		writeAddisonianCrisisJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextAddisonianCrisisNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastAddisonianCrisisEvent("addisonian_crisis_updated", map[string]any{
 		"type":      "addisonian_crisis_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleAddisonianCrisisStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("addisonian_crisis")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "addisonian_crisis")
 }
 
 func (s *Server) broadcastAddisonianCrisisEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextAddisonianCrisisNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "addisonian_crisis",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "addisonian_crisis",
-			SenderNodeID:  "addisonian-crisis-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("addisonian_crisis", "addisonian-crisis-hub", eventType, payload, now)
 }

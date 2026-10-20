@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"sort"
 	"strings"
@@ -216,12 +215,6 @@ func (s *Server) handleVeterinaryFHIRPage(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	tmpl, err := template.New("veterinary_fhir.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/veterinary_fhir.html")
-	if err != nil {
-		http.Error(w, "Failed to load veterinary FHIR template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	data := VeterinaryFHIRPageData{
 		Clinics:     clinics,
 		Assessments: assessments,
@@ -229,12 +222,7 @@ func (s *Server) handleVeterinaryFHIRPage(w http.ResponseWriter, r *http.Request
 		Locale:      LocaleFromContext(r.Context()),
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "veterinary_fhir.html", "veterinary FHIR", data)
 }
 
 func (s *Server) handleListVeterinaryClinics(w http.ResponseWriter, r *http.Request) {
@@ -251,9 +239,7 @@ func (s *Server) handleListVeterinaryClinics(w http.ResponseWriter, r *http.Requ
 	s.ensureDefaultVeterinaryClinics(r.Context())
 	clinics := s.loadVeterinaryClinics(r.Context())
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"clinics": clinics,
 	})
 }
@@ -501,9 +487,7 @@ func (s *Server) handleListClinicalHandoffs(w http.ResponseWriter, r *http.Reque
 
 	handoffs := s.loadClinicalHandoffs(r.Context(), petIDFilter, clinicIDFilter, statusFilter)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"handoffs": handoffs,
 	})
 }

@@ -3,33 +3,14 @@ package webfrontend
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/septicperitonitis"
 )
-
-var lastSepticPeritonitisNano atomic.Int64
-
-func nextSepticPeritonitisNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastSepticPeritonitisNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastSepticPeritonitisNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // SepticPeritonitisPageData represents template data passed to templates/septic_peritonitis_triage.html.
 type SepticPeritonitisPageData struct {
@@ -81,30 +62,13 @@ func (s *Server) ensurePeritonitisService() *septicperitonitis.PeritonitisServic
 func (s *Server) registerSepticPeritonitisRoutes() {
 	s.mux.HandleFunc("GET /septic-peritonitis-triage", s.handleSepticPeritonitisTriagePage)
 
-	s.mux.HandleFunc("GET /api/septic-peritonitis/operations", s.handleListSepticPeritonitisOperations)
-	s.mux.HandleFunc("POST /api/septic-peritonitis/operations", s.handleCreateSepticPeritonitisOperation)
-	s.mux.HandleFunc("GET /api/septic-peritonitis/operations/{id}", s.handleGetSepticPeritonitisOperation)
-	s.mux.HandleFunc("POST /api/septic-peritonitis/operations/{id}/stage-plan", s.handleStageSepticPeritonitisPlan)
-	s.mux.HandleFunc("POST /api/septic-peritonitis/operations/{id}/drain-check", s.handleRecordSepticPeritonitisDrainCheck)
-	s.mux.HandleFunc("POST /api/septic-peritonitis/operations/{id}/drain-clearance", s.handleIssueSepticPeritonitisDrainClearance)
-	s.mux.HandleFunc("GET /api/septic-peritonitis/stream", s.handleSepticPeritonitisStream)
-
-	// v1 aliases for consistency
-	s.mux.HandleFunc("GET /api/v1/septic-peritonitis/operations", s.handleListSepticPeritonitisOperations)
-	s.mux.HandleFunc("POST /api/v1/septic-peritonitis/operations", s.handleCreateSepticPeritonitisOperation)
-	s.mux.HandleFunc("GET /api/v1/septic-peritonitis/operations/{id}", s.handleGetSepticPeritonitisOperation)
-	s.mux.HandleFunc("POST /api/v1/septic-peritonitis/operations/{id}/stage-plan", s.handleStageSepticPeritonitisPlan)
-	s.mux.HandleFunc("POST /api/v1/septic-peritonitis/operations/{id}/drain-check", s.handleRecordSepticPeritonitisDrainCheck)
-	s.mux.HandleFunc("POST /api/v1/septic-peritonitis/operations/{id}/drain-clearance", s.handleIssueSepticPeritonitisDrainClearance)
-	s.mux.HandleFunc("GET /api/v1/septic-peritonitis/stream", s.handleSepticPeritonitisStream)
-}
-
-func writeSepticPeritonitisJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
+	s.registerDualAPIRoute("GET", "septic-peritonitis/operations", s.handleListSepticPeritonitisOperations)
+	s.registerDualAPIRoute("POST", "septic-peritonitis/operations", s.handleCreateSepticPeritonitisOperation)
+	s.registerDualAPIRoute("GET", "septic-peritonitis/operations/{id}", s.handleGetSepticPeritonitisOperation)
+	s.registerDualAPIRoute("POST", "septic-peritonitis/operations/{id}/stage-plan", s.handleStageSepticPeritonitisPlan)
+	s.registerDualAPIRoute("POST", "septic-peritonitis/operations/{id}/drain-check", s.handleRecordSepticPeritonitisDrainCheck)
+	s.registerDualAPIRoute("POST", "septic-peritonitis/operations/{id}/drain-clearance", s.handleIssueSepticPeritonitisDrainClearance)
+	s.registerDualAPIRoute("GET", "septic-peritonitis/stream", s.handleSepticPeritonitisStream)
 }
 
 func (s *Server) handleSepticPeritonitisTriagePage(w http.ResponseWriter, r *http.Request) {
@@ -124,12 +88,6 @@ func (s *Server) handleSepticPeritonitisTriagePage(w http.ResponseWriter, r *htt
 		activeOp = &first
 	}
 
-	tmpl, err := template.New("septic_peritonitis_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/septic_peritonitis_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load Septic Peritonitis Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
 		locale = "en"
@@ -146,12 +104,7 @@ func (s *Server) handleSepticPeritonitisTriagePage(w http.ResponseWriter, r *htt
 		Locale:                        locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "septic_peritonitis_triage.html", "Septic Peritonitis Triage", data)
 }
 
 func (s *Server) handleListSepticPeritonitisOperations(w http.ResponseWriter, r *http.Request) {
@@ -178,9 +131,7 @@ func (s *Server) handleListSepticPeritonitisOperations(w http.ResponseWriter, r 
 
 	metrics := svc.ComputeMetrics()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": ops,
 		"ops":        ops,
 		"metrics":    metrics,
@@ -196,20 +147,18 @@ func (s *Server) handleGetSepticPeritonitisOperation(w http.ResponseWriter, r *h
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeSepticPeritonitisJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensurePeritonitisService()
 	op, err := svc.GetOperation(id)
 	if err != nil {
-		writeSepticPeritonitisJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusOK, op)
 }
 
 func (s *Server) handleCreateSepticPeritonitisOperation(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +171,7 @@ func (s *Server) handleCreateSepticPeritonitisOperation(w http.ResponseWriter, r
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload createPeritonitisOperationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeSepticPeritonitisJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -251,19 +200,17 @@ func (s *Server) handleCreateSepticPeritonitisOperation(w http.ResponseWriter, r
 	svc := s.ensurePeritonitisService()
 	created, err := svc.CreateOperation(incidentID, payload.PetName, profile)
 	if err != nil {
-		writeSepticPeritonitisJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextSepticPeritonitisNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastSepticPeritonitisEvent("septic_peritonitis_updated", map[string]any{
 		"type":      "septic_peritonitis_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleStageSepticPeritonitisPlan(w http.ResponseWriter, r *http.Request) {
@@ -275,21 +222,21 @@ func (s *Server) handleStageSepticPeritonitisPlan(w http.ResponseWriter, r *http
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeSepticPeritonitisJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensurePeritonitisService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeSepticPeritonitisJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload stagePeritonitisPlanPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && err != io.EOF {
-		writeSepticPeritonitisJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -328,19 +275,17 @@ func (s *Server) handleStageSepticPeritonitisPlan(w http.ResponseWriter, r *http
 
 	updated, err := svc.StageSurgicalPlan(id, profile)
 	if err != nil {
-		writeSepticPeritonitisJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextSepticPeritonitisNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastSepticPeritonitisEvent("septic_peritonitis_updated", map[string]any{
 		"type":      "septic_peritonitis_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRecordSepticPeritonitisDrainCheck(w http.ResponseWriter, r *http.Request) {
@@ -352,38 +297,36 @@ func (s *Server) handleRecordSepticPeritonitisDrainCheck(w http.ResponseWriter, 
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeSepticPeritonitisJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensurePeritonitisService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeSepticPeritonitisJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var check domain.JacksonPrattDrainCheck
 	if err := json.NewDecoder(r.Body).Decode(&check); err != nil {
-		writeSepticPeritonitisJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	updated, err := svc.RecordDrainCheck(id, check)
 	if err != nil {
-		writeSepticPeritonitisJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextSepticPeritonitisNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastSepticPeritonitisEvent("septic_peritonitis_updated", map[string]any{
 		"type":      "septic_peritonitis_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleIssueSepticPeritonitisDrainClearance(w http.ResponseWriter, r *http.Request) {
@@ -395,121 +338,42 @@ func (s *Server) handleIssueSepticPeritonitisDrainClearance(w http.ResponseWrite
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeSepticPeritonitisJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensurePeritonitisService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeSepticPeritonitisJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var clearance domain.PeritonitisDrainRemovalClearance
 	if err := json.NewDecoder(r.Body).Decode(&clearance); err != nil {
-		writeSepticPeritonitisJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	updated, err := svc.IssueDrainClearance(id, clearance)
 	if err != nil {
-		writeSepticPeritonitisJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextSepticPeritonitisNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastSepticPeritonitisEvent("septic_peritonitis_updated", map[string]any{
 		"type":      "septic_peritonitis_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleSepticPeritonitisStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("septic_peritonitis")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "septic_peritonitis")
 }
 
 func (s *Server) broadcastSepticPeritonitisEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextSepticPeritonitisNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "septic_peritonitis",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "septic_peritonitis",
-			SenderNodeID:  "septic-peritonitis-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("septic_peritonitis", "septic-peritonitis-hub", eventType, payload, now)
 }

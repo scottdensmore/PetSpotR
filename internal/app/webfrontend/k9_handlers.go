@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"math"
 	"net/http"
 	"sort"
@@ -16,7 +15,6 @@ import (
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/k9"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
@@ -209,14 +207,6 @@ func (s *Server) loadK9Missions(ctx context.Context, incidentIDFilter, petIDFilt
 	return missions
 }
 
-func writeK9JSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
-}
-
 func (s *Server) handleK9OpsPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		w.Header().Set("Allow", "GET, HEAD")
@@ -226,12 +216,6 @@ func (s *Server) handleK9OpsPage(w http.ResponseWriter, r *http.Request) {
 
 	s.ensureDefaultK9Missions(r.Context())
 	missions := s.loadK9Missions(r.Context(), "", "")
-
-	tmpl, err := template.New("k9_ops.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/k9_ops.html")
-	if err != nil {
-		http.Error(w, "Failed to load K9 Ops template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
 
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
@@ -243,12 +227,7 @@ func (s *Server) handleK9OpsPage(w http.ResponseWriter, r *http.Request) {
 		Locale:   locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "k9_ops.html", "K9 Ops", data)
 }
 
 func (s *Server) handleListK9Missions(w http.ResponseWriter, r *http.Request) {
@@ -258,7 +237,7 @@ func (s *Server) handleListK9Missions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.stateStore == nil {
-		writeK9JSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
@@ -270,9 +249,7 @@ func (s *Server) handleListK9Missions(w http.ResponseWriter, r *http.Request) {
 		strings.TrimSpace(q.Get("petId")),
 	)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"missions": missions,
 	})
 }
@@ -284,14 +261,14 @@ func (s *Server) handleCreateK9Mission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.stateStore == nil {
-		writeK9JSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req createK9MissionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeK9JSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -335,7 +312,7 @@ func (s *Server) handleCreateK9Mission(w http.ResponseWriter, r *http.Request) {
 
 	if math.IsNaN(req.LKPOriginLat) || math.IsInf(req.LKPOriginLat, 0) ||
 		math.IsNaN(req.LKPOriginLng) || math.IsInf(req.LKPOriginLng, 0) {
-		writeK9JSONError(w, http.StatusBadRequest, "Invalid LKP origin coordinates")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid LKP origin coordinates")
 		return
 	}
 
@@ -376,17 +353,17 @@ func (s *Server) handleCreateK9Mission(w http.ResponseWriter, r *http.Request) {
 
 	mission = k9.RecalculateMissionMetrics(mission)
 	if err := mission.Validate(); err != nil {
-		writeK9JSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	missionBytes, err := json.Marshal(mission)
 	if err != nil {
-		writeK9JSONError(w, http.StatusInternalServerError, "Failed to encode K9 mission")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to encode K9 mission")
 		return
 	}
 	if err := s.stateStore.SaveState(r.Context(), store.CollectionK9ScentMissions, mission.MissionID, missionBytes); err != nil {
-		writeK9JSONError(w, http.StatusInternalServerError, "Failed to save K9 mission")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to save K9 mission")
 		return
 	}
 
@@ -410,20 +387,20 @@ func (s *Server) handleAddK9Waypoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.stateStore == nil {
-		writeK9JSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	missionID := strings.TrimSpace(r.PathValue("id"))
 	if missionID == "" {
-		writeK9JSONError(w, http.StatusBadRequest, "mission id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "mission id is required")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req addK9WaypointRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeK9JSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -431,12 +408,12 @@ func (s *Server) handleAddK9Waypoint(w http.ResponseWriter, r *http.Request) {
 
 	req.Behavior = domain.K9BehaviorAlert(strings.ToUpper(strings.TrimSpace(string(req.Behavior))))
 	if !req.Behavior.IsValid() {
-		writeK9JSONError(w, http.StatusBadRequest, "Invalid K9 behavior alert")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid K9 behavior alert")
 		return
 	}
 	if math.IsNaN(req.Lat) || math.IsInf(req.Lat, 0) || req.Lat < -90 || req.Lat > 90 ||
 		math.IsNaN(req.Lng) || math.IsInf(req.Lng, 0) || req.Lng < -180 || req.Lng > 180 {
-		writeK9JSONError(w, http.StatusBadRequest, "Invalid waypoint coordinates")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid waypoint coordinates")
 		return
 	}
 
@@ -451,7 +428,7 @@ func (s *Server) handleAddK9Waypoint(w http.ResponseWriter, r *http.Request) {
 		RecordedAt: now,
 	}
 	if err := newWaypoint.Validate(); err != nil {
-		writeK9JSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -469,10 +446,10 @@ func (s *Server) handleAddK9Waypoint(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-			writeK9JSONError(w, http.StatusNotFound, "K9 mission not found")
+			writeCockpitJSONError(w, http.StatusNotFound, "K9 mission not found")
 			return
 		}
-		writeK9JSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update K9 mission: %v", err))
+		writeCockpitJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update K9 mission: %v", err))
 		return
 	}
 
@@ -536,13 +513,13 @@ func (s *Server) handleExportK9MissionGPX(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if s.stateStore == nil {
-		writeK9JSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	missionID := strings.TrimSpace(r.PathValue("id"))
 	if missionID == "" {
-		writeK9JSONError(w, http.StatusBadRequest, "mission id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "mission id is required")
 		return
 	}
 
@@ -551,22 +528,22 @@ func (s *Server) handleExportK9MissionGPX(w http.ResponseWriter, r *http.Request
 	raw, err := s.stateStore.GetState(r.Context(), store.CollectionK9ScentMissions, missionID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-			writeK9JSONError(w, http.StatusNotFound, "K9 mission not found")
+			writeCockpitJSONError(w, http.StatusNotFound, "K9 mission not found")
 			return
 		}
-		writeK9JSONError(w, http.StatusInternalServerError, "Failed to load K9 mission")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to load K9 mission")
 		return
 	}
 
 	var mission domain.K9ScentMission
 	if err := json.Unmarshal(raw, &mission); err != nil {
-		writeK9JSONError(w, http.StatusInternalServerError, "Corrupt K9 mission record")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Corrupt K9 mission record")
 		return
 	}
 
 	gpxXML, err := k9.ExportK9MissionGPX(mission)
 	if err != nil {
-		writeK9JSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to export GPX: %v", err))
+		writeCockpitJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to export GPX: %v", err))
 		return
 	}
 
@@ -577,86 +554,9 @@ func (s *Server) handleExportK9MissionGPX(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) handleK9Stream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("k9")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "k9")
 }
 
 func (s *Server) broadcastK9Event(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextK9Nano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "k9",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "k9",
-			SenderNodeID:  "k9-scent-telemetry-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("k9", "k9-scent-telemetry-hub", eventType, payload, now)
 }

@@ -3,33 +3,14 @@ package webfrontend
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/heartwormcaval"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 )
-
-var lastHeartwormCavalNano atomic.Int64
-
-func nextHeartwormCavalNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastHeartwormCavalNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastHeartwormCavalNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // HeartwormCavalPageData represents template data passed to templates/heartworm_caval_triage.html.
 type HeartwormCavalPageData struct {
@@ -115,32 +96,14 @@ func (s *Server) ensureHeartwormService() *heartwormcaval.HeartwormService {
 func (s *Server) registerHeartwormCavalRoutes() {
 	s.mux.HandleFunc("GET /heartworm-caval-triage", s.handleHeartwormCavalTriagePage)
 
-	s.mux.HandleFunc("GET /api/heartworm-caval/overview", s.handleHeartwormCavalOverview)
-	s.mux.HandleFunc("GET /api/heartworm-caval/operations", s.handleListHeartwormCavalOperations)
-	s.mux.HandleFunc("POST /api/heartworm-caval/operations", s.handleCreateHeartwormCavalOperation)
-	s.mux.HandleFunc("GET /api/heartworm-caval/operations/{id}", s.handleGetHeartwormCavalOperation)
-	s.mux.HandleFunc("POST /api/heartworm-caval/operations/{id}/intervention", s.handleStageHeartwormIntervention)
-	s.mux.HandleFunc("POST /api/heartworm-caval/operations/{id}/hemodynamic-check", s.handleRecordHeartwormHemodynamicCheck)
-	s.mux.HandleFunc("POST /api/heartworm-caval/operations/{id}/clearance", s.handleEvaluateHeartwormClearance)
-	s.mux.HandleFunc("GET /api/heartworm-caval/stream", s.handleHeartwormCavalStream)
-
-	// v1 aliases for consistency
-	s.mux.HandleFunc("GET /api/v1/heartworm-caval/overview", s.handleHeartwormCavalOverview)
-	s.mux.HandleFunc("GET /api/v1/heartworm-caval/operations", s.handleListHeartwormCavalOperations)
-	s.mux.HandleFunc("POST /api/v1/heartworm-caval/operations", s.handleCreateHeartwormCavalOperation)
-	s.mux.HandleFunc("GET /api/v1/heartworm-caval/operations/{id}", s.handleGetHeartwormCavalOperation)
-	s.mux.HandleFunc("POST /api/v1/heartworm-caval/operations/{id}/intervention", s.handleStageHeartwormIntervention)
-	s.mux.HandleFunc("POST /api/v1/heartworm-caval/operations/{id}/hemodynamic-check", s.handleRecordHeartwormHemodynamicCheck)
-	s.mux.HandleFunc("POST /api/v1/heartworm-caval/operations/{id}/clearance", s.handleEvaluateHeartwormClearance)
-	s.mux.HandleFunc("GET /api/v1/heartworm-caval/stream", s.handleHeartwormCavalStream)
-}
-
-func writeHeartwormCavalJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
+	s.registerDualAPIRoute("GET", "heartworm-caval/overview", s.handleHeartwormCavalOverview)
+	s.registerDualAPIRoute("GET", "heartworm-caval/operations", s.handleListHeartwormCavalOperations)
+	s.registerDualAPIRoute("POST", "heartworm-caval/operations", s.handleCreateHeartwormCavalOperation)
+	s.registerDualAPIRoute("GET", "heartworm-caval/operations/{id}", s.handleGetHeartwormCavalOperation)
+	s.registerDualAPIRoute("POST", "heartworm-caval/operations/{id}/intervention", s.handleStageHeartwormIntervention)
+	s.registerDualAPIRoute("POST", "heartworm-caval/operations/{id}/hemodynamic-check", s.handleRecordHeartwormHemodynamicCheck)
+	s.registerDualAPIRoute("POST", "heartworm-caval/operations/{id}/clearance", s.handleEvaluateHeartwormClearance)
+	s.registerDualAPIRoute("GET", "heartworm-caval/stream", s.handleHeartwormCavalStream)
 }
 
 func (s *Server) handleHeartwormCavalTriagePage(w http.ResponseWriter, r *http.Request) {
@@ -158,12 +121,6 @@ func (s *Server) handleHeartwormCavalTriagePage(w http.ResponseWriter, r *http.R
 	if len(ops) > 0 {
 		first := ops[0]
 		activeOp = &first
-	}
-
-	tmpl, err := template.New("heartworm_caval_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/heartworm_caval_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load Heartworm Caval Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	locale := LocaleFromContext(r.Context())
@@ -185,12 +142,7 @@ func (s *Server) handleHeartwormCavalTriagePage(w http.ResponseWriter, r *http.R
 		Locale:                                 locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "heartworm_caval_triage.html", "Heartworm Caval Triage", data)
 }
 
 func (s *Server) handleHeartwormCavalOverview(w http.ResponseWriter, r *http.Request) {
@@ -203,9 +155,7 @@ func (s *Server) handleHeartwormCavalOverview(w http.ResponseWriter, r *http.Req
 	svc := s.ensureHeartwormService()
 	overview := svc.CalculateOverview()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(overview)
+	writeCockpitJSON(w, http.StatusOK, overview)
 }
 
 func (s *Server) handleListHeartwormCavalOperations(w http.ResponseWriter, r *http.Request) {
@@ -232,9 +182,7 @@ func (s *Server) handleListHeartwormCavalOperations(w http.ResponseWriter, r *ht
 
 	metrics := svc.CalculateOverview()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": ops,
 		"ops":        ops,
 		"metrics":    metrics,
@@ -251,20 +199,18 @@ func (s *Server) handleGetHeartwormCavalOperation(w http.ResponseWriter, r *http
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeHeartwormCavalJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureHeartwormService()
 	op, err := svc.GetOperation(id)
 	if err != nil {
-		writeHeartwormCavalJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusOK, op)
 }
 
 func (s *Server) handleCreateHeartwormCavalOperation(w http.ResponseWriter, r *http.Request) {
@@ -277,7 +223,7 @@ func (s *Server) handleCreateHeartwormCavalOperation(w http.ResponseWriter, r *h
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload createHeartwormCavalOperationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeHeartwormCavalJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -302,19 +248,17 @@ func (s *Server) handleCreateHeartwormCavalOperation(w http.ResponseWriter, r *h
 		payload.ParallelHyperechoicCavalLines,
 	)
 	if err != nil {
-		writeHeartwormCavalJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextHeartwormCavalNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastHeartwormCavalEvent("heartworm_caval_updated", map[string]any{
 		"type":      "heartworm_caval_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleStageHeartwormIntervention(w http.ResponseWriter, r *http.Request) {
@@ -326,21 +270,21 @@ func (s *Server) handleStageHeartwormIntervention(w http.ResponseWriter, r *http
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeHeartwormCavalJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureHeartwormService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeHeartwormCavalJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload stageHeartwormInterventionPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && err != io.EOF {
-		writeHeartwormCavalJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -399,19 +343,17 @@ func (s *Server) handleStageHeartwormIntervention(w http.ResponseWriter, r *http
 		payload.StagedBy,
 	)
 	if err != nil {
-		writeHeartwormCavalJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextHeartwormCavalNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastHeartwormCavalEvent("heartworm_caval_updated", map[string]any{
 		"type":      "heartworm_caval_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRecordHeartwormHemodynamicCheck(w http.ResponseWriter, r *http.Request) {
@@ -423,20 +365,20 @@ func (s *Server) handleRecordHeartwormHemodynamicCheck(w http.ResponseWriter, r 
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeHeartwormCavalJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureHeartwormService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeHeartwormCavalJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload recordHeartwormHemodynamicCheckPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeHeartwormCavalJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -452,19 +394,17 @@ func (s *Server) handleRecordHeartwormHemodynamicCheck(w http.ResponseWriter, r 
 		payload.ClinicalNote,
 	)
 	if err != nil {
-		writeHeartwormCavalJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextHeartwormCavalNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastHeartwormCavalEvent("heartworm_caval_updated", map[string]any{
 		"type":      "heartworm_caval_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleEvaluateHeartwormClearance(w http.ResponseWriter, r *http.Request) {
@@ -476,20 +416,20 @@ func (s *Server) handleEvaluateHeartwormClearance(w http.ResponseWriter, r *http
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeHeartwormCavalJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureHeartwormService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeHeartwormCavalJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload evaluateHeartwormClearancePayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeHeartwormCavalJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -522,102 +462,23 @@ func (s *Server) handleEvaluateHeartwormClearance(w http.ResponseWriter, r *http
 		summary,
 	)
 	if err != nil {
-		writeHeartwormCavalJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextHeartwormCavalNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastHeartwormCavalEvent("heartworm_caval_updated", map[string]any{
 		"type":      "heartworm_caval_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleHeartwormCavalStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("heartworm_caval")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "heartworm_caval")
 }
 
 func (s *Server) broadcastHeartwormCavalEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextHeartwormCavalNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "heartworm_caval",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "heartworm_caval",
-			SenderNodeID:  "heartworm-caval-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("heartworm_caval", "heartworm-caval-hub", eventType, payload, now)
 }

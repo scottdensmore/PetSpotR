@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"sort"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/cameratrap"
@@ -21,22 +20,6 @@ import (
 	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
-
-var lastCameraTrapNano atomic.Int64
-
-func nextCameraTrapNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastCameraTrapNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastCameraTrapNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 type createCameraNodeRequest struct {
 	Name                 string              `json:"name"`
@@ -143,7 +126,7 @@ func (s *Server) handleCreateCameraNode(w http.ResponseWriter, r *http.Request) 
 	secretSum := sha256.Sum256([]byte(webhookToken))
 	secretHash := hex.EncodeToString(secretSum[:])
 
-	seqNano := nextCameraTrapNano()
+	seqNano := nextCockpitNano()
 	node := domain.CameraNode{
 		ID:                   fmt.Sprintf("cam-%d", seqNano),
 		Name:                 strings.TrimSpace(req.Name),
@@ -187,9 +170,7 @@ func (s *Server) handleCreateCameraNode(w http.ResponseWriter, r *http.Request) 
 		WebhookURL:   "/api/v1/cameras/" + node.ID + "/webhook",
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(resp)
+	writeCockpitJSON(w, http.StatusCreated, resp)
 }
 
 func (s *Server) handleListCameraNodes(w http.ResponseWriter, r *http.Request) {
@@ -206,9 +187,7 @@ func (s *Server) handleListCameraNodes(w http.ResponseWriter, r *http.Request) {
 	targetPetID := strings.TrimSpace(r.URL.Query().Get("targetPetId"))
 	cameras := s.loadCameraNodes(r.Context(), targetPetID)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"cameras": cameras,
 	})
 }
@@ -313,7 +292,7 @@ func (s *Server) handleCameraWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	seqNano := nextCameraTrapNano()
+	seqNano := nextCockpitNano()
 	capturedAt := time.Unix(0, seqNano).UTC()
 	if strings.TrimSpace(payload.CapturedAt) != "" {
 		if parsed, parseErr := time.Parse(time.RFC3339, strings.TrimSpace(payload.CapturedAt)); parseErr == nil {
@@ -394,9 +373,7 @@ func (s *Server) handleCameraWebhook(w http.ResponseWriter, r *http.Request) {
 		"capture": capture,
 	})
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(capture)
+	writeCockpitJSON(w, http.StatusCreated, capture)
 }
 
 func (s *Server) handleListCameraCaptures(w http.ResponseWriter, r *http.Request) {
@@ -417,9 +394,7 @@ func (s *Server) handleListCameraCaptures(w http.ResponseWriter, r *http.Request
 
 	captures := s.loadCameraCaptures(r.Context(), cameraID, statusFilter, excludeDuplicates)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"captures": captures,
 	})
 }
@@ -567,9 +542,7 @@ func (s *Server) handlePromoteCameraCapture(w http.ResponseWriter, r *http.Reque
 		"sighting": sighting,
 	})
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"capture":  capture,
 		"sighting": sighting,
 	})
@@ -611,77 +584,20 @@ func (s *Server) handleDismissCameraCapture(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"capture": updatedCapture,
 	})
 }
 
 func (s *Server) handleCamerasStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("cameras")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "cameras")
 }
 
 func (s *Server) broadcastCameraTrapEvent(eventType, targetPetID string, payload map[string]any) {
 	now := time.Now().UTC()
 	if s.reunionHub != nil {
 		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, nextCameraTrapNano()),
+			EventID:   fmt.Sprintf("evt_%s_%d", eventType, nextCockpitNano()),
 			Type:      domain.ReunionEventType(eventType),
 			MatchID:   "cameras",
 			Timestamp: now,

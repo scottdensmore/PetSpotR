@@ -3,33 +3,14 @@ package webfrontend
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/fipgs441524"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 )
-
-var lastFIPGS441524Nano atomic.Int64
-
-func nextFIPGS441524Nano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastFIPGS441524Nano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastFIPGS441524Nano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // FIPGS441524PageData represents template data passed to templates/fip_gs441524_triage.html.
 type FIPGS441524PageData struct {
@@ -102,30 +83,13 @@ func (s *Server) ensureFIPService() *fipgs441524.FIPService {
 func (s *Server) registerFIPGS441524Routes() {
 	s.mux.HandleFunc("GET /fip-gs441524-triage", s.handleFIPGS441524TriagePage)
 
-	s.mux.HandleFunc("GET /api/fip-gs441524/operations", s.handleListFIPGS441524Operations)
-	s.mux.HandleFunc("POST /api/fip-gs441524/operations", s.handleCreateFIPGS441524Operation)
-	s.mux.HandleFunc("GET /api/fip-gs441524/operations/{id}", s.handleGetFIPGS441524Operation)
-	s.mux.HandleFunc("POST /api/fip-gs441524/operations/{id}/stage-antiviral", s.handleStageFIPGS441524Antiviral)
-	s.mux.HandleFunc("POST /api/fip-gs441524/operations/{id}/record-check", s.handleRecordFIPGS441524ProgressCheck)
-	s.mux.HandleFunc("POST /api/fip-gs441524/operations/{id}/clear-discharge", s.handleClearFIPGS441524Discharge)
-	s.mux.HandleFunc("GET /api/fip-gs441524/stream", s.handleFIPGS441524Stream)
-
-	// v1 aliases for consistency
-	s.mux.HandleFunc("GET /api/v1/fip-gs441524/operations", s.handleListFIPGS441524Operations)
-	s.mux.HandleFunc("POST /api/v1/fip-gs441524/operations", s.handleCreateFIPGS441524Operation)
-	s.mux.HandleFunc("GET /api/v1/fip-gs441524/operations/{id}", s.handleGetFIPGS441524Operation)
-	s.mux.HandleFunc("POST /api/v1/fip-gs441524/operations/{id}/stage-antiviral", s.handleStageFIPGS441524Antiviral)
-	s.mux.HandleFunc("POST /api/v1/fip-gs441524/operations/{id}/record-check", s.handleRecordFIPGS441524ProgressCheck)
-	s.mux.HandleFunc("POST /api/v1/fip-gs441524/operations/{id}/clear-discharge", s.handleClearFIPGS441524Discharge)
-	s.mux.HandleFunc("GET /api/v1/fip-gs441524/stream", s.handleFIPGS441524Stream)
-}
-
-func writeFIPGS441524JSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
+	s.registerDualAPIRoute("GET", "fip-gs441524/operations", s.handleListFIPGS441524Operations)
+	s.registerDualAPIRoute("POST", "fip-gs441524/operations", s.handleCreateFIPGS441524Operation)
+	s.registerDualAPIRoute("GET", "fip-gs441524/operations/{id}", s.handleGetFIPGS441524Operation)
+	s.registerDualAPIRoute("POST", "fip-gs441524/operations/{id}/stage-antiviral", s.handleStageFIPGS441524Antiviral)
+	s.registerDualAPIRoute("POST", "fip-gs441524/operations/{id}/record-check", s.handleRecordFIPGS441524ProgressCheck)
+	s.registerDualAPIRoute("POST", "fip-gs441524/operations/{id}/clear-discharge", s.handleClearFIPGS441524Discharge)
+	s.registerDualAPIRoute("GET", "fip-gs441524/stream", s.handleFIPGS441524Stream)
 }
 
 func (s *Server) handleFIPGS441524TriagePage(w http.ResponseWriter, r *http.Request) {
@@ -143,12 +107,6 @@ func (s *Server) handleFIPGS441524TriagePage(w http.ResponseWriter, r *http.Requ
 	if len(ops) > 0 {
 		first := ops[0]
 		activeOp = &first
-	}
-
-	tmpl, err := template.New("fip_gs441524_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/fip_gs441524_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load FIP & GS-441524 Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	locale := LocaleFromContext(r.Context())
@@ -169,12 +127,7 @@ func (s *Server) handleFIPGS441524TriagePage(w http.ResponseWriter, r *http.Requ
 		Locale:                   locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "fip_gs441524_triage.html", "FIP & GS-441524 Triage", data)
 }
 
 func (s *Server) handleListFIPGS441524Operations(w http.ResponseWriter, r *http.Request) {
@@ -201,9 +154,7 @@ func (s *Server) handleListFIPGS441524Operations(w http.ResponseWriter, r *http.
 
 	metrics := svc.GetOverviewMetrics()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": ops,
 		"ops":        ops,
 		"metrics":    metrics,
@@ -219,20 +170,18 @@ func (s *Server) handleGetFIPGS441524Operation(w http.ResponseWriter, r *http.Re
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeFIPGS441524JSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureFIPService()
 	op, err := svc.GetOperation(id)
 	if err != nil {
-		writeFIPGS441524JSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusOK, op)
 }
 
 func (s *Server) handleCreateFIPGS441524Operation(w http.ResponseWriter, r *http.Request) {
@@ -245,7 +194,7 @@ func (s *Server) handleCreateFIPGS441524Operation(w http.ResponseWriter, r *http
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload createFIPGS441524OperationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeFIPGS441524JSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -271,19 +220,17 @@ func (s *Server) handleCreateFIPGS441524Operation(w http.ResponseWriter, r *http
 		payload.PleuralEffusionDyspneaPresent,
 	)
 	if err != nil {
-		writeFIPGS441524JSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextFIPGS441524Nano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastFIPGS441524Event("fip_gs441524_updated", map[string]any{
 		"type":      "fip_gs441524_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleStageFIPGS441524Antiviral(w http.ResponseWriter, r *http.Request) {
@@ -295,21 +242,21 @@ func (s *Server) handleStageFIPGS441524Antiviral(w http.ResponseWriter, r *http.
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeFIPGS441524JSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureFIPService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeFIPGS441524JSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload stageFIPGS441524AntiviralPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && err != io.EOF {
-		writeFIPGS441524JSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -322,19 +269,17 @@ func (s *Server) handleStageFIPGS441524Antiviral(w http.ResponseWriter, r *http.
 
 	updated, err := svc.StageAntiviralProtocol(id, dosing, recalc, centesis, ocular, hepato, monitoring)
 	if err != nil {
-		writeFIPGS441524JSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextFIPGS441524Nano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastFIPGS441524Event("fip_gs441524_updated", map[string]any{
 		"type":      "fip_gs441524_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRecordFIPGS441524ProgressCheck(w http.ResponseWriter, r *http.Request) {
@@ -346,20 +291,20 @@ func (s *Server) handleRecordFIPGS441524ProgressCheck(w http.ResponseWriter, r *
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeFIPGS441524JSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureFIPService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeFIPGS441524JSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload recordFIPGS441524ProgressCheckPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeFIPGS441524JSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -374,19 +319,17 @@ func (s *Server) handleRecordFIPGS441524ProgressCheck(w http.ResponseWriter, r *
 		payload.ClinicalNote,
 	)
 	if err != nil {
-		writeFIPGS441524JSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextFIPGS441524Nano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastFIPGS441524Event("fip_gs441524_updated", map[string]any{
 		"type":      "fip_gs441524_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleClearFIPGS441524Discharge(w http.ResponseWriter, r *http.Request) {
@@ -398,122 +341,43 @@ func (s *Server) handleClearFIPGS441524Discharge(w http.ResponseWriter, r *http.
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeFIPGS441524JSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureFIPService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeFIPGS441524JSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload clearFIPGS441524DischargePayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeFIPGS441524JSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	summary := firstNonEmpty(payload.DischargeSummary, payload.Summary)
 	updated, err := svc.ClearFIPDischarge(id, payload.DischargedBy, summary)
 	if err != nil {
-		writeFIPGS441524JSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextFIPGS441524Nano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastFIPGS441524Event("fip_gs441524_updated", map[string]any{
 		"type":      "fip_gs441524_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleFIPGS441524Stream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("fip_gs441524")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "fip_gs441524")
 }
 
 func (s *Server) broadcastFIPGS441524Event(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextFIPGS441524Nano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "fip_gs441524",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "fip_gs441524",
-			SenderNodeID:  "fip-gs441524-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("fip_gs441524", "fip-gs441524-hub", eventType, payload, now)
 }

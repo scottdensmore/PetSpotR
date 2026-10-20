@@ -3,33 +3,14 @@ package webfrontend
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/systemicmycoses"
 )
-
-var lastSystemicMycosesNano atomic.Int64
-
-func nextSystemicMycosesNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastSystemicMycosesNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastSystemicMycosesNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // SystemicMycosesPageData represents template data passed to templates/systemic_mycoses_triage.html.
 type SystemicMycosesPageData struct {
@@ -116,32 +97,14 @@ func (s *Server) ensureSystemicMycosesService() *systemicmycoses.SystemicMycoses
 func (s *Server) registerSystemicMycosesRoutes() {
 	s.mux.HandleFunc("GET /systemic-mycoses-fungal-triage", s.handleSystemicMycosesTriagePage)
 
-	s.mux.HandleFunc("GET /api/systemic-mycoses/overview", s.handleSystemicMycosesOverview)
-	s.mux.HandleFunc("GET /api/systemic-mycoses/operations", s.handleListSystemicMycosesOperations)
-	s.mux.HandleFunc("POST /api/systemic-mycoses/operations", s.handleCreateSystemicMycosesOperation)
-	s.mux.HandleFunc("GET /api/systemic-mycoses/operations/{id}", s.handleGetSystemicMycosesOperation)
-	s.mux.HandleFunc("POST /api/systemic-mycoses/operations/{id}/therapy", s.handleStageSystemicMycosesTherapy)
-	s.mux.HandleFunc("POST /api/systemic-mycoses/operations/{id}/antigen-check", s.handleRecordMycosesAntigenRenalCheck)
-	s.mux.HandleFunc("POST /api/systemic-mycoses/operations/{id}/clearance", s.handleEvaluateSystemicMycosesClearance)
-	s.mux.HandleFunc("GET /api/systemic-mycoses/stream", s.handleSystemicMycosesStream)
-
-	// v1 aliases for consistency
-	s.mux.HandleFunc("GET /api/v1/systemic-mycoses/overview", s.handleSystemicMycosesOverview)
-	s.mux.HandleFunc("GET /api/v1/systemic-mycoses/operations", s.handleListSystemicMycosesOperations)
-	s.mux.HandleFunc("POST /api/v1/systemic-mycoses/operations", s.handleCreateSystemicMycosesOperation)
-	s.mux.HandleFunc("GET /api/v1/systemic-mycoses/operations/{id}", s.handleGetSystemicMycosesOperation)
-	s.mux.HandleFunc("POST /api/v1/systemic-mycoses/operations/{id}/therapy", s.handleStageSystemicMycosesTherapy)
-	s.mux.HandleFunc("POST /api/v1/systemic-mycoses/operations/{id}/antigen-check", s.handleRecordMycosesAntigenRenalCheck)
-	s.mux.HandleFunc("POST /api/v1/systemic-mycoses/operations/{id}/clearance", s.handleEvaluateSystemicMycosesClearance)
-	s.mux.HandleFunc("GET /api/v1/systemic-mycoses/stream", s.handleSystemicMycosesStream)
-}
-
-func writeSystemicMycosesJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
+	s.registerDualAPIRoute("GET", "systemic-mycoses/overview", s.handleSystemicMycosesOverview)
+	s.registerDualAPIRoute("GET", "systemic-mycoses/operations", s.handleListSystemicMycosesOperations)
+	s.registerDualAPIRoute("POST", "systemic-mycoses/operations", s.handleCreateSystemicMycosesOperation)
+	s.registerDualAPIRoute("GET", "systemic-mycoses/operations/{id}", s.handleGetSystemicMycosesOperation)
+	s.registerDualAPIRoute("POST", "systemic-mycoses/operations/{id}/therapy", s.handleStageSystemicMycosesTherapy)
+	s.registerDualAPIRoute("POST", "systemic-mycoses/operations/{id}/antigen-check", s.handleRecordMycosesAntigenRenalCheck)
+	s.registerDualAPIRoute("POST", "systemic-mycoses/operations/{id}/clearance", s.handleEvaluateSystemicMycosesClearance)
+	s.registerDualAPIRoute("GET", "systemic-mycoses/stream", s.handleSystemicMycosesStream)
 }
 
 func (s *Server) handleSystemicMycosesTriagePage(w http.ResponseWriter, r *http.Request) {
@@ -159,12 +122,6 @@ func (s *Server) handleSystemicMycosesTriagePage(w http.ResponseWriter, r *http.
 	if len(ops) > 0 {
 		first := ops[0]
 		activeOp = &first
-	}
-
-	tmpl, err := template.New("systemic_mycoses_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/systemic_mycoses_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load Systemic Mycoses Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	locale := LocaleFromContext(r.Context())
@@ -186,12 +143,7 @@ func (s *Server) handleSystemicMycosesTriagePage(w http.ResponseWriter, r *http.
 		Locale:                                   locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "systemic_mycoses_triage.html", "Systemic Mycoses Triage", data)
 }
 
 func (s *Server) handleSystemicMycosesOverview(w http.ResponseWriter, r *http.Request) {
@@ -204,9 +156,7 @@ func (s *Server) handleSystemicMycosesOverview(w http.ResponseWriter, r *http.Re
 	svc := s.ensureSystemicMycosesService()
 	overview := svc.CalculateOverview()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(overview)
+	writeCockpitJSON(w, http.StatusOK, overview)
 }
 
 func (s *Server) handleListSystemicMycosesOperations(w http.ResponseWriter, r *http.Request) {
@@ -233,9 +183,7 @@ func (s *Server) handleListSystemicMycosesOperations(w http.ResponseWriter, r *h
 
 	metrics := svc.CalculateOverview()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": ops,
 		"ops":        ops,
 		"metrics":    metrics,
@@ -252,20 +200,18 @@ func (s *Server) handleGetSystemicMycosesOperation(w http.ResponseWriter, r *htt
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeSystemicMycosesJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureSystemicMycosesService()
 	op, err := svc.GetOperation(id)
 	if err != nil {
-		writeSystemicMycosesJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusOK, op)
 }
 
 func (s *Server) handleCreateSystemicMycosesOperation(w http.ResponseWriter, r *http.Request) {
@@ -278,7 +224,7 @@ func (s *Server) handleCreateSystemicMycosesOperation(w http.ResponseWriter, r *
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload createSystemicMycosesOperationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeSystemicMycosesJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -318,19 +264,17 @@ func (s *Server) handleCreateSystemicMycosesOperation(w http.ResponseWriter, r *
 		salineDiuresis,
 	)
 	if err != nil {
-		writeSystemicMycosesJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextSystemicMycosesNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastSystemicMycosesEvent("systemic_mycoses_updated", map[string]any{
 		"type":      "systemic_mycoses_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleStageSystemicMycosesTherapy(w http.ResponseWriter, r *http.Request) {
@@ -342,21 +286,21 @@ func (s *Server) handleStageSystemicMycosesTherapy(w http.ResponseWriter, r *htt
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeSystemicMycosesJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureSystemicMycosesService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeSystemicMycosesJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload stageSystemicMycosesTherapyPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && err != io.EOF {
-		writeSystemicMycosesJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -414,19 +358,17 @@ func (s *Server) handleStageSystemicMycosesTherapy(w http.ResponseWriter, r *htt
 		payload.StagedBy,
 	)
 	if err != nil {
-		writeSystemicMycosesJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextSystemicMycosesNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastSystemicMycosesEvent("systemic_mycoses_updated", map[string]any{
 		"type":      "systemic_mycoses_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRecordMycosesAntigenRenalCheck(w http.ResponseWriter, r *http.Request) {
@@ -438,21 +380,21 @@ func (s *Server) handleRecordMycosesAntigenRenalCheck(w http.ResponseWriter, r *
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeSystemicMycosesJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureSystemicMycosesService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeSystemicMycosesJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload recordMycosesAntigenRenalCheckPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeSystemicMycosesJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -474,19 +416,17 @@ func (s *Server) handleRecordMycosesAntigenRenalCheck(w http.ResponseWriter, r *
 		payload.ClinicalNote,
 	)
 	if err != nil {
-		writeSystemicMycosesJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextSystemicMycosesNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastSystemicMycosesEvent("systemic_mycoses_updated", map[string]any{
 		"type":      "systemic_mycoses_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleEvaluateSystemicMycosesClearance(w http.ResponseWriter, r *http.Request) {
@@ -498,20 +438,20 @@ func (s *Server) handleEvaluateSystemicMycosesClearance(w http.ResponseWriter, r
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeSystemicMycosesJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureSystemicMycosesService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeSystemicMycosesJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload evaluateSystemicMycosesClearancePayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeSystemicMycosesJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -544,102 +484,23 @@ func (s *Server) handleEvaluateSystemicMycosesClearance(w http.ResponseWriter, r
 		summary,
 	)
 	if err != nil {
-		writeSystemicMycosesJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextSystemicMycosesNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastSystemicMycosesEvent("systemic_mycoses_updated", map[string]any{
 		"type":      "systemic_mycoses_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleSystemicMycosesStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("systemic_mycoses")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "systemic_mycoses")
 }
 
 func (s *Server) broadcastSystemicMycosesEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextSystemicMycosesNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "systemic_mycoses",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "systemic_mycoses",
-			SenderNodeID:  "systemic-mycoses-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("systemic_mycoses", "systemic-mycoses-hub", eventType, payload, now)
 }

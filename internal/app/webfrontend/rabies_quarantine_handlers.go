@@ -3,33 +3,14 @@ package webfrontend
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/rabiesquarantine"
 )
-
-var lastRabiesQuarantineNano atomic.Int64
-
-func nextRabiesQuarantineNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastRabiesQuarantineNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastRabiesQuarantineNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // RabiesQuarantinePageData represents template data passed to templates/rabies_quarantine_triage.html.
 type RabiesQuarantinePageData struct {
@@ -114,32 +95,14 @@ func (s *Server) ensureRabiesQuarantineService() *rabiesquarantine.RabiesQuarant
 func (s *Server) registerRabiesQuarantineRoutes() {
 	s.mux.HandleFunc("GET /rabies-quarantine-pep-triage", s.handleRabiesQuarantineTriagePage)
 
-	s.mux.HandleFunc("GET /api/rabies-quarantine/overview", s.handleRabiesQuarantineOverview)
-	s.mux.HandleFunc("GET /api/rabies-quarantine/operations", s.handleListRabiesQuarantineOperations)
-	s.mux.HandleFunc("POST /api/rabies-quarantine/operations", s.handleCreateRabiesQuarantineOperation)
-	s.mux.HandleFunc("GET /api/rabies-quarantine/operations/{id}", s.handleGetRabiesQuarantineOperation)
-	s.mux.HandleFunc("POST /api/rabies-quarantine/operations/{id}/staging", s.handleStageRabiesQuarantine)
-	s.mux.HandleFunc("POST /api/rabies-quarantine/operations/{id}/neuro-check", s.handleRecordRabiesNeuroCheck)
-	s.mux.HandleFunc("POST /api/rabies-quarantine/operations/{id}/clearance", s.handleEvaluateRabiesClearance)
-	s.mux.HandleFunc("GET /api/rabies-quarantine/stream", s.handleRabiesQuarantineStream)
-
-	// v1 aliases for consistency
-	s.mux.HandleFunc("GET /api/v1/rabies-quarantine/overview", s.handleRabiesQuarantineOverview)
-	s.mux.HandleFunc("GET /api/v1/rabies-quarantine/operations", s.handleListRabiesQuarantineOperations)
-	s.mux.HandleFunc("POST /api/v1/rabies-quarantine/operations", s.handleCreateRabiesQuarantineOperation)
-	s.mux.HandleFunc("GET /api/v1/rabies-quarantine/operations/{id}", s.handleGetRabiesQuarantineOperation)
-	s.mux.HandleFunc("POST /api/v1/rabies-quarantine/operations/{id}/staging", s.handleStageRabiesQuarantine)
-	s.mux.HandleFunc("POST /api/v1/rabies-quarantine/operations/{id}/neuro-check", s.handleRecordRabiesNeuroCheck)
-	s.mux.HandleFunc("POST /api/v1/rabies-quarantine/operations/{id}/clearance", s.handleEvaluateRabiesClearance)
-	s.mux.HandleFunc("GET /api/v1/rabies-quarantine/stream", s.handleRabiesQuarantineStream)
-}
-
-func writeRabiesQuarantineJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
+	s.registerDualAPIRoute("GET", "rabies-quarantine/overview", s.handleRabiesQuarantineOverview)
+	s.registerDualAPIRoute("GET", "rabies-quarantine/operations", s.handleListRabiesQuarantineOperations)
+	s.registerDualAPIRoute("POST", "rabies-quarantine/operations", s.handleCreateRabiesQuarantineOperation)
+	s.registerDualAPIRoute("GET", "rabies-quarantine/operations/{id}", s.handleGetRabiesQuarantineOperation)
+	s.registerDualAPIRoute("POST", "rabies-quarantine/operations/{id}/staging", s.handleStageRabiesQuarantine)
+	s.registerDualAPIRoute("POST", "rabies-quarantine/operations/{id}/neuro-check", s.handleRecordRabiesNeuroCheck)
+	s.registerDualAPIRoute("POST", "rabies-quarantine/operations/{id}/clearance", s.handleEvaluateRabiesClearance)
+	s.registerDualAPIRoute("GET", "rabies-quarantine/stream", s.handleRabiesQuarantineStream)
 }
 
 func (s *Server) handleRabiesQuarantineTriagePage(w http.ResponseWriter, r *http.Request) {
@@ -157,12 +120,6 @@ func (s *Server) handleRabiesQuarantineTriagePage(w http.ResponseWriter, r *http
 	if len(ops) > 0 {
 		first := ops[0]
 		activeOp = &first
-	}
-
-	tmpl, err := template.New("rabies_quarantine_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/rabies_quarantine_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load Rabies Quarantine Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	locale := LocaleFromContext(r.Context())
@@ -184,12 +141,7 @@ func (s *Server) handleRabiesQuarantineTriagePage(w http.ResponseWriter, r *http
 		Locale:                                  locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "rabies_quarantine_triage.html", "Rabies Quarantine Triage", data)
 }
 
 func (s *Server) handleRabiesQuarantineOverview(w http.ResponseWriter, r *http.Request) {
@@ -202,9 +154,7 @@ func (s *Server) handleRabiesQuarantineOverview(w http.ResponseWriter, r *http.R
 	svc := s.ensureRabiesQuarantineService()
 	overview := svc.CalculateOverview()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(overview)
+	writeCockpitJSON(w, http.StatusOK, overview)
 }
 
 func (s *Server) handleListRabiesQuarantineOperations(w http.ResponseWriter, r *http.Request) {
@@ -231,9 +181,7 @@ func (s *Server) handleListRabiesQuarantineOperations(w http.ResponseWriter, r *
 
 	metrics := svc.CalculateOverview()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": ops,
 		"ops":        ops,
 		"metrics":    metrics,
@@ -250,20 +198,18 @@ func (s *Server) handleGetRabiesQuarantineOperation(w http.ResponseWriter, r *ht
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeRabiesQuarantineJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureRabiesQuarantineService()
 	op, err := svc.GetOperation(id)
 	if err != nil {
-		writeRabiesQuarantineJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusOK, op)
 }
 
 func (s *Server) handleCreateRabiesQuarantineOperation(w http.ResponseWriter, r *http.Request) {
@@ -276,7 +222,7 @@ func (s *Server) handleCreateRabiesQuarantineOperation(w http.ResponseWriter, r 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload createRabiesQuarantineOperationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeRabiesQuarantineJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -314,19 +260,17 @@ func (s *Server) handleCreateRabiesQuarantineOperation(w http.ResponseWriter, r 
 		doubleBarrier,
 	)
 	if err != nil {
-		writeRabiesQuarantineJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextRabiesQuarantineNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastRabiesQuarantineEvent("rabies_quarantine_updated", map[string]any{
 		"type":      "rabies_quarantine_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleStageRabiesQuarantine(w http.ResponseWriter, r *http.Request) {
@@ -338,21 +282,21 @@ func (s *Server) handleStageRabiesQuarantine(w http.ResponseWriter, r *http.Requ
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeRabiesQuarantineJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureRabiesQuarantineService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeRabiesQuarantineJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload stageRabiesQuarantinePayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && err != io.EOF {
-		writeRabiesQuarantineJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -413,19 +357,17 @@ func (s *Server) handleStageRabiesQuarantine(w http.ResponseWriter, r *http.Requ
 		payload.StagedBy,
 	)
 	if err != nil {
-		writeRabiesQuarantineJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextRabiesQuarantineNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastRabiesQuarantineEvent("rabies_quarantine_updated", map[string]any{
 		"type":      "rabies_quarantine_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRecordRabiesNeuroCheck(w http.ResponseWriter, r *http.Request) {
@@ -437,20 +379,20 @@ func (s *Server) handleRecordRabiesNeuroCheck(w http.ResponseWriter, r *http.Req
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeRabiesQuarantineJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureRabiesQuarantineService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeRabiesQuarantineJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload recordRabiesNeuroCheckPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeRabiesQuarantineJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -483,19 +425,17 @@ func (s *Server) handleRecordRabiesNeuroCheck(w http.ResponseWriter, r *http.Req
 		payload.ClinicalNote,
 	)
 	if err != nil {
-		writeRabiesQuarantineJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextRabiesQuarantineNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastRabiesQuarantineEvent("rabies_quarantine_updated", map[string]any{
 		"type":      "rabies_quarantine_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleEvaluateRabiesClearance(w http.ResponseWriter, r *http.Request) {
@@ -507,21 +447,21 @@ func (s *Server) handleEvaluateRabiesClearance(w http.ResponseWriter, r *http.Re
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeRabiesQuarantineJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureRabiesQuarantineService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeRabiesQuarantineJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload evaluateRabiesClearancePayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeRabiesQuarantineJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -559,102 +499,23 @@ func (s *Server) handleEvaluateRabiesClearance(w http.ResponseWriter, r *http.Re
 		summary,
 	)
 	if err != nil {
-		writeRabiesQuarantineJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextRabiesQuarantineNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastRabiesQuarantineEvent("rabies_quarantine_updated", map[string]any{
 		"type":      "rabies_quarantine_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRabiesQuarantineStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("rabies_quarantine")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "rabies_quarantine")
 }
 
 func (s *Server) broadcastRabiesQuarantineEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextRabiesQuarantineNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "rabies_quarantine",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "rabies_quarantine",
-			SenderNodeID:  "rabies-quarantine-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("rabies_quarantine", "rabies-quarantine-hub", eventType, payload, now)
 }

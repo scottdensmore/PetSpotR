@@ -2,34 +2,14 @@ package webfrontend
 
 import (
 	"encoding/json"
-	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/spinalivdd"
 )
-
-var lastSpinalIVDDNano atomic.Int64
-
-func nextSpinalIVDDNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastSpinalIVDDNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastSpinalIVDDNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // SpinalIVDDPageData represents template data passed to templates/spinal_ivdd_triage.html.
 type SpinalIVDDPageData struct {
@@ -99,30 +79,13 @@ func (s *Server) ensureSpinalService() *spinalivdd.IVDDService {
 func (s *Server) registerSpinalIVDDRoutes() {
 	s.mux.HandleFunc("GET /spinal-ivdd-triage", s.handleSpinalIVDDTriagePage)
 
-	s.mux.HandleFunc("GET /api/spinal-ivdd/operations", s.handleListSpinalIVDDOperations)
-	s.mux.HandleFunc("POST /api/spinal-ivdd/operations", s.handleCreateSpinalIVDDOperation)
-	s.mux.HandleFunc("GET /api/spinal-ivdd/operations/{id}", s.handleGetSpinalIVDDOperation)
-	s.mux.HandleFunc("POST /api/spinal-ivdd/operations/{id}/stage-decompression", s.handleStageSpinalIVDDDecompression)
-	s.mux.HandleFunc("POST /api/spinal-ivdd/operations/{id}/record-check", s.handleRecordSpinalIVDDCheck)
-	s.mux.HandleFunc("POST /api/spinal-ivdd/operations/{id}/clear-discharge", s.handleClearSpinalIVDDDischarge)
-	s.mux.HandleFunc("GET /api/spinal-ivdd/stream", s.handleSpinalIVDDStream)
-
-	// v1 aliases for consistency
-	s.mux.HandleFunc("GET /api/v1/spinal-ivdd/operations", s.handleListSpinalIVDDOperations)
-	s.mux.HandleFunc("POST /api/v1/spinal-ivdd/operations", s.handleCreateSpinalIVDDOperation)
-	s.mux.HandleFunc("GET /api/v1/spinal-ivdd/operations/{id}", s.handleGetSpinalIVDDOperation)
-	s.mux.HandleFunc("POST /api/v1/spinal-ivdd/operations/{id}/stage-decompression", s.handleStageSpinalIVDDDecompression)
-	s.mux.HandleFunc("POST /api/v1/spinal-ivdd/operations/{id}/record-check", s.handleRecordSpinalIVDDCheck)
-	s.mux.HandleFunc("POST /api/v1/spinal-ivdd/operations/{id}/clear-discharge", s.handleClearSpinalIVDDDischarge)
-	s.mux.HandleFunc("GET /api/v1/spinal-ivdd/stream", s.handleSpinalIVDDStream)
-}
-
-func writeSpinalIVDDJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
+	s.registerDualAPIRoute("GET", "spinal-ivdd/operations", s.handleListSpinalIVDDOperations)
+	s.registerDualAPIRoute("POST", "spinal-ivdd/operations", s.handleCreateSpinalIVDDOperation)
+	s.registerDualAPIRoute("GET", "spinal-ivdd/operations/{id}", s.handleGetSpinalIVDDOperation)
+	s.registerDualAPIRoute("POST", "spinal-ivdd/operations/{id}/stage-decompression", s.handleStageSpinalIVDDDecompression)
+	s.registerDualAPIRoute("POST", "spinal-ivdd/operations/{id}/record-check", s.handleRecordSpinalIVDDCheck)
+	s.registerDualAPIRoute("POST", "spinal-ivdd/operations/{id}/clear-discharge", s.handleClearSpinalIVDDDischarge)
+	s.registerDualAPIRoute("GET", "spinal-ivdd/stream", s.handleSpinalIVDDStream)
 }
 
 func (s *Server) handleSpinalIVDDTriagePage(w http.ResponseWriter, r *http.Request) {
@@ -140,12 +103,6 @@ func (s *Server) handleSpinalIVDDTriagePage(w http.ResponseWriter, r *http.Reque
 	if len(ops) > 0 {
 		first := ops[0]
 		activeOp = &first
-	}
-
-	tmpl, err := template.New("spinal_ivdd_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/spinal_ivdd_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load Spinal IVDD Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	locale := LocaleFromContext(r.Context())
@@ -166,12 +123,7 @@ func (s *Server) handleSpinalIVDDTriagePage(w http.ResponseWriter, r *http.Reque
 		Locale:                       locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "spinal_ivdd_triage.html", "Spinal IVDD Triage", data)
 }
 
 func (s *Server) handleListSpinalIVDDOperations(w http.ResponseWriter, r *http.Request) {
@@ -198,9 +150,7 @@ func (s *Server) handleListSpinalIVDDOperations(w http.ResponseWriter, r *http.R
 
 	metrics := svc.GetOverviewMetrics()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": ops,
 		"ops":        ops,
 		"metrics":    metrics,
@@ -216,20 +166,18 @@ func (s *Server) handleGetSpinalIVDDOperation(w http.ResponseWriter, r *http.Req
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeSpinalIVDDJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureSpinalService()
 	op, err := svc.GetOperation(id)
 	if err != nil {
-		writeSpinalIVDDJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusOK, op)
 }
 
 func (s *Server) handleCreateSpinalIVDDOperation(w http.ResponseWriter, r *http.Request) {
@@ -242,7 +190,7 @@ func (s *Server) handleCreateSpinalIVDDOperation(w http.ResponseWriter, r *http.
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload createSpinalIVDDOperationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeSpinalIVDDJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -264,19 +212,17 @@ func (s *Server) handleCreateSpinalIVDDOperation(w http.ResponseWriter, r *http.
 		TargetMAPMmHg:            payload.TargetMAPMmHg,
 	})
 	if err != nil {
-		writeSpinalIVDDJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextSpinalIVDDNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastSpinalIVDDEvent("spinal_ivdd_updated", map[string]any{
 		"type":      "spinal_ivdd_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleStageSpinalIVDDDecompression(w http.ResponseWriter, r *http.Request) {
@@ -288,20 +234,20 @@ func (s *Server) handleStageSpinalIVDDDecompression(w http.ResponseWriter, r *ht
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeSpinalIVDDJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureSpinalService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeSpinalIVDDJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload stageSpinalIVDDDecompressionPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && err != io.EOF {
-		writeSpinalIVDDJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -328,19 +274,17 @@ func (s *Server) handleStageSpinalIVDDDecompression(w http.ResponseWriter, r *ht
 		crateRest,
 	)
 	if err != nil {
-		writeSpinalIVDDJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextSpinalIVDDNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastSpinalIVDDEvent("spinal_ivdd_updated", map[string]any{
 		"type":      "spinal_ivdd_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRecordSpinalIVDDCheck(w http.ResponseWriter, r *http.Request) {
@@ -352,20 +296,20 @@ func (s *Server) handleRecordSpinalIVDDCheck(w http.ResponseWriter, r *http.Requ
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeSpinalIVDDJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureSpinalService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeSpinalIVDDJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload recordSpinalIVDDCheckPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeSpinalIVDDJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -379,19 +323,17 @@ func (s *Server) handleRecordSpinalIVDDCheck(w http.ResponseWriter, r *http.Requ
 		payload.ClinicalNote,
 	)
 	if err != nil {
-		writeSpinalIVDDJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextSpinalIVDDNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastSpinalIVDDEvent("spinal_ivdd_updated", map[string]any{
 		"type":      "spinal_ivdd_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleClearSpinalIVDDDischarge(w http.ResponseWriter, r *http.Request) {
@@ -403,20 +345,20 @@ func (s *Server) handleClearSpinalIVDDDischarge(w http.ResponseWriter, r *http.R
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeSpinalIVDDJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureSpinalService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeSpinalIVDDJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload clearSpinalIVDDDischargePayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeSpinalIVDDJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -427,102 +369,23 @@ func (s *Server) handleClearSpinalIVDDDischarge(w http.ResponseWriter, r *http.R
 
 	updated, err := svc.ClearNeurologyDischarge(id, payload.DischargedBy, summary)
 	if err != nil {
-		writeSpinalIVDDJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextSpinalIVDDNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastSpinalIVDDEvent("spinal_ivdd_updated", map[string]any{
 		"type":      "spinal_ivdd_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleSpinalIVDDStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("spinal_ivdd")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "spinal_ivdd")
 }
 
 func (s *Server) broadcastSpinalIVDDEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextSpinalIVDDNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "spinal_ivdd",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "spinal_ivdd",
-			SenderNodeID:  "spinal-ivdd-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("spinal_ivdd", "spinal-ivdd-hub", eventType, payload, now)
 }

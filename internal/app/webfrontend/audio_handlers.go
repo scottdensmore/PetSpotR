@@ -93,9 +93,7 @@ func (s *Server) handleAudioAnalyze(w http.ResponseWriter, r *http.Request) {
 	pBytes, _ := json.Marshal(profile)
 	_ = s.stateStore.SaveState(r.Context(), store.CollectionAudioProfiles, audioID, pBytes)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(profile)
+	writeCockpitJSON(w, http.StatusOK, profile)
 }
 
 func (s *Server) handleLostPetAudioProfile(w http.ResponseWriter, r *http.Request) {
@@ -194,9 +192,7 @@ func (s *Server) handleLostPetAudioProfile(w http.ResponseWriter, r *http.Reques
 	profBytes, _ := json.Marshal(profile)
 	_ = s.stateStore.SaveState(r.Context(), store.CollectionAudioProfiles, profile.AudioID, profBytes)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(profile)
+	writeCockpitJSON(w, http.StatusOK, profile)
 }
 
 func (s *Server) handleAudioMatch(w http.ResponseWriter, r *http.Request) {

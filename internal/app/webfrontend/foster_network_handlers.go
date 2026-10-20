@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"sort"
 	"strings"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
 	"github.com/scottdensmore/petspotr/pkg/fosternetwork"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
@@ -180,14 +178,6 @@ func (s *Server) loadFosterPlacements(ctx context.Context, petIDFilter, statusFi
 	return placements
 }
 
-func writeFosterJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
-}
-
 func (s *Server) handleFosterNetworkPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		w.Header().Set("Allow", "GET, HEAD")
@@ -197,12 +187,6 @@ func (s *Server) handleFosterNetworkPage(w http.ResponseWriter, r *http.Request)
 
 	s.ensureDefaultFosterPlacements(r.Context())
 	placements := s.loadFosterPlacements(r.Context(), "", "")
-
-	tmpl, err := template.New("foster_network.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/foster_network.html")
-	if err != nil {
-		http.Error(w, "Failed to load Foster Network template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
 
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
@@ -214,12 +198,7 @@ func (s *Server) handleFosterNetworkPage(w http.ResponseWriter, r *http.Request)
 		Locale:     locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "foster_network.html", "Foster Network", data)
 }
 
 func (s *Server) handleListFosterPlacements(w http.ResponseWriter, r *http.Request) {
@@ -229,7 +208,7 @@ func (s *Server) handleListFosterPlacements(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if s.stateStore == nil {
-		writeFosterJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
@@ -241,9 +220,7 @@ func (s *Server) handleListFosterPlacements(w http.ResponseWriter, r *http.Reque
 		strings.TrimSpace(q.Get("status")),
 	)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"placements": placements,
 	})
 }
@@ -255,14 +232,14 @@ func (s *Server) handleCreateFosterPlacement(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	if s.stateStore == nil {
-		writeFosterJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req createFosterPlacementRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeFosterJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -289,17 +266,17 @@ func (s *Server) handleCreateFosterPlacement(w http.ResponseWriter, r *http.Requ
 		MedCertVerified:    req.MedCertVerified,
 	}, now)
 	if err != nil {
-		writeFosterJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	placementBytes, err := json.Marshal(placement)
 	if err != nil {
-		writeFosterJSONError(w, http.StatusInternalServerError, "Failed to encode foster placement")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to encode foster placement")
 		return
 	}
 	if err := s.stateStore.SaveState(r.Context(), store.CollectionFosterPlacementMatches, placement.PlacementID, placementBytes); err != nil {
-		writeFosterJSONError(w, http.StatusInternalServerError, "Failed to save foster placement")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to save foster placement")
 		return
 	}
 
@@ -308,9 +285,7 @@ func (s *Server) handleCreateFosterPlacement(w http.ResponseWriter, r *http.Requ
 		"placement": placement,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(placement)
+	writeCockpitJSON(w, http.StatusCreated, placement)
 }
 
 func (s *Server) handleTransitionFosterPlacement(w http.ResponseWriter, r *http.Request) {
@@ -320,20 +295,20 @@ func (s *Server) handleTransitionFosterPlacement(w http.ResponseWriter, r *http.
 		return
 	}
 	if s.stateStore == nil {
-		writeFosterJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	placementID := strings.TrimSpace(r.PathValue("id"))
 	if placementID == "" {
-		writeFosterJSONError(w, http.StatusBadRequest, "placement id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "placement id is required")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req transitionFosterPlacementRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeFosterJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -368,14 +343,14 @@ func (s *Server) handleTransitionFosterPlacement(w http.ResponseWriter, r *http.
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-			writeFosterJSONError(w, http.StatusNotFound, "Foster placement not found")
+			writeCockpitJSONError(w, http.StatusNotFound, "Foster placement not found")
 			return
 		}
 		if transErr != nil {
-			writeFosterJSONError(w, http.StatusBadRequest, transErr.Error())
+			writeCockpitJSONError(w, http.StatusBadRequest, transErr.Error())
 			return
 		}
-		writeFosterJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to transition foster placement: %v", err))
+		writeCockpitJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to transition foster placement: %v", err))
 		return
 	}
 
@@ -384,92 +359,13 @@ func (s *Server) handleTransitionFosterPlacement(w http.ResponseWriter, r *http.
 		"placement": updatedPlacement,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updatedPlacement)
+	writeCockpitJSON(w, http.StatusOK, updatedPlacement)
 }
 
 func (s *Server) handleFosterNetworkStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("foster_network")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "foster_network")
 }
 
 func (s *Server) broadcastFosterNetworkEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextFosterNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "foster_network",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "foster_network",
-			SenderNodeID:  "foster-network-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("foster_network", "foster-network-hub", eventType, payload, now)
 }

@@ -3,33 +3,14 @@ package webfrontend
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/ncpeelectrocution"
 )
-
-var lastNCPEElectrocutionNano atomic.Int64
-
-func nextNCPEElectrocutionNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastNCPEElectrocutionNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastNCPEElectrocutionNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // NCPEElectrocutionPageData represents template data passed to templates/ncpe_electrocution_triage.html.
 type NCPEElectrocutionPageData struct {
@@ -102,30 +83,13 @@ func (s *Server) ensureNCPEService() *ncpeelectrocution.NCPEService {
 func (s *Server) registerNCPEElectrocutionRoutes() {
 	s.mux.HandleFunc("GET /ncpe-electrocution-triage", s.handleNCPEElectrocutionTriagePage)
 
-	s.mux.HandleFunc("GET /api/ncpe-electrocution/operations", s.handleListNCPEElectrocutionOperations)
-	s.mux.HandleFunc("POST /api/ncpe-electrocution/operations", s.handleCreateNCPEElectrocutionOperation)
-	s.mux.HandleFunc("GET /api/ncpe-electrocution/operations/{id}", s.handleGetNCPEElectrocutionOperation)
-	s.mux.HandleFunc("POST /api/ncpe-electrocution/operations/{id}/stage-cpap", s.handleStageNCPECPAPVentilation)
-	s.mux.HandleFunc("POST /api/ncpe-electrocution/operations/{id}/record-check", s.handleRecordNCPERespiratoryCheck)
-	s.mux.HandleFunc("POST /api/ncpe-electrocution/operations/{id}/clear-discharge", s.handleClearNCPEElectrocutionDischarge)
-	s.mux.HandleFunc("GET /api/ncpe-electrocution/stream", s.handleNCPEElectrocutionStream)
-
-	// v1 aliases for consistency
-	s.mux.HandleFunc("GET /api/v1/ncpe-electrocution/operations", s.handleListNCPEElectrocutionOperations)
-	s.mux.HandleFunc("POST /api/v1/ncpe-electrocution/operations", s.handleCreateNCPEElectrocutionOperation)
-	s.mux.HandleFunc("GET /api/v1/ncpe-electrocution/operations/{id}", s.handleGetNCPEElectrocutionOperation)
-	s.mux.HandleFunc("POST /api/v1/ncpe-electrocution/operations/{id}/stage-cpap", s.handleStageNCPECPAPVentilation)
-	s.mux.HandleFunc("POST /api/v1/ncpe-electrocution/operations/{id}/record-check", s.handleRecordNCPERespiratoryCheck)
-	s.mux.HandleFunc("POST /api/v1/ncpe-electrocution/operations/{id}/clear-discharge", s.handleClearNCPEElectrocutionDischarge)
-	s.mux.HandleFunc("GET /api/v1/ncpe-electrocution/stream", s.handleNCPEElectrocutionStream)
-}
-
-func writeNCPEElectrocutionJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
+	s.registerDualAPIRoute("GET", "ncpe-electrocution/operations", s.handleListNCPEElectrocutionOperations)
+	s.registerDualAPIRoute("POST", "ncpe-electrocution/operations", s.handleCreateNCPEElectrocutionOperation)
+	s.registerDualAPIRoute("GET", "ncpe-electrocution/operations/{id}", s.handleGetNCPEElectrocutionOperation)
+	s.registerDualAPIRoute("POST", "ncpe-electrocution/operations/{id}/stage-cpap", s.handleStageNCPECPAPVentilation)
+	s.registerDualAPIRoute("POST", "ncpe-electrocution/operations/{id}/record-check", s.handleRecordNCPERespiratoryCheck)
+	s.registerDualAPIRoute("POST", "ncpe-electrocution/operations/{id}/clear-discharge", s.handleClearNCPEElectrocutionDischarge)
+	s.registerDualAPIRoute("GET", "ncpe-electrocution/stream", s.handleNCPEElectrocutionStream)
 }
 
 func (s *Server) handleNCPEElectrocutionTriagePage(w http.ResponseWriter, r *http.Request) {
@@ -143,12 +107,6 @@ func (s *Server) handleNCPEElectrocutionTriagePage(w http.ResponseWriter, r *htt
 	if len(ops) > 0 {
 		first := ops[0]
 		activeOp = &first
-	}
-
-	tmpl, err := template.New("ncpe_electrocution_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/ncpe_electrocution_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load NCPE Electrocution Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	locale := LocaleFromContext(r.Context())
@@ -169,12 +127,7 @@ func (s *Server) handleNCPEElectrocutionTriagePage(w http.ResponseWriter, r *htt
 		Locale:                      locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "ncpe_electrocution_triage.html", "NCPE Electrocution Triage", data)
 }
 
 func (s *Server) handleListNCPEElectrocutionOperations(w http.ResponseWriter, r *http.Request) {
@@ -201,9 +154,7 @@ func (s *Server) handleListNCPEElectrocutionOperations(w http.ResponseWriter, r 
 
 	metrics := svc.GetOverviewMetrics()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": ops,
 		"ops":        ops,
 		"metrics":    metrics,
@@ -219,20 +170,18 @@ func (s *Server) handleGetNCPEElectrocutionOperation(w http.ResponseWriter, r *h
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeNCPEElectrocutionJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureNCPEService()
 	op, err := svc.GetOperation(id)
 	if err != nil {
-		writeNCPEElectrocutionJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusOK, op)
 }
 
 func (s *Server) handleCreateNCPEElectrocutionOperation(w http.ResponseWriter, r *http.Request) {
@@ -245,7 +194,7 @@ func (s *Server) handleCreateNCPEElectrocutionOperation(w http.ResponseWriter, r
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload createNCPEElectrocutionOperationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeNCPEElectrocutionJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -271,19 +220,17 @@ func (s *Server) handleCreateNCPEElectrocutionOperation(w http.ResponseWriter, r
 		payload.PinkFrothyAirwayFluid,
 	)
 	if err != nil {
-		writeNCPEElectrocutionJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextNCPEElectrocutionNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastNCPEElectrocutionEvent("ncpe_electrocution_updated", map[string]any{
 		"type":      "ncpe_electrocution_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleStageNCPECPAPVentilation(w http.ResponseWriter, r *http.Request) {
@@ -295,21 +242,21 @@ func (s *Server) handleStageNCPECPAPVentilation(w http.ResponseWriter, r *http.R
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeNCPEElectrocutionJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureNCPEService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeNCPEElectrocutionJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload stageNCPECPAPVentilationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && err != io.EOF {
-		writeNCPEElectrocutionJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -322,19 +269,17 @@ func (s *Server) handleStageNCPECPAPVentilation(w http.ResponseWriter, r *http.R
 
 	updated, err := svc.StageCPAPVentilation(id, oxygen, anxiolytic, furosemide, cpap, fluid, oral)
 	if err != nil {
-		writeNCPEElectrocutionJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextNCPEElectrocutionNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastNCPEElectrocutionEvent("ncpe_electrocution_updated", map[string]any{
 		"type":      "ncpe_electrocution_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRecordNCPERespiratoryCheck(w http.ResponseWriter, r *http.Request) {
@@ -346,20 +291,20 @@ func (s *Server) handleRecordNCPERespiratoryCheck(w http.ResponseWriter, r *http
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeNCPEElectrocutionJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureNCPEService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeNCPEElectrocutionJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload recordNCPERespiratoryCheckPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeNCPEElectrocutionJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -374,19 +319,17 @@ func (s *Server) handleRecordNCPERespiratoryCheck(w http.ResponseWriter, r *http
 		payload.ClinicalNote,
 	)
 	if err != nil {
-		writeNCPEElectrocutionJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextNCPEElectrocutionNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastNCPEElectrocutionEvent("ncpe_electrocution_updated", map[string]any{
 		"type":      "ncpe_electrocution_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleClearNCPEElectrocutionDischarge(w http.ResponseWriter, r *http.Request) {
@@ -398,122 +341,43 @@ func (s *Server) handleClearNCPEElectrocutionDischarge(w http.ResponseWriter, r 
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeNCPEElectrocutionJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureNCPEService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeNCPEElectrocutionJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload clearNCPEElectrocutionDischargePayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeNCPEElectrocutionJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	summary := firstNonEmpty(payload.DischargeSummary, payload.Summary)
 	updated, err := svc.ClearNCPEDischarge(id, payload.DischargedBy, summary)
 	if err != nil {
-		writeNCPEElectrocutionJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextNCPEElectrocutionNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastNCPEElectrocutionEvent("ncpe_electrocution_updated", map[string]any{
 		"type":      "ncpe_electrocution_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleNCPEElectrocutionStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("ncpe_electrocution")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "ncpe_electrocution")
 }
 
 func (s *Server) broadcastNCPEElectrocutionEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextNCPEElectrocutionNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "ncpe_electrocution",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "ncpe_electrocution",
-			SenderNodeID:  "ncpe-electrocution-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("ncpe_electrocution", "ncpe-electrocution-hub", eventType, payload, now)
 }

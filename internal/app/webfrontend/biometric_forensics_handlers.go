@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"sort"
 	"strings"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/scottdensmore/petspotr/pkg/biometrics"
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/store"
 )
 
@@ -180,14 +178,6 @@ func (s *Server) loadBiometricForensicCases(ctx context.Context, petIDFilter, st
 	return cases
 }
 
-func writeForensicJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
-}
-
 func (s *Server) handleBiometricForensicsPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		w.Header().Set("Allow", "GET, HEAD")
@@ -197,12 +187,6 @@ func (s *Server) handleBiometricForensicsPage(w http.ResponseWriter, r *http.Req
 
 	s.ensureDefaultBiometricForensicCases(r.Context())
 	cases := s.loadBiometricForensicCases(r.Context(), "", "")
-
-	tmpl, err := template.New("biometric_forensics.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/biometric_forensics.html")
-	if err != nil {
-		http.Error(w, "Failed to load Biometric Forensics template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
 
 	locale := LocaleFromContext(r.Context())
 	if strings.TrimSpace(locale) == "" {
@@ -214,12 +198,7 @@ func (s *Server) handleBiometricForensicsPage(w http.ResponseWriter, r *http.Req
 		Locale: locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "biometric_forensics.html", "Biometric Forensics", data)
 }
 
 func (s *Server) handleListBiometricForensicCases(w http.ResponseWriter, r *http.Request) {
@@ -229,7 +208,7 @@ func (s *Server) handleListBiometricForensicCases(w http.ResponseWriter, r *http
 		return
 	}
 	if s.stateStore == nil {
-		writeForensicJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
@@ -241,9 +220,7 @@ func (s *Server) handleListBiometricForensicCases(w http.ResponseWriter, r *http
 		strings.TrimSpace(q.Get("status")),
 	)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"cases": cases,
 	})
 }
@@ -255,14 +232,14 @@ func (s *Server) handleCreateBiometricForensicCase(w http.ResponseWriter, r *htt
 		return
 	}
 	if s.stateStore == nil {
-		writeForensicJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req createBiometricForensicCaseRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeForensicJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -289,17 +266,17 @@ func (s *Server) handleCreateBiometricForensicCase(w http.ResponseWriter, r *htt
 		WaterCulvertCleared: req.WaterCulvertCleared,
 	}, now)
 	if err != nil {
-		writeForensicJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	caseBytes, err := json.Marshal(forensicCase)
 	if err != nil {
-		writeForensicJSONError(w, http.StatusInternalServerError, "Failed to encode biometric forensic case")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to encode biometric forensic case")
 		return
 	}
 	if err := s.stateStore.SaveState(r.Context(), store.CollectionBiometricForensicCases, forensicCase.CaseID, caseBytes); err != nil {
-		writeForensicJSONError(w, http.StatusInternalServerError, "Failed to save biometric forensic case")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "Failed to save biometric forensic case")
 		return
 	}
 
@@ -308,9 +285,7 @@ func (s *Server) handleCreateBiometricForensicCase(w http.ResponseWriter, r *htt
 		"forensicCase": forensicCase,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(forensicCase)
+	writeCockpitJSON(w, http.StatusCreated, forensicCase)
 }
 
 func (s *Server) handleVerifyBiometricForensicCase(w http.ResponseWriter, r *http.Request) {
@@ -320,20 +295,20 @@ func (s *Server) handleVerifyBiometricForensicCase(w http.ResponseWriter, r *htt
 		return
 	}
 	if s.stateStore == nil {
-		writeForensicJSONError(w, http.StatusInternalServerError, "state store uninitialized")
+		writeCockpitJSONError(w, http.StatusInternalServerError, "state store uninitialized")
 		return
 	}
 
 	caseID := strings.TrimSpace(r.PathValue("id"))
 	if caseID == "" {
-		writeForensicJSONError(w, http.StatusBadRequest, "case id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "case id is required")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var req verifyBiometricForensicCaseRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeForensicJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -368,14 +343,14 @@ func (s *Server) handleVerifyBiometricForensicCase(w http.ResponseWriter, r *htt
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrStoreNotFound) {
-			writeForensicJSONError(w, http.StatusNotFound, "Biometric forensic case not found")
+			writeCockpitJSONError(w, http.StatusNotFound, "Biometric forensic case not found")
 			return
 		}
 		if verifyErr != nil {
-			writeForensicJSONError(w, http.StatusBadRequest, verifyErr.Error())
+			writeCockpitJSONError(w, http.StatusBadRequest, verifyErr.Error())
 			return
 		}
-		writeForensicJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to verify biometric forensic case: %v", err))
+		writeCockpitJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to verify biometric forensic case: %v", err))
 		return
 	}
 
@@ -384,92 +359,13 @@ func (s *Server) handleVerifyBiometricForensicCase(w http.ResponseWriter, r *htt
 		"forensicCase": updatedCase,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updatedCase)
+	writeCockpitJSON(w, http.StatusOK, updatedCase)
 }
 
 func (s *Server) handleBiometricForensicsStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("biometric_forensics")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "biometric_forensics")
 }
 
 func (s *Server) broadcastBiometricForensicsEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextForensicNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "biometric_forensics",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "biometric_forensics",
-			SenderNodeID:  "biometric-forensics-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("biometric_forensics", "biometric-forensics-hub", eventType, payload, now)
 }

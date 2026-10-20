@@ -3,33 +3,14 @@ package webfrontend
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/scottdensmore/petspotr/pkg/domain"
-	"github.com/scottdensmore/petspotr/pkg/mesh"
 	"github.com/scottdensmore/petspotr/pkg/thermalburnparkland"
 )
-
-var lastThermalBurnParklandNano atomic.Int64
-
-func nextThermalBurnParklandNano() int64 {
-	now := time.Now().UTC().UnixNano()
-	for {
-		prev := lastThermalBurnParklandNano.Load()
-		next := now
-		if next <= prev {
-			next = prev + 1
-		}
-		if lastThermalBurnParklandNano.CompareAndSwap(prev, next) {
-			return next
-		}
-	}
-}
 
 // ThermalBurnParklandPageData represents template data passed to templates/thermal_burn_parkland_triage.html.
 type ThermalBurnParklandPageData struct {
@@ -102,30 +83,13 @@ func (s *Server) ensureBurnService() *thermalburnparkland.BurnService {
 func (s *Server) registerThermalBurnParklandRoutes() {
 	s.mux.HandleFunc("GET /thermal-burn-parkland-triage", s.handleThermalBurnParklandTriagePage)
 
-	s.mux.HandleFunc("GET /api/thermal-burn-parkland/operations", s.handleListThermalBurnOperations)
-	s.mux.HandleFunc("POST /api/thermal-burn-parkland/operations", s.handleCreateThermalBurnOperation)
-	s.mux.HandleFunc("GET /api/thermal-burn-parkland/operations/{id}", s.handleGetThermalBurnOperation)
-	s.mux.HandleFunc("POST /api/thermal-burn-parkland/operations/{id}/stage-parkland", s.handleStageThermalBurnParkland)
-	s.mux.HandleFunc("POST /api/thermal-burn-parkland/operations/{id}/record-check", s.handleRecordThermalBurnCheck)
-	s.mux.HandleFunc("POST /api/thermal-burn-parkland/operations/{id}/clear-discharge", s.handleClearThermalBurnDischarge)
-	s.mux.HandleFunc("GET /api/thermal-burn-parkland/stream", s.handleThermalBurnParklandStream)
-
-	// v1 aliases for consistency
-	s.mux.HandleFunc("GET /api/v1/thermal-burn-parkland/operations", s.handleListThermalBurnOperations)
-	s.mux.HandleFunc("POST /api/v1/thermal-burn-parkland/operations", s.handleCreateThermalBurnOperation)
-	s.mux.HandleFunc("GET /api/v1/thermal-burn-parkland/operations/{id}", s.handleGetThermalBurnOperation)
-	s.mux.HandleFunc("POST /api/v1/thermal-burn-parkland/operations/{id}/stage-parkland", s.handleStageThermalBurnParkland)
-	s.mux.HandleFunc("POST /api/v1/thermal-burn-parkland/operations/{id}/record-check", s.handleRecordThermalBurnCheck)
-	s.mux.HandleFunc("POST /api/v1/thermal-burn-parkland/operations/{id}/clear-discharge", s.handleClearThermalBurnDischarge)
-	s.mux.HandleFunc("GET /api/v1/thermal-burn-parkland/stream", s.handleThermalBurnParklandStream)
-}
-
-func writeThermalBurnParklandJSONError(w http.ResponseWriter, statusCode int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": message,
-	})
+	s.registerDualAPIRoute("GET", "thermal-burn-parkland/operations", s.handleListThermalBurnOperations)
+	s.registerDualAPIRoute("POST", "thermal-burn-parkland/operations", s.handleCreateThermalBurnOperation)
+	s.registerDualAPIRoute("GET", "thermal-burn-parkland/operations/{id}", s.handleGetThermalBurnOperation)
+	s.registerDualAPIRoute("POST", "thermal-burn-parkland/operations/{id}/stage-parkland", s.handleStageThermalBurnParkland)
+	s.registerDualAPIRoute("POST", "thermal-burn-parkland/operations/{id}/record-check", s.handleRecordThermalBurnCheck)
+	s.registerDualAPIRoute("POST", "thermal-burn-parkland/operations/{id}/clear-discharge", s.handleClearThermalBurnDischarge)
+	s.registerDualAPIRoute("GET", "thermal-burn-parkland/stream", s.handleThermalBurnParklandStream)
 }
 
 func (s *Server) handleThermalBurnParklandTriagePage(w http.ResponseWriter, r *http.Request) {
@@ -143,12 +107,6 @@ func (s *Server) handleThermalBurnParklandTriagePage(w http.ResponseWriter, r *h
 	if len(ops) > 0 {
 		first := ops[0]
 		activeOp = &first
-	}
-
-	tmpl, err := template.New("thermal_burn_parkland_triage.html").Funcs(templateFuncMap).ParseFS(embeddedFiles, "templates/thermal_burn_parkland_triage.html")
-	if err != nil {
-		http.Error(w, "Failed to load Thermal Burn Parkland Triage template: "+err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	locale := LocaleFromContext(r.Context())
@@ -169,12 +127,7 @@ func (s *Server) handleThermalBurnParklandTriagePage(w http.ResponseWriter, r *h
 		Locale:                     locale,
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Permissions-Policy", "camera=(), geolocation=(self), microphone=()")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_ = tmpl.Execute(w, data)
-	}
+	s.renderCockpitTemplate(w, r, "thermal_burn_parkland_triage.html", "Thermal Burn Parkland Triage", data)
 }
 
 func (s *Server) handleListThermalBurnOperations(w http.ResponseWriter, r *http.Request) {
@@ -201,9 +154,7 @@ func (s *Server) handleListThermalBurnOperations(w http.ResponseWriter, r *http.
 
 	metrics := svc.GetOverviewMetrics()
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeCockpitJSON(w, http.StatusOK, map[string]any{
 		"operations": ops,
 		"ops":        ops,
 		"metrics":    metrics,
@@ -219,20 +170,18 @@ func (s *Server) handleGetThermalBurnOperation(w http.ResponseWriter, r *http.Re
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeThermalBurnParklandJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureBurnService()
 	op, err := svc.GetOperation(id)
 	if err != nil {
-		writeThermalBurnParklandJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(op)
+	writeCockpitJSON(w, http.StatusOK, op)
 }
 
 func (s *Server) handleCreateThermalBurnOperation(w http.ResponseWriter, r *http.Request) {
@@ -245,7 +194,7 @@ func (s *Server) handleCreateThermalBurnOperation(w http.ResponseWriter, r *http
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload createThermalBurnOperationPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeThermalBurnParklandJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -271,19 +220,17 @@ func (s *Server) handleCreateThermalBurnOperation(w http.ResponseWriter, r *http
 		payload.SingedVibrissaeSootAirway,
 	)
 	if err != nil {
-		writeThermalBurnParklandJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextThermalBurnParklandNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastThermalBurnParklandEvent("thermal_burn_parkland_updated", map[string]any{
 		"type":      "thermal_burn_parkland_updated",
 		"operation": created,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(created)
+	writeCockpitJSON(w, http.StatusCreated, created)
 }
 
 func (s *Server) handleStageThermalBurnParkland(w http.ResponseWriter, r *http.Request) {
@@ -295,21 +242,21 @@ func (s *Server) handleStageThermalBurnParkland(w http.ResponseWriter, r *http.R
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeThermalBurnParklandJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureBurnService()
 	existing, err := svc.GetOperation(id)
 	if err != nil {
-		writeThermalBurnParklandJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload stageThermalBurnParklandPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && err != io.EOF {
-		writeThermalBurnParklandJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -322,19 +269,17 @@ func (s *Server) handleStageThermalBurnParkland(w http.ResponseWriter, r *http.R
 
 	updated, err := svc.StageParklandWoundPlan(id, parkland, ssd, eschar, analgesia, albumin, airway)
 	if err != nil {
-		writeThermalBurnParklandJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextThermalBurnParklandNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastThermalBurnParklandEvent("thermal_burn_parkland_updated", map[string]any{
 		"type":      "thermal_burn_parkland_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleRecordThermalBurnCheck(w http.ResponseWriter, r *http.Request) {
@@ -346,20 +291,20 @@ func (s *Server) handleRecordThermalBurnCheck(w http.ResponseWriter, r *http.Req
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeThermalBurnParklandJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureBurnService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeThermalBurnParklandJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload recordThermalBurnCheckPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeThermalBurnParklandJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
@@ -374,19 +319,17 @@ func (s *Server) handleRecordThermalBurnCheck(w http.ResponseWriter, r *http.Req
 		payload.ClinicalNote,
 	)
 	if err != nil {
-		writeThermalBurnParklandJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextThermalBurnParklandNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastThermalBurnParklandEvent("thermal_burn_parkland_updated", map[string]any{
 		"type":      "thermal_burn_parkland_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleClearThermalBurnDischarge(w http.ResponseWriter, r *http.Request) {
@@ -398,122 +341,43 @@ func (s *Server) handleClearThermalBurnDischarge(w http.ResponseWriter, r *http.
 
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		writeThermalBurnParklandJSONError(w, http.StatusBadRequest, "operation id is required")
+		writeCockpitJSONError(w, http.StatusBadRequest, "operation id is required")
 		return
 	}
 
 	svc := s.ensureBurnService()
 	if _, err := svc.GetOperation(id); err != nil {
-		writeThermalBurnParklandJSONError(w, http.StatusNotFound, err.Error())
+		writeCockpitJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	var payload clearThermalBurnDischargePayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeThermalBurnParklandJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
+		writeCockpitJSONError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	summary := firstNonEmpty(payload.DischargeSummary, payload.Summary)
 	updated, err := svc.ClearBurnDischarge(id, payload.DischargedBy, summary)
 	if err != nil {
-		writeThermalBurnParklandJSONError(w, http.StatusBadRequest, err.Error())
+		writeCockpitJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Unix(0, nextThermalBurnParklandNano()).UTC()
+	now := time.Unix(0, nextCockpitNano()).UTC()
 	s.broadcastThermalBurnParklandEvent("thermal_burn_parkland_updated", map[string]any{
 		"type":      "thermal_burn_parkland_updated",
 		"operation": updated,
 	}, now)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(updated)
+	writeCockpitJSON(w, http.StatusOK, updated)
 }
 
 func (s *Server) handleThermalBurnParklandStream(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
-		return
-	}
-	flusher.Flush()
-
-	if s.reunionHub == nil {
-		return
-	}
-
-	subCh, unsubscribe := s.reunionHub.Subscribe("thermal_burn_parkland")
-	defer unsubscribe()
-
-	pingInterval := s.reunionPingInterval
-	if pingInterval <= 0 {
-		pingInterval = defaultReunionPingInterval
-	}
-	ticker := time.NewTicker(pingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
-				return
-			}
-			flusher.Flush()
-		case event, ok := <-subCh:
-			if !ok {
-				return
-			}
-			if err := formatSSEEvent(w, event); err != nil {
-				return
-			}
-			flusher.Flush()
-		}
-	}
+	s.serveCockpitSSEStream(w, r, "thermal_burn_parkland")
 }
 
 func (s *Server) broadcastThermalBurnParklandEvent(eventType string, payload map[string]any, now time.Time) {
-	seqNano := nextThermalBurnParklandNano()
-	if s.reunionHub != nil {
-		evt := domain.ReunionStreamEvent{
-			EventID:   fmt.Sprintf("evt_%s_%d", eventType, seqNano),
-			Type:      domain.ReunionEventType(eventType),
-			MatchID:   "thermal_burn_parkland",
-			Timestamp: now,
-			Payload:   payload,
-		}
-		s.reunionHub.Broadcast(evt)
-	}
-
-	if s.signalingHub != nil {
-		payloadBytes, _ := json.Marshal(payload)
-		env := mesh.SignalingEnvelope{
-			Type:          mesh.SignalingType(eventType),
-			SearchPartyID: "thermal_burn_parkland",
-			SenderNodeID:  "thermal-burn-parkland-hub",
-			Payload:       payloadBytes,
-			Timestamp:     now,
-		}
-		s.signalingHub.Broadcast(env)
-	}
+	s.broadcastCockpitEvent("thermal_burn_parkland", "thermal-burn-parkland-hub", eventType, payload, now)
 }
