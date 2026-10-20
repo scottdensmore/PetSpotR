@@ -44,10 +44,10 @@ verify: vet lint infra-check yamllint test ## Run complete local verification su
 	@echo "==> All local checks passed successfully!"
 
 .PHONY: emulators-up
-emulators-up: ## Start Firestore, PubSub, and Auth emulators and initialize topics
+emulators-up: ## Start Firestore and PubSub emulators and initialize topics
 	@echo "==> Starting local emulators..."
-	@docker compose up -d firestore-emulator pubsub-emulator auth-emulator
-	@./scripts/init-emulators.sh
+	@docker compose up -d firestore-emulator pubsub-emulator
+	@GOTOOLCHAIN=$(GOTOOLCHAIN) go run ./cmd/emulator-init
 
 .PHONY: emulators-down
 emulators-down: ## Stop local emulators and clean up volumes
@@ -57,7 +57,7 @@ emulators-down: ## Stop local emulators and clean up volumes
 .PHONY: cascade
 cascade: ## Verify full report-to-match event cascade against emulators
 	@echo "==> Verifying emulator cascade..."
-	@./scripts/verify-cascade.sh
+	@GOTOOLCHAIN=$(GOTOOLCHAIN) go run ./cmd/verify-cascade
 
 .PHONY: playwright
 playwright: ## Run Playwright API journeys against local services
