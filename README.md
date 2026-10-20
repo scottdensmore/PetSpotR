@@ -8,9 +8,9 @@ the **Go 1.26.5 toolchain**, **Ollama**, and **Gemma 4** vision models!
 
 ![Logo](./img/logo.svg)
 
-- **Go Event-Driven Microservices**: Clean microservice architecture
+- **Go Event-Driven Microservices**: Clean 100% pure Go microservice architecture
   (`lostpet-service`, `foundpet-service`, `pet-matcher`,
-  `notification-service`).
+  `notification-service`, `web-frontend`).
 - **Local Dev & Local AI**: Zero-dependency local orchestration using
   `docker-compose` and local Ollama (`gemma4:e2b`).
 - **GCP Cloud Infrastructure**: Deployed on Google Cloud Run, Cloud Pub/Sub,

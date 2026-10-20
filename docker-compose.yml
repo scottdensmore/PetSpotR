@@ -14,11 +14,12 @@ services:
       - "8086:8086"
 
   emulator-init:
-    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: emulator-init
     container_name: petspotr-emulator-init
-    volumes:
-      - ./scripts:/scripts:ro
-    entrypoint: ["/bin/bash", "/scripts/init-emulators.sh"]
     environment:
       - PUBSUB_EMULATOR_HOST=pubsub-emulator:8086
       - FIRESTORE_EMULATOR_HOST=firestore-emulator:8085
