@@ -511,7 +511,7 @@ test.describe('Match dashboard persisted-data boundary', () => {
       browserWindow.__staleThreadBodyWaiting = false;
       window.fetch = async (...args) => {
         const response = await originalFetch(...args);
-        const requestURL = typeof args[0] === 'string' ? args[0] : args[0].url;
+        const requestURL = args[0] instanceof Request ? args[0].url : String(args[0]);
         if (!requestURL.includes('matchId=stale-thread-a')) return response;
         return {
           ok: response.ok,

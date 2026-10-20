@@ -62,7 +62,7 @@ cascade: ## Verify full report-to-match event cascade against emulators
 .PHONY: playwright
 playwright: ## Run Playwright API journeys against local services
 	@echo "==> Running Playwright API journeys..."
-	@cd tests/playwright && npm ci && npx playwright test
+	@cd tests/playwright && npm ci && npm test
 
 .PHONY: setup-hooks
 setup-hooks: ## Install local git pre-push verification hook
