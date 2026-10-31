@@ -3,7 +3,7 @@
 
 provider "registry.opentofu.org/hashicorp/google" {
   version     = "8.9.0"
-  constraints = "~> 5.0"
+  constraints = "~> 8.9"
   hashes = [
     "h1:BQXx6yc7LPhe6c6RdMAQNsnP5Rcg2QDCm4mAK34cZnI=",
     "h1:Ha7iJ5vQpcptAWCEXB/gzkIkhKDw2ZKxPVqQ3LO9yBs=",
@@ -11,7 +11,13 @@ provider "registry.opentofu.org/hashicorp/google" {
     "h1:Lb8ddQwOczEEPHg+aTSMVSq4cckeB+nXhXbPxLPOtwM=",
     "h1:MUiXp+AnOthO7PGMuqsJCOWen7ifB5VR9YHSOWTVwJk=",
     "h1:N5YxSJfDhYzXTKtjqAO+JpIlU8Gom8VO5wnB3M8AVqg=",
+    "h1:NFex8eCfhLW2HU+A0B/z5F8XgppYx7Q6HeqO+oFZ0QI=",
+    "h1:Tz/OS7RfwTBamW3VbeU/sFPcIv+jWCNG6f+CWHjFAfk=",
+    "h1:dXM5HpwSNgO2aElNKq5bbzsTmE5UN9e3UyJugfJGK08=",
+    "h1:dvIlDJPUBTrYcCJrvYwJ1wQE9e44iUBQQse6JvPNisM=",
     "h1:fl/pmRnYqfB0zyTYrHYS43DG6RIzVQoXhME9VPMsVW8=",
+    "h1:g0mAfBrYFNBz4fJTbji4Q5YhkkKTdir3HFcM2SMZQxQ=",
+    "h1:hXPTLeH+6VHBIC4TDB7apqCpjXJKm6anceZnkPSnRNk=",
     "h1:jxOSQzax3ZoIEcFu4ypm9k6laHMdIKh57Ulkgqu2KC8=",
     "h1:xhlO0mek9DQDI4BeoZKZ1GxLPUD5jgHPEb+iCTIe4LI=",
     "zh:04e7e1d351e84fbb86a50b27e8a0c4b9fb0b658c430d8bad48255332ec76ae27",

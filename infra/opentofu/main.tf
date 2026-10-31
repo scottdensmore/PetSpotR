@@ -11,6 +11,9 @@ terraform {
 provider "google" {
   project = var.project_id
   region  = var.region
+
+  # Preserve the provider 5.x labeling behavior during the major upgrade.
+  add_terraform_attribution_label = false
 }
 
 resource "google_project_service" "storage" {
