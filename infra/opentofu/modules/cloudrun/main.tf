@@ -229,9 +229,10 @@ resource "google_cloud_run_v2_service" "notification_service" {
 }
 
 resource "google_cloud_run_v2_service" "pet_inference" {
-  name     = "pet-inference"
-  location = var.region
-  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+  name         = "pet-inference"
+  location     = var.region
+  ingress      = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+  launch_stage = "BETA"
 
   template {
     service_account                  = google_service_account.pet_inference_runtime.email
@@ -240,10 +241,6 @@ resource "google_cloud_run_v2_service" "pet_inference" {
     scaling {
       min_instance_count = var.pet_inference_min_instances
       max_instance_count = var.pet_inference_max_instances
-    }
-
-    annotations = {
-      "run.googleapis.com/launch-stage" = "BETA"
     }
 
     containers {
