@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      approved_head:
+        description: Exact final PR head approved for Docker validation
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -85,3 +90,107 @@ jobs:
             ${{ runner.temp }}/go-tests.jsonl
             ${{ runner.temp }}/coverage.out
           retention-days: 3
+
+  docker-build:
+    if: github.event_name == 'workflow_dispatch' && inputs.approved_head != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: /usr/bin/bash --noprofile --norc -euo pipefail {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [web-frontend, lostpet-service, foundpet-service, pet-matcher, notification-service]
+    steps:
+      - name: Confirm dispatch selects the exact approved workflow head
+        env:
+          APPROVED_HEAD: ${{ inputs.approved_head }}
+        run: |
+          [[ "$APPROVED_HEAD" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" = "$APPROVED_HEAD"
+          for tool in /usr/bin/docker /usr/bin/python3 /usr/bin/git /usr/bin/file /usr/bin/grep /usr/bin/tee /usr/bin/cat; do
+            test -x "$tool"
+          done
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.approved_head }}
+          persist-credentials: false
+      - name: Confirm checked-out head
+        env:
+          APPROVED_HEAD: ${{ inputs.approved_head }}
+        run: test "$(/usr/bin/git rev-parse HEAD)" = "$APPROVED_HEAD"
+      - name: Pull and record resolved base-image digests and platforms
+        env:
+          BUILDER_TAG: golang:1.27.3-alpine
+          RUNTIME_TAG: gcr.io/distroless/static-debian12:nonroot
+        run: |
+          /usr/bin/docker pull --platform linux/amd64 "$BUILDER_TAG"
+          /usr/bin/docker pull --platform linux/amd64 "$RUNTIME_TAG"
+          /usr/bin/docker image inspect "$BUILDER_TAG" "$RUNTIME_TAG" > "$RUNNER_TEMP/base-images.json"
+          /usr/bin/python3 -I - "$RUNNER_TEMP/base-images.json" <<'PYCODE'
+          import datetime, json, os, re, sys
+          images = json.load(open(sys.argv[1]))
+          assert len(images) == 2
+          records = []
+          for key, requested, allowed_repositories, image in zip(
+              ("GO_BUILDER_IMAGE", "RUNTIME_IMAGE"),
+              (os.environ["BUILDER_TAG"], os.environ["RUNTIME_TAG"]),
+              (("golang", "docker.io/library/golang"), ("gcr.io/distroless/static-debian12",)),
+              images,
+          ):
+              assert image["Os"] == "linux" and image["Architecture"] == "amd64"
+              digests = image.get("RepoDigests", [])
+              assert digests and all(re.fullmatch(r".+@sha256:[0-9a-f]{64}", v) for v in digests)
+              assert all(v.rsplit("@", 1)[0] in allowed_repositories for v in digests), digests
+              record = {
+                  "requested_tag": requested, "resolved_repo_digests": digests,
+                  "image_id": image["Id"], "os": image["Os"],
+                  "architecture": image["Architecture"], "variant": image.get("Variant"),
+                  "selected_build_ref": digests[0],
+              }
+              records.append(record)
+              with open(os.environ["GITHUB_ENV"], "a") as env:
+                  env.write(f"{key}={digests[0]}\n")
+          result = {
+              "observed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              "approved_head": os.environ["GITHUB_SHA"],
+              "platform": "linux/amd64", "base_images": records,
+          }
+          text = json.dumps(result, indent=2)
+          print("PETSPOTR_BASE_IMAGE_RECORD_BEGIN\n" + text + "\nPETSPOTR_BASE_IMAGE_RECORD_END")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("### Resolved base images\n```json\n" + text + "\n```\n")
+          PYCODE
+      - name: Build production service image from recorded immutable bases
+        env:
+          SERVICE_NAME: ${{ matrix.service }}
+        run: |
+          /usr/bin/docker build --pull --platform linux/amd64 \
+            --build-arg "GO_BUILDER_IMAGE=$GO_BUILDER_IMAGE" \
+            --build-arg "RUNTIME_IMAGE=$RUNTIME_IMAGE" \
+            --build-arg "SERVICE_NAME=$SERVICE_NAME" \
+            --tag "petspotr-validation:$SERVICE_NAME" .
+      - name: Check runtime metadata and static Linux binary without starting it
+        env:
+          SERVICE_NAME: ${{ matrix.service }}
+        run: |
+          /usr/bin/docker image inspect "petspotr-validation:$SERVICE_NAME" > "$RUNNER_TEMP/image.json"
+          /usr/bin/python3 -I - "$RUNNER_TEMP/image.json" <<'PYCODE'
+          import json, sys
+          image = json.load(open(sys.argv[1]))[0]
+          config = image["Config"]
+          assert image["Os"] == "linux" and image["Architecture"] == "amd64"
+          assert config["User"] == "nonroot:nonroot", config["User"]
+          assert config["Entrypoint"] == ["/server"], config["Entrypoint"]
+          print("PETSPOTR_BUILT_IMAGE_RECORD " + json.dumps({
+              "image_id": image["Id"], "os": image["Os"],
+              "architecture": image["Architecture"], "config": config,
+          }))
+          PYCODE
+          container_id=$(/usr/bin/docker create --network none "petspotr-validation:$SERVICE_NAME")
+          trap '/usr/bin/docker rm "$container_id"' EXIT
+          /usr/bin/docker cp "$container_id:/server" "$RUNNER_TEMP/server"
+          /usr/bin/file "$RUNNER_TEMP/server" | /usr/bin/tee "$RUNNER_TEMP/binary-format.txt"
+          /usr/bin/grep -q 'ELF 64-bit.*statically linked' "$RUNNER_TEMP/binary-format.txt"
+          /usr/bin/cat "$RUNNER_TEMP/binary-format.txt" >> "$GITHUB_STEP_SUMMARY"
