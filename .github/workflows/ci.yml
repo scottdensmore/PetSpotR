@@ -50,6 +50,8 @@ jobs:
           "$go_bin/go" version
           "$go_bin/go" list -m
           echo "$go_bin" >> "$GITHUB_PATH"
+      - name: Test Docker validation image selection
+        run: /usr/bin/python3 -m unittest discover -s scripts -p test_docker_validation.py -v
       - name: Fetch and verify only locked project modules
         run: |
           go mod download
@@ -120,55 +122,30 @@ jobs:
         env:
           APPROVED_HEAD: ${{ inputs.approved_head }}
         run: test "$(/usr/bin/git rev-parse HEAD)" = "$APPROVED_HEAD"
+      - name: Read base-image versions from the tracked Dockerfile
+        run: /usr/bin/python3 scripts/docker_validation.py refs --dockerfile Dockerfile --env-file "$GITHUB_ENV"
       - name: Pull and record resolved base-image digests and platforms
-        env:
-          BUILDER_TAG: golang:1.27.3-alpine
-          RUNTIME_TAG: gcr.io/distroless/static-debian12:nonroot
         run: |
           /usr/bin/docker pull --platform linux/amd64 "$BUILDER_TAG"
           /usr/bin/docker pull --platform linux/amd64 "$RUNTIME_TAG"
           /usr/bin/docker image inspect "$BUILDER_TAG" "$RUNTIME_TAG" > "$RUNNER_TEMP/base-images.json"
-          /usr/bin/python3 -I - "$RUNNER_TEMP/base-images.json" <<'PYCODE'
-          import datetime, json, os, re, sys
-          images = json.load(open(sys.argv[1]))
-          assert len(images) == 2
-          records = []
-          for key, requested, allowed_repositories, image in zip(
-              ("GO_BUILDER_IMAGE", "RUNTIME_IMAGE"),
-              (os.environ["BUILDER_TAG"], os.environ["RUNTIME_TAG"]),
-              (("golang", "docker.io/library/golang"), ("gcr.io/distroless/static-debian12",)),
-              images,
-          ):
-              assert image["Os"] == "linux" and image["Architecture"] == "amd64"
-              digests = image.get("RepoDigests", [])
-              assert digests and all(re.fullmatch(r".+@sha256:[0-9a-f]{64}", v) for v in digests)
-              assert all(v.rsplit("@", 1)[0] in allowed_repositories for v in digests), digests
-              record = {
-                  "requested_tag": requested, "resolved_repo_digests": digests,
-                  "image_id": image["Id"], "os": image["Os"],
-                  "architecture": image["Architecture"], "variant": image.get("Variant"),
-                  "selected_build_ref": digests[0],
-              }
-              records.append(record)
-              with open(os.environ["GITHUB_ENV"], "a") as env:
-                  env.write(f"{key}={digests[0]}\n")
-          result = {
-              "observed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-              "approved_head": os.environ["GITHUB_SHA"],
-              "platform": "linux/amd64", "base_images": records,
-          }
-          text = json.dumps(result, indent=2)
-          print("PETSPOTR_BASE_IMAGE_RECORD_BEGIN\n" + text + "\nPETSPOTR_BASE_IMAGE_RECORD_END")
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
-              summary.write("### Resolved base images\n```json\n" + text + "\n```\n")
-          PYCODE
+          /usr/bin/python3 scripts/docker_validation.py pin --dockerfile Dockerfile \
+            --images "$RUNNER_TEMP/base-images.json" --output "$RUNNER_TEMP/Dockerfile.validation" \
+            --head "$GITHUB_SHA" > "$RUNNER_TEMP/base-image-records.json"
+          printf 'PETSPOTR_BASE_IMAGE_RECORD_BEGIN\n'
+          /usr/bin/cat "$RUNNER_TEMP/base-image-records.json"
+          printf '\nPETSPOTR_BASE_IMAGE_RECORD_END\n'
+          {
+            printf '### Resolved base images\n```json\n'
+            /usr/bin/cat "$RUNNER_TEMP/base-image-records.json"
+            printf '\n```\n'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Build production service image from recorded immutable bases
         env:
           SERVICE_NAME: ${{ matrix.service }}
         run: |
           /usr/bin/docker build --pull --platform linux/amd64 \
-            --build-arg "GO_BUILDER_IMAGE=$GO_BUILDER_IMAGE" \
-            --build-arg "RUNTIME_IMAGE=$RUNTIME_IMAGE" \
+            --file "$RUNNER_TEMP/Dockerfile.validation" \
             --build-arg "SERVICE_NAME=$SERVICE_NAME" \
             --tag "petspotr-validation:$SERVICE_NAME" .
       - name: Check runtime metadata and static Linux binary without starting it
