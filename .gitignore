@@ -36,3 +36,18 @@ petimages
 .DS_Store
 *.swp
 .idea/
+.vscode/
+*.swo
+*~
+._*
+Thumbs.db
+[Dd]esktop.ini
+
+# Additional Go and Python tooling
+/dist/
+go.work
+go.work.sum
+__pycache__/
+*.py[cod]
+.venv/
+venv/
